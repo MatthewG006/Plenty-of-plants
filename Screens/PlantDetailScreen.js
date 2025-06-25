@@ -1,13 +1,18 @@
-import React, { useState } from 'react';
+// screens/PlantDetailScreen.js
+import React, { useContext, useState } from 'react';
 import { View, Text, Button, Image, StyleSheet } from 'react-native';
+import { GameContext } from '../context/GameContext';
 
 const PlantDetailScreen = ({ route }) => {
   const { plant } = route.params;
   const [watered, setWatered] = useState(false);
+  const { addNutrients } = useContext(GameContext);
 
   const handleWaterPlant = () => {
     setWatered(true);
     alert(`${plant.name} says "Thank you for watering me! :)"`);
+    // Reward extra nutrients for watering (for example, +2 basic nutrients)
+    addNutrients('basic', 2);
   };
 
   return (
@@ -16,41 +21,17 @@ const PlantDetailScreen = ({ route }) => {
       <Image source={plant.image} style={styles.image} />
       <Text style={styles.description}>{plant.description}</Text>
       <Button title="Water Plant" onPress={handleWaterPlant} />
-      {watered && (
-        <Text style={styles.nutrientMsg}>I feel nourished! :)</Text>
-      )}
+      {watered && <Text style={styles.nutrientMsg}>I feel nourished! :)</Text>}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    padding: 20 
-  },
-  title: {
-    fontSize: 30,
-    fontWeight: 'bold',
-    marginBottom: 20
-  },
-  image: {
-    width: 150,
-    height: 150,
-    resizeMode: 'contain',
-    marginBottom: 15
-  },
-  description: {
-    fontSize: 16,
-    marginBottom: 15,
-    textAlign: 'center'
-  },
-  nutrientMsg: {
-    fontSize: 18,
-    marginTop: 15,
-    color: 'green'
-  }
+  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 },
+  title: { fontSize: 30, fontWeight: 'bold', marginBottom: 20 },
+  image: { width: 150, height: 150, resizeMode: 'contain', marginBottom: 15 },
+  description: { fontSize: 16, marginBottom: 15, textAlign: 'center' },
+  nutrientMsg: { fontSize: 18, marginTop: 15, color: 'green' },
 });
 
 export default PlantDetailScreen;
