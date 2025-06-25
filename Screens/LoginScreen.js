@@ -1,3 +1,4 @@
+// screens/LoginScreen.js
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
 
@@ -6,8 +7,8 @@ const LoginScreen = ({ navigation }) => {
   const [password, setPassword] = useState('');
 
   const handleLogin = () => {
-    // In a real app, add authentication logic here.
-    navigation.replace('Home');
+    // (Add real authentication logic here.)
+    navigation.replace('Main');
   };
 
   return (
@@ -32,23 +33,15 @@ const LoginScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    padding: 20, 
-    alignItems: 'center', 
-    justifyContent: 'center' 
-  },
-  title: {
-    fontSize: 24,
-    marginBottom: 20
-  },
+  container: { flex: 1, padding: 20, alignItems: 'center', justifyContent: 'center' },
+  title: { fontSize: 24, marginBottom: 20 },
   input: {
     width: '100%',
     padding: 10,
     marginBottom: 15,
     borderWidth: 1,
     borderColor: '#ccc',
-    borderRadius: 5
+    borderRadius: 5,
   },
 });
 
