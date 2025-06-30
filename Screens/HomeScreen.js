@@ -1,91 +1,71 @@
 // screens/HomeScreen.js
-import React, { useContext, useEffect, useState } from 'react';
-import { View, Text, Button, FlatList, StyleSheet } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { GameContext } from '../context/GameContext';
-import PlantCard from '../components/PlantCard';
-import NutrientMeter from '../components/NutrientMeter';
+import React from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  StyleSheet,
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
-const freePlants = [
-  {
-    id: '1',
-    name: 'Cactus',
-    image: require('../assets/images/cactus.png'),
-    description: 'I thrive with little water!',
-  },
-  {
-    id: '2',
-    name: 'Fern',
-    image: require('../assets/images/fern.png'),
-    description: 'I love moisture.',
-  },
+const plants = [
+  { id: 1, name: 'Aloe Vera' },
+  { id: 2, name: 'Monstera Deliciosa' },
+  { id: 3, name: 'Snake Plant' },
 ];
 
-const HomeScreen = ({ navigation }) => {
-  const { plants, addPlant, nutrients } = useContext(GameContext);
-  const [lastClaimed, setLastClaimed] = useState(null);
+export default function HomeScreen() {
+  const navigation = useNavigation();
 
-  const loadDailyClaim = async () => {
-    try {
-      const lastClaimedDate = await AsyncStorage.getItem('lastClaimed');
-      if (lastClaimedDate) {
-        setLastClaimed(new Date(lastClaimedDate));
-      }
-    } catch (error) {
-      console.error('Error loading claim date:', error);
-    }
+  const goToPlantDetail = (plant) => {
+    navigation.navigate('PlantDetail', { plant });
   };
 
-  useEffect(() => {
-    loadDailyClaim();
-  }, []);
-
-  const handleClaimPlants = async () => {
-    const today = new Date();
-    if (lastClaimed) {
-      const lastDate = new Date(lastClaimed);
-      if (lastDate.toDateString() === today.toDateString()) {
-        alert('You already claimed your free plants today!');
-        return;
-      }
-    }
-    // Add the free plants to the player's collection
-    freePlants.forEach((plant) => addPlant(plant));
-    await AsyncStorage.setItem('lastClaimed', today.toISOString());
-    setLastClaimed(today);
-  };
-
-  const renderPlant = ({ item }) => (
-    <PlantCard
-      plant={item}
-      onPress={() => navigation.navigate('PlantDetail', { plant: item })}
-    />
+  const renderItem = ({ item }) => (
+    <TouchableOpacity
+      style={styles.itemContainer}
+      onPress={() => goToPlantDetail(item)}
+    >
+      <Text style={styles.itemText}>{item.name}</Text>
+    </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Your Virtual Room</Text>
-      <Button title="Claim Daily Free Plants" onPress={handleClaimPlants} />
-      <NutrientMeter nutrients={nutrients} />
+      <Text style={styles.title}>My Plants</Text>
       <FlatList
         data={plants}
-        renderItem={renderPlant}
-        keyExtractor={(item, index) => index.toString()}
-        horizontal
-        style={styles.plantList}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={renderItem}
+        contentContainerStyle={styles.listContainer}
       />
-      <Text style={styles.instructions}>
-        Tap on a plant to interact, water, or upgrade!
-      </Text>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
-  header: { fontSize: 28, fontWeight: 'bold', textAlign: 'center', marginBottom: 20 },
-  plantList: { marginVertical: 20 },
-  instructions: { textAlign: 'center', color: '#555' },
+  container: {
+    flex: 1,
+    paddingTop: 60,
+    backgroundColor: '#f9f9f9',
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  listContainer: {
+    paddingHorizontal: 20,
+  },
+  itemContainer: {
+    backgroundColor: '#cde',
+    padding: 16,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  itemText: {
+    fontSize: 18,
+  },
 });
-
-export default HomeScreen;

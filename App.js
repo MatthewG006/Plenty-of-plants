@@ -6,7 +6,6 @@ import { GameProvider } from './context/GameContext';
 
 import LoginScreen from './screens/LoginScreen';
 import MainTabNavigator from './navigation/MainTabNavigator';
-import PlantDetailScreen from './screens/PlantDetailScreen';
 
 const Stack = createStackNavigator();
 
@@ -24,11 +23,6 @@ export default function App() {
             name="Main"
             component={MainTabNavigator}
             options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="PlantDetail"
-            component={PlantDetailScreen}
-            options={{ title: 'Plant Details' }}
           />
         </Stack.Navigator>
       </NavigationContainer>
