@@ -2,52 +2,33 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import HomeScreen from '../screens/HomeScreen';
-import GachaScreen from '../screens/GachaScreen';
-import UpgradeScreen from '../screens/UpgradeScreen';
-import CommunityScreen from '../screens/CommunityScreen';
+import HomeStackNavigator from './HomeStackNavigator';
+import GachaStackNavigator from './GachaStackNavigator';
+import UpgradeStackNavigator from './UpgradeStackNavigator';
+import CommunityStackNavigator from './CommunityStackNavigator';
 
 const Tab = createBottomTabNavigator();
 
 const MainTabNavigator = () => {
   return (
-    <Tab.Navigator initialRouteName="Home">
-      <Tab.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Gacha"
-        component={GachaScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="ios-jet" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Upgrade"
-        component={UpgradeScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="arrow-up-circle" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Community"
-        component={CommunityScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="people" color={color} size={size} />
-          ),
-        }}
-      />
+    <Tab.Navigator
+      initialRouteName="Home"
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ color, size }) => {
+          let iconName;
+          if (route.name === 'Home') iconName = 'home';
+          else if (route.name === 'Gacha') iconName = 'airplane'; // changed from ios-jet
+          else if (route.name === 'Upgrade') iconName = 'arrow-up-circle';
+          else if (route.name === 'Community') iconName = 'people';
+
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+      })}
+    >
+      <Tab.Screen name="Home" component={HomeStackNavigator} />
+      <Tab.Screen name="Gacha" component={GachaStackNavigator} />
+      <Tab.Screen name="Upgrade" component={UpgradeStackNavigator} />
+      <Tab.Screen name="Community" component={CommunityStackNavigator} />
     </Tab.Navigator>
   );
 };
