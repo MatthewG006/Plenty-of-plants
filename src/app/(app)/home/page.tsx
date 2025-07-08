@@ -119,22 +119,24 @@ export default function HomePage() {
 
   return (
     <div className="p-4 space-y-6 bg-background">
-      <header className="flex items-center justify-between">
-        <Button variant="outline" size="sm" asChild>
-          <Link href="/settings">
-            <Settings className="mr-2 h-4 w-4" />
-            Settings
-          </Link>
-        </Button>
+      <header className="flex flex-col items-center space-y-2">
         <h1 className="font-headline text-3xl text-chart-2 font-bold">
           Plenty Of Plants
         </h1>
-        <Button variant="outline" size="sm" asChild>
-          <Link href="/profile">
-            <User className="mr-2 h-4 w-4" />
-            Profile
-          </Link>
-        </Button>
+        <div className="flex w-full items-center justify-between">
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/settings">
+              <Settings className="mr-2 h-4 w-4" />
+              Settings
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/profile">
+              <User className="mr-2 h-4 w-4" />
+              Profile
+            </Link>
+          </Button>
+        </div>
       </header>
 
       <main className="space-y-6">
