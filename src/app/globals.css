@@ -71,7 +71,7 @@
 
 @layer utilities {
   .bg-app-gradient {
-    @apply bg-gradient-to-b from-[hsl(120,73%,88%)] to-background;
+    @apply bg-gradient-to-b from-[hsl(120,60%,80%)] to-background;
   }
 
   .text-shadow {
