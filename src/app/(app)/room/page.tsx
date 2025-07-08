@@ -13,17 +13,6 @@ import type { Plant } from '@/interfaces/plant';
 
 const PLANTS_STORAGE_KEY = 'plenty-of-plants-collection';
 
-const initialCollectedPlants: Plant[] = [
-  { id: 1, name: 'Smiling Succulent', form: 'Base', image: 'https://placehold.co/300x300.png', hint: 'succulent plant' },
-  { id: 2, name: 'Prickly Pear', form: 'Base', image: 'https://placehold.co/300x300.png', hint: 'cactus plant' },
-  { id: 3, name: 'Fern Friend', form: 'Base', image: 'https://placehold.co/300x300.png', hint: 'fern plant' },
-  { id: 4, name: 'Orchid Obession', form: 'Base', image: 'https://placehold.co/300x300.png', hint: 'orchid flower' },
-  { id: 5, name: 'Bonsai Buddy', form: 'Base', image: 'https://placehold.co/300x300.png', hint: 'bonsai tree' },
-  { id: 6, name: 'Aloe Ally', form: 'Base', image: 'https://placehold.co/300x300.png', hint: 'aloe vera' },
-  { id: 7, name: 'Snakey Sansevieria', form: 'Base', image: 'https://placehold.co/300x300.png', hint: 'snake plant' },
-  { id: 8, name: 'Pothos Pal', form: 'Base', image: 'https://placehold.co/300x300.png', hint: 'pothos plant' },
-];
-
 function PlantPot() {
     return (
         <div className="flex flex-col items-center gap-1 text-primary/70">
@@ -72,13 +61,9 @@ export default function RoomPage() {
       try {
         setCollectedPlants(JSON.parse(storedPlantsRaw));
       } catch (e) {
-        console.error("Failed to parse stored plants, using initial set.", e);
-        setCollectedPlants(initialCollectedPlants);
-        localStorage.setItem(PLANTS_STORAGE_KEY, JSON.stringify(initialCollectedPlants));
+        console.error("Failed to parse stored plants, starting fresh.", e);
+        setCollectedPlants([]);
       }
-    } else {
-      setCollectedPlants(initialCollectedPlants);
-      localStorage.setItem(PLANTS_STORAGE_KEY, JSON.stringify(initialCollectedPlants));
     }
   }, []);
 
@@ -148,22 +133,28 @@ export default function RoomPage() {
          <h2 className="mb-4 font-headline text-xl text-primary">My Collection</h2>
          <ScrollArea className="h-[calc(100vh-420px)]">
              <div className="grid grid-cols-3 gap-4 md:grid-cols-4 lg:grid-cols-5">
-                 {collectedPlants.map((plant) => (
-                     <Card key={plant.id} className="group overflow-hidden cursor-pointer transition-transform hover:scale-105 active:scale-95 shadow-md">
-                         <CardContent className="p-0">
-                             <div className="aspect-square relative">
-                                 <Image src={plant.image} alt={plant.name} fill className="object-cover" data-ai-hint={plant.hint} />
-                             </div>
-                             <div className="p-2 text-center bg-white/50">
-                                 <p className="text-sm font-semibold text-primary truncate">{plant.name}</p>
-                                 <p className="text-xs text-muted-foreground">{plant.form}</p>
-                             </div>
-                             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                 {collectedPlants.length > 0 ? (
+                    collectedPlants.map((plant) => (
+                        <Card key={plant.id} className="group overflow-hidden cursor-pointer transition-transform hover:scale-105 active:scale-95 shadow-md">
+                            <CardContent className="p-0">
+                                <div className="aspect-square relative">
+                                    <Image src={plant.image} alt={plant.name} fill className="object-cover" data-ai-hint={plant.hint} />
+                                </div>
+                                <div className="p-2 text-center bg-white/50">
+                                    <p className="text-sm font-semibold text-primary truncate">{plant.name}</p>
+                                    <p className="text-xs text-muted-foreground">{plant.form}</p>
+                                </div>
+                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                                 <p className="text-white font-headline text-lg">View</p>
-                             </div>
-                         </CardContent>
-                     </Card>
-                 ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))
+                 ) : (
+                    <div className="col-span-3 text-center text-muted-foreground py-8">
+                        Your collection is empty. Go to the Home screen to draw a new plant!
+                    </div>
+                 )}
              </div>
          </ScrollArea>
       </section>

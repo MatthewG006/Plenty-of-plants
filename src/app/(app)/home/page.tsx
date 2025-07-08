@@ -64,8 +64,20 @@ export default function HomePage() {
   const handleDraw = async () => {
     setIsDrawing(true);
     try {
+      const storedPlantsRaw = localStorage.getItem(PLANTS_STORAGE_KEY);
+      const prevPlants: Plant[] = storedPlantsRaw ? JSON.parse(storedPlantsRaw) : [];
+
+      if (prevPlants.length === 0) {
+        const fernData: DrawPlantOutput = {
+          name: "Friendly Fern",
+          description: "A happy little fern to start your collection.",
+          imageDataUri: "https://placehold.co/512x512.png",
+        };
+        setDrawnPlant(fernData);
+      } else {
         const result = await drawPlant();
         setDrawnPlant(result);
+      }
     } catch (e) {
         console.error(e);
         toast({
@@ -89,7 +101,7 @@ export default function HomePage() {
         name: drawnPlant.name,
         form: 'Base',
         image: drawnPlant.imageDataUri,
-        hint: drawnPlant.name.toLowerCase().split(' ').slice(0, 2).join(' '),
+        hint: drawnPlant.name === 'Friendly Fern' ? 'fern plant' : drawnPlant.name.toLowerCase().split(' ').slice(0, 2).join(' '),
     };
 
     const updatedPlants = [...prevPlants, newPlant];
