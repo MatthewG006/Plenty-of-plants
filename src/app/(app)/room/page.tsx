@@ -18,7 +18,7 @@ const NUM_POTS = 3;
 
 function PlantPot() {
     return (
-        <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-primary/70">
+        <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-primary/70 pointer-events-none">
             <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v2.4a5.3 5.3 0 0 1-2.9 4.8 6.2 6.2 0 0 0-1.1 1.6 4.2 4.2 0 0 0-1 2.2H16a4.2 4.2 0 0 0-1-2.2 6.2 6.2 0 0 0-1.1-1.6A5.3 5.3 0 0 1 12 4.4V2Z"/><path d="M10 13H5a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2h-5"/><path d="M10 13v-1.4a2.4 2.4 0 0 1 1-2.1 2.4 2.4 0 0 1 2 0 2.4 2.4 0 0 1 1 2.1V13"/></svg>
             <p className="text-xs font-semibold">Empty Pot</p>
         </div>
@@ -236,7 +236,10 @@ export default function RoomPage() {
                     onDragOver={(e) => handleDragOver(e, index)}
                     onDrop={(e) => handleDrop(e, index)}
                     onDragLeave={handleDragLeave}
-                    className="relative flex h-24 w-20 items-center justify-center rounded-lg transition-colors"
+                    className={cn(
+                      "relative flex h-24 w-20 items-center justify-center rounded-lg transition-colors",
+                      draggedOverPot === index && "bg-primary/20"
+                    )}
                 >
                     {plant ? (
                         <div className="flex flex-col items-center text-center cursor-pointer" onClick={() => setSelectedPlant(plant)}>
