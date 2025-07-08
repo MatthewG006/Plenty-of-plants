@@ -48,12 +48,41 @@ function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlantOutput 
     );
 }
 
+function PlantDetailDialog({ plant, open, onOpenChange }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void }) {
+    if (!plant) return null;
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-sm">
+                <DialogHeader>
+                    <DialogTitle className="font-headline text-3xl text-center">{plant.name}</DialogTitle>
+                </DialogHeader>
+                <div className="flex flex-col items-center gap-4 py-4">
+                    <div className="w-64 h-64 rounded-lg overflow-hidden border-4 border-primary/50 shadow-lg bg-green-100">
+                        <Image src={plant.image} alt={plant.name} width={256} height={256} className="object-cover w-full h-full" data-ai-hint={plant.hint} />
+                    </div>
+                    <div className="text-center">
+                        <p className="text-sm text-muted-foreground">Form</p>
+                        <p className="text-lg font-semibold text-primary">{plant.form}</p>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="outline" className="w-full">Close</Button>
+                    </DialogClose>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 
 export default function RoomPage() {
   const { toast } = useToast();
   const [isDrawing, setIsDrawing] = useState(false);
   const [newPlant, setNewPlant] = useState<DrawPlantOutput | null>(null);
   const [collectedPlants, setCollectedPlants] = useState<Plant[]>([]);
+  const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
 
   useEffect(() => {
     const storedPlantsRaw = localStorage.getItem(PLANTS_STORAGE_KEY);
@@ -135,7 +164,11 @@ export default function RoomPage() {
              <div className="grid grid-cols-3 gap-4 md:grid-cols-4 lg:grid-cols-5">
                  {collectedPlants.length > 0 ? (
                     collectedPlants.map((plant) => (
-                        <Card key={plant.id} className="group overflow-hidden cursor-pointer transition-transform hover:scale-105 active:scale-95 shadow-md">
+                        <Card 
+                            key={plant.id} 
+                            onClick={() => setSelectedPlant(plant)}
+                            className="group overflow-hidden cursor-pointer transition-transform hover:scale-105 active:scale-95 shadow-md"
+                        >
                             <CardContent className="p-0">
                                 <div className="aspect-square relative">
                                     <Image src={plant.image} alt={plant.name} fill className="object-cover" data-ai-hint={plant.hint} />
@@ -158,6 +191,7 @@ export default function RoomPage() {
              </div>
          </ScrollArea>
       </section>
+
       <NewPlantDialog 
         plant={newPlant} 
         open={!!newPlant}
@@ -167,6 +201,16 @@ export default function RoomPage() {
                     handleCollect(newPlant);
                 }
                 setNewPlant(null);
+            }
+        }}
+      />
+
+      <PlantDetailDialog
+        plant={selectedPlant}
+        open={!!selectedPlant}
+        onOpenChange={(isOpen) => {
+            if (!isOpen) {
+                setSelectedPlant(null);
             }
         }}
       />
