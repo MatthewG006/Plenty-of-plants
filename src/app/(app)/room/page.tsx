@@ -130,7 +130,7 @@ export default function RoomPage() {
   };
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-screen flex-col">
       <header className="flex items-center justify-between p-4">
         <h1 className="font-headline text-2xl text-primary">My Room</h1>
         <Button variant="secondary" className="font-semibold" onClick={handleDraw} disabled={isDrawing}>
@@ -149,18 +149,21 @@ export default function RoomPage() {
       </header>
 
       <section className="p-4">
-        <div className="rounded-lg border-2 border-dashed bg-card/50 p-6" style={{backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%238B4513\' fill-opacity=\'0.1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")'}}>
-            <div className="flex items-center justify-around">
-                <PlantPot />
-                <PlantPot />
-                <PlantPot />
-            </div>
+        <div
+          className="h-48 rounded-lg border-2 border-primary/20 bg-cover bg-center p-6"
+          style={{ backgroundImage: 'url(/desk.jpg)' }}
+        >
+          <div className="flex h-full items-end justify-around">
+            <PlantPot />
+            <PlantPot />
+            <PlantPot />
+          </div>
         </div>
       </section>
 
-      <section className="flex-1 px-4 pb-4">
-         <h2 className="mb-4 font-headline text-xl text-primary">My Collection</h2>
-         <ScrollArea className="h-[calc(100vh-420px)]">
+      <section className="flex flex-1 flex-col overflow-hidden px-4 pb-4">
+         <h2 className="shrink-0 mb-4 font-headline text-xl text-primary">My Collection</h2>
+         <ScrollArea className="flex-1">
              <div className="grid grid-cols-3 gap-4 md:grid-cols-4 lg:grid-cols-5">
                  {collectedPlants.length > 0 ? (
                     collectedPlants.map((plant) => (
