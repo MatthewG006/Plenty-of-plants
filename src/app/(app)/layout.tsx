@@ -6,8 +6,8 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen w-full bg-app-gradient">
-      <main className="pb-20">{children}</main>
+    <div className="min-h-screen w-full">
+      <main className="pb-24">{children}</main>
       <BottomNavBar />
     </div>
   );

@@ -1,62 +1,63 @@
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Leaf, Sprout, User } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Settings, User, Check, X } from 'lucide-react';
 import Link from 'next/link';
 
 export default function HomePage() {
   return (
-    <div className="p-4 space-y-6">
-      <header className="pb-4">
-        <h1 className="font-headline text-3xl text-primary">Welcome, PlantLover23!</h1>
-        <p className="text-muted-foreground">What would you like to do today?</p>
+    <div className="p-4 space-y-6 bg-background">
+      <header className="flex items-center justify-between">
+        <Button variant="outline" size="sm" asChild>
+          <Link href="/app/settings">
+            <Settings className="mr-2 h-4 w-4" />
+            Settings
+          </Link>
+        </Button>
+        <h1 className="font-headline text-3xl text-chart-2 font-bold">
+          Plenty Of Plants
+        </h1>
+        <Button variant="outline" size="sm" asChild>
+          <Link href="/app/profile">
+            <User className="mr-2 h-4 w-4" />
+            Profile
+          </Link>
+        </Button>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
+      <main className="space-y-6">
+        <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Sprout className="h-6 w-6 text-primary" />
-              <span>My Room</span>
-            </CardTitle>
-            <CardDescription>View your plant collection and arrange your room.</CardDescription>
+            <CardTitle className="text-xl font-semibold text-center">Your Latest Collection</CardTitle>
           </CardHeader>
-          <CardContent>
-            <Button asChild>
-              <Link href="/app/room">Go to Room</Link>
-            </Button>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Leaf className="h-6 w-6 text-primary" />
-              <span>Draw a Plant</span>
-            </CardTitle>
-            <CardDescription>Get a new free plant every day!</CardDescription>
-          </CardHeader>
-          <CardContent>
-             <Button asChild>
-              <Link href="/app/room">Draw Now</Link>
-            </Button>
+          <CardContent className="text-center">
+            <p className="text-muted-foreground">
+              No plants collected yet. Time to draw one!
+            </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-6 w-6 text-primary" />
-              <span>My Profile</span>
-            </CardTitle>
-            <CardDescription>Check your stats and achievements.</CardDescription>
+        <Card className="shadow-sm">
+          <CardHeader className="items-center">
+            <CardTitle className="text-xl font-semibold">Free Draws Available</CardTitle>
           </CardHeader>
-          <CardContent>
-            <Button asChild>
-              <Link href="/app/profile">View Profile</Link>
+          <CardContent className="flex flex-col items-center gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center justify-center h-12 w-12 rounded-full bg-chart-3">
+                  <Check className="h-8 w-8 text-white" />
+              </div>
+              <div className="flex items-center justify-center h-12 w-12 rounded-full bg-muted">
+                  <X className="h-8 w-8 text-destructive" />
+              </div>
+            </div>
+            <Button asChild size="lg" className="w-full font-semibold rounded-full mt-2">
+              <Link href="/app/room">Draw New Plant</Link>
             </Button>
+            <p className="text-sm text-muted-foreground">
+              New draw available every 12 hours (max 2 slots).
+            </p>
           </CardContent>
         </Card>
-      </div>
+      </main>
     </div>
   );
 }
