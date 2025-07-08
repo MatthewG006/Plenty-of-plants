@@ -10,12 +10,15 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import type { Plant } from '@/interfaces/plant';
+import { cn } from '@/lib/utils';
 
-const PLANTS_STORAGE_KEY = 'plenty-of-plants-collection';
+const OLD_PLANTS_STORAGE_KEY = 'plenty-of-plants-collection';
+const PLANTS_DATA_STORAGE_KEY = 'plenty-of-plants-data';
+const NUM_POTS = 3;
 
 function PlantPot() {
     return (
-        <div className="flex flex-col items-center gap-1 text-primary/70">
+        <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-primary/70">
             <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v2.4a5.3 5.3 0 0 1-2.9 4.8 6.2 6.2 0 0 0-1.1 1.6 4.2 4.2 0 0 0-1 2.2H16a4.2 4.2 0 0 0-1-2.2 6.2 6.2 0 0 0-1.1-1.6A5.3 5.3 0 0 1 12 4.4V2Z"/><path d="M10 13H5a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2h-5"/><path d="M10 13v-1.4a2.4 2.4 0 0 1 1-2.1 2.4 2.4 0 0 1 2 0 2.4 2.4 0 0 1 1 2.1V13"/></svg>
             <p className="text-xs font-semibold">Empty Pot</p>
         </div>
@@ -82,19 +85,48 @@ export default function RoomPage() {
   const [isDrawing, setIsDrawing] = useState(false);
   const [newPlant, setNewPlant] = useState<DrawPlantOutput | null>(null);
   const [collectedPlants, setCollectedPlants] = useState<Plant[]>([]);
+  const [deskPlants, setDeskPlants] = useState<(Plant | null)[]>(Array(NUM_POTS).fill(null));
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
+  const [draggedOverPot, setDraggedOverPot] = useState<number | null>(null);
 
   useEffect(() => {
-    const storedPlantsRaw = localStorage.getItem(PLANTS_STORAGE_KEY);
-    if (storedPlantsRaw) {
-      try {
-        setCollectedPlants(JSON.parse(storedPlantsRaw));
-      } catch (e) {
-        console.error("Failed to parse stored plants, starting fresh.", e);
-        setCollectedPlants([]);
+    try {
+      const storedDataRaw = localStorage.getItem(PLANTS_DATA_STORAGE_KEY);
+      if (storedDataRaw) {
+        const storedData = JSON.parse(storedDataRaw);
+        if (storedData.collection && storedData.desk) {
+          setCollectedPlants(storedData.collection);
+          setDeskPlants(storedData.desk);
+          return;
+        }
       }
+      
+      const oldStoredPlantsRaw = localStorage.getItem(OLD_PLANTS_STORAGE_KEY);
+      if (oldStoredPlantsRaw) {
+        const oldPlants = JSON.parse(oldStoredPlantsRaw);
+        const newDeskState = Array(NUM_POTS).fill(null);
+        setCollectedPlants(oldPlants);
+        setDeskPlants(newDeskState);
+        localStorage.setItem(PLANTS_DATA_STORAGE_KEY, JSON.stringify({ collection: oldPlants, desk: newDeskState }));
+      }
+    } catch (e) {
+      console.error("Failed to parse stored plants, starting fresh.", e);
+      setCollectedPlants([]);
+      setDeskPlants(Array(NUM_POTS).fill(null));
     }
   }, []);
+
+  useEffect(() => {
+    if (collectedPlants.length === 0 && deskPlants.every(p => p === null)) {
+      const storedDataRaw = localStorage.getItem(PLANTS_DATA_STORAGE_KEY);
+      if (storedDataRaw) return;
+    }
+    const dataToStore = {
+      collection: collectedPlants,
+      desk: deskPlants,
+    };
+    localStorage.setItem(PLANTS_DATA_STORAGE_KEY, JSON.stringify(dataToStore));
+  }, [collectedPlants, deskPlants]);
 
 
   const handleDraw = async () => {
@@ -115,19 +147,55 @@ export default function RoomPage() {
   };
   
   const handleCollect = (plantToCollect: DrawPlantOutput) => {
-    setCollectedPlants(prevPlants => {
-        const newPlant: Plant = {
-            id: (prevPlants[prevPlants.length - 1]?.id || 0) + 1,
-            name: plantToCollect.name,
-            form: 'Base',
-            image: plantToCollect.imageDataUri,
-            hint: plantToCollect.name.toLowerCase().split(' ').slice(0, 2).join(' '),
-        };
-        const updatedPlants = [...prevPlants, newPlant];
-        localStorage.setItem(PLANTS_STORAGE_KEY, JSON.stringify(updatedPlants));
-        return updatedPlants;
-    });
+    const allPlants = [...collectedPlants, ...deskPlants.filter((p): p is Plant => p !== null)];
+    const lastId = allPlants.reduce((maxId, p) => Math.max(p.id, maxId), 0);
+
+    const newPlant: Plant = {
+        id: lastId + 1,
+        name: plantToCollect.name,
+        form: 'Base',
+        image: plantToCollect.imageDataUri,
+        hint: plantToCollect.name.toLowerCase().split(' ').slice(0, 2).join(' '),
+    };
+    setCollectedPlants(prevPlants => [...prevPlants, newPlant]);
   };
+
+  const handleDragStart = (e: React.DragEvent, plant: Plant) => {
+    e.dataTransfer.setData('plantId', plant.id.toString());
+  };
+
+  const handleDragOver = (e: React.DragEvent, potIndex: number) => {
+    e.preventDefault();
+    if (deskPlants[potIndex] === null) {
+      setDraggedOverPot(potIndex);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDraggedOverPot(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, potIndex: number) => {
+    e.preventDefault();
+    setDraggedOverPot(null);
+
+    if (deskPlants[potIndex]) {
+      return;
+    }
+    
+    const plantId = parseInt(e.dataTransfer.getData('plantId'), 10);
+    if (!plantId) return;
+
+    const plantToMove = collectedPlants.find(p => p.id === plantId);
+    if (!plantToMove) return;
+
+    const newDeskPlants = [...deskPlants];
+    newDeskPlants[potIndex] = plantToMove;
+    setDeskPlants(newDeskPlants);
+
+    setCollectedPlants(prev => prev.filter(p => p.id !== plantId));
+  };
+
 
   return (
     <div className="flex h-screen flex-col">
@@ -154,9 +222,29 @@ export default function RoomPage() {
           style={{ backgroundImage: 'url(/desk.jpg)' }}
         >
           <div className="flex h-full items-end justify-around">
-            <PlantPot />
-            <PlantPot />
-            <PlantPot />
+            {deskPlants.map((plant, index) => (
+                <div
+                    key={index}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDrop={(e) => handleDrop(e, index)}
+                    onDragLeave={handleDragLeave}
+                    className={cn(
+                        'relative flex h-24 w-20 items-center justify-center rounded-lg transition-colors',
+                        draggedOverPot === index ? 'bg-primary/20' : 'bg-transparent'
+                    )}
+                >
+                    {plant ? (
+                        <div className="flex flex-col items-center text-center cursor-pointer" onClick={() => setSelectedPlant(plant)}>
+                            <div className="relative h-16 w-16">
+                                <Image src={plant.image} alt={plant.name} fill className="object-contain" data-ai-hint={plant.hint} />
+                            </div>
+                            <p className="mt-1 text-xs font-semibold text-primary truncate w-full">{plant.name}</p>
+                        </div>
+                    ) : (
+                        <PlantPot />
+                    )}
+                </div>
+            ))}
           </div>
         </div>
       </section>
@@ -168,9 +256,11 @@ export default function RoomPage() {
                  {collectedPlants.length > 0 ? (
                     collectedPlants.map((plant) => (
                         <Card 
-                            key={plant.id} 
+                            key={plant.id}
+                            draggable 
+                            onDragStart={(e) => handleDragStart(e, plant)}
                             onClick={() => setSelectedPlant(plant)}
-                            className="group overflow-hidden cursor-pointer transition-transform hover:scale-105 active:scale-95 shadow-md"
+                            className="group overflow-hidden cursor-grab transition-transform hover:scale-105 active:scale-95 active:cursor-grabbing shadow-md"
                         >
                             <CardContent className="p-0">
                                 <div className="aspect-square relative">
