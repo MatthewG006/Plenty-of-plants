@@ -34,14 +34,16 @@ function SettingRow({ icon: Icon, label, children }: { icon: React.ElementType, 
     )
 }
 
-const PLANTS_STORAGE_KEY = 'plenty-of-plants-collection';
+const OLD_PLANTS_STORAGE_KEY = 'plenty-of-plants-collection';
+const PLANTS_DATA_STORAGE_KEY = 'plenty-of-plants-data';
 
 export default function SettingsPage() {
   const { toast } = useToast();
   const router = useRouter();
 
   const handleClearData = () => {
-    localStorage.removeItem(PLANTS_STORAGE_KEY);
+    localStorage.removeItem(OLD_PLANTS_STORAGE_KEY);
+    localStorage.removeItem(PLANTS_DATA_STORAGE_KEY);
     toast({
       title: "Collection Cleared",
       description: "You can now start a new collection from scratch.",

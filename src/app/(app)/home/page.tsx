@@ -18,7 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
-const PLANTS_STORAGE_KEY = 'plenty-of-plants-collection';
+const PLANTS_DATA_STORAGE_KEY = 'plenty-of-plants-data';
 
 function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlantOutput | null, open: boolean, onOpenChange: (open: boolean) => void }) {
     if (!plant) return null;
@@ -53,26 +53,41 @@ export default function HomePage() {
   const [drawnPlant, setDrawnPlant] = useState<DrawPlantOutput | null>(null);
 
   useEffect(() => {
-    const storedPlantsRaw = localStorage.getItem(PLANTS_STORAGE_KEY);
-    if (storedPlantsRaw) {
+    const storedDataRaw = localStorage.getItem(PLANTS_DATA_STORAGE_KEY);
+    if (storedDataRaw) {
       try {
-        const storedPlants: Plant[] = JSON.parse(storedPlantsRaw);
-        if (storedPlants.length > 0) {
-          setLatestPlant(storedPlants[storedPlants.length - 1]);
+        const storedData = JSON.parse(storedDataRaw);
+        const allPlants: Plant[] = [
+          ...(storedData.collection || []),
+          ...(storedData.desk || []).filter((p: Plant | null): p is Plant => p !== null),
+        ];
+
+        if (allPlants.length > 0) {
+          const latest = allPlants.reduce((latest, plant) => (plant.id > latest.id ? plant : latest), allPlants[0]);
+          setLatestPlant(latest);
+        } else {
+          setLatestPlant(null);
         }
       } catch (e) {
         console.error("Failed to parse stored plants on home page", e);
+        setLatestPlant(null);
       }
+    } else {
+      setLatestPlant(null);
     }
   }, []);
 
   const handleDraw = async () => {
     setIsDrawing(true);
     try {
-      const storedPlantsRaw = localStorage.getItem(PLANTS_STORAGE_KEY);
-      const prevPlants: Plant[] = storedPlantsRaw ? JSON.parse(storedPlantsRaw) : [];
+      const storedDataRaw = localStorage.getItem(PLANTS_DATA_STORAGE_KEY);
+      const storedData = storedDataRaw ? JSON.parse(storedDataRaw) : { collection: [], desk: [] };
+      const allPlants: Plant[] = [
+          ...(storedData.collection || []), 
+          ...(storedData.desk || []).filter((p: Plant | null): p is Plant => p !== null)
+      ];
 
-      if (prevPlants.length === 0) {
+      if (allPlants.length === 0) {
         const fernData: DrawPlantOutput = {
           name: "Friendly Fern",
           description: "A happy little fern to start your collection.",
@@ -98,19 +113,32 @@ export default function HomePage() {
   const handleCollect = () => {
     if (!drawnPlant) return;
 
-    const storedPlantsRaw = localStorage.getItem(PLANTS_STORAGE_KEY);
-    const prevPlants: Plant[] = storedPlantsRaw ? JSON.parse(storedPlantsRaw) : [];
+    const storedDataRaw = localStorage.getItem(PLANTS_DATA_STORAGE_KEY);
+    const storedData = storedDataRaw ? JSON.parse(storedDataRaw) : { collection: [], desk: [] };
+    const collectionPlants: Plant[] = storedData.collection || [];
+    const deskPlants: (Plant | null)[] = storedData.desk || [];
+
+    const allPlants: Plant[] = [
+        ...collectionPlants,
+        ...deskPlants.filter((p): p is Plant => p !== null)
+    ];
+
+    const lastId = allPlants.reduce((maxId, p) => Math.max(p.id, maxId), 0);
 
     const newPlant: Plant = {
-        id: (prevPlants[prevPlants.length - 1]?.id || 0) + 1,
+        id: lastId + 1,
         name: drawnPlant.name,
         form: 'Base',
         image: drawnPlant.imageDataUri,
         hint: drawnPlant.name === 'Friendly Fern' ? 'fern plant' : drawnPlant.name.toLowerCase().split(' ').slice(0, 2).join(' '),
     };
 
-    const updatedPlants = [...prevPlants, newPlant];
-    localStorage.setItem(PLANTS_STORAGE_KEY, JSON.stringify(updatedPlants));
+    const updatedData = {
+        ...storedData,
+        collection: [...collectionPlants, newPlant],
+    };
+
+    localStorage.setItem(PLANTS_DATA_STORAGE_KEY, JSON.stringify(updatedData));
     
     setLatestPlant(newPlant);
     setDrawnPlant(null);
