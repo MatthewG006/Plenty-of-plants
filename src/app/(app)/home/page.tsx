@@ -146,7 +146,7 @@ export default function HomePage() {
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center text-center min-h-[260px]">
             {latestPlant ? (
-              <div className="flex flex-col items-center gap-4">
+              <Link href="/room" className="flex flex-col items-center gap-4 transition-transform hover:scale-105">
                 <div className="w-48 h-48 rounded-lg overflow-hidden border-2 border-primary/30 shadow-md">
                   <Image
                     src={latestPlant.image}
@@ -158,7 +158,7 @@ export default function HomePage() {
                   />
                 </div>
                 <h3 className="text-xl font-headline text-primary">{latestPlant.name}</h3>
-              </div>
+              </Link>
             ) : (
               <p className="text-muted-foreground">
                 No plants collected yet. Time to draw one!
