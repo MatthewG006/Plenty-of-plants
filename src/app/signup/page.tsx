@@ -27,7 +27,7 @@ export default function SignupPage() {
               <Input id="password" type="password" required />
             </div>
             <Button type="submit" className="w-full font-headline text-lg" asChild>
-                <Link href="/home">Create Account</Link>
+                <Link href="/login">Create Account</Link>
             </Button>
           </form>
         </CardContent>
@@ -36,7 +36,7 @@ export default function SignupPage() {
             Already have an account?
           </p>
           <Button variant="link" asChild>
-            <Link href="/login">Log in</Link>
+            <Link href="/">Log in</Link>
           </Button>
         </CardFooter>
       </Card>

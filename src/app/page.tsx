@@ -1,22 +1,46 @@
 import Link from 'next/link';
-import { PlantLogo } from '@/components/icons/logo';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
-export default function SplashPage() {
+export default function LoginPage() {
   return (
-    <div className="flex h-screen w-full flex-col items-center justify-center bg-app-gradient p-4">
-      <div className="flex flex-col items-center justify-center text-center animate-fade-in-up">
-        <PlantLogo className="h-24 w-24 text-primary" />
-        <h1 className="mt-6 text-5xl font-headline text-primary text-shadow">
-          Plenty Of Plants
-        </h1>
-        <p className="mt-2 text-lg text-foreground/80 font-body">
-          Your digital conservatory awaits.
-        </p>
-        <Button asChild className="mt-12 animate-pulse-subtle" size="lg">
-          <Link href="/home" className="font-headline text-xl px-8">Tap to Enter</Link>
-        </Button>
-      </div>
+    <div className="flex h-screen w-full items-center justify-center bg-app-gradient p-4">
+      <Card className="w-full max-w-sm shadow-xl">
+        <CardHeader className="text-center">
+          <CardTitle className="font-headline text-3xl">Welcome Back!</CardTitle>
+          <CardDescription>Log in to tend to your plants.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" placeholder="you@example.com" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input id="password" type="password" required />
+            </div>
+            <Button type="submit" className="w-full font-headline text-lg" asChild>
+                <Link href="/login">Login</Link>
+            </Button>
+          </form>
+        </CardContent>
+        <CardFooter className="flex-col gap-4 pt-4">
+           <div className="flex items-center gap-2">
+            <p className="text-xs text-muted-foreground">
+              Don't have an account?
+            </p>
+            <Button variant="link" asChild className="p-0 h-auto">
+              <Link href="/signup">Create a new one</Link>
+            </Button>
+          </div>
+          <Button variant="ghost" asChild>
+            <Link href="/login">Skip for testing</Link>
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   );
 }
