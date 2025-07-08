@@ -2,16 +2,50 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings, User, Check, X } from 'lucide-react';
+import { Settings, User, Check, X, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import type { Plant } from '@/interfaces/plant';
+import { drawPlant, type DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
+import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const PLANTS_STORAGE_KEY = 'plenty-of-plants-collection';
 
+function DrawnPlantDialog({ plantName, open, onOpenChange }: { plantName: string | undefined; open: boolean; onOpenChange: (open: boolean) => void; }) {
+    if (!plantName) return null;
+    
+    return (
+        <AlertDialog open={open} onOpenChange={onOpenChange}>
+            <AlertDialogContent className="max-w-xs rounded-lg">
+                <AlertDialogHeader>
+                    <AlertDialogTitle className="text-center text-2xl font-headline">
+                        You drew a {plantName}!
+                    </AlertDialogTitle>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="sm:justify-center">
+                    <AlertDialogAction className="rounded-full px-8 bg-chart-3 hover:bg-chart-3/90">
+                        OK
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    )
+}
+
 export default function HomePage() {
+  const { toast } = useToast();
   const [latestPlant, setLatestPlant] = useState<Plant | null>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [drawnPlant, setDrawnPlant] = useState<DrawPlantOutput | null>(null);
 
   useEffect(() => {
     const storedPlantsRaw = localStorage.getItem(PLANTS_STORAGE_KEY);
@@ -26,6 +60,45 @@ export default function HomePage() {
       }
     }
   }, []);
+
+  const handleDraw = async () => {
+    setIsDrawing(true);
+    try {
+        const result = await drawPlant();
+        setDrawnPlant(result);
+    } catch (e) {
+        console.error(e);
+        toast({
+            variant: "destructive",
+            title: "Failed to draw a plant",
+            description: "There was an issue with the AI. Please try again.",
+        });
+    } finally {
+        setIsDrawing(false);
+    }
+  };
+
+  const handleCollect = () => {
+    if (!drawnPlant) return;
+
+    const storedPlantsRaw = localStorage.getItem(PLANTS_STORAGE_KEY);
+    const prevPlants: Plant[] = storedPlantsRaw ? JSON.parse(storedPlantsRaw) : [];
+
+    const newPlant: Plant = {
+        id: (prevPlants[prevPlants.length - 1]?.id || 0) + 1,
+        name: drawnPlant.name,
+        form: 'Base',
+        image: drawnPlant.imageDataUri,
+        hint: drawnPlant.name.toLowerCase().split(' ').slice(0, 2).join(' '),
+    };
+
+    const updatedPlants = [...prevPlants, newPlant];
+    localStorage.setItem(PLANTS_STORAGE_KEY, JSON.stringify(updatedPlants));
+    
+    setLatestPlant(newPlant);
+    setDrawnPlant(null);
+  };
+
 
   return (
     <div className="p-4 space-y-6 bg-background">
@@ -88,8 +161,15 @@ export default function HomePage() {
                   <X className="h-8 w-8 text-destructive" />
               </div>
             </div>
-            <Button asChild size="lg" className="w-full font-semibold rounded-full mt-2">
-              <Link href="/room">Draw New Plant</Link>
+            <Button onClick={handleDraw} disabled={isDrawing} size="lg" className="w-full font-semibold rounded-full mt-2">
+              {isDrawing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Drawing...
+                </>
+              ) : (
+                'Draw New Plant'
+              )}
             </Button>
             <p className="text-sm text-muted-foreground">
               New draw available every 12 hours (max 2 slots).
@@ -97,6 +177,16 @@ export default function HomePage() {
           </CardContent>
         </Card>
       </main>
+      
+      <DrawnPlantDialog
+        plantName={drawnPlant?.name}
+        open={!!drawnPlant}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            handleCollect();
+          }
+        }}
+      />
     </div>
   );
 }
