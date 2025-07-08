@@ -1,10 +1,17 @@
+
+'use client';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Leaf } from 'lucide-react';
+import { drawPlant, type DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
+import { Leaf, Loader2 } from 'lucide-react';
 import Image from 'next/image';
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
-const collectedPlants = [
+const initialCollectedPlants = [
   { id: 1, name: 'Smiling Succulent', form: 'Base', image: 'https://placehold.co/300x300.png', hint: 'succulent plant' },
   { id: 2, name: 'Prickly Pear', form: 'Base', image: 'https://placehold.co/300x300.png', hint: 'cactus plant' },
   { id: 3, name: 'Fern Friend', form: 'Base', image: 'https://placehold.co/300x300.png', hint: 'fern plant' },
@@ -24,14 +31,85 @@ function PlantPot() {
     )
 }
 
+function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlantOutput | null, open: boolean, onOpenChange: (open: boolean) => void }) {
+    if (!plant) return null;
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-sm">
+                <DialogHeader>
+                    <DialogTitle className="font-headline text-3xl text-center">A new plant!</DialogTitle>
+                </DialogHeader>
+                <div className="flex flex-col items-center gap-4 py-4">
+                    <div className="w-64 h-64 rounded-lg overflow-hidden border-4 border-primary/50 shadow-lg bg-green-100">
+                        <Image src={plant.imageDataUri} alt={plant.name} width={256} height={256} className="object-cover w-full h-full" />
+                    </div>
+                    <h3 className="text-2xl font-headline text-primary">{plant.name}</h3>
+                    <p className="text-muted-foreground text-center">{plant.description}</p>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button className="w-full font-headline text-lg">Collect</Button>
+                    </DialogClose>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+
 export default function RoomPage() {
+  const { toast } = useToast();
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [newPlant, setNewPlant] = useState<DrawPlantOutput | null>(null);
+  const [collectedPlants, setCollectedPlants] = useState(initialCollectedPlants);
+
+  const handleDraw = async () => {
+    setIsDrawing(true);
+    try {
+        const result = await drawPlant();
+        setNewPlant(result);
+    } catch (e) {
+        console.error(e);
+        toast({
+            variant: "destructive",
+            title: "Failed to draw a plant",
+            description: "There was an issue with the AI. Please try again.",
+        });
+    } finally {
+        setIsDrawing(false);
+    }
+  };
+  
+  const handleCollect = (plantToCollect: DrawPlantOutput) => {
+    setCollectedPlants(prevPlants => [
+        ...prevPlants,
+        {
+            id: prevPlants.length + 1,
+            name: plantToCollect.name,
+            form: 'Base',
+            image: plantToCollect.imageDataUri,
+            hint: plantToCollect.name.toLowerCase().split(' ').slice(0, 2).join(' '),
+        },
+    ]);
+  };
+
   return (
     <div className="flex h-full flex-col">
       <header className="flex items-center justify-between p-4">
         <h1 className="font-headline text-2xl text-primary">My Room</h1>
-        <Button variant="secondary" className="font-semibold">
-          <Leaf className="mr-2 h-4 w-4" />
-          1 Free Draw
+        <Button variant="secondary" className="font-semibold" onClick={handleDraw} disabled={isDrawing}>
+          {isDrawing ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Drawing...
+            </>
+          ) : (
+            <>
+              <Leaf className="mr-2 h-4 w-4" />
+              1 Free Draw
+            </>
+          )}
         </Button>
       </header>
 
@@ -68,6 +146,18 @@ export default function RoomPage() {
              </div>
          </ScrollArea>
       </section>
+      <NewPlantDialog 
+        plant={newPlant} 
+        open={!!newPlant}
+        onOpenChange={(isOpen) => {
+            if (!isOpen) {
+                if (newPlant) {
+                    handleCollect(newPlant);
+                }
+                setNewPlant(null);
+            }
+        }}
+      />
     </div>
   );
 }
