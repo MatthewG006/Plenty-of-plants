@@ -71,7 +71,7 @@ export default function HomePage() {
         const fernData: DrawPlantOutput = {
           name: "Friendly Fern",
           description: "A happy little fern to start your collection.",
-          imageDataUri: "https://placehold.co/512x512.png",
+          imageDataUri: "/fern.png",
         };
         setDrawnPlant(fernData);
       } else {
