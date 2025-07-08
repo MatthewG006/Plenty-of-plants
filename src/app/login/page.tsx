@@ -5,7 +5,10 @@ export default function SplashPage() {
   return (
     <div className="flex h-screen w-full flex-col items-center justify-center bg-app-gradient p-4">
       <div className="flex flex-col items-center justify-center text-center animate-fade-in-up">
-        <h1 className="text-5xl font-headline text-white text-shadow font-bold">
+        <h1
+          className="text-5xl font-headline text-white font-bold"
+          style={{ textShadow: '0 2px 4px rgba(0,0,0,0.4)' }}
+        >
           Plenty Of Plants
         </h1>
         <p className="mt-2 text-lg text-foreground/80 font-body">

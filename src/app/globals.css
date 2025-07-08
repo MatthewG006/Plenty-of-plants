@@ -73,10 +73,6 @@
   .bg-app-gradient {
     @apply bg-gradient-to-b from-[#4FDF81] to-background;
   }
-
-  .text-shadow {
-    text-shadow: 1px 1px 3px hsl(var(--foreground) / 0.4);
-  }
   
   @keyframes fade-in-up {
     from {
