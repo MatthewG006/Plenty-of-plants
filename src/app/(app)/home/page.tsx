@@ -10,35 +10,40 @@ import type { Plant } from '@/interfaces/plant';
 import { drawPlant, type DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 import { useToast } from '@/hooks/use-toast';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 const PLANTS_STORAGE_KEY = 'plenty-of-plants-collection';
 
-function DrawnPlantDialog({ plantName, open, onOpenChange }: { plantName: string | undefined; open: boolean; onOpenChange: (open: boolean) => void; }) {
-    if (!plantName) return null;
-    
+function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlantOutput | null, open: boolean, onOpenChange: (open: boolean) => void }) {
+    if (!plant) return null;
+
     return (
-        <AlertDialog open={open} onOpenChange={onOpenChange}>
-            <AlertDialogContent className="max-w-xs rounded-lg">
-                <AlertDialogHeader>
-                    <AlertDialogTitle className="text-center text-2xl font-headline">
-                        You drew a {plantName}!
-                    </AlertDialogTitle>
-                </AlertDialogHeader>
-                <AlertDialogFooter className="sm:justify-center">
-                    <AlertDialogAction className="rounded-full px-8 bg-chart-3 hover:bg-chart-3/90">
-                        OK
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
-    )
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-sm">
+                <DialogHeader>
+                    <DialogTitle className="font-headline text-3xl text-center">A new plant!</DialogTitle>
+                </DialogHeader>
+                <div className="flex flex-col items-center gap-4 py-4">
+                    <div className="w-64 h-64 rounded-lg overflow-hidden border-4 border-primary/50 shadow-lg bg-green-100">
+                        <Image src={plant.imageDataUri} alt={plant.name} width={256} height={256} className="object-cover w-full h-full" />
+                    </div>
+                    <h3 className="text-2xl font-headline text-primary">{plant.name}</h3>
+                    <p className="text-muted-foreground text-center">{plant.description}</p>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button className="w-full font-headline text-lg">Collect</Button>
+                    </DialogClose>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
 }
 
 export default function HomePage() {
@@ -190,8 +195,8 @@ export default function HomePage() {
         </Card>
       </main>
       
-      <DrawnPlantDialog
-        plantName={drawnPlant?.name}
+      <NewPlantDialog
+        plant={drawnPlant}
         open={!!drawnPlant}
         onOpenChange={(isOpen) => {
           if (!isOpen) {
