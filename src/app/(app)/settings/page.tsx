@@ -49,7 +49,7 @@ export default function SettingsPage() {
           </SettingRow>
            <SettingRow icon={Zap} label="Effects">
               <Slider defaultValue={[75]} max={100} step={1} className="w-1/2" />
-          </Row>
+          </SettingRow>
         </CardContent>
       </Card>
     </div>
