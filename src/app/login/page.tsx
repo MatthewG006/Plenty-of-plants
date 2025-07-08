@@ -23,7 +23,7 @@ export default function LoginPage() {
               <Input id="password" type="password" required />
             </div>
             <Button type="submit" className="w-full font-headline text-lg" asChild>
-                <Link href="/app/home">Login</Link>
+                <Link href="/home">Login</Link>
             </Button>
           </form>
         </CardContent>

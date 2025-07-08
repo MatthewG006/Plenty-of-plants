@@ -8,7 +8,7 @@ export default function HomePage() {
     <div className="p-4 space-y-6 bg-background">
       <header className="flex items-center justify-between">
         <Button variant="outline" size="sm" asChild>
-          <Link href="/app/settings">
+          <Link href="/settings">
             <Settings className="mr-2 h-4 w-4" />
             Settings
           </Link>
@@ -17,7 +17,7 @@ export default function HomePage() {
           Plenty Of Plants
         </h1>
         <Button variant="outline" size="sm" asChild>
-          <Link href="/app/profile">
+          <Link href="/profile">
             <User className="mr-2 h-4 w-4" />
             Profile
           </Link>
@@ -50,7 +50,7 @@ export default function HomePage() {
               </div>
             </div>
             <Button asChild size="lg" className="w-full font-semibold rounded-full mt-2">
-              <Link href="/app/room">Draw New Plant</Link>
+              <Link href="/room">Draw New Plant</Link>
             </Button>
             <p className="text-sm text-muted-foreground">
               New draw available every 12 hours (max 2 slots).

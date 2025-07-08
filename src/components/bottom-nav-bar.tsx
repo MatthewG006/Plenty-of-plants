@@ -6,9 +6,9 @@ import { Home, Sprout, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { href: '/app/home', label: 'Home', icon: Home },
-  { href: '/app/room', label: 'Room', icon: Sprout },
-  { href: '/app/community', label: 'Community', icon: Shield },
+  { href: '/home', label: 'Home', icon: Home },
+  { href: '/room', label: 'Room', icon: Sprout },
+  { href: '/community', label: 'Community', icon: Shield },
 ];
 
 export default function BottomNavBar() {
@@ -18,7 +18,7 @@ export default function BottomNavBar() {
     <nav className="fixed bottom-0 left-0 right-0 h-20 border-t bg-card/95 backdrop-blur-sm z-10">
       <div className="mx-auto grid h-full max-w-md grid-cols-3 items-center">
         {navItems.map((item) => {
-          const isActive = (item.href === '/app/home' || item.href === '/app/community')
+          const isActive = (item.href === '/home' || item.href === '/community')
             ? pathname === item.href
             : pathname.startsWith(item.href);
 
