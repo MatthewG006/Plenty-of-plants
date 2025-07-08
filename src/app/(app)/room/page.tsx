@@ -87,6 +87,7 @@ export default function RoomPage() {
   const [collectedPlants, setCollectedPlants] = useState<Plant[]>([]);
   const [deskPlants, setDeskPlants] = useState<(Plant | null)[]>(Array(NUM_POTS).fill(null));
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
+  const [draggedPlant, setDraggedPlant] = useState<Plant | null>(null);
   const [draggedOverPot, setDraggedOverPot] = useState<number | null>(null);
 
   useEffect(() => {
@@ -162,6 +163,12 @@ export default function RoomPage() {
 
   const handleDragStart = (e: React.DragEvent, plant: Plant) => {
     e.dataTransfer.setData('plantId', plant.id.toString());
+    setDraggedPlant(plant);
+  };
+  
+  const handleDragEnd = () => {
+    setDraggedPlant(null);
+    setDraggedOverPot(null);
   };
 
   const handleDragOver = (e: React.DragEvent, potIndex: number) => {
@@ -178,6 +185,7 @@ export default function RoomPage() {
   const handleDrop = (e: React.DragEvent, potIndex: number) => {
     e.preventDefault();
     setDraggedOverPot(null);
+    setDraggedPlant(null);
 
     if (deskPlants[potIndex]) {
       return;
@@ -228,10 +236,7 @@ export default function RoomPage() {
                     onDragOver={(e) => handleDragOver(e, index)}
                     onDrop={(e) => handleDrop(e, index)}
                     onDragLeave={handleDragLeave}
-                    className={cn(
-                        'relative flex h-24 w-20 items-center justify-center rounded-lg transition-colors',
-                        draggedOverPot === index ? 'bg-primary/20' : 'bg-transparent'
-                    )}
+                    className="relative flex h-24 w-20 items-center justify-center rounded-lg transition-colors"
                 >
                     {plant ? (
                         <div className="flex flex-col items-center text-center cursor-pointer" onClick={() => setSelectedPlant(plant)}>
@@ -240,6 +245,13 @@ export default function RoomPage() {
                             </div>
                             <p className="mt-1 text-xs font-semibold text-primary truncate w-full">{plant.name}</p>
                         </div>
+                    ) : draggedOverPot === index && draggedPlant ? (
+                        <div className="flex flex-col items-center text-center opacity-60 pointer-events-none">
+                           <div className="relative h-16 w-16">
+                               <Image src={draggedPlant.image} alt={draggedPlant.name} fill className="object-contain" data-ai-hint={draggedPlant.hint} />
+                           </div>
+                           <p className="mt-1 text-xs font-semibold text-primary truncate w-full">{draggedPlant.name}</p>
+                       </div>
                     ) : (
                         <PlantPot />
                     )}
@@ -259,6 +271,7 @@ export default function RoomPage() {
                             key={plant.id}
                             draggable 
                             onDragStart={(e) => handleDragStart(e, plant)}
+                            onDragEnd={handleDragEnd}
                             onClick={() => setSelectedPlant(plant)}
                             className="group overflow-hidden cursor-grab transition-transform hover:scale-105 active:scale-95 active:cursor-grabbing shadow-md"
                         >
