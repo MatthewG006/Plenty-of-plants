@@ -1,9 +1,32 @@
+'use client';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Settings, User, Check, X } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
+import { useState, useEffect } from 'react';
+import type { Plant } from '@/interfaces/plant';
+
+const PLANTS_STORAGE_KEY = 'plenty-of-plants-collection';
 
 export default function HomePage() {
+  const [latestPlant, setLatestPlant] = useState<Plant | null>(null);
+
+  useEffect(() => {
+    const storedPlantsRaw = localStorage.getItem(PLANTS_STORAGE_KEY);
+    if (storedPlantsRaw) {
+      try {
+        const storedPlants: Plant[] = JSON.parse(storedPlantsRaw);
+        if (storedPlants.length > 0) {
+          setLatestPlant(storedPlants[storedPlants.length - 1]);
+        }
+      } catch (e) {
+        console.error("Failed to parse stored plants on home page", e);
+      }
+    }
+  }, []);
+
   return (
     <div className="p-4 space-y-6 bg-background">
       <header className="flex items-center justify-between">
@@ -29,10 +52,26 @@ export default function HomePage() {
           <CardHeader>
             <CardTitle className="text-xl font-semibold text-center">Your Latest Collection</CardTitle>
           </CardHeader>
-          <CardContent className="text-center">
-            <p className="text-muted-foreground">
-              No plants collected yet. Time to draw one!
-            </p>
+          <CardContent className="flex flex-col items-center justify-center text-center min-h-[260px]">
+            {latestPlant ? (
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-48 h-48 rounded-lg overflow-hidden border-2 border-primary/30 shadow-md">
+                  <Image
+                    src={latestPlant.image}
+                    alt={latestPlant.name}
+                    width={192}
+                    height={192}
+                    className="object-cover w-full h-full"
+                    data-ai-hint={latestPlant.hint}
+                  />
+                </div>
+                <h3 className="text-xl font-headline text-primary">{latestPlant.name}</h3>
+              </div>
+            ) : (
+              <p className="text-muted-foreground">
+                No plants collected yet. Time to draw one!
+              </p>
+            )}
           </CardContent>
         </Card>
 

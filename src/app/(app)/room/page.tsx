@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -8,10 +7,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { drawPlant, type DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 import { Leaf, Loader2 } from 'lucide-react';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import type { Plant } from '@/interfaces/plant';
 
-const initialCollectedPlants = [
+const PLANTS_STORAGE_KEY = 'plenty-of-plants-collection';
+
+const initialCollectedPlants: Plant[] = [
   { id: 1, name: 'Smiling Succulent', form: 'Base', image: 'https://placehold.co/300x300.png', hint: 'succulent plant' },
   { id: 2, name: 'Prickly Pear', form: 'Base', image: 'https://placehold.co/300x300.png', hint: 'cactus plant' },
   { id: 3, name: 'Fern Friend', form: 'Base', image: 'https://placehold.co/300x300.png', hint: 'fern plant' },
@@ -62,7 +64,24 @@ export default function RoomPage() {
   const { toast } = useToast();
   const [isDrawing, setIsDrawing] = useState(false);
   const [newPlant, setNewPlant] = useState<DrawPlantOutput | null>(null);
-  const [collectedPlants, setCollectedPlants] = useState(initialCollectedPlants);
+  const [collectedPlants, setCollectedPlants] = useState<Plant[]>([]);
+
+  useEffect(() => {
+    const storedPlantsRaw = localStorage.getItem(PLANTS_STORAGE_KEY);
+    if (storedPlantsRaw) {
+      try {
+        setCollectedPlants(JSON.parse(storedPlantsRaw));
+      } catch (e) {
+        console.error("Failed to parse stored plants, using initial set.", e);
+        setCollectedPlants(initialCollectedPlants);
+        localStorage.setItem(PLANTS_STORAGE_KEY, JSON.stringify(initialCollectedPlants));
+      }
+    } else {
+      setCollectedPlants(initialCollectedPlants);
+      localStorage.setItem(PLANTS_STORAGE_KEY, JSON.stringify(initialCollectedPlants));
+    }
+  }, []);
+
 
   const handleDraw = async () => {
     setIsDrawing(true);
@@ -82,16 +101,18 @@ export default function RoomPage() {
   };
   
   const handleCollect = (plantToCollect: DrawPlantOutput) => {
-    setCollectedPlants(prevPlants => [
-        ...prevPlants,
-        {
-            id: prevPlants.length + 1,
+    setCollectedPlants(prevPlants => {
+        const newPlant: Plant = {
+            id: (prevPlants[prevPlants.length - 1]?.id || 0) + 1,
             name: plantToCollect.name,
             form: 'Base',
             image: plantToCollect.imageDataUri,
             hint: plantToCollect.name.toLowerCase().split(' ').slice(0, 2).join(' '),
-        },
-    ]);
+        };
+        const updatedPlants = [...prevPlants, newPlant];
+        localStorage.setItem(PLANTS_STORAGE_KEY, JSON.stringify(updatedPlants));
+        return updatedPlants;
+    });
   };
 
   return (
