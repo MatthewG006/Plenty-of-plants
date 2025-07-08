@@ -27,7 +27,7 @@ export default function SignupPage() {
               <Input id="password" type="password" required />
             </div>
             <Button type="submit" className="w-full font-headline text-lg" asChild>
-                <Link href="/app/room">Create Account</Link>
+                <Link href="/app/home">Create Account</Link>
             </Button>
           </form>
         </CardContent>

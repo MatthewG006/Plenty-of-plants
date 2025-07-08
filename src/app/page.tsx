@@ -14,7 +14,7 @@ export default function SplashPage() {
           Your digital conservatory awaits.
         </p>
         <Button asChild className="mt-12 animate-pulse-subtle" size="lg">
-          <Link href="/app/room" className="font-headline text-xl px-8">Tap to Enter</Link>
+          <Link href="/app/home" className="font-headline text-xl px-8">Tap to Enter</Link>
         </Button>
       </div>
     </div>

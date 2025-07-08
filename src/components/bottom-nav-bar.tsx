@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, User, Settings } from 'lucide-react';
+import { Home, Sprout, User, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { href: '/app/room', label: 'Room', icon: Home },
+  { href: '/app/home', label: 'Home', icon: Home },
+  { href: '/app/room', label: 'Room', icon: Sprout },
   { href: '/app/profile', label: 'Profile', icon: User },
   { href: '/app/settings', label: 'Settings', icon: Settings },
 ];
@@ -16,7 +17,7 @@ export default function BottomNavBar() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 h-16 border-t bg-card/80 backdrop-blur-sm z-10">
-      <div className="mx-auto grid h-full max-w-md grid-cols-3 items-center justify-around">
+      <div className="mx-auto grid h-full max-w-md grid-cols-4 items-center justify-around">
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
           return (
