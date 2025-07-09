@@ -153,6 +153,41 @@ function DraggablePlant({ plant, source, onClick }: { plant: Plant; source: 'des
     );
 }
 
+function DroppablePot({
+  plant,
+  index,
+  activePlantData,
+  onClickPlant,
+}: {
+  plant: Plant | null;
+  index: number;
+  activePlantData: { plant: Plant; source: string } | null;
+  onClickPlant: (plant: Plant) => void;
+}) {
+  const { isOver, setNodeRef } = useDroppable({ id: `pot:${index}` });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "relative flex h-24 w-20 items-center justify-center rounded-lg transition-colors",
+        isOver && "bg-primary/20"
+      )}
+    >
+      {plant ? (
+         <DraggablePlant plant={plant} source="desk" onClick={() => onClickPlant(plant)} />
+      ) : isOver && activePlantData ? (
+          <div className="flex flex-col items-center text-center opacity-60 pointer-events-none">
+              <PlantImageUI plant={activePlantData.plant} />
+          </div>
+      ) : (
+          <PlantPot />
+      )}
+    </div>
+  );
+}
+
+
 export default function RoomPage() {
   const { toast } = useToast();
   const [isDrawing, setIsDrawing] = useState(false);
@@ -344,29 +379,15 @@ export default function RoomPage() {
             style={{ backgroundImage: 'url(/desk.jpg)' }}
           >
             <div className="flex h-full items-end justify-around">
-              {deskPlants.map((plant, index) => {
-                  const { isOver, setNodeRef } = useDroppable({ id: `pot:${index}` });
-                  return (
-                      <div
-                          key={index}
-                          ref={setNodeRef}
-                          className={cn(
-                            "relative flex h-24 w-20 items-center justify-center rounded-lg transition-colors",
-                            isOver && "bg-primary/20"
-                          )}
-                      >
-                          {plant ? (
-                             <DraggablePlant plant={plant} source="desk" onClick={() => setSelectedPlant(plant)} />
-                          ) : isOver && activePlantData ? (
-                              <div className="flex flex-col items-center text-center opacity-60 pointer-events-none">
-                                  <PlantImageUI plant={activePlantData.plant} />
-                              </div>
-                          ) : (
-                              <PlantPot />
-                          )}
-                      </div>
-                  );
-              })}
+              {deskPlants.map((plant, index) => (
+                  <DroppablePot
+                    key={index}
+                    plant={plant}
+                    index={index}
+                    activePlantData={activePlantData}
+                    onClickPlant={setSelectedPlant}
+                  />
+              ))}
             </div>
           </div>
         </section>
