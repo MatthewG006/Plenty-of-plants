@@ -59,3 +59,11 @@ pnpm-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+gitignore
+# Ignore build artifacts and cache files
+.firebase/
+.next/
+
+# Ignore node_modules
+node_modules/
