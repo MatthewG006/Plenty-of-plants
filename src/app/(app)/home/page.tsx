@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dialog';
 
 const PLANTS_DATA_STORAGE_KEY = 'plenty-of-plants-data';
+const NUM_POTS = 3;
 
 function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlantOutput | null, open: boolean, onOpenChange: (open: boolean) => void }) {
     if (!plant) return null;
@@ -134,8 +135,8 @@ export default function HomePage() {
     };
 
     const updatedData = {
-        ...storedData,
         collection: [...collectionPlants, newPlant],
+        desk: deskPlants.length > 0 ? deskPlants : Array(NUM_POTS).fill(null),
     };
 
     localStorage.setItem(PLANTS_DATA_STORAGE_KEY, JSON.stringify(updatedData));
