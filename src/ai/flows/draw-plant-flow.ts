@@ -63,10 +63,10 @@ const drawPlantFlow = ai.defineFlow(
       throw new Error('Could not generate plant details.');
     }
 
-    // First, generate the image on a solid background for easier separation.
+    // First, generate the image on a solid green background for easier chroma keying.
     const {media: initialMedia} = await ai.generate({
       model: 'googleai/gemini-2.0-flash-preview-image-generation',
-      prompt: `A digital art illustration of a magical plant: ${plantDetails.imagePrompt}. The plant should be in a simple terracotta pot, centered, on a solid white background.`,
+      prompt: `A digital art illustration of a magical plant: ${plantDetails.imagePrompt}. The plant should be in a simple terracotta pot, centered, on a solid bright green background (hex #00FF00).`,
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
       },
@@ -82,7 +82,7 @@ const drawPlantFlow = ai.defineFlow(
       prompt: [
         {media: {url: initialMedia.url}},
         {
-          text: 'From this image, perfectly isolate the plant and its pot. Make the background entirely transparent. The output must be a PNG with a transparent background.',
+          text: 'From this image, key out the solid green background and make it transparent. The output must be a PNG with a transparent background, preserving only the plant and its pot.',
         },
       ],
       config: {
