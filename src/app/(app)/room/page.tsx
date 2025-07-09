@@ -163,8 +163,19 @@ export default function RoomPage() {
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(TouchSensor),
+    useSensor(PointerSensor, {
+      // Prevent drag from starting on click
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      // Press and hold for 150ms, or move by 5px
+      activationConstraint: {
+        delay: 150,
+        tolerance: 5,
+      },
+    })
   );
   
   const activePlantData = (() => {
