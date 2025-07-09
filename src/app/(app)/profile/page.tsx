@@ -1,7 +1,13 @@
+'use client';
+
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { User } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import type { Plant } from '@/interfaces/plant';
+
+const PLANTS_DATA_STORAGE_KEY = 'plenty-of-plants-data';
 
 function InfoRow({ label, value }: { label: string, value: string | number }) {
   return (
@@ -13,6 +19,30 @@ function InfoRow({ label, value }: { label: string, value: string | number }) {
 }
 
 export default function ProfilePage() {
+  const [plantsCollected, setPlantsCollected] = useState(0);
+  const [plantsEvolved, setPlantsEvolved] = useState(0);
+
+  useEffect(() => {
+    const storedDataRaw = localStorage.getItem(PLANTS_DATA_STORAGE_KEY);
+    if (storedDataRaw) {
+      try {
+        const storedData = JSON.parse(storedDataRaw);
+        const collectionPlants: Plant[] = storedData.collection || [];
+        const deskPlants: Plant[] = (storedData.desk || []).filter((p: Plant | null): p is Plant => p !== null);
+        const allPlants = [...collectionPlants, ...deskPlants];
+
+        setPlantsCollected(allPlants.length);
+        
+        const evolvedCount = allPlants.filter(p => p.form !== 'Base').length;
+        setPlantsEvolved(evolvedCount);
+      } catch (e) {
+        console.error("Failed to parse stored plants on profile page", e);
+        setPlantsCollected(0);
+        setPlantsEvolved(0);
+      }
+    }
+  }, []);
+
   return (
     <div className="p-4">
       <header className="flex items-center justify-between pb-4">
@@ -34,9 +64,9 @@ export default function ProfilePage() {
           <Separator className="my-2"/>
           <InfoRow label="Email" value="you@example.com" />
           <Separator />
-          <InfoRow label="Plants Collected" value={8} />
+          <InfoRow label="Plants Collected" value={plantsCollected} />
           <Separator />
-          <InfoRow label="Plants Evolved" value={2} />
+          <InfoRow label="Plants Evolved" value={plantsEvolved} />
         </CardContent>
       </Card>
     </div>
