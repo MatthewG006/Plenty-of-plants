@@ -95,7 +95,7 @@ function PlantDetailDialog({ plant, open, onOpenChange }: { plant: Plant | null,
 function PlantImageUI({ plant }: { plant: Plant }) {
   return (
     <div className="flex flex-col items-center text-center">
-      <div className="relative h-16 w-16 pointer-events-none">
+      <div className="relative h-20 w-20 pointer-events-none">
         <Image src={plant.image} alt={plant.name} fill className="object-contain" data-ai-hint={plant.hint} />
       </div>
       <p className="mt-1 text-xs font-semibold text-primary truncate w-full pointer-events-none">{plant.name}</p>
@@ -170,7 +170,7 @@ function DroppablePot({
     <div
       ref={setNodeRef}
       className={cn(
-        "relative flex h-24 w-20 items-center justify-center rounded-lg transition-colors",
+        "relative flex h-28 w-24 items-center justify-center rounded-lg transition-colors",
         isOver && "bg-primary/20"
       )}
     >
