@@ -11,17 +11,23 @@ import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import type { Plant } from '@/interfaces/plant';
 import { cn } from '@/lib/utils';
+import {
+  DndContext,
+  useDraggable,
+  useDroppable,
+  DragOverlay,
+  type DragEndEvent,
+  type DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  TouchSensor
+} from '@dnd-kit/core';
+
 
 const OLD_PLANTS_STORAGE_KEY = 'plenty-of-plants-collection';
 const PLANTS_DATA_STORAGE_KEY = 'plenty-of-plants-data';
 const NUM_POTS = 3;
-
-type DraggedItem = {
-  plant: Plant;
-  source: 'collection' | 'desk';
-  index: number; // index in collection array OR pot index
-} | null;
-
 
 function PlantPot() {
     return (
@@ -86,6 +92,66 @@ function PlantDetailDialog({ plant, open, onOpenChange }: { plant: Plant | null,
     );
 }
 
+function PlantImageUI({ plant }: { plant: Plant }) {
+  return (
+    <div className="flex flex-col items-center text-center">
+      <div className="relative h-16 w-16 pointer-events-none">
+        <Image src={plant.image} alt={plant.name} fill className="object-contain" data-ai-hint={plant.hint} />
+      </div>
+      <p className="mt-1 text-xs font-semibold text-primary truncate w-full pointer-events-none">{plant.name}</p>
+    </div>
+  );
+}
+
+function PlantCardUI({ plant }: { plant: Plant }) {
+    return (
+        <Card className="group overflow-hidden shadow-md w-full">
+            <CardContent className="p-0">
+                <div className="aspect-square relative">
+                    <Image src={plant.image} alt={plant.name} fill className="object-cover" data-ai-hint={plant.hint} />
+                </div>
+                <div className="p-2 text-center bg-white/50">
+                    <p className="text-sm font-semibold text-primary truncate">{plant.name}</p>
+                    <p className="text-xs text-muted-foreground">{plant.form}</p>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
+
+function DraggablePlant({ plant, source, onClick }: { plant: Plant; source: 'desk' | 'collection'; onClick: () => void }) {
+    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+        id: `${source}:${plant.id}`,
+        data: { plant, source },
+    });
+
+    const style = {
+        opacity: isDragging ? 0.4 : 1,
+        touchAction: 'none',
+    };
+
+    if (source === 'desk') {
+        return (
+            <div
+                ref={setNodeRef}
+                style={style}
+                {...listeners}
+                {...attributes}
+                onClick={onClick}
+                className="flex flex-col items-center text-center cursor-grab active:cursor-grabbing h-full w-full justify-center"
+            >
+                <PlantImageUI plant={plant} />
+            </div>
+        );
+    }
+
+    return (
+        <div ref={setNodeRef} style={style} {...listeners} {...attributes} onClick={onClick} className="cursor-grab active:cursor-grabbing">
+            <PlantCardUI plant={plant} />
+        </div>
+    );
+}
 
 export default function RoomPage() {
   const { toast } = useToast();
@@ -94,9 +160,22 @@ export default function RoomPage() {
   const [collectedPlants, setCollectedPlants] = useState<Plant[]>([]);
   const [deskPlants, setDeskPlants] = useState<(Plant | null)[]>(Array(NUM_POTS).fill(null));
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
-  const [draggedItem, setDraggedItem] = useState<DraggedItem>(null);
-  const [draggedOverPot, setDraggedOverPot] = useState<number | null>(null);
-  const [isCollectionDropzone, setIsCollectionDropzone] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(TouchSensor),
+  );
+  
+  const activePlantData = (() => {
+    if (!activeId) return null;
+    const [source, idStr] = activeId.split(":");
+    const id = parseInt(idStr, 10);
+    const plant = source === 'desk' 
+        ? deskPlants.find(p => p?.id === id)
+        : collectedPlants.find(p => p.id === id);
+    return plant ? { plant, source } : null;
+  })();
 
   useEffect(() => {
     try {
@@ -169,229 +248,182 @@ export default function RoomPage() {
     setCollectedPlants(prevPlants => [...prevPlants, newPlant]);
   };
 
-  const handleDragStart = (e: React.DragEvent, plant: Plant, source: 'collection' | 'desk', index: number) => {
-      const item: NonNullable<DraggedItem> = { plant, source, index };
-      setDraggedItem(item);
-      e.dataTransfer.setData('application/json', JSON.stringify(item));
-      e.dataTransfer.effectAllowed = 'move';
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
   };
-
-  const handleDragEnd = () => {
-      setDraggedItem(null);
-      setDraggedOverPot(null);
-      setIsCollectionDropzone(false);
-  };
-
-  const handleDragOverPot = (e: React.DragEvent, potIndex: number) => {
-      e.preventDefault();
-      const draggedPlantIsOnDesk = draggedItem?.source === 'desk';
-      if (deskPlants[potIndex] === null || (draggedPlantIsOnDesk && deskPlants[potIndex]?.id !== draggedItem?.plant.id)) {
-          setDraggedOverPot(potIndex);
-          e.dataTransfer.dropEffect = 'move';
-      } else {
-          e.dataTransfer.dropEffect = 'none';
+  
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveId(null);
+    const { active, over } = event;
+  
+    if (!over || !active || active.id === over.id) {
+      return;
+    }
+  
+    const activePlant = active.data.current?.plant as Plant;
+    if (!activePlant) return;
+  
+    const [activeSource] = (active.id as string).split(':');
+    const [overType, overIdStr] = (over.id as string).split(':');
+  
+    let newDeskPlants = [...deskPlants];
+    let newCollectedPlants = [...collectedPlants];
+  
+    // --- Logic for moving plants ---
+    // 1. Find the plant being dragged and its original spot.
+    const sourcePotIndex = activeSource === 'desk' ? newDeskPlants.findIndex(p => p?.id === activePlant.id) : -1;
+  
+    // 2. Handle the drop location.
+    if (overType === 'pot') {
+      const targetPotIndex = parseInt(overIdStr, 10);
+      const plantAtTarget = newDeskPlants[targetPotIndex];
+  
+      // Moving from COLLECTION to POT
+      if (activeSource === 'collection') {
+        newCollectedPlants = newCollectedPlants.filter(p => p.id !== activePlant.id);
+        if (plantAtTarget) {
+          newCollectedPlants.push(plantAtTarget);
+        }
+        newDeskPlants[targetPotIndex] = activePlant;
       }
-  };
-
-  const handleDragLeavePot = () => {
-      setDraggedOverPot(null);
-  };
-
-  const handleDropOnPot = (e: React.DragEvent, targetPotIndex: number) => {
-      e.preventDefault();
-      
-      const itemJSON = e.dataTransfer.getData('application/json');
-      if (!itemJSON) return;
-      const item: NonNullable<DraggedItem> = JSON.parse(itemJSON);
-
-      if (!item) return;
-
-      const { plant, source, index: sourceIndex } = item;
-      
-      const newDeskPlants = [...deskPlants];
-      let newCollectedPlants = [...collectedPlants];
-
-      if (source === 'collection') {
-          if (newDeskPlants[targetPotIndex]) return;
-
-          newDeskPlants[targetPotIndex] = plant;
-          newCollectedPlants = newCollectedPlants.filter(p => p.id !== plant.id);
-
-      } else if (source === 'desk') {
-          const sourcePlant = newDeskPlants[sourceIndex];
-          const targetPlant = newDeskPlants[targetPotIndex];
-          
-          newDeskPlants[targetPotIndex] = sourcePlant;
-          newDeskPlants[sourceIndex] = targetPlant;
+      // Moving from DESK to another POT (swapping)
+      else if (activeSource === 'desk' && sourcePotIndex !== -1) {
+        newDeskPlants[targetPotIndex] = activePlant;
+        newDeskPlants[sourcePotIndex] = plantAtTarget;
       }
-      
-      setDeskPlants(newDeskPlants);
-      setCollectedPlants(newCollectedPlants);
-      handleDragEnd();
+    } 
+    // Moving to COLLECTION AREA
+    else if (overType === 'collection') {
+      // Only matters if moving from desk to collection
+      if (activeSource === 'desk' && sourcePotIndex !== -1) {
+        newDeskPlants[sourcePotIndex] = null;
+        if (!newCollectedPlants.find(p => p.id === activePlant.id)) {
+            newCollectedPlants.push(activePlant);
+        }
+      }
+    }
+  
+    setDeskPlants(newDeskPlants);
+    setCollectedPlants(newCollectedPlants);
   };
-
-  const handleDragOverCollection = (e: React.DragEvent) => {
-      e.preventDefault();
-      if (draggedItem?.source === 'desk') {
-          setIsCollectionDropzone(true);
-          e.dataTransfer.dropEffect = 'move';
-      } else {
-          e.dataTransfer.dropEffect = 'none';
-      }
-  }
-
-  const handleDropOnCollection = (e: React.DragEvent) => {
-      e.preventDefault();
-      const itemJSON = e.dataTransfer.getData('application/json');
-      if (!itemJSON) return;
-      const item: NonNullable<DraggedItem> = JSON.parse(itemJSON);
-
-      if (!item || item.source !== 'desk') {
-          return;
-      }
-      
-      const { plant, index: sourcePotIndex } = item;
-
-      const newDeskPlants = [...deskPlants];
-      newDeskPlants[sourcePotIndex] = null;
-      setDeskPlants(newDeskPlants);
-
-      if (!collectedPlants.find(p => p.id === plant.id)) {
-          setCollectedPlants(prev => [...prev, plant]);
-      }
-      handleDragEnd();
-  };
-
 
   return (
-    <div className="flex h-screen flex-col">
-      <header className="flex items-center justify-between p-4">
-        <h1 className="font-headline text-2xl text-primary">My Room</h1>
-        <Button variant="secondary" className="font-semibold" onClick={handleDraw} disabled={isDrawing}>
-          {isDrawing ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Drawing...
-            </>
-          ) : (
-            <>
-              <Leaf className="mr-2 h-4 w-4" />
-              1 Free Draw
-            </>
-          )}
-        </Button>
-      </header>
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => setActiveId(null)}>
+      <div className="flex h-screen flex-col">
+        <header className="flex items-center justify-between p-4">
+          <h1 className="font-headline text-2xl text-primary">My Room</h1>
+          <Button variant="secondary" className="font-semibold" onClick={handleDraw} disabled={isDrawing}>
+            {isDrawing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Drawing...
+              </>
+            ) : (
+              <>
+                <Leaf className="mr-2 h-4 w-4" />
+                1 Free Draw
+              </>
+            )}
+          </Button>
+        </header>
 
-      <section className="p-4">
-        <div
-          className="h-48 rounded-lg border-2 border-primary/20 bg-cover bg-center p-6"
-          style={{ backgroundImage: 'url(/desk.jpg)' }}
-        >
-          <div className="flex h-full items-end justify-around">
-            {deskPlants.map((plant, index) => (
-                <div
-                    key={index}
-                    onDragOver={(e) => handleDragOverPot(e, index)}
-                    onDrop={(e) => handleDropOnPot(e, index)}
-                    onDragLeave={handleDragLeavePot}
-                    className={cn(
-                      "relative flex h-24 w-20 items-center justify-center rounded-lg transition-colors",
-                      draggedOverPot === index && "bg-primary/20"
-                    )}
-                >
-                    {plant ? (
-                        <div 
-                            className="flex flex-col items-center text-center cursor-grab active:cursor-grabbing" 
-                            onClick={() => setSelectedPlant(plant)}
-                            draggable
-                            onDragStart={(e) => handleDragStart(e, plant, 'desk', index)}
-                            onDragEnd={handleDragEnd}
-                        >
-                            <div className="relative h-16 w-16 pointer-events-none">
-                                <Image src={plant.image} alt={plant.name} fill className="object-contain" data-ai-hint={plant.hint} />
-                            </div>
-                            <p className="mt-1 text-xs font-semibold text-primary truncate w-full pointer-events-none">{plant.name}</p>
-                        </div>
-                    ) : draggedOverPot === index && draggedItem ? (
-                        <div className="flex flex-col items-center text-center opacity-60 pointer-events-none">
-                           <div className="relative h-16 w-16">
-                               <Image src={draggedItem.plant.image} alt={draggedItem.plant.name} fill className="object-contain" data-ai-hint={draggedItem.plant.hint} />
-                           </div>
-                           <p className="mt-1 text-xs font-semibold text-primary truncate w-full">{draggedItem.plant.name}</p>
-                       </div>
-                    ) : (
-                        <PlantPot />
-                    )}
-                </div>
-            ))}
+        <section className="p-4">
+          <div
+            className="h-48 rounded-lg border-2 border-primary/20 bg-cover bg-center p-6"
+            style={{ backgroundImage: 'url(/desk.jpg)' }}
+          >
+            <div className="flex h-full items-end justify-around">
+              {deskPlants.map((plant, index) => {
+                  const { isOver, setNodeRef } = useDroppable({ id: `pot:${index}` });
+                  return (
+                      <div
+                          key={index}
+                          ref={setNodeRef}
+                          className={cn(
+                            "relative flex h-24 w-20 items-center justify-center rounded-lg transition-colors",
+                            isOver && "bg-primary/20"
+                          )}
+                      >
+                          {plant ? (
+                             <DraggablePlant plant={plant} source="desk" onClick={() => setSelectedPlant(plant)} />
+                          ) : isOver && activePlantData ? (
+                              <div className="flex flex-col items-center text-center opacity-60 pointer-events-none">
+                                  <PlantImageUI plant={activePlantData.plant} />
+                              </div>
+                          ) : (
+                              <PlantPot />
+                          )}
+                      </div>
+                  );
+              })}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section className="flex flex-1 flex-col overflow-hidden px-4 pb-4">
-         <h2 className="shrink-0 mb-4 font-headline text-xl text-primary">My Collection</h2>
-         <ScrollArea 
-            className={cn("flex-1 rounded-lg transition-colors", isCollectionDropzone && "bg-primary/10 border-2 border-dashed border-primary/50")}
-            onDragOver={handleDragOverCollection}
-            onDragLeave={() => setIsCollectionDropzone(false)}
-            onDrop={handleDropOnCollection}
-        >
-             <div className="grid grid-cols-3 gap-4 p-2 md:grid-cols-4 lg:grid-cols-5">
-                 {collectedPlants.length > 0 ? (
-                    collectedPlants.map((plant, index) => (
-                        <Card 
-                            key={plant.id}
-                            draggable 
-                            onDragStart={(e) => handleDragStart(e, plant, 'collection', index)}
-                            onDragEnd={handleDragEnd}
-                            onClick={() => setSelectedPlant(plant)}
-                            className="group overflow-hidden cursor-grab transition-transform hover:scale-105 active:scale-95 active:cursor-grabbing shadow-md"
-                        >
-                            <CardContent className="p-0">
-                                <div className="aspect-square relative">
-                                    <Image src={plant.image} alt={plant.name} fill className="object-cover" data-ai-hint={plant.hint} />
-                                </div>
-                                <div className="p-2 text-center bg-white/50">
-                                    <p className="text-sm font-semibold text-primary truncate">{plant.name}</p>
-                                    <p className="text-xs text-muted-foreground">{plant.form}</p>
-                                </div>
-                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                <p className="text-white font-headline text-lg">View</p>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))
-                 ) : (
-                    <div className="col-span-3 text-center text-muted-foreground py-8">
-                        Your collection is empty. Go to the Home screen to draw a new plant!
+        <section className="flex flex-1 flex-col overflow-hidden px-4 pb-4">
+          <h2 className="shrink-0 mb-4 font-headline text-xl text-primary">My Collection</h2>
+          <DroppableCollection>
+               <div className="grid grid-cols-3 gap-4 p-2 md:grid-cols-4 lg:grid-cols-5">
+                   {collectedPlants.length > 0 ? (
+                      collectedPlants.map((plant) => (
+                          <DraggablePlant key={plant.id} plant={plant} source="collection" onClick={() => setSelectedPlant(plant)} />
+                      ))
+                   ) : (
+                      <div className="col-span-3 text-center text-muted-foreground py-8">
+                          Your collection is empty. Go to the Home screen to draw a new plant!
+                      </div>
+                   )}
+               </div>
+           </DroppableCollection>
+        </section>
+
+        <NewPlantDialog 
+          plant={newPlant} 
+          open={!!newPlant}
+          onOpenChange={(isOpen) => {
+              if (!isOpen) {
+                  if (newPlant) {
+                      handleCollect(newPlant);
+                  }
+                  setNewPlant(null);
+              }
+          }}
+        />
+
+        <PlantDetailDialog
+          plant={selectedPlant}
+          open={!!selectedPlant}
+          onOpenChange={(isOpen) => {
+              if (!isOpen) {
+                  setSelectedPlant(null);
+              }
+          }}
+        />
+
+        <DragOverlay>
+            {activePlantData ? (
+                activePlantData.source === 'desk' ? (
+                    <PlantImageUI plant={activePlantData.plant} />
+                ) : (
+                    <div className="w-28">
+                        <PlantCardUI plant={activePlantData.plant} />
                     </div>
-                 )}
-             </div>
-         </ScrollArea>
-      </section>
-
-      <NewPlantDialog 
-        plant={newPlant} 
-        open={!!newPlant}
-        onOpenChange={(isOpen) => {
-            if (!isOpen) {
-                if (newPlant) {
-                    handleCollect(newPlant);
-                }
-                setNewPlant(null);
-            }
-        }}
-      />
-
-      <PlantDetailDialog
-        plant={selectedPlant}
-        open={!!selectedPlant}
-        onOpenChange={(isOpen) => {
-            if (!isOpen) {
-                setSelectedPlant(null);
-            }
-        }}
-      />
-    </div>
+                )
+            ) : null}
+        </DragOverlay>
+      </div>
+    </DndContext>
   );
+}
+
+function DroppableCollection({ children }: { children: React.ReactNode }) {
+    const { isOver, setNodeRef } = useDroppable({ id: 'collection:area' });
+    return (
+        <ScrollArea
+            ref={setNodeRef}
+            className={cn("flex-1 rounded-lg transition-colors", isOver && "bg-primary/10 border-2 border-dashed border-primary/50")}
+        >
+            {children}
+        </ScrollArea>
+    );
 }
