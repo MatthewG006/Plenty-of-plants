@@ -65,7 +65,7 @@ const drawPlantFlow = ai.defineFlow(
 
     const {media} = await ai.generate({
       model: 'googleai/gemini-2.0-flash-preview-image-generation',
-      prompt: `A digital art illustration of a magical plant: ${plantDetails.imagePrompt}. The plant should be in a simple terracotta pot, centered, on a plain light green background.`,
+      prompt: `A digital art illustration of a magical plant: ${plantDetails.imagePrompt}. The plant should be in a simple terracotta pot, centered, on a transparent background. The final image must be a PNG with a transparent background.`,
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
       },
