@@ -7,7 +7,14 @@ import { User } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Plant } from '@/interfaces/plant';
 
+interface UserData {
+  username: string;
+  email: string;
+  gameId: string;
+}
+
 const PLANTS_DATA_STORAGE_KEY = 'plenty-of-plants-data';
+const USER_DATA_STORAGE_KEY = 'plenty-of-plants-user';
 
 function InfoRow({ label, value }: { label: string, value: string | number }) {
   return (
@@ -21,8 +28,14 @@ function InfoRow({ label, value }: { label: string, value: string | number }) {
 export default function ProfilePage() {
   const [plantsCollected, setPlantsCollected] = useState(0);
   const [plantsEvolved, setPlantsEvolved] = useState(0);
+  const [userData, setUserData] = useState<UserData>({
+    username: 'PlantLover',
+    email: 'you@example.com',
+    gameId: '#GAMEID00000'
+  });
 
   useEffect(() => {
+    // Load plant data
     const storedDataRaw = localStorage.getItem(PLANTS_DATA_STORAGE_KEY);
     if (storedDataRaw) {
       try {
@@ -41,6 +54,17 @@ export default function ProfilePage() {
         setPlantsEvolved(0);
       }
     }
+
+    // Load user data
+    const storedUserRaw = localStorage.getItem(USER_DATA_STORAGE_KEY);
+    if (storedUserRaw) {
+      try {
+        const storedUser = JSON.parse(storedUserRaw);
+        setUserData(storedUser);
+      } catch (e) {
+        console.error("Failed to parse user data on profile page", e);
+      }
+    }
   }, []);
 
   return (
@@ -57,12 +81,12 @@ export default function ProfilePage() {
               <User className="h-12 w-12" />
             </AvatarFallback>
           </Avatar>
-          <CardTitle className="font-headline text-2xl">PlantLover23</CardTitle>
-          <p className="text-muted-foreground">#GAMEID12345</p>
+          <CardTitle className="font-headline text-2xl">{userData.username}</CardTitle>
+          <p className="text-muted-foreground">{userData.gameId}</p>
         </CardHeader>
         <CardContent>
           <Separator className="my-2"/>
-          <InfoRow label="Email" value="you@example.com" />
+          <InfoRow label="Email" value={userData.email} />
           <Separator />
           <InfoRow label="Plants Collected" value={plantsCollected} />
           <Separator />
