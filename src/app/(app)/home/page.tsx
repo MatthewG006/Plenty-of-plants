@@ -21,6 +21,19 @@ import {
 const PLANTS_DATA_STORAGE_KEY = 'plenty-of-plants-data';
 const NUM_POTS = 3;
 
+// Helper function to convert image to data URI
+async function toDataURL(url: string): Promise<string> {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
+}
+
+
 function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlantOutput | null, open: boolean, onOpenChange: (open: boolean) => void }) {
     if (!plant) return null;
 
@@ -111,7 +124,7 @@ export default function HomePage() {
     }
   };
 
-  const handleCollect = () => {
+  const handleCollect = async () => {
     if (!drawnPlant) return;
 
     const storedDataRaw = localStorage.getItem(PLANTS_DATA_STORAGE_KEY);
@@ -126,11 +139,29 @@ export default function HomePage() {
 
     const lastId = allPlants.reduce((maxId, p) => Math.max(p.id, maxId), 0);
 
+    let finalImageDataUri = drawnPlant.imageDataUri;
+    // If it's the starter fern, convert its local path to a data URI
+    if (drawnPlant.name === 'Friendly Fern' && drawnPlant.imageDataUri.startsWith('/')) {
+        try {
+            finalImageDataUri = await toDataURL(drawnPlant.imageDataUri);
+        } catch (error) {
+            console.error('Failed to convert fern image to data URI', error);
+            toast({
+                variant: "destructive",
+                title: "Failed to collect plant",
+                description: "Could not process the plant image. Please try again.",
+            });
+            setDrawnPlant(null);
+            return;
+        }
+    }
+
+
     const newPlant: Plant = {
         id: lastId + 1,
         name: drawnPlant.name,
         form: 'Base',
-        image: drawnPlant.imageDataUri,
+        image: finalImageDataUri,
         hint: drawnPlant.name === 'Friendly Fern' ? 'fern plant' : drawnPlant.name.toLowerCase().split(' ').slice(0, 2).join(' '),
     };
 
