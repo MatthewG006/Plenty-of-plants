@@ -44,11 +44,11 @@ const plantDetailsPrompt = ai.definePrompt({
       imagePrompt: z
         .string()
         .describe(
-          'A simple visual prompt for an image generation model to create a picture of this plant. e.g., "A whimsical glowing mushroom plant."'
+          'A simple visual prompt for an image generation model to create a picture of this plant. e.g., "A whimsical glowing mushroom plant with a happy face."'
         ),
     }),
   },
-  prompt: `You are a creative botanist for a game about collecting magical plants. Generate one new, unique, and whimsical plant. The plant should have a two-word name, a short one-sentence description, and a prompt for an image generator.`,
+  prompt: `You are a creative botanist for a game about collecting magical plants. Generate one new, unique, and whimsical plant. The plant should have a two-word name, a short one-sentence description, and a prompt for an image generator. The plant should sound like a cute character.`,
 });
 
 const drawPlantFlow = ai.defineFlow(
@@ -63,43 +63,23 @@ const drawPlantFlow = ai.defineFlow(
       throw new Error('Could not generate plant details.');
     }
 
-    const {media: initialMedia, response: initialResponse} = ai.generate({
+    const {media, response} = ai.generate({
       model: 'googleai/gemini-2.0-flash-preview-image-generation',
-      prompt: `A digital art illustration of a magical plant: ${plantDetails.imagePrompt}. The plant should be in a simple terracotta pot, centered, on a solid bright green background (hex #00FF00).`,
+      prompt: `A cute, 2D vector art illustration of a magical plant character: ${plantDetails.imagePrompt}. The plant should be in a simple terracotta pot with a happy, smiling face. The style should be clean, with bold outlines, suitable for a mobile game. The background must be solid white.`,
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
       },
     });
-    await initialResponse;
+    await response;
 
-    if (!initialMedia) {
-      throw new Error('Could not generate initial plant image.');
+    if (!media) {
+      throw new Error('Could not generate plant image.');
     }
-
-    const {media: finalMedia, response: finalResponse} = ai.generate({
-      model: 'googleai/gemini-2.0-flash-preview-image-generation',
-      prompt: [
-        {media: {url: initialMedia.url}},
-        {
-          text: 'From this image, key out the solid green background and make it transparent. The output must be a PNG with a transparent background, preserving only the plant and its pot.',
-        },
-      ],
-      config: {
-        responseModalities: ['TEXT', 'IMAGE'],
-      },
-    });
-    await finalResponse;
-
-    if (!finalMedia) {
-        throw new Error('Could not remove background from plant image.');
-    }
-
-    const imageDataUri = finalMedia.url;
-
+    
     return {
       name: plantDetails.name,
       description: plantDetails.description,
-      imageDataUri,
+      imageDataUri: media.url,
     };
   }
 );
