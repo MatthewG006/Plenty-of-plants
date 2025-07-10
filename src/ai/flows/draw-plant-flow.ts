@@ -63,21 +63,20 @@ const drawPlantFlow = ai.defineFlow(
       throw new Error('Could not generate plant details.');
     }
 
-    // First, generate the image on a solid green background for easier chroma keying.
-    const {media: initialMedia} = await ai.generate({
+    const {media: initialMedia, response: initialResponse} = ai.generate({
       model: 'googleai/gemini-2.0-flash-preview-image-generation',
       prompt: `A digital art illustration of a magical plant: ${plantDetails.imagePrompt}. The plant should be in a simple terracotta pot, centered, on a solid bright green background (hex #00FF00).`,
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
       },
     });
+    await initialResponse;
 
     if (!initialMedia) {
       throw new Error('Could not generate initial plant image.');
     }
 
-    // Now, use a second AI call to remove the background.
-    const {media: finalMedia} = await ai.generate({
+    const {media: finalMedia, response: finalResponse} = ai.generate({
       model: 'googleai/gemini-2.0-flash-preview-image-generation',
       prompt: [
         {media: {url: initialMedia.url}},
@@ -89,6 +88,7 @@ const drawPlantFlow = ai.defineFlow(
         responseModalities: ['TEXT', 'IMAGE'],
       },
     });
+    await finalResponse;
 
     if (!finalMedia) {
         throw new Error('Could not remove background from plant image.');
