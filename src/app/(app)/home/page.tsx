@@ -35,7 +35,7 @@ async function toDataURL(url: string): Promise<string> {
 }
 
 // Helper function to compress an image
-async function compressImage(dataUri: string, maxSize = 128): Promise<string> {
+async function compressImage(dataUri: string, maxSize = 64): Promise<string> {
     return new Promise((resolve, reject) => {
         const img = new window.Image();
         img.onload = () => {
@@ -193,22 +193,6 @@ export default function HomePage() {
         ...deskPlants.filter((p): p is Plant => p !== null)
     ];
 
-    // Compress images of all old plants to save space
-    const compressedOldPlants = await Promise.all(
-        allCurrentPlants.map(async (p) => {
-            if (p.image && !p.image.startsWith('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')) { // A simple check if it's not a placeholder
-                try {
-                    const compressedImage = await compressImage(p.image);
-                    return { ...p, image: compressedImage };
-                } catch (error) {
-                    console.error(`Failed to compress image for plant ${p.id}`, error);
-                    return { ...p, image: 'placeholder' }; // Fallback to placeholder on error
-                }
-            }
-            return p;
-        })
-    );
-
     let finalImageDataUri = drawnPlant.imageDataUri;
     if (drawnPlant.name === 'Friendly Fern' && drawnPlant.imageDataUri.startsWith('/')) {
         try {
@@ -224,8 +208,10 @@ export default function HomePage() {
             return;
         }
     }
-
+    
     const lastId = allCurrentPlants.reduce((maxId, p) => Math.max(p.id, maxId), 0);
+    
+    // Create new plant object first
     const newPlant: Plant = {
         id: lastId + 1,
         name: drawnPlant.name,
@@ -235,11 +221,30 @@ export default function HomePage() {
         description: drawnPlant.description,
     };
     
-    const updatedCollection = [...compressedOldPlants, newPlant];
+    // Now create a combined list of all plants (old + new) to compress
+    const allPlantsToCompress = [...allCurrentPlants, newPlant];
+
+    const compressedAllPlants = await Promise.all(
+        allPlantsToCompress.map(async (p) => {
+            try {
+                const compressedImage = await compressImage(p.image);
+                return { ...p, image: compressedImage };
+            } catch (error) {
+                console.error(`Failed to compress image for plant ${p.id}`, error);
+                return { ...p, image: 'placeholder' }; // Fallback to placeholder on error
+            }
+        })
+    );
+
+    // Re-find the latest plant from the compressed list to set the state
+    const newlyAddedAndCompressedPlant = compressedAllPlants.find(p => p.id === newPlant.id) || null;
+
+    const updatedCollection = compressedAllPlants;
     
     const updatedData = {
+        // We now save all plants to the collection, and the desk is just for display arrangement in the room
         collection: updatedCollection,
-        desk: deskPlants, // Desk plants are part of the compressedOldPlants if they existed
+        desk: deskPlants,
     };
     
     try {
@@ -253,7 +258,7 @@ export default function HomePage() {
         });
     }
     
-    setLatestPlant(newPlant);
+    setLatestPlant(newlyAddedAndCompressedPlant);
     setDrawnPlant(null);
   };
 
