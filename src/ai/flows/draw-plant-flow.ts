@@ -17,7 +17,7 @@ const DrawPlantOutputSchema = z.object({
   imageDataUri: z
     .string()
     .describe(
-      "A generated image of the plant, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "A generated image of the plant, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
     ),
 });
 export type DrawPlantOutput = z.infer<typeof DrawPlantOutputSchema>;
@@ -63,7 +63,7 @@ const drawPlantFlow = ai.defineFlow(
       throw new Error('Could not generate plant details.');
     }
 
-    const {stream, response} = ai.generateStream({
+    const {media} = await ai.generate({
       model: 'googleai/gemini-2.0-flash-preview-image-generation',
       prompt: `A cute, 2D vector art illustration of a magical plant character: ${plantDetails.imagePrompt}. The plant should be in a simple terracotta pot with a happy, smiling face. The style should be clean, with bold outlines, suitable for a mobile game. The background must be solid white.`,
       config: {
@@ -71,18 +71,10 @@ const drawPlantFlow = ai.defineFlow(
       },
     });
 
-    for await (const chunk of stream) {
-      // We don't need to do anything with the streaming chunks for now,
-      // but we need to iterate through them.
-    }
-
-    const finalResponse = await response;
-    const media = finalResponse.media;
-
     if (!media) {
       throw new Error('Could not generate plant image.');
     }
-    
+
     return {
       name: plantDetails.name,
       description: plantDetails.description,
