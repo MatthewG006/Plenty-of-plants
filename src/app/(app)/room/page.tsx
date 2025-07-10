@@ -430,18 +430,18 @@ export default function RoomPage() {
         <section className="flex flex-1 flex-col overflow-hidden px-4 pb-4">
           <h2 className="shrink-0 mb-4 font-headline text-xl text-primary">My Collection</h2>
           <DroppableCollection>
-               <div className="grid grid-cols-3 gap-4 p-2 md:grid-cols-4 lg:grid-cols-5">
-                   {collectedPlants.length > 0 ? (
-                      collectedPlants.map((plant) => (
-                          <DraggablePlant key={plant.id} plant={plant} source="collection" onClick={() => setSelectedPlant(plant)} />
-                      ))
-                   ) : (
-                      <div className="col-span-3 text-center text-muted-foreground py-8">
-                          Your collection is empty. Go to the Home screen to draw a new plant!
-                      </div>
-                   )}
-               </div>
-           </DroppableCollection>
+              <div className="grid grid-cols-3 gap-4 p-2 md:grid-cols-4 lg:grid-cols-5">
+                  {collectedPlants.length > 0 ? (
+                    collectedPlants.map((plant) => (
+                        <DraggablePlant key={plant.id} plant={plant} source="collection" onClick={() => setSelectedPlant(plant)} />
+                    ))
+                  ) : (
+                    <div className="col-span-3 text-center text-muted-foreground py-8">
+                        Your collection is empty. Go to the Home screen to draw a new plant!
+                    </div>
+                  )}
+              </div>
+          </DroppableCollection>
         </section>
 
         <NewPlantDialog 
@@ -488,11 +488,9 @@ function DroppableCollection({ children }: { children: React.ReactNode }) {
     return (
         <ScrollArea
             ref={setNodeRef}
-            className={cn("flex-1 rounded-lg transition-colors", isOver && "bg-primary/10 border-2 border-dashed border-primary/50")}
+            className={cn("flex-1 rounded-lg border bg-muted/10 transition-colors", isOver && "bg-primary/10 border-2 border-dashed border-primary/50")}
         >
             {children}
         </ScrollArea>
     );
 }
-
-    
