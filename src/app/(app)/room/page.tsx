@@ -30,7 +30,7 @@ const PLANTS_DATA_STORAGE_KEY = 'plenty-of-plants-data';
 const NUM_POTS = 3;
 
 // Helper function to compress an image
-async function compressImage(dataUri: string, maxSize = 64): Promise<string> {
+async function compressImage(dataUri: string, maxSize = 256): Promise<string> {
     return new Promise((resolve, reject) => {
         const img = new window.Image();
         img.onload = () => {
@@ -359,7 +359,8 @@ export default function RoomPage() {
     const compressedAllPlants = await Promise.all(
         allPlantsToCompress.map(async (p) => {
             try {
-                const compressedImage = await compressImage(p.image);
+                const imageToCompress = p.id === newPlantItem.id ? newPlantItem.image : p.image;
+                const compressedImage = await compressImage(imageToCompress);
                 return { ...p, image: compressedImage };
             } catch (error) {
                 console.error(`Failed to compress image for plant ${p.id}`, error);
