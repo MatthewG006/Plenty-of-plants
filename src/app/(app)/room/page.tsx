@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -74,8 +75,12 @@ function PlantDetailDialog({ plant, open, onOpenChange }: { plant: Plant | null,
                     <DialogTitle className="font-headline text-3xl text-center">{plant.name}</DialogTitle>
                 </DialogHeader>
                 <div className="flex flex-col items-center gap-4 py-4">
-                    <div className="w-64 h-64 rounded-lg overflow-hidden border-4 border-primary/50 shadow-lg bg-green-100">
-                        <Image src={plant.image} alt={plant.name} width={256} height={256} className="object-cover w-full h-full" data-ai-hint={plant.hint} />
+                    <div className="w-64 h-64 rounded-lg overflow-hidden border-4 border-primary/50 shadow-lg bg-green-100 flex items-center justify-center">
+                        {plant.image !== 'placeholder' ? (
+                            <Image src={plant.image} alt={plant.name} width={256} height={256} className="object-cover w-full h-full" data-ai-hint={plant.hint} />
+                        ) : (
+                            <Leaf className="w-24 h-24 text-muted-foreground/50" />
+                        )}
                     </div>
                     <div className="text-center">
                         <p className="text-sm text-muted-foreground">Form</p>
@@ -95,8 +100,14 @@ function PlantDetailDialog({ plant, open, onOpenChange }: { plant: Plant | null,
 function PlantImageUI({ plant }: { plant: Plant }) {
   return (
     <div className="flex flex-col items-center text-center">
-      <div className="relative h-28 w-28 pointer-events-none">
-        <Image src={plant.image} alt={plant.name} fill className="object-contain" data-ai-hint={plant.hint} />
+      <div className="relative h-28 w-28 pointer-events-none flex items-center justify-center">
+        {plant.image !== 'placeholder' ? (
+            <Image src={plant.image} alt={plant.name} fill className="object-contain" data-ai-hint={plant.hint} />
+        ) : (
+            <div className="w-full h-full flex items-center justify-center rounded-lg bg-muted/20">
+              <Leaf className="w-12 h-12 text-muted-foreground/50" />
+            </div>
+        )}
       </div>
       <p className="mt-1 text-xs font-semibold text-primary truncate w-full pointer-events-none">{plant.name}</p>
     </div>
@@ -107,8 +118,12 @@ function PlantCardUI({ plant }: { plant: Plant }) {
     return (
         <Card className="group overflow-hidden shadow-md w-full">
             <CardContent className="p-0">
-                <div className="aspect-square relative">
-                    <Image src={plant.image} alt={plant.name} fill className="object-cover" data-ai-hint={plant.hint} />
+                <div className="aspect-square relative flex items-center justify-center bg-muted/30">
+                    {plant.image !== 'placeholder' ? (
+                        <Image src={plant.image} alt={plant.name} fill className="object-cover" data-ai-hint={plant.hint} />
+                    ) : (
+                        <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
+                    )}
                 </div>
                 <div className="p-2 text-center bg-white/50">
                     <p className="text-sm font-semibold text-primary truncate">{plant.name}</p>
@@ -250,16 +265,34 @@ export default function RoomPage() {
     }
   }, []);
 
+  const saveData = (collection: Plant[], desk: (Plant | null)[]) => {
+    try {
+        const latestPlantId = [...collection, ...desk.filter((p): p is Plant => p !== null)].reduce((maxId, p) => Math.max(p.id, maxId), 0);
+
+        const cleanCollection = collection.map(p => p.id === latestPlantId ? p : { ...p, image: 'placeholder' });
+        const cleanDesk = desk.map(p => (p && p.id !== latestPlantId) ? { ...p, image: 'placeholder' } : p);
+
+        const dataToStore = {
+            collection: cleanCollection,
+            desk: cleanDesk,
+        };
+        localStorage.setItem(PLANTS_DATA_STORAGE_KEY, JSON.stringify(dataToStore));
+    } catch (e) {
+        console.error("Failed to save to localStorage (quota may be exceeded)", e);
+        toast({
+            variant: "destructive",
+            title: "Storage Error",
+            description: "Could not save your plant arrangement. Your device storage might be full.",
+        });
+    }
+  };
+
   useEffect(() => {
     if (collectedPlants.length === 0 && deskPlants.every(p => p === null)) {
       const storedDataRaw = localStorage.getItem(PLANTS_DATA_STORAGE_KEY);
       if (storedDataRaw) return;
     }
-    const dataToStore = {
-      collection: collectedPlants,
-      desk: deskPlants,
-    };
-    localStorage.setItem(PLANTS_DATA_STORAGE_KEY, JSON.stringify(dataToStore));
+    saveData(collectedPlants, deskPlants);
   }, [collectedPlants, deskPlants]);
 
 
@@ -459,3 +492,5 @@ function DroppableCollection({ children }: { children: React.ReactNode }) {
         </ScrollArea>
     );
 }
+
+    
