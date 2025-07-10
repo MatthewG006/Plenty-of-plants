@@ -66,7 +66,7 @@ async function compressImage(dataUri: string, maxSize = 256): Promise<string> {
 
 function PlantPot() {
     return (
-        <div className="flex h-28 w-24 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-primary/30 pointer-events-none" />
+        <div className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-primary/30 pointer-events-none" />
     )
 }
 
@@ -217,7 +217,7 @@ function DroppablePot({
     <div
       ref={setNodeRef}
       className={cn(
-        "relative flex h-32 w-28 items-center justify-center rounded-lg transition-colors",
+        "relative flex h-24 w-24 items-center justify-center rounded-lg transition-colors",
         isOver && "bg-primary/20"
       )}
     >
@@ -346,12 +346,13 @@ export default function RoomPage() {
     const allCurrentPlants = [...collectedPlants, ...deskPlants.filter((p): p is Plant => p !== null)];
     const lastId = allCurrentPlants.reduce((maxId, p) => Math.max(p.id, maxId), 0);
 
-    // The image is already compressed from the handleDraw flow.
+    const compressedImageDataUri = await compressImage(plantToCollect.imageDataUri);
+
     const newPlantItem: Plant = {
         id: lastId + 1,
         name: plantToCollect.name,
         form: 'Base',
-        image: plantToCollect.imageDataUri,
+        image: compressedImageDataUri,
         hint: plantToCollect.name.toLowerCase().split(' ').slice(0, 2).join(' '),
         description: plantToCollect.description,
     };
