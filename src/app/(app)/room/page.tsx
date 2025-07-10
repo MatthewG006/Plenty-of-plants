@@ -29,6 +29,41 @@ const OLD_PLANTS_STORAGE_KEY = 'plenty-of-plants-collection';
 const PLANTS_DATA_STORAGE_KEY = 'plenty-of-plants-data';
 const NUM_POTS = 3;
 
+// Helper function to compress an image
+async function compressImage(dataUri: string, maxSize = 128): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const img = new window.Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let { width, height } = img;
+
+            if (width > height) {
+                if (width > maxSize) {
+                    height = Math.round((height * maxSize) / width);
+                    width = maxSize;
+                }
+            } else {
+                if (height > maxSize) {
+                    width = Math.round((width * maxSize) / height);
+                    height = maxSize;
+                }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                return reject(new Error('Could not get canvas context'));
+            }
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/png'));
+        };
+        img.onerror = reject;
+        img.src = dataUri;
+    });
+}
+
+
 function PlantPot() {
     return (
         <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-primary/70 pointer-events-none">
@@ -214,13 +249,11 @@ export default function RoomPage() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      // Prevent drag from starting on click
       activationConstraint: {
         distance: 8,
       },
     }),
     useSensor(TouchSensor, {
-      // Press and hold for 150ms, or move by 5px
       activationConstraint: {
         delay: 150,
         tolerance: 5,
@@ -267,14 +300,9 @@ export default function RoomPage() {
 
   const saveData = (collection: Plant[], desk: (Plant | null)[]) => {
     try {
-        const latestPlantId = [...collection, ...desk.filter((p): p is Plant => p !== null)].reduce((maxId, p) => Math.max(p.id, maxId), 0);
-
-        const cleanCollection = collection.map(p => p.id === latestPlantId ? p : { ...p, image: 'placeholder' });
-        const cleanDesk = desk.map(p => (p && p.id !== latestPlantId) ? { ...p, image: 'placeholder' } : p);
-
         const dataToStore = {
-            collection: cleanCollection,
-            desk: cleanDesk,
+            collection: collection,
+            desk: desk,
         };
         localStorage.setItem(PLANTS_DATA_STORAGE_KEY, JSON.stringify(dataToStore));
     } catch (e) {
@@ -313,11 +341,26 @@ export default function RoomPage() {
     }
   };
   
-  const handleCollect = (plantToCollect: DrawPlantOutput) => {
-    const allPlants = [...collectedPlants, ...deskPlants.filter((p): p is Plant => p !== null)];
-    const lastId = allPlants.reduce((maxId, p) => Math.max(p.id, maxId), 0);
+  const handleCollect = async (plantToCollect: DrawPlantOutput) => {
+    const allCurrentPlants = [...collectedPlants, ...deskPlants.filter((p): p is Plant => p !== null)];
+    const lastId = allCurrentPlants.reduce((maxId, p) => Math.max(p.id, maxId), 0);
 
-    const newPlant: Plant = {
+    const compressedOldPlants = await Promise.all(
+        allCurrentPlants.map(async (p) => {
+            if (p.image && !p.image.startsWith('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')) {
+                try {
+                    const compressedImage = await compressImage(p.image);
+                    return { ...p, image: compressedImage };
+                } catch (error) {
+                    console.error(`Failed to compress image for plant ${p.id}`, error);
+                    return { ...p, image: 'placeholder' };
+                }
+            }
+            return p;
+        })
+    );
+
+    const newPlantItem: Plant = {
         id: lastId + 1,
         name: plantToCollect.name,
         form: 'Base',
@@ -325,8 +368,22 @@ export default function RoomPage() {
         hint: plantToCollect.name.toLowerCase().split(' ').slice(0, 2).join(' '),
         description: plantToCollect.description,
     };
-    setCollectedPlants(prevPlants => [...prevPlants, newPlant]);
+    
+    // Separate compressed plants back into desk and collection
+    const newDeskPlants = [...deskPlants];
+    const newCollectedPlants = compressedOldPlants.filter(p => {
+        const deskIndex = newDeskPlants.findIndex(dp => dp?.id === p.id);
+        if (deskIndex > -1) {
+            newDeskPlants[deskIndex] = p;
+            return false;
+        }
+        return true;
+    });
+
+    setCollectedPlants([...newCollectedPlants, newPlantItem]);
+    setDeskPlants(newDeskPlants);
   };
+
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
@@ -349,16 +406,12 @@ export default function RoomPage() {
     let newDeskPlants = [...deskPlants];
     let newCollectedPlants = [...collectedPlants];
   
-    // --- Logic for moving plants ---
-    // 1. Find the plant being dragged and its original spot.
     const sourcePotIndex = activeSource === 'desk' ? newDeskPlants.findIndex(p => p?.id === activePlant.id) : -1;
   
-    // 2. Handle the drop location.
     if (overType === 'pot') {
       const targetPotIndex = parseInt(overIdStr, 10);
       const plantAtTarget = newDeskPlants[targetPotIndex];
   
-      // Moving from COLLECTION to POT
       if (activeSource === 'collection') {
         newCollectedPlants = newCollectedPlants.filter(p => p.id !== activePlant.id);
         if (plantAtTarget) {
@@ -366,15 +419,12 @@ export default function RoomPage() {
         }
         newDeskPlants[targetPotIndex] = activePlant;
       }
-      // Moving from DESK to another POT (swapping)
       else if (activeSource === 'desk' && sourcePotIndex !== -1) {
         newDeskPlants[targetPotIndex] = activePlant;
         newDeskPlants[sourcePotIndex] = plantAtTarget;
       }
     } 
-    // Moving to COLLECTION AREA
     else if (overType === 'collection') {
-      // Only matters if moving from desk to collection
       if (activeSource === 'desk' && sourcePotIndex !== -1) {
         newDeskPlants[sourcePotIndex] = null;
         if (!newCollectedPlants.find(p => p.id === activePlant.id)) {
@@ -384,7 +434,7 @@ export default function RoomPage() {
     }
   
     setDeskPlants(newDeskPlants);
-    setCollectedPlants(newCollectedPlants);
+    setCollectedPlants(newCollectedPlants.sort((a,b) => a.id - b.id));
   };
 
   return (
@@ -415,7 +465,7 @@ export default function RoomPage() {
             <div className="flex h-full items-end justify-around">
               {deskPlants.map((plant, index) => (
                   <DroppablePot
-                    key={index}
+                    key={plant?.id || `pot-${index}`}
                     plant={plant}
                     index={index}
                     activePlantData={activePlantData}

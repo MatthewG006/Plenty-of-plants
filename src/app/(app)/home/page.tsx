@@ -22,7 +22,7 @@ import {
 const PLANTS_DATA_STORAGE_KEY = 'plenty-of-plants-data';
 const NUM_POTS = 3;
 
-// Helper function to convert image to data URI
+// Helper function to convert image URL to data URI
 async function toDataURL(url: string): Promise<string> {
     const response = await fetch(url);
     const blob = await response.blob();
@@ -31,6 +31,40 @@ async function toDataURL(url: string): Promise<string> {
         reader.onloadend = () => resolve(reader.result as string);
         reader.onerror = reject;
         reader.readAsDataURL(blob);
+    });
+}
+
+// Helper function to compress an image
+async function compressImage(dataUri: string, maxSize = 128): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const img = new window.Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let { width, height } = img;
+
+            if (width > height) {
+                if (width > maxSize) {
+                    height = Math.round((height * maxSize) / width);
+                    width = maxSize;
+                }
+            } else {
+                if (height > maxSize) {
+                    width = Math.round((width * maxSize) / height);
+                    height = maxSize;
+                }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                return reject(new Error('Could not get canvas context'));
+            }
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/png')); // Use PNG to preserve transparency
+        };
+        img.onerror = reject;
+        img.src = dataUri;
     });
 }
 
@@ -145,28 +179,37 @@ export default function HomePage() {
     let storedData;
     try {
         const storedDataRaw = localStorage.getItem(PLANTS_DATA_STORAGE_KEY);
-        storedData = storedDataRaw ? JSON.parse(storedDataRaw) : { collection: [], desk: [] };
+        storedData = storedDataRaw ? JSON.parse(storedDataRaw) : { collection: [], desk: Array(NUM_POTS).fill(null) };
     } catch (e) {
         console.error("Failed to read or parse localStorage", e);
-        storedData = { collection: [], desk: [] };
+        storedData = { collection: [], desk: Array(NUM_POTS).fill(null) };
     }
     
     let collectionPlants: Plant[] = storedData.collection || [];
-    const deskPlants: (Plant | null)[] = storedData.desk || [];
+    const deskPlants: (Plant | null)[] = storedData.desk || Array(NUM_POTS).fill(null);
 
-    // Clear image data from all old plants to save space
-    collectionPlants = collectionPlants.map(p => ({ ...p, image: 'placeholder' }));
-    const deskPlantsCleaned = deskPlants.map(p => p ? { ...p, image: 'placeholder' } : null);
-
-    const allPlants: Plant[] = [
+    const allCurrentPlants: Plant[] = [
         ...collectionPlants,
-        ...deskPlantsCleaned.filter((p): p is Plant => p !== null)
+        ...deskPlants.filter((p): p is Plant => p !== null)
     ];
 
-    const lastId = allPlants.reduce((maxId, p) => Math.max(p.id, maxId), 0);
+    // Compress images of all old plants to save space
+    const compressedOldPlants = await Promise.all(
+        allCurrentPlants.map(async (p) => {
+            if (p.image && !p.image.startsWith('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')) { // A simple check if it's not a placeholder
+                try {
+                    const compressedImage = await compressImage(p.image);
+                    return { ...p, image: compressedImage };
+                } catch (error) {
+                    console.error(`Failed to compress image for plant ${p.id}`, error);
+                    return { ...p, image: 'placeholder' }; // Fallback to placeholder on error
+                }
+            }
+            return p;
+        })
+    );
 
     let finalImageDataUri = drawnPlant.imageDataUri;
-    // If it's the starter fern, convert its local path to a data URI
     if (drawnPlant.name === 'Friendly Fern' && drawnPlant.imageDataUri.startsWith('/')) {
         try {
             finalImageDataUri = await toDataURL(drawnPlant.imageDataUri);
@@ -182,7 +225,7 @@ export default function HomePage() {
         }
     }
 
-
+    const lastId = allCurrentPlants.reduce((maxId, p) => Math.max(p.id, maxId), 0);
     const newPlant: Plant = {
         id: lastId + 1,
         name: drawnPlant.name,
@@ -191,10 +234,12 @@ export default function HomePage() {
         hint: drawnPlant.name === 'Friendly Fern' ? 'fern plant' : drawnPlant.name.toLowerCase().split(' ').slice(0, 2).join(' '),
         description: drawnPlant.description,
     };
-
+    
+    const updatedCollection = [...compressedOldPlants, newPlant];
+    
     const updatedData = {
-        collection: [...collectionPlants, newPlant],
-        desk: deskPlantsCleaned.length > 0 ? deskPlantsCleaned : Array(NUM_POTS).fill(null),
+        collection: updatedCollection,
+        desk: deskPlants, // Desk plants are part of the compressedOldPlants if they existed
     };
     
     try {
@@ -311,5 +356,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-    
