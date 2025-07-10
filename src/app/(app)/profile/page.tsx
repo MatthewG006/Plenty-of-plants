@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -36,7 +37,13 @@ export default function ProfilePage() {
 
   useEffect(() => {
     // Load plant data
-    const storedDataRaw = localStorage.getItem(PLANTS_DATA_STORAGE_KEY);
+    let storedDataRaw;
+    try {
+        storedDataRaw = localStorage.getItem(PLANTS_DATA_STORAGE_KEY);
+    } catch (e) {
+        console.error("Failed to read localStorage on profile page", e);
+    }
+    
     if (storedDataRaw) {
       try {
         const storedData = JSON.parse(storedDataRaw);
@@ -56,7 +63,13 @@ export default function ProfilePage() {
     }
 
     // Load user data
-    const storedUserRaw = localStorage.getItem(USER_DATA_STORAGE_KEY);
+    let storedUserRaw;
+    try {
+        storedUserRaw = localStorage.getItem(USER_DATA_STORAGE_KEY);
+    } catch(e) {
+      console.error("Failed to read user data from localStorage", e);
+    }
+
     if (storedUserRaw) {
       try {
         const storedUser = JSON.parse(storedUserRaw);
@@ -96,3 +109,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+    

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -67,7 +68,14 @@ export default function HomePage() {
   const [drawnPlant, setDrawnPlant] = useState<DrawPlantOutput | null>(null);
 
   useEffect(() => {
-    const storedDataRaw = localStorage.getItem(PLANTS_DATA_STORAGE_KEY);
+    let storedDataRaw;
+    try {
+        storedDataRaw = localStorage.getItem(PLANTS_DATA_STORAGE_KEY);
+    } catch (e) {
+        console.error("Failed to read from localStorage", e);
+        return;
+    }
+
     if (storedDataRaw) {
       try {
         const storedData = JSON.parse(storedDataRaw);
@@ -94,8 +102,15 @@ export default function HomePage() {
   const handleDraw = async () => {
     setIsDrawing(true);
     try {
-      const storedDataRaw = localStorage.getItem(PLANTS_DATA_STORAGE_KEY);
-      const storedData = storedDataRaw ? JSON.parse(storedDataRaw) : { collection: [], desk: [] };
+      let storedData;
+      try {
+          const storedDataRaw = localStorage.getItem(PLANTS_DATA_STORAGE_KEY);
+          storedData = storedDataRaw ? JSON.parse(storedDataRaw) : { collection: [], desk: [] };
+      } catch (e) {
+          console.error("Failed to read or parse localStorage", e);
+          storedData = { collection: [], desk: [] };
+      }
+
       const allPlants: Plant[] = [
           ...(storedData.collection || []), 
           ...(storedData.desk || []).filter((p: Plant | null): p is Plant => p !== null)
@@ -127,14 +142,25 @@ export default function HomePage() {
   const handleCollect = async () => {
     if (!drawnPlant) return;
 
-    const storedDataRaw = localStorage.getItem(PLANTS_DATA_STORAGE_KEY);
-    const storedData = storedDataRaw ? JSON.parse(storedDataRaw) : { collection: [], desk: [] };
-    const collectionPlants: Plant[] = storedData.collection || [];
+    let storedData;
+    try {
+        const storedDataRaw = localStorage.getItem(PLANTS_DATA_STORAGE_KEY);
+        storedData = storedDataRaw ? JSON.parse(storedDataRaw) : { collection: [], desk: [] };
+    } catch (e) {
+        console.error("Failed to read or parse localStorage", e);
+        storedData = { collection: [], desk: [] };
+    }
+    
+    let collectionPlants: Plant[] = storedData.collection || [];
     const deskPlants: (Plant | null)[] = storedData.desk || [];
+
+    // Clear image data from all old plants to save space
+    collectionPlants = collectionPlants.map(p => ({ ...p, image: 'placeholder' }));
+    const deskPlantsCleaned = deskPlants.map(p => p ? { ...p, image: 'placeholder' } : null);
 
     const allPlants: Plant[] = [
         ...collectionPlants,
-        ...deskPlants.filter((p): p is Plant => p !== null)
+        ...deskPlantsCleaned.filter((p): p is Plant => p !== null)
     ];
 
     const lastId = allPlants.reduce((maxId, p) => Math.max(p.id, maxId), 0);
@@ -167,10 +193,19 @@ export default function HomePage() {
 
     const updatedData = {
         collection: [...collectionPlants, newPlant],
-        desk: deskPlants.length > 0 ? deskPlants : Array(NUM_POTS).fill(null),
+        desk: deskPlantsCleaned.length > 0 ? deskPlantsCleaned : Array(NUM_POTS).fill(null),
     };
-
-    localStorage.setItem(PLANTS_DATA_STORAGE_KEY, JSON.stringify(updatedData));
+    
+    try {
+        localStorage.setItem(PLANTS_DATA_STORAGE_KEY, JSON.stringify(updatedData));
+    } catch (e) {
+        console.error("Failed to save to localStorage (quota may be exceeded)", e);
+        toast({
+            variant: "destructive",
+            title: "Storage Error",
+            description: "Could not save your new plant. Your device storage might be full.",
+        });
+    }
     
     setLatestPlant(newPlant);
     setDrawnPlant(null);
@@ -208,14 +243,20 @@ export default function HomePage() {
             {latestPlant ? (
               <Link href="/room" className="flex flex-col items-center gap-4 transition-transform hover:scale-105">
                 <div className="w-48 h-48 rounded-lg overflow-hidden border-2 border-primary/30 shadow-md">
-                  <Image
-                    src={latestPlant.image}
-                    alt={latestPlant.name}
-                    width={192}
-                    height={192}
-                    className="object-cover w-full h-full"
-                    data-ai-hint={latestPlant.hint}
-                  />
+                  {latestPlant.image !== 'placeholder' ? (
+                      <Image
+                        src={latestPlant.image}
+                        alt={latestPlant.name}
+                        width={192}
+                        height={192}
+                        className="object-cover w-full h-full"
+                        data-ai-hint={latestPlant.hint}
+                      />
+                  ) : (
+                      <div className="w-full h-full bg-muted flex items-center justify-center">
+                          <Leaf className="w-16 h-16 text-muted-foreground" />
+                      </div>
+                  )}
                 </div>
                 <h3 className="text-xl font-headline text-primary">{latestPlant.name}</h3>
               </Link>
@@ -269,3 +310,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
