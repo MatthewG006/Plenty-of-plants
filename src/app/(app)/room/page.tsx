@@ -4,7 +4,6 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { drawPlant, type DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 import { Leaf, Loader2 } from 'lucide-react';
 import Image from 'next/image';
@@ -428,8 +427,8 @@ export default function RoomPage() {
         </section>
 
         <section className="flex flex-1 flex-col overflow-hidden px-4 pb-4">
-          <h2 className="shrink-0 mb-4 font-headline text-xl text-primary">My Collection</h2>
-          <DroppableCollection>
+            <h2 className="shrink-0 mb-4 font-headline text-xl text-primary">My Collection</h2>
+            <DroppableCollection>
               <div className="grid grid-cols-3 gap-4 p-2 md:grid-cols-4 lg:grid-cols-5">
                   {collectedPlants.length > 0 ? (
                     collectedPlants.map((plant) => (
@@ -486,11 +485,11 @@ export default function RoomPage() {
 function DroppableCollection({ children }: { children: React.ReactNode }) {
     const { isOver, setNodeRef } = useDroppable({ id: 'collection:area' });
     return (
-        <ScrollArea
+        <div
             ref={setNodeRef}
-            className={cn("flex-1 rounded-lg border bg-muted/10 transition-colors", isOver && "bg-primary/10 border-2 border-dashed border-primary/50")}
+            className={cn("flex-1 overflow-y-auto rounded-lg border bg-muted/10 p-2", isOver && "bg-primary/10 border-2 border-dashed border-primary/50")}
         >
             {children}
-        </ScrollArea>
+        </div>
     );
 }
