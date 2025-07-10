@@ -389,7 +389,7 @@ export default function RoomPage() {
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => setActiveId(null)}>
-      <div className="flex h-screen flex-col">
+      <div className="space-y-4">
         <header className="flex items-center justify-between p-4">
           <h1 className="font-headline text-2xl text-primary">My Room</h1>
           <Button variant="secondary" className="font-semibold" onClick={handleDraw} disabled={isDrawing}>
@@ -407,7 +407,7 @@ export default function RoomPage() {
           </Button>
         </header>
 
-        <section className="p-4">
+        <section className="px-4">
           <div
             className="h-48 rounded-lg border-2 border-primary/20 bg-cover bg-center p-6"
             style={{ backgroundImage: 'url(/desk.jpg)' }}
@@ -426,10 +426,10 @@ export default function RoomPage() {
           </div>
         </section>
 
-        <section className="flex flex-1 flex-col overflow-hidden px-4 pb-4">
-            <h2 className="shrink-0 mb-4 font-headline text-xl text-primary">My Collection</h2>
-            <DroppableCollection>
-              <div className="grid grid-cols-3 gap-4 p-2 md:grid-cols-4 lg:grid-cols-5">
+        <section className="px-4 pb-4">
+            <h2 className="mb-4 font-headline text-xl text-primary">My Collection</h2>
+            <DroppableCollectionArea>
+              <div className="grid grid-cols-3 gap-4 md:grid-cols-4 lg:grid-cols-5">
                   {collectedPlants.length > 0 ? (
                     collectedPlants.map((plant) => (
                         <DraggablePlant key={plant.id} plant={plant} source="collection" onClick={() => setSelectedPlant(plant)} />
@@ -440,7 +440,7 @@ export default function RoomPage() {
                     </div>
                   )}
               </div>
-          </DroppableCollection>
+          </DroppableCollectionArea>
         </section>
 
         <NewPlantDialog 
@@ -482,12 +482,12 @@ export default function RoomPage() {
   );
 }
 
-function DroppableCollection({ children }: { children: React.ReactNode }) {
+function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
     const { isOver, setNodeRef } = useDroppable({ id: 'collection:area' });
     return (
         <div
             ref={setNodeRef}
-            className={cn("flex-1 overflow-y-auto rounded-lg border bg-muted/10 p-2", isOver && "bg-primary/10 border-2 border-dashed border-primary/50")}
+            className={cn("rounded-lg border bg-muted/10 p-2 min-h-24", isOver && "bg-primary/10 border-2 border-dashed border-primary/50")}
         >
             {children}
         </div>
