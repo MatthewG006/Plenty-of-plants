@@ -63,14 +63,21 @@ const drawPlantFlow = ai.defineFlow(
       throw new Error('Could not generate plant details.');
     }
 
-    const {media, response} = ai.generate({
+    const {stream, response} = ai.generateStream({
       model: 'googleai/gemini-2.0-flash-preview-image-generation',
       prompt: `A cute, 2D vector art illustration of a magical plant character: ${plantDetails.imagePrompt}. The plant should be in a simple terracotta pot with a happy, smiling face. The style should be clean, with bold outlines, suitable for a mobile game. The background must be solid white.`,
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
       },
     });
-    await response;
+
+    for await (const chunk of stream) {
+      // We don't need to do anything with the streaming chunks for now,
+      // but we need to iterate through them.
+    }
+
+    const finalResponse = await response;
+    const media = finalResponse.media;
 
     if (!media) {
       throw new Error('Could not generate plant image.');
