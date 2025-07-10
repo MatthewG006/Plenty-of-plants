@@ -82,6 +82,7 @@ function PlantDetailDialog({ plant, open, onOpenChange }: { plant: Plant | null,
                             <Leaf className="w-24 h-24 text-muted-foreground/50" />
                         )}
                     </div>
+                    <p className="text-muted-foreground text-center mt-2">{plant.description}</p>
                     <div className="text-center">
                         <p className="text-sm text-muted-foreground">Form</p>
                         <p className="text-lg font-semibold text-primary">{plant.form}</p>
@@ -323,6 +324,7 @@ export default function RoomPage() {
         form: 'Base',
         image: plantToCollect.imageDataUri,
         hint: plantToCollect.name.toLowerCase().split(' ').slice(0, 2).join(' '),
+        description: plantToCollect.description,
     };
     setCollectedPlants(prevPlants => [...prevPlants, newPlant]);
   };
