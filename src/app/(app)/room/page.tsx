@@ -132,7 +132,7 @@ function PlantDetailDialog({ plant, open, onOpenChange }: { plant: Plant | null,
 function PlantImageUI({ plant }: { plant: Plant }) {
   return (
     <div className="flex flex-col items-center text-center">
-      <div className="relative h-28 w-28 pointer-events-none flex items-center justify-center">
+      <div className="relative h-20 w-20 pointer-events-none flex items-center justify-center">
         {plant.image !== 'placeholder' ? (
             <Image src={plant.image} alt={plant.name} fill className="object-contain" data-ai-hint={plant.hint} />
         ) : (
