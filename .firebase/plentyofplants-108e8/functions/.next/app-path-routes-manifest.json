@@ -4,9 +4,9 @@
   "/login/page": "/login",
   "/page": "/",
   "/signup/page": "/signup",
-  "/(app)/community/page": "/community",
+  "/(app)/home/page": "/home",
   "/(app)/profile/page": "/profile",
-  "/(app)/room/page": "/room",
   "/(app)/settings/page": "/settings",
-  "/(app)/home/page": "/home"
+  "/(app)/room/page": "/room",
+  "/(app)/community/page": "/community"
 }
