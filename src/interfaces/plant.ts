@@ -4,4 +4,5 @@ export interface Plant {
   form: string;
   image: string;
   hint: string;
+  description: string;
 }

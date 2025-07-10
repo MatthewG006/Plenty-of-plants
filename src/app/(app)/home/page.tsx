@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings, User, Check, X, Loader2 } from 'lucide-react';
+import { Settings, User, Check, X, Loader2, Leaf } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
@@ -189,6 +189,7 @@ export default function HomePage() {
         form: 'Base',
         image: finalImageDataUri,
         hint: drawnPlant.name === 'Friendly Fern' ? 'fern plant' : drawnPlant.name.toLowerCase().split(' ').slice(0, 2).join(' '),
+        description: drawnPlant.description,
     };
 
     const updatedData = {
