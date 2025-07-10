@@ -136,31 +136,39 @@ export default function HomePage() {
   const handleDraw = async () => {
     setIsDrawing(true);
     try {
-      let storedData;
-      try {
-          const storedDataRaw = localStorage.getItem(PLANTS_DATA_STORAGE_KEY);
-          storedData = storedDataRaw ? JSON.parse(storedDataRaw) : { collection: [], desk: [] };
-      } catch (e) {
-          console.error("Failed to read or parse localStorage", e);
-          storedData = { collection: [], desk: [] };
-      }
+        let storedData;
+        try {
+            const storedDataRaw = localStorage.getItem(PLANTS_DATA_STORAGE_KEY);
+            storedData = storedDataRaw ? JSON.parse(storedDataRaw) : { collection: [], desk: [] };
+        } catch (e) {
+            console.error("Failed to read or parse localStorage", e);
+            storedData = { collection: [], desk: [] };
+        }
 
-      const allPlants: Plant[] = [
-          ...(storedData.collection || []), 
-          ...(storedData.desk || []).filter((p: Plant | null): p is Plant => p !== null)
-      ];
+        const allPlants: Plant[] = [
+            ...(storedData.collection || []), 
+            ...(storedData.desk || []).filter((p: Plant | null): p is Plant => p !== null)
+        ];
+        
+        let drawnPlantResult: DrawPlantOutput;
 
-      if (allPlants.length === 0) {
-        const fernData: DrawPlantOutput = {
-          name: "Friendly Fern",
-          description: "A happy little fern to start your collection.",
-          imageDataUri: "/fern.png",
-        };
-        setDrawnPlant(fernData);
-      } else {
-        const result = await drawPlant();
-        setDrawnPlant(result);
-      }
+        if (allPlants.length === 0) {
+            drawnPlantResult = {
+                name: "Friendly Fern",
+                description: "A happy little fern to start your collection.",
+                imageDataUri: await toDataURL("/fern.png"),
+            };
+        } else {
+            drawnPlantResult = await drawPlant();
+        }
+
+        const compressedImageDataUri = await compressImage(drawnPlantResult.imageDataUri);
+        
+        setDrawnPlant({
+            ...drawnPlantResult,
+            imageDataUri: compressedImageDataUri,
+        });
+
     } catch (e) {
         console.error(e);
         toast({
@@ -193,63 +201,24 @@ export default function HomePage() {
         ...deskPlants.filter((p): p is Plant => p !== null)
     ];
 
-    let finalImageDataUri = drawnPlant.imageDataUri;
-    if (drawnPlant.name === 'Friendly Fern' && drawnPlant.imageDataUri.startsWith('/')) {
-        try {
-            finalImageDataUri = await toDataURL(drawnPlant.imageDataUri);
-        } catch (error) {
-            console.error('Failed to convert fern image to data URI', error);
-            toast({
-                variant: "destructive",
-                title: "Failed to collect plant",
-                description: "Could not process the plant image. Please try again.",
-            });
-            setDrawnPlant(null);
-            return;
-        }
-    }
-    
     const lastId = allCurrentPlants.reduce((maxId, p) => Math.max(p.id, maxId), 0);
     
-    // Create new plant object first
+    // Create new plant object. The image is already compressed.
     const newPlant: Plant = {
         id: lastId + 1,
         name: drawnPlant.name,
         form: 'Base',
-        image: finalImageDataUri,
+        image: drawnPlant.imageDataUri,
         hint: drawnPlant.name === 'Friendly Fern' ? 'fern plant' : drawnPlant.name.toLowerCase().split(' ').slice(0, 2).join(' '),
         description: drawnPlant.description,
     };
     
-    // Now create a combined list of all plants (old + new) to compress
-    const allPlantsToCompress = [...allCurrentPlants, newPlant];
+    // Combine old collection with the new plant
+    const updatedCollection = [...collectionPlants, ...deskPlants.filter(p => p !== null), newPlant];
 
-    const compressedAllPlants = await Promise.all(
-        allPlantsToCompress.map(async (p) => {
-            try {
-                // For the newly added plant, use its data before compression
-                const imageToCompress = p.id === newPlant.id ? newPlant.image : p.image;
-                const compressedImage = await compressImage(imageToCompress);
-                return { ...p, image: compressedImage };
-            } catch (error) {
-                console.error(`Failed to compress image for plant ${p.id}`, error);
-                return { ...p, image: 'placeholder' }; // Fallback to placeholder on error
-            }
-        })
-    );
-
-    // Re-find the latest plant from the compressed list to set the state
-    const newlyAddedAndCompressedPlant = compressedAllPlants.find(p => p.id === newPlant.id) || null;
-
-    const updatedCollection = compressedAllPlants.filter(p => p.id !== newPlant.id);
-    if(newlyAddedAndCompressedPlant) {
-      updatedCollection.push(newlyAddedAndCompressedPlant);
-    }
-    
     const updatedData = {
-        // We now save all plants to the collection, and the desk is just for display arrangement in the room
         collection: updatedCollection.filter(p => !deskPlants.some(dp => dp?.id === p.id)),
-        desk: deskPlants.map(p => p ? compressedAllPlants.find(cp => cp.id === p.id) : null),
+        desk: deskPlants,
     };
     
     try {
@@ -263,7 +232,7 @@ export default function HomePage() {
         });
     }
     
-    setLatestPlant(newlyAddedAndCompressedPlant);
+    setLatestPlant(newPlant);
     setDrawnPlant(null);
   };
 
@@ -366,3 +335,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    

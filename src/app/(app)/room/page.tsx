@@ -328,7 +328,11 @@ export default function RoomPage() {
     setIsDrawing(true);
     try {
         const result = await drawPlant();
-        setNewPlant(result);
+        const compressedImageDataUri = await compressImage(result.imageDataUri);
+        setNewPlant({
+            ...result,
+            imageDataUri: compressedImageDataUri,
+        });
     } catch (e) {
         console.error(e);
         toast({
@@ -345,6 +349,7 @@ export default function RoomPage() {
     const allCurrentPlants = [...collectedPlants, ...deskPlants.filter((p): p is Plant => p !== null)];
     const lastId = allCurrentPlants.reduce((maxId, p) => Math.max(p.id, maxId), 0);
 
+    // The image is already compressed from the handleDraw flow.
     const newPlantItem: Plant = {
         id: lastId + 1,
         name: plantToCollect.name,
@@ -354,34 +359,7 @@ export default function RoomPage() {
         description: plantToCollect.description,
     };
     
-    const allPlantsToCompress = [...allCurrentPlants, newPlantItem];
-
-    const compressedAllPlants = await Promise.all(
-        allPlantsToCompress.map(async (p) => {
-            try {
-                const imageToCompress = p.id === newPlantItem.id ? newPlantItem.image : p.image;
-                const compressedImage = await compressImage(imageToCompress);
-                return { ...p, image: compressedImage };
-            } catch (error) {
-                console.error(`Failed to compress image for plant ${p.id}`, error);
-                return { ...p, image: 'placeholder' };
-            }
-        })
-    );
-    
-    // Separate compressed plants back into desk and collection
-    const newDeskPlants = [...deskPlants].map(p => p ? compressedAllPlants.find(cp => cp.id === p.id) || null : null);
-    const newlyAddedPlant = compressedAllPlants.find(p => p.id === newPlantItem.id);
-    
-    const collectionIds = new Set(collectedPlants.map(p => p.id));
-    if (newlyAddedPlant) {
-      collectionIds.add(newlyAddedPlant.id);
-    }
-
-    const newCollectedPlants = compressedAllPlants.filter(p => collectionIds.has(p.id) && !newDeskPlants.some(dp => dp?.id === p.id));
-    
-    setCollectedPlants(newCollectedPlants);
-    setDeskPlants(newDeskPlants);
+    setCollectedPlants(prev => [...prev, newPlantItem]);
   };
 
 
@@ -543,3 +521,5 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
+
+    
