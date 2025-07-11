@@ -8,6 +8,20 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import fs from 'fs/promises';
+import path from 'path';
+import { getFallbackPlant } from './get-fallback-plant-flow';
+
+const GENERATED_PLANTS_DIR = path.join(process.cwd(), 'public', 'generated-plants');
+
+// Ensure the directory exists
+async function ensureDirectoryExists(dir: string) {
+    try {
+        await fs.mkdir(dir, { recursive: true });
+    } catch (error) {
+        console.error(`Error creating directory ${dir}:`, error);
+    }
+}
 
 const DrawPlantInputSchema = z.object({});
 
@@ -58,24 +72,49 @@ const drawPlantFlow = ai.defineFlow(
     outputSchema: DrawPlantOutputSchema,
   },
   async () => {
-    const {output: plantDetails} = await plantDetailsPrompt({});
+    try {
+      const {output: plantDetails} = await plantDetailsPrompt({});
+      if (!plantDetails) {
+        throw new Error('Could not generate plant details.');
+      }
 
-    const {media} = await ai.generate({
-      model: 'googleai/gemini-2.0-flash-preview-image-generation',
-      prompt: `A cute, 2D vector art illustration of a magical plant character: ${plantDetails!.imagePrompt}. The plant should be in a simple terracotta pot with a happy, smiling face. The style should be clean, with bold outlines, suitable for a mobile game. The background must be solid white.`,
-      config: {
-        responseModalities: ['TEXT', 'IMAGE'],
-      },
-    });
+      const {media} = await ai.generate({
+        model: 'googleai/gemini-2.0-flash-preview-image-generation',
+        prompt: `A cute, 2D vector art illustration of a magical plant character: ${plantDetails.imagePrompt}. The plant should be in a simple terracotta pot with a happy, smiling face. The style should be clean, with bold outlines, suitable for a mobile game. The background must be solid white.`,
+        config: {
+          responseModalities: ['TEXT', 'IMAGE'],
+        },
+      });
 
-    if (!media) {
-      throw new Error('Could not generate plant image.');
+      if (!media || !media.url) {
+        throw new Error('Could not generate plant image.');
+      }
+
+      // Save the generated image for future fallback use
+      try {
+        await ensureDirectoryExists(GENERATED_PLANTS_DIR);
+        const imageName = `${plantDetails.name.toLowerCase().replace(/\s+/g, '-')}.png`;
+        const imagePath = path.join(GENERATED_PLANTS_DIR, imageName);
+        const base64Data = media.url.split(';base64,').pop();
+        if (base64Data) {
+          await fs.writeFile(imagePath, base64Data, 'base64');
+        }
+      } catch (saveError) {
+        console.error("Failed to save generated plant image:", saveError);
+        // Don't block the user if saving fails, just log it.
+      }
+
+
+      return {
+        name: plantDetails.name,
+        description: plantDetails.description,
+        imageDataUri: media.url,
+      };
+    } catch (error) {
+        console.error("Gemini image generation failed, using fallback.", error);
+        // If Gemini fails (e.g., quota exhausted), use a fallback image.
+        const fallbackPlant = await getFallbackPlant();
+        return fallbackPlant;
     }
-
-    return {
-      name: plantDetails!.name,
-      description: plantDetails!.description,
-      imageDataUri: media.url,
-    };
   }
 );
