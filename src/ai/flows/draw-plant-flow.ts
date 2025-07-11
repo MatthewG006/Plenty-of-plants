@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow for drawing a new, unique plant.
@@ -113,7 +114,7 @@ const drawPlantFlow = ai.defineFlow(
     } catch (error) {
         console.error("Gemini image generation failed, using fallback.", error);
         // If Gemini fails (e.g., quota exhausted), use a fallback image.
-        const fallbackPlant = await getFallbackPlant();
+        const fallbackPlant = await getFallbackPlant({});
         return fallbackPlant;
     }
   }
