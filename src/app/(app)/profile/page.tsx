@@ -7,6 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { User } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Plant } from '@/interfaces/plant';
+import { cn } from '@/lib/utils';
 
 interface UserData {
   username: string;
@@ -17,11 +18,11 @@ interface UserData {
 const PLANTS_DATA_STORAGE_KEY = 'plenty-of-plants-data';
 const USER_DATA_STORAGE_KEY = 'plenty-of-plants-user';
 
-function InfoRow({ label, value }: { label: string, value: string | number }) {
+function InfoRow({ label, value, valueClassName }: { label: string, value: string | number, valueClassName?: string }) {
   return (
     <div className="flex items-center justify-between py-3">
       <p className="text-muted-foreground">{label}</p>
-      <p className="font-semibold text-primary">{value}</p>
+      <p className={cn("font-semibold text-primary", valueClassName)}>{value}</p>
     </div>
   )
 }
@@ -99,7 +100,7 @@ export default function ProfilePage() {
         </CardHeader>
         <CardContent>
           <Separator className="my-2"/>
-          <InfoRow label="Email" value={userData.email} />
+          <InfoRow label="Email" value={userData.email} valueClassName="text-sm" />
           <Separator />
           <InfoRow label="Plants Collected" value={plantsCollected} />
           <Separator />
