@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Sprout, Shield } from 'lucide-react';
+import { Home, Sprout, Shield, Store } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/home', label: 'Home', icon: Home },
   { href: '/room', label: 'Room', icon: Sprout },
+  { href: '/shop', label: 'Shop', icon: Store },
   { href: '/community', label: 'Community', icon: Shield },
 ];
 
@@ -16,11 +17,9 @@ export default function BottomNavBar() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 h-20 border-t bg-card/95 backdrop-blur-sm z-10">
-      <div className="mx-auto grid h-full max-w-md grid-cols-3 items-center">
+      <div className="mx-auto grid h-full max-w-md grid-cols-4 items-center">
         {navItems.map((item) => {
-          const isActive = (item.href === '/home' || item.href === '/community')
-            ? pathname === item.href
-            : pathname.startsWith(item.href);
+          const isActive = pathname.startsWith(item.href);
 
           return (
             <Link 
