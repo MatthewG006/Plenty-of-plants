@@ -3,10 +3,10 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings, User, Check, X, Loader2, Leaf } from 'lucide-react';
+import { Settings, User, Check, X, Loader2, Leaf, Store } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { Plant } from '@/interfaces/plant';
 import { drawPlant, type DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 import { useToast } from '@/hooks/use-toast';
@@ -20,6 +20,8 @@ import {
 } from '@/components/ui/dialog';
 
 const PLANTS_DATA_STORAGE_KEY = 'plenty-of-plants-data';
+const DRAWS_STORAGE_KEY = 'plenty-of-plants-draws';
+const MAX_DRAWS = 2;
 const NUM_POTS = 3;
 
 // Helper function to convert image URL to data URI
@@ -100,6 +102,46 @@ export default function HomePage() {
   const [latestPlant, setLatestPlant] = useState<Plant | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawnPlant, setDrawnPlant] = useState<DrawPlantOutput | null>(null);
+  const [availableDraws, setAvailableDraws] = useState(0);
+
+  const loadDraws = useCallback(() => {
+    try {
+        const storedDrawsRaw = localStorage.getItem(DRAWS_STORAGE_KEY);
+        if (storedDrawsRaw) {
+            const storedDraws = JSON.parse(storedDrawsRaw);
+            if (typeof storedDraws.count === 'number') {
+                setAvailableDraws(storedDraws.count);
+                return;
+            }
+        }
+    } catch (e) {
+        console.error("Failed to read or parse draws from localStorage", e);
+    }
+    // Default to max draws if nothing is stored
+    setAvailableDraws(MAX_DRAWS);
+    try {
+        localStorage.setItem(DRAWS_STORAGE_KEY, JSON.stringify({ count: MAX_DRAWS }));
+    } catch(e) {
+        console.error("Failed to initialize draws in localStorage", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadDraws();
+
+    // Listen for storage changes from other tabs/windows (e.g., the shop)
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === DRAWS_STORAGE_KEY) {
+        loadDraws();
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [loadDraws]);
+
 
   useEffect(() => {
     let storedDataRaw;
@@ -131,9 +173,17 @@ export default function HomePage() {
     } else {
       setLatestPlant(null);
     }
-  }, []);
+  }, [drawnPlant]);
 
   const handleDraw = async () => {
+    if (availableDraws <= 0) {
+        toast({
+            variant: "destructive",
+            title: "No Draws Left",
+            description: "Visit the shop to get more draws.",
+        });
+        return;
+    }
     setIsDrawing(true);
     try {
         let storedData;
@@ -168,6 +218,12 @@ export default function HomePage() {
             ...drawnPlantResult,
             imageDataUri: compressedImageDataUri,
         });
+
+        // Decrement draws
+        const newDrawCount = availableDraws - 1;
+        setAvailableDraws(newDrawCount);
+        localStorage.setItem(DRAWS_STORAGE_KEY, JSON.stringify({ count: newDrawCount }));
+
 
     } catch (e) {
         console.error(e);
@@ -213,11 +269,15 @@ export default function HomePage() {
         description: drawnPlant.description,
     };
     
-    // Combine old collection with the new plant
-    const updatedCollection = [...collectionPlants, ...deskPlants.filter(p => p !== null), newPlant];
+    const firstEmptyPotIndex = deskPlants.findIndex(p => p === null);
+    if (firstEmptyPotIndex !== -1) {
+        deskPlants[firstEmptyPotIndex] = newPlant;
+    } else {
+        collectionPlants.push(newPlant);
+    }
 
     const updatedData = {
-        collection: updatedCollection.filter(p => !deskPlants.some(dp => dp?.id === p.id)),
+        collection: collectionPlants,
         desk: deskPlants,
     };
     
@@ -251,6 +311,12 @@ export default function HomePage() {
             </Link>
           </Button>
           <Button variant="outline" size="sm" asChild>
+            <Link href="/shop">
+                <Store className="mr-2 h-4 w-4" />
+                Shop
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
             <Link href="/profile">
               <User className="mr-2 h-4 w-4" />
               Profile
@@ -262,7 +328,7 @@ export default function HomePage() {
       <main className="space-y-6">
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle className="text-xl font-semibold text-center">Your Latest Collection</CardTitle>
+            <CardTitle className="text-xl font-semibold text-center">Your Latest Plant</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center text-center min-h-[260px]">
             {latestPlant ? (
@@ -295,18 +361,14 @@ export default function HomePage() {
 
         <Card className="shadow-sm">
           <CardHeader className="items-center">
-            <CardTitle className="text-xl font-semibold">Free Draws Available</CardTitle>
+            <CardTitle className="text-xl font-semibold">Draw a New Plant</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col items-center gap-4">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center justify-center h-12 w-12 rounded-full bg-chart-3">
-                  <Check className="h-8 w-8 text-white" />
-              </div>
-              <div className="flex items-center justify-center h-12 w-12 rounded-full bg-muted">
-                  <X className="h-8 w-8 text-destructive" />
-              </div>
+            <div className="flex items-center gap-2 text-lg font-semibold text-primary">
+                <span>{availableDraws} / {MAX_DRAWS}</span>
+                <span className="text-muted-foreground">Draws Available</span>
             </div>
-            <Button onClick={handleDraw} disabled={isDrawing} size="lg" className="w-full font-semibold rounded-full mt-2">
+            <Button onClick={handleDraw} disabled={isDrawing || availableDraws <= 0} size="lg" className="w-full font-semibold rounded-full mt-2">
               {isDrawing ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -316,8 +378,8 @@ export default function HomePage() {
                 'Draw New Plant'
               )}
             </Button>
-            <p className="text-sm text-muted-foreground">
-              New draw available every 12 hours (max 2 slots).
+            <p className="text-sm text-muted-foreground text-center">
+              {availableDraws > 0 ? "You have draws available!" : "Out of draws. Visit the shop for more."}
             </p>
           </CardContent>
         </Card>
@@ -335,5 +397,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-    
