@@ -4,10 +4,24 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { User } from 'lucide-react';
+import { User, LogOut } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Plant } from '@/interfaces/plant';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+
 
 interface UserData {
   username: string;
@@ -36,6 +50,7 @@ export default function ProfilePage() {
     gameId: '#GAMEID00000'
   });
   const [avatarColor, setAvatarColor] = useState<string>('');
+  const router = useRouter();
 
   useEffect(() => {
     // Generate a random color for the avatar background
@@ -86,8 +101,17 @@ export default function ProfilePage() {
     }
   }, []);
 
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem(USER_DATA_STORAGE_KEY);
+    } catch (e) {
+      console.error("Failed to remove user data from localStorage", e);
+    }
+    router.push('/');
+  };
+
   return (
-    <div className="p-4">
+    <div className="p-4 space-y-6">
       <header className="flex items-center justify-between pb-4">
         <h1 className="font-headline text-2xl text-primary">My Profile</h1>
       </header>
@@ -112,8 +136,33 @@ export default function ProfilePage() {
           <InfoRow label="Plants Evolved" value={plantsEvolved} valueClassName="text-xs" />
         </CardContent>
       </Card>
+
+      <Card>
+          <CardContent className="pt-6">
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="outline" className="w-full">
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Log Out
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure you want to log out?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        You will be returned to the login screen. Your plant collection will be saved for when you log back in.
+                    </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleLogout}>
+                        Yes, log out
+                    </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+          </CardContent>
+      </Card>
     </div>
   );
 }
-
-    
