@@ -18,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 
 const PLANTS_DATA_STORAGE_KEY = 'plenty-of-plants-data';
 const DRAWS_STORAGE_KEY = 'plenty-of-plants-draws';
@@ -364,9 +365,25 @@ export default function HomePage() {
             <CardTitle className="text-xl font-semibold">Draw a New Plant</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col items-center gap-4">
-            <div className="flex items-center gap-2 text-lg font-semibold text-primary">
-                <span>{availableDraws} / {MAX_DRAWS}</span>
-                <span className="text-muted-foreground">Draws Available</span>
+            <div className="flex flex-col items-center gap-2">
+                <div className="flex items-center gap-3">
+                    {Array.from({ length: MAX_DRAWS }).map((_, index) => {
+                        const isAvailable = index < availableDraws;
+                        return (
+                            <div key={index} className={cn(
+                                "h-8 w-8 rounded-full flex items-center justify-center text-white shadow-inner",
+                                isAvailable ? "bg-green-500" : "bg-red-500"
+                            )}>
+                                {isAvailable ? (
+                                    <Check className="h-5 w-5" />
+                                ) : (
+                                    <X className="h-5 w-5" />
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+                <span className="text-sm text-muted-foreground">Draws Available</span>
             </div>
             <Button onClick={handleDraw} disabled={isDrawing || availableDraws <= 0} size="lg" className="w-full font-semibold rounded-full mt-2">
               {isDrawing ? (
