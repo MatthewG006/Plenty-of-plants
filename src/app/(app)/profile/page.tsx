@@ -35,8 +35,13 @@ export default function ProfilePage() {
     email: 'you@example.com',
     gameId: '#GAMEID00000'
   });
+  const [avatarColor, setAvatarColor] = useState<string>('');
 
   useEffect(() => {
+    // Generate a random color for the avatar background
+    const hue = Math.floor(Math.random() * 360);
+    setAvatarColor(`hsl(${hue}, 70%, 85%)`);
+
     // Load plant data
     let storedDataRaw;
     try {
@@ -90,9 +95,9 @@ export default function ProfilePage() {
       <Card>
         <CardHeader className="items-center text-center">
           <Avatar className="h-24 w-24 mb-4">
-            <AvatarImage src="https://placehold.co/100x100.png" alt="User avatar" data-ai-hint="profile picture" />
-            <AvatarFallback>
-              <User className="h-12 w-12" />
+            <AvatarImage src="" alt="User avatar" />
+            <AvatarFallback style={{ backgroundColor: avatarColor }} className="text-4xl font-bold text-primary/70">
+              {userData.username ? userData.username.charAt(0).toUpperCase() : <User className="h-12 w-12" />}
             </AvatarFallback>
           </Avatar>
           <CardTitle className="font-headline text-2xl">{userData.username}</CardTitle>

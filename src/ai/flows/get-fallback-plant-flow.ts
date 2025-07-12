@@ -11,10 +11,10 @@ import {z} from 'genkit';
 import fs from 'fs/promises';
 import path from 'path';
 
-const GENERATED_PLANTS_DIR = path.join(process.cwd(), 'public', 'generated-plants');
 const BUILT_IN_FALLBACK_PLANTS_DIR = path.join(process.cwd(), 'public', 'fallback-plants');
 
-// Add a hardcoded list of built-in plants as a final fallback
+// Add a hardcoded list of built-in plants as a final fallback.
+// This is the most reliable method.
 const BUILT_IN_PLANTS = [
     { name: "Sunny Succulent", file: "succulent.png" },
     { name: "Happy Cactus", file: "cactus.png" },
@@ -70,78 +70,31 @@ export const getFallbackPlant = ai.defineFlow(
     outputSchema: GetFallbackPlantOutputSchema,
   },
   async () => {
-    let imageFiles: string[] = [];
-    let sourceDir: string = '';
-
+    // Rely on the hardcoded list as it's the most robust solution.
+    const randomPlant = BUILT_IN_PLANTS[Math.floor(Math.random() * BUILT_IN_PLANTS.length)];
+    const imagePath = path.join(BUILT_IN_FALLBACK_PLANTS_DIR, randomPlant.file);
+    
     try {
-        // First, try to use user-generated plants
-        await fs.access(GENERATED_PLANTS_DIR);
-        const generatedFiles = await fs.readdir(GENERATED_PLANTS_DIR);
-        imageFiles = generatedFiles.filter(file => file.endsWith('.png'));
-        sourceDir = GENERATED_PLANTS_DIR;
-    } catch (error) {
-        // If generated plants directory doesn't exist or is empty, do nothing and proceed to built-in.
-    }
-    
-    // If no generated images, use the built-in fallback images from the filesystem
-    if (imageFiles.length === 0) {
-        try {
-            await fs.access(BUILT_IN_FALLBACK_PLANTS_DIR);
-            const builtInFiles = await fs.readdir(BUILT_IN_FALLBACK_PLANTS_DIR);
-            imageFiles = builtInFiles.filter(file => file.endsWith('.png'));
-            sourceDir = BUILT_IN_FALLBACK_PLANTS_DIR;
-        } catch (error) {
-             // If filesystem also fails, we'll proceed to the hardcoded list.
-             console.log("No images in built-in directory, using hardcoded list.");
-        }
-    }
-    
-    // If still no images, use the hardcoded list as a final resort
-    if (imageFiles.length === 0) {
-        const randomPlant = BUILT_IN_PLANTS[Math.floor(Math.random() * BUILT_IN_PLANTS.length)];
-        const imagePath = path.join(BUILT_IN_FALLBACK_PLANTS_DIR, randomPlant.file);
+        const imageDataUri = await toDataURL(imagePath, 'image/png');
+        const { output: plantDetails } = await fallbackPlantDetailsPrompt({ plantType: randomPlant.name });
         
-        try {
-            const imageDataUri = await toDataURL(imagePath, 'image/png');
-            const { output: plantDetails } = await fallbackPlantDetailsPrompt({ plantType: randomPlant.name });
-            
-            if (!plantDetails) throw new Error("Could not generate details for hardcoded fallback.");
-
-            return {
-                name: plantDetails.name,
-                description: plantDetails.description,
-                imageDataUri,
-            };
-        } catch (error) {
-            console.error("Critical error: Could not load even hardcoded fallback image.", error);
-            // This would be a true dead-end, but we'll return a placeholder to prevent a crash
-            return {
-                name: "Resilient Sprout",
-                description: "This little sprout survived a digital apocalypse to be here!",
-                imageDataUri: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" // 1x1 transparent gif
-            };
+        if (!plantDetails) {
+            throw new Error("Could not generate details for hardcoded fallback.");
         }
+
+        return {
+            name: plantDetails.name,
+            description: plantDetails.description,
+            imageDataUri,
+        };
+    } catch (error) {
+        console.error("Critical error: Could not load hardcoded fallback image.", error);
+        // This is a final failsafe to prevent a crash, returning a transparent pixel.
+        return {
+            name: "Resilient Sprout",
+            description: "This little sprout survived a digital apocalypse to be here!",
+            imageDataUri: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+        };
     }
-
-    // Pick a random image from the successfully found directory
-    const randomImageFile = imageFiles[Math.floor(Math.random() * imageFiles.length)];
-    const imagePath = path.join(sourceDir, randomImageFile);
-    
-    // Convert image to data URI
-    const imageDataUri = await toDataURL(imagePath, 'image/png');
-
-    // Generate a name and description for it based on its filename
-    const plantType = randomImageFile.replace('.png', '').replace(/-/g, ' ');
-    const { output: plantDetails } = await fallbackPlantDetailsPrompt({ plantType });
-
-    if (!plantDetails) {
-        throw new Error("Failed to generate details for fallback plant.");
-    }
-
-    return {
-      name: plantDetails.name,
-      description: plantDetails.description,
-      imageDataUri,
-    };
   }
 );
