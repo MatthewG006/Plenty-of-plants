@@ -174,30 +174,6 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/room": {
-      "experimentalBypassFor": [
-        {
-          "type": "header",
-          "key": "Next-Action"
-        },
-        {
-          "type": "header",
-          "key": "content-type",
-          "value": "multipart/form-data;.*"
-        }
-      ],
-      "initialRevalidateSeconds": false,
-      "srcRoute": "/room",
-      "dataRoute": "/room.rsc",
-      "allowHeader": [
-        "host",
-        "x-matched-path",
-        "x-prerender-revalidate",
-        "x-prerender-revalidate-if-generated",
-        "x-next-revalidated-tags",
-        "x-next-revalidate-tag-token"
-      ]
-    },
     "/settings": {
       "experimentalBypassFor": [
         {
@@ -221,13 +197,37 @@
         "x-next-revalidated-tags",
         "x-next-revalidate-tag-token"
       ]
+    },
+    "/room": {
+      "experimentalBypassFor": [
+        {
+          "type": "header",
+          "key": "Next-Action"
+        },
+        {
+          "type": "header",
+          "key": "content-type",
+          "value": "multipart/form-data;.*"
+        }
+      ],
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/room",
+      "dataRoute": "/room.rsc",
+      "allowHeader": [
+        "host",
+        "x-matched-path",
+        "x-prerender-revalidate",
+        "x-prerender-revalidate-if-generated",
+        "x-next-revalidated-tags",
+        "x-next-revalidate-tag-token"
+      ]
     }
   },
   "dynamicRoutes": {},
   "notFoundRoutes": [],
   "preview": {
-    "previewModeId": "ade539c2f3d59326a6670cd24486d6d6",
-    "previewModeSigningKey": "811a46078baf959ce6c9be1d031ebae1ed294ed39131949f10368f61e7cad236",
-    "previewModeEncryptionKey": "c2f9ab3b826632dc321a776f4e4d8af2d949db6e7f478305c489863ceb64a915"
+    "previewModeId": "1f12710ee02f0c6ab8ba70f3fd7d8453",
+    "previewModeSigningKey": "7295c7facc2f3ece6ed3956bf4081aca72e3d1e4865d5839f770c4f5b58f95d9",
+    "previewModeEncryptionKey": "7733aec2f35dc804495e9d4cac7e456be609730b7d34d6655d3554f9b7b3411f"
   }
 }
