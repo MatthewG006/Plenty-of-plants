@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings, User, Check, X, Loader2, Leaf, Store } from 'lucide-react';
+import { Settings, User, Check, X, Loader2, Leaf } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useCallback } from 'react';
@@ -130,16 +130,24 @@ export default function HomePage() {
   useEffect(() => {
     loadDraws();
 
-    // Listen for storage changes from other tabs/windows (e.g., the shop)
+    // Listen for storage changes from other tabs/windows (e.g., the shop or room)
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === DRAWS_STORAGE_KEY) {
         loadDraws();
       }
     };
+    
+    // Also check on focus in case a draw was used in another tab
+    const handleFocus = () => {
+      loadDraws();
+    };
+
     window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('focus', handleFocus);
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', handleFocus);
     };
   }, [loadDraws]);
 
