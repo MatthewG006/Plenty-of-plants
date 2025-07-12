@@ -100,11 +100,11 @@ export default function ProfilePage() {
         </CardHeader>
         <CardContent>
           <Separator className="my-2"/>
-          <InfoRow label="Email" value={userData.email} valueClassName="text-sm" />
+          <InfoRow label="Email" value={userData.email} valueClassName="text-xs" />
           <Separator />
-          <InfoRow label="Plants Collected" value={plantsCollected} valueClassName="text-sm" />
+          <InfoRow label="Plants Collected" value={plantsCollected} valueClassName="text-xs" />
           <Separator />
-          <InfoRow label="Plants Evolved" value={plantsEvolved} valueClassName="text-sm" />
+          <InfoRow label="Plants Evolved" value={plantsEvolved} valueClassName="text-xs" />
         </CardContent>
       </Card>
     </div>
