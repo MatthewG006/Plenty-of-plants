@@ -9,20 +9,8 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import fs from 'fs/promises';
-import path from 'path';
 import { getFallbackPlant } from './get-fallback-plant-flow';
 
-const GENERATED_PLANTS_DIR = path.join(process.cwd(), 'public', 'generated-plants');
-
-// Ensure the directory exists
-async function ensureDirectoryExists(dir: string) {
-    try {
-        await fs.mkdir(dir, { recursive: true });
-    } catch (error) {
-        console.error(`Error creating directory ${dir}:`, error);
-    }
-}
 
 const DrawPlantInputSchema = z.object({});
 
@@ -90,21 +78,6 @@ const drawPlantFlow = ai.defineFlow(
       if (!media || !media.url) {
         throw new Error('Could not generate plant image.');
       }
-
-      // Save the generated image for future fallback use
-      try {
-        await ensureDirectoryExists(GENERATED_PLANTS_DIR);
-        const imageName = `${plantDetails.name.toLowerCase().replace(/\s+/g, '-')}.png`;
-        const imagePath = path.join(GENERATED_PLANTS_DIR, imageName);
-        const base64Data = media.url.split(';base64,').pop();
-        if (base64Data) {
-          await fs.writeFile(imagePath, base64Data, 'base64');
-        }
-      } catch (saveError) {
-        console.error("Failed to save generated plant image:", saveError);
-        // Don't block the user if saving fails, just log it.
-      }
-
 
       return {
         name: plantDetails.name,
