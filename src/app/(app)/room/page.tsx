@@ -7,7 +7,7 @@ import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogT
 import { drawPlant, type DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 import { Leaf, Loader2 } from 'lucide-react';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import type { Plant } from '@/interfaces/plant';
 import { cn } from '@/lib/utils';
@@ -27,6 +27,8 @@ import {
 
 const OLD_PLANTS_STORAGE_KEY = 'plenty-of-plants-collection';
 const PLANTS_DATA_STORAGE_KEY = 'plenty-of-plants-data';
+const DRAWS_STORAGE_KEY = 'plenty-of-plants-draws';
+const MAX_DRAWS = 2;
 const NUM_POTS = 3;
 
 // Helper function to compress an image
@@ -243,6 +245,7 @@ export default function RoomPage() {
   const [deskPlants, setDeskPlants] = useState<(Plant | null)[]>(Array(NUM_POTS).fill(null));
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [availableDraws, setAvailableDraws] = useState(0);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -267,6 +270,36 @@ export default function RoomPage() {
         : collectedPlants.find(p => p.id === id);
     return plant ? { plant, source } : null;
   })();
+
+  const loadDraws = useCallback(() => {
+    try {
+        const storedDrawsRaw = localStorage.getItem(DRAWS_STORAGE_KEY);
+        if (storedDrawsRaw) {
+            const storedDraws = JSON.parse(storedDrawsRaw);
+            if (typeof storedDraws.count === 'number') {
+                setAvailableDraws(storedDraws.count);
+                return;
+            }
+        }
+    } catch (e) {
+        console.error("Failed to read or parse draws from localStorage", e);
+    }
+    setAvailableDraws(MAX_DRAWS);
+  }, []);
+
+  useEffect(() => {
+    loadDraws();
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === DRAWS_STORAGE_KEY) {
+        loadDraws();
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [loadDraws]);
+
 
   useEffect(() => {
     try {
@@ -322,6 +355,14 @@ export default function RoomPage() {
 
 
   const handleDraw = async () => {
+     if (availableDraws <= 0) {
+        toast({
+            variant: "destructive",
+            title: "No Draws Left",
+            description: "Visit the shop to get more draws.",
+        });
+        return;
+    }
     setIsDrawing(true);
     try {
         const result = await drawPlant();
@@ -330,6 +371,12 @@ export default function RoomPage() {
             ...result,
             imageDataUri: compressedImageDataUri,
         });
+
+        // Decrement draws
+        const newDrawCount = availableDraws - 1;
+        setAvailableDraws(newDrawCount);
+        localStorage.setItem(DRAWS_STORAGE_KEY, JSON.stringify({ count: newDrawCount }));
+
     } catch (e) {
         console.error(e);
         toast({
@@ -418,7 +465,7 @@ export default function RoomPage() {
       <div className="space-y-4">
         <header className="flex items-center justify-between p-4">
           <h1 className="font-headline text-2xl text-primary">My Room</h1>
-          <Button variant="secondary" className="font-semibold" onClick={handleDraw} disabled={isDrawing}>
+          <Button variant="secondary" className="font-semibold" onClick={handleDraw} disabled={isDrawing || availableDraws <= 0}>
             {isDrawing ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -427,7 +474,7 @@ export default function RoomPage() {
             ) : (
               <>
                 <Leaf className="mr-2 h-4 w-4" />
-                1 Free Draw
+                Draw Plant ({availableDraws} left)
               </>
             )}
           </Button>
