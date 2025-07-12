@@ -27,6 +27,7 @@ interface UserData {
   username: string;
   email: string;
   gameId: string;
+  avatarColor?: string;
 }
 
 const PLANTS_DATA_STORAGE_KEY = 'plenty-of-plants-data';
@@ -53,9 +54,41 @@ export default function ProfilePage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Generate a random color for the avatar background
-    const hue = Math.floor(Math.random() * 360);
-    setAvatarColor(`hsl(${hue}, 70%, 85%)`);
+    // Load user data
+    let storedUserRaw;
+    try {
+        storedUserRaw = localStorage.getItem(USER_DATA_STORAGE_KEY);
+    } catch(e) {
+      console.error("Failed to read user data from localStorage", e);
+    }
+
+    let user: UserData;
+    if (storedUserRaw) {
+        try {
+            user = JSON.parse(storedUserRaw);
+        } catch (e) {
+            console.error("Failed to parse user data on profile page", e);
+            user = { username: 'PlantLover', email: 'you@example.com', gameId: '#GAMEID00000' };
+        }
+    } else {
+        user = { username: 'PlantLover', email: 'you@example.com', gameId: '#GAMEID00000' };
+    }
+
+    if (user.avatarColor) {
+        setAvatarColor(user.avatarColor);
+    } else {
+        const hue = Math.floor(Math.random() * 360);
+        const newAvatarColor = `hsl(${hue}, 70%, 85%)`;
+        setAvatarColor(newAvatarColor);
+        user.avatarColor = newAvatarColor;
+        try {
+            localStorage.setItem(USER_DATA_STORAGE_KEY, JSON.stringify(user));
+        } catch (e) {
+            console.error("Failed to save avatar color to localStorage", e);
+        }
+    }
+    setUserData(user);
+
 
     // Load plant data
     let storedDataRaw;
@@ -80,23 +113,6 @@ export default function ProfilePage() {
         console.error("Failed to parse stored plants on profile page", e);
         setPlantsCollected(0);
         setPlantsEvolved(0);
-      }
-    }
-
-    // Load user data
-    let storedUserRaw;
-    try {
-        storedUserRaw = localStorage.getItem(USER_DATA_STORAGE_KEY);
-    } catch(e) {
-      console.error("Failed to read user data from localStorage", e);
-    }
-
-    if (storedUserRaw) {
-      try {
-        const storedUser = JSON.parse(storedUserRaw);
-        setUserData(storedUser);
-      } catch (e) {
-        console.error("Failed to parse user data on profile page", e);
       }
     }
   }, []);
