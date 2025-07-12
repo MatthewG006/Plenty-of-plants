@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -7,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Megaphone } from 'lucide-react';
 
 const USER_DATA_STORAGE_KEY = 'plenty-of-plants-user';
 
@@ -42,6 +45,13 @@ export default function LoginPage() {
           <CardDescription>Log in to tend to your plants.</CardDescription>
         </CardHeader>
         <CardContent>
+          <Alert className="mb-4 bg-accent/50 border-accent-foreground/20">
+            <Megaphone className="h-4 w-4" />
+            <AlertTitle className="font-headline">New Game Update!</AlertTitle>
+            <AlertDescription>
+              We've refreshed the UI and added new features. Enjoy!
+            </AlertDescription>
+          </Alert>
           <form className="space-y-4" onSubmit={handleLogin}>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
