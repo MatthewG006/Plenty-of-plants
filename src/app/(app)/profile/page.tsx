@@ -20,8 +20,8 @@ const USER_DATA_STORAGE_KEY = 'plenty-of-plants-user';
 
 function InfoRow({ label, value, valueClassName }: { label: string, value: string | number, valueClassName?: string }) {
   return (
-    <div className="flex items-center justify-between py-3">
-      <p className="text-muted-foreground">{label}</p>
+    <div className="flex items-center justify-start gap-4 py-3">
+      <p className="text-muted-foreground w-32">{label}</p>
       <p className={cn("font-semibold text-primary", valueClassName)}>{value}</p>
     </div>
   )
@@ -102,9 +102,9 @@ export default function ProfilePage() {
           <Separator className="my-2"/>
           <InfoRow label="Email" value={userData.email} valueClassName="text-sm" />
           <Separator />
-          <InfoRow label="Plants Collected" value={plantsCollected} />
+          <InfoRow label="Plants Collected" value={plantsCollected} valueClassName="text-sm" />
           <Separator />
-          <InfoRow label="Plants Evolved" value={plantsEvolved} />
+          <InfoRow label="Plants Evolved" value={plantsEvolved} valueClassName="text-sm" />
         </CardContent>
       </Card>
     </div>
