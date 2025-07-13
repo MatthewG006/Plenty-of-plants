@@ -4,53 +4,32 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { claimFreeDraw, loadDraws } from '@/lib/draw-manager';
 import { Gift } from 'lucide-react';
-
-const DRAWS_STORAGE_KEY = 'plenty-of-plants-draws';
-const MAX_DRAWS = 2;
+import { useState, useEffect } from 'react';
 
 export default function ShopPage() {
   const { toast } = useToast();
+  const [newDrawCount, setNewDrawCount] = useState(0);
+
+  // Effect to load draws on mount to have an initial value
+  useEffect(() => {
+    setNewDrawCount(loadDraws());
+  }, []);
 
   const handleClaimFreeDraw = () => {
-    try {
-      let currentDraws = 0;
-      const storedDrawsRaw = localStorage.getItem(DRAWS_STORAGE_KEY);
-      if (storedDrawsRaw) {
-        const storedDraws = JSON.parse(storedDrawsRaw);
-        currentDraws = storedDraws.count;
-      }
+    const result = claimFreeDraw();
 
-      if (currentDraws >= MAX_DRAWS) {
-        toast({
-          title: "Max Draws Reached",
-          description: "You already have the maximum number of draws.",
-        });
-        return;
-      }
-
-      const newDrawCount = Math.min(currentDraws + 1, MAX_DRAWS);
-      const newDrawsData = { count: newDrawCount };
-      
-      localStorage.setItem(DRAWS_STORAGE_KEY, JSON.stringify(newDrawsData));
-      
-      // Manually dispatch a storage event to notify other tabs (like the home page)
-      window.dispatchEvent(new StorageEvent('storage', {
-          key: DRAWS_STORAGE_KEY,
-          newValue: JSON.stringify(newDrawsData),
-      }));
-
+    if (result.success) {
       toast({
         title: "Free Draw Claimed!",
-        description: `You now have ${newDrawCount} draw(s) available.`,
+        description: `You now have ${result.newCount} draw(s) available.`,
       });
-
-    } catch (e) {
-      console.error("Failed to update draws in localStorage", e);
+      setNewDrawCount(result.newCount); // update state to reflect change
+    } else {
       toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Could not claim your free draw. Please try again.",
+        title: "Max Draws Reached",
+        description: "You already have the maximum number of draws.",
       });
     }
   };
@@ -84,3 +63,5 @@ export default function ShopPage() {
     </div>
   );
 }
+
+    

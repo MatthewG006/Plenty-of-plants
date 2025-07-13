@@ -23,12 +23,11 @@ import {
   useSensors,
   TouchSensor
 } from '@dnd-kit/core';
+import { loadDraws, useDraw, claimFreeDraw } from '@/lib/draw-manager';
 
 
 const OLD_PLANTS_STORAGE_KEY = 'plenty-of-plants-collection';
 const PLANTS_DATA_STORAGE_KEY = 'plenty-of-plants-data';
-const DRAWS_STORAGE_KEY = 'plenty-of-plants-draws';
-const MAX_DRAWS = 2;
 const NUM_POTS = 3;
 
 // Helper function to compress an image
@@ -271,34 +270,29 @@ export default function RoomPage() {
     return plant ? { plant, source } : null;
   })();
 
-  const loadDraws = useCallback(() => {
-    try {
-        const storedDrawsRaw = localStorage.getItem(DRAWS_STORAGE_KEY);
-        if (storedDrawsRaw) {
-            const storedDraws = JSON.parse(storedDrawsRaw);
-            if (typeof storedDraws.count === 'number') {
-                setAvailableDraws(storedDraws.count);
-                return;
-            }
-        }
-    } catch (e) {
-        console.error("Failed to read or parse draws from localStorage", e);
-    }
-    setAvailableDraws(MAX_DRAWS);
+  const refreshDraws = useCallback(() => {
+    const draws = loadDraws();
+    setAvailableDraws(draws);
   }, []);
 
   useEffect(() => {
-    loadDraws();
+    refreshDraws();
     const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === DRAWS_STORAGE_KEY) {
-        loadDraws();
+      if (event.key === 'plenty-of-plants-draws') {
+        refreshDraws();
       }
     };
     window.addEventListener('storage', handleStorageChange);
+    // Also check on focus in case a draw was used in another tab or replenished
+    const handleFocus = () => {
+      refreshDraws();
+    };
+    window.addEventListener('focus', handleFocus);
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', handleFocus);
     };
-  }, [loadDraws]);
+  }, [refreshDraws]);
 
 
   useEffect(() => {
@@ -359,7 +353,7 @@ export default function RoomPage() {
         toast({
             variant: "destructive",
             title: "No Draws Left",
-            description: "Visit the shop to get more draws.",
+            description: "Visit the shop to get more draws or wait for your daily refill.",
         });
         return;
     }
@@ -373,9 +367,8 @@ export default function RoomPage() {
         });
 
         // Decrement draws
-        const newDrawCount = availableDraws - 1;
-        setAvailableDraws(newDrawCount);
-        localStorage.setItem(DRAWS_STORAGE_KEY, JSON.stringify({ count: newDrawCount }));
+        useDraw();
+        refreshDraws();
 
     } catch (e) {
         console.error(e);
@@ -566,3 +559,5 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
+
+    
