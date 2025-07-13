@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
 
 interface AudioContextType {
   isPlaying: boolean;
@@ -32,6 +32,7 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
     });
   }, [audioElement]);
 
+
   const handleSetVolume = useCallback((newVolume: number) => {
     const clampedVolume = Math.max(0, Math.min(1, newVolume));
     setVolume(clampedVolume);
@@ -40,6 +41,13 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [audioElement]);
   
+  useEffect(() => {
+    if (audioElement && isPlaying) {
+        audioElement.play().catch(e => console.log("Autoplay was prevented. Waiting for user interaction."));
+    }
+  }, [audioElement, isPlaying]);
+
+
   return (
     <AudioContext.Provider value={{ isPlaying, volume, togglePlay, setVolume: handleSetVolume, setAudioElement }}>
       {children}
