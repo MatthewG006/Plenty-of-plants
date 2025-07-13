@@ -19,10 +19,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { loadDraws, useDraw, MAX_DRAWS } from '@/lib/draw-manager';
+import { loadDraws, useDraw, MAX_DRAWS, getStoredDraws } from '@/lib/draw-manager';
 
 const PLANTS_DATA_STORAGE_KEY = 'plenty-of-plants-data';
 const NUM_POTS = 3;
+const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
 
 // Helper function to convert image URL to data URI
 async function toDataURL(url: string): Promise<string> {
@@ -97,19 +98,47 @@ function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlantOutput 
     );
 }
 
+function formatTime(ms: number) {
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    return `${hours}h ${minutes}m`;
+}
+
 export default function HomePage() {
   const { toast } = useToast();
   const [latestPlant, setLatestPlant] = useState<Plant | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawnPlant, setDrawnPlant] = useState<DrawPlantOutput | null>(null);
   const [availableDraws, setAvailableDraws] = useState(0);
+  const [nextDrawTime, setNextDrawTime] = useState<string | null>(null);
   const notificationShown = useRef(false);
 
   const refreshDraws = useCallback(() => {
     const draws = loadDraws();
+    const drawData = getStoredDraws();
     setAvailableDraws(draws);
+
+    if (draws < MAX_DRAWS) {
+        const timeRemaining = REFILL_INTERVAL - (Date.now() - drawData.lastUpdated);
+        if (timeRemaining > 0) {
+            setNextDrawTime(formatTime(timeRemaining));
+        } else {
+             setNextDrawTime(null);
+        }
+    } else {
+        setNextDrawTime(null);
+    }
+
     return draws;
   }, []);
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+        refreshDraws();
+    }, 60000); // Update timer every minute
+    return () => clearInterval(interval);
+  }, [refreshDraws]);
 
   useEffect(() => {
     const draws = refreshDraws();
@@ -120,14 +149,12 @@ export default function HomePage() {
         notificationShown.current = true;
     }
 
-    // Listen for storage changes from other tabs/windows (e.g., the shop or room)
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === 'plenty-of-plants-draws') {
         refreshDraws();
       }
     };
     
-    // Also check on focus in case a draw was used in another tab or replenished
     const handleFocus = () => {
       refreshDraws();
     };
@@ -218,7 +245,6 @@ export default function HomePage() {
             imageDataUri: compressedImageDataUri,
         });
         
-        // Decrement draws
         useDraw();
         refreshDraws();
 
@@ -256,7 +282,6 @@ export default function HomePage() {
 
     const lastId = allCurrentPlants.reduce((maxId, p) => Math.max(p.id, maxId), 0);
     
-    // Create new plant object. The image is already compressed.
     const newPlant: Plant = {
         id: lastId + 1,
         name: drawnPlant.name,
@@ -351,10 +376,7 @@ export default function HomePage() {
         </Card>
 
         <Card className="shadow-sm">
-          <CardHeader className="items-center">
-            <CardTitle className="text-xl font-semibold">Draw a New Plant</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center gap-4">
+          <CardContent className="flex flex-col items-center gap-4 pt-6">
             <div className="flex flex-col items-center gap-2">
                 <div className="flex items-center gap-3">
                     {Array.from({ length: MAX_DRAWS }).map((_, index) => {
@@ -373,7 +395,12 @@ export default function HomePage() {
                         );
                     })}
                 </div>
-                <span className="text-sm text-muted-foreground">Draws Available</span>
+                <div className="text-sm text-muted-foreground text-center">
+                    <span>Draws Available</span>
+                    {nextDrawTime && availableDraws < MAX_DRAWS && (
+                        <span className="ml-2">({`New draw in ${nextDrawTime}`})</span>
+                    )}
+                </div>
             </div>
             <Button onClick={handleDraw} disabled={isDrawing || availableDraws <= 0} size="lg" className="w-full font-semibold rounded-full mt-2">
               {isDrawing ? (
