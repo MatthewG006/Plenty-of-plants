@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
 
-type SfxType = 'tap' | 'whoosh';
+type SfxType = 'tap' | 'whoosh' | 'chime';
 
 interface AudioContextType {
   isPlaying: boolean;
@@ -21,6 +21,7 @@ const AudioContext = createContext<AudioContextType | undefined>(undefined);
 const sfxFiles: Record<SfxType, string> = {
   tap: '/sfx/tap.mp3',
   whoosh: '/sfx/whoosh.mp3',
+  chime: '/sfx/chime.mp3',
 };
 
 export const AudioProvider = ({ children }: { children: ReactNode }) => {
@@ -32,15 +33,13 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
   const togglePlay = useCallback(() => {
     if (!audioElement) return;
     
-    setIsPlaying(prevIsPlaying => {
-      const shouldPlay = !prevIsPlaying;
-      if (shouldPlay) {
-        audioElement.play().catch(e => console.error("Audio play failed:", e));
-      } else {
-        audioElement.pause();
-      }
-      return shouldPlay;
-    });
+    if (audioElement.paused) {
+      audioElement.play().catch(e => console.error("Audio play failed:", e));
+      setIsPlaying(true);
+    } else {
+      audioElement.pause();
+      setIsPlaying(false);
+    }
   }, [audioElement]);
 
 
@@ -66,7 +65,7 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
   }, [sfxVolume]);
 
   useEffect(() => {
-    if (audioElement && isPlaying) {
+    if (audioElement && isPlaying && audioElement.paused) {
         audioElement.play().catch(e => console.log("Autoplay was prevented. Waiting for user interaction."));
     }
   }, [audioElement, isPlaying]);
