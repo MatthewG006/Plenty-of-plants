@@ -39,15 +39,18 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean
+  disableSfx?: boolean
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, onClick, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, onClick, disableSfx = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"
     const { playSfx } = useAudio();
 
     const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-      playSfx('tap');
+      if (!disableSfx) {
+        playSfx('tap');
+      }
       if (onClick) {
         onClick(e);
       }
