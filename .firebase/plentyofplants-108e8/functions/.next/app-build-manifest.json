@@ -52,7 +52,7 @@
       "static/chunks/main-app-6ddbeb6aeb34e57f.js",
       "static/chunks/277-3d33c0df6fd4f386.js",
       "static/chunks/874-5853b36c417a5f43.js",
-      "static/chunks/app/(app)/layout-417d9d8753dc7462.js"
+      "static/chunks/app/(app)/layout-ee47dc874bd5891a.js"
     ],
     "/(app)/community/page": [
       "static/chunks/webpack-3a68ca926a023bb8.js",
@@ -104,7 +104,7 @@
       "static/chunks/568-0c6454dde34a644a.js",
       "static/chunks/52-930e7c2f11e88401.js",
       "static/chunks/42-6728bb4ddb2d0523.js",
-      "static/chunks/app/(app)/settings/page-09847db7193030fc.js"
+      "static/chunks/app/(app)/settings/page-4e9234aa44b9543f.js"
     ],
     "/(app)/shop/page": [
       "static/chunks/webpack-3a68ca926a023bb8.js",
