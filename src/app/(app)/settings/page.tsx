@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,6 +20,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { useAudio } from '@/context/AudioContext';
+import { useEffect, useState } from 'react';
 
 function SettingRow({ icon: Icon, label, children }: { icon: React.ElementType, label: string, children: React.ReactNode }) {
     return (
@@ -40,18 +43,36 @@ const PLANTS_DATA_STORAGE_KEY = 'plenty-of-plants-data';
 export default function SettingsPage() {
   const { toast } = useToast();
   const router = useRouter();
+  const { isPlaying, togglePlay, volume, setVolume } = useAudio();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleClearData = () => {
-    localStorage.removeItem(OLD_PLANTS_STORAGE_KEY);
-    localStorage.removeItem(PLANTS_DATA_STORAGE_KEY);
-    toast({
-      title: "Collection Cleared",
-      description: "You can now start a new collection from scratch.",
-    });
-    router.push('/home');
-    router.refresh();
+    try {
+        localStorage.removeItem(OLD_PLANTS_STORAGE_KEY);
+        localStorage.removeItem(PLANTS_DATA_STORAGE_KEY);
+        toast({
+          title: "Collection Cleared",
+          description: "You can now start a new collection from scratch.",
+        });
+        router.push('/home');
+        router.refresh();
+    } catch (e) {
+        console.error("Failed to clear data from localStorage", e);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Could not clear your collection data.",
+        });
+    }
   };
 
+  if (!isClient) {
+    return null; // or a loading spinner
+  }
 
   return (
     <div className="p-4">
@@ -65,7 +86,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent>
           <SettingRow icon={Music} label="Sounds">
-            <Switch id="sounds" defaultChecked />
+            <Switch id="sounds" checked={isPlaying} onCheckedChange={togglePlay} aria-label="Toggle music" />
           </SettingRow>
           <SettingRow icon={Zap} label="FX">
             <Switch id="fx" defaultChecked />
@@ -79,7 +100,14 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent>
            <SettingRow icon={Music} label="Music">
-              <Slider defaultValue={[50]} max={100} step={1} className="w-1/2" />
+              <Slider 
+                value={[volume * 100]} 
+                onValueChange={(value) => setVolume(value[0] / 100)} 
+                max={100} 
+                step={1} 
+                className="w-1/2" 
+                aria-label="Music volume"
+              />
           </SettingRow>
            <SettingRow icon={Zap} label="Effects">
               <Slider defaultValue={[75]} max={100} step={1} className="w-1/2" />
