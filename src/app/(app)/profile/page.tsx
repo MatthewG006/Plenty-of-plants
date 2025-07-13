@@ -157,7 +157,7 @@ export default function ProfilePage() {
           <CardContent className="pt-6">
             <AlertDialog>
                 <AlertDialogTrigger asChild>
-                    <Button variant="outline" className="w-full">
+                    <Button variant="destructive" className="w-full">
                         <LogOut className="mr-2 h-4 w-4" />
                         Log Out
                     </Button>
@@ -171,7 +171,7 @@ export default function ProfilePage() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleLogout}>
+                    <AlertDialogAction onClick={handleLogout} className="bg-destructive hover:bg-destructive/90">
                         Yes, log out
                     </AlertDialogAction>
                     </AlertDialogFooter>
