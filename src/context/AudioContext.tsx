@@ -32,12 +32,13 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
     });
   }, [audioElement]);
 
-  const handleSetVolume = (newVolume: number) => {
-    if (!audioElement) return;
+  const handleSetVolume = useCallback((newVolume: number) => {
     const clampedVolume = Math.max(0, Math.min(1, newVolume));
     setVolume(clampedVolume);
-    audioElement.volume = clampedVolume;
-  };
+    if (audioElement) {
+      audioElement.volume = clampedVolume;
+    }
+  }, [audioElement]);
   
   return (
     <AudioContext.Provider value={{ isPlaying, volume, togglePlay, setVolume: handleSetVolume, setAudioElement }}>
