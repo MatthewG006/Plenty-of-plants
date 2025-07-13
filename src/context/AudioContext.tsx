@@ -3,6 +3,8 @@
 
 import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
 
+type SfxType = 'tap' | 'whoosh';
+
 interface AudioContextType {
   isPlaying: boolean;
   volume: number;
@@ -11,13 +13,14 @@ interface AudioContextType {
   setAudioElement: (element: HTMLAudioElement | null) => void;
   sfxVolume: number;
   setSfxVolume: (volume: number) => void;
-  playSfx: (sound: 'tap') => void;
+  playSfx: (sound: SfxType) => void;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
 
-const sfxFiles = {
+const sfxFiles: Record<SfxType, string> = {
   tap: '/sfx/tap.mp3',
+  whoosh: '/sfx/whoosh.mp3',
 };
 
 export const AudioProvider = ({ children }: { children: ReactNode }) => {
@@ -54,8 +57,8 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
     setSfxVolume(clampedVolume);
   }, []);
   
-  const playSfx = useCallback((sound: keyof typeof sfxFiles) => {
-    if (sfxVolume > 0) {
+  const playSfx = useCallback((sound: SfxType) => {
+    if (sfxVolume > 0 && sfxFiles[sound]) {
       const audio = new Audio(sfxFiles[sound]);
       audio.volume = sfxVolume;
       audio.play().catch(e => console.error("SFX play failed:", e));

@@ -6,12 +6,13 @@ import { Button } from '@/components/ui/button';
 import { useAudio } from '@/context/AudioContext';
 
 export default function SplashPage() {
-  const { isPlaying, togglePlay } = useAudio();
+  const { isPlaying, togglePlay, playSfx } = useAudio();
 
   const handleEnter = () => {
     if (!isPlaying) {
       togglePlay();
     }
+    playSfx('whoosh');
   };
 
   return (
