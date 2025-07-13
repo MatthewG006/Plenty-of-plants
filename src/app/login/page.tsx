@@ -1,7 +1,19 @@
+
+'use client';
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { useAudio } from '@/context/AudioContext';
 
 export default function SplashPage() {
+  const { isPlaying, togglePlay } = useAudio();
+
+  const handleEnter = () => {
+    if (!isPlaying) {
+      togglePlay();
+    }
+  };
+
   return (
     <div className="flex h-screen w-full flex-col items-center justify-center bg-app-gradient p-4">
       <div className="flex flex-col items-center justify-center text-center animate-fade-in-up">
@@ -15,7 +27,7 @@ export default function SplashPage() {
           Your digital conservatory awaits.
         </p>
         <Button asChild className="mt-12 animate-pulse-subtle" size="lg">
-          <Link href="/home" className="font-headline text-xl px-8">Tap to Enter</Link>
+          <Link href="/home" className="font-headline text-xl px-8" onClick={handleEnter}>Tap to Enter</Link>
         </Button>
       </div>
     </div>
