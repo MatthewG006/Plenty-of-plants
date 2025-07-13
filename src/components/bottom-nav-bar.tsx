@@ -1,9 +1,11 @@
+
 "use client";
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Sprout, Shield, Store } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAudio } from '@/context/AudioContext';
 
 const navItems = [
   { href: '/home', label: 'Home', icon: Home },
@@ -14,6 +16,11 @@ const navItems = [
 
 export default function BottomNavBar() {
   const pathname = usePathname();
+  const { playSfx } = useAudio();
+
+  const handleNavClick = () => {
+    playSfx('tap');
+  };
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 h-20 border-t bg-card/95 backdrop-blur-sm z-10">
@@ -25,6 +32,7 @@ export default function BottomNavBar() {
             <Link 
               key={item.href} 
               href={item.href} 
+              onClick={handleNavClick}
               className="flex flex-col items-center justify-center gap-1 h-full"
             >
               <div className={cn(
