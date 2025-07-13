@@ -19,10 +19,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { loadDraws, useDraw, MAX_DRAWS } from '@/lib/draw-manager';
 
 const PLANTS_DATA_STORAGE_KEY = 'plenty-of-plants-data';
-const DRAWS_STORAGE_KEY = 'plenty-of-plants-draws';
-const MAX_DRAWS = 2;
 const NUM_POTS = 3;
 
 // Helper function to convert image URL to data URI
@@ -105,41 +104,24 @@ export default function HomePage() {
   const [drawnPlant, setDrawnPlant] = useState<DrawPlantOutput | null>(null);
   const [availableDraws, setAvailableDraws] = useState(0);
 
-  const loadDraws = useCallback(() => {
-    try {
-        const storedDrawsRaw = localStorage.getItem(DRAWS_STORAGE_KEY);
-        if (storedDrawsRaw) {
-            const storedDraws = JSON.parse(storedDrawsRaw);
-            if (typeof storedDraws.count === 'number') {
-                setAvailableDraws(storedDraws.count);
-                return;
-            }
-        }
-    } catch (e) {
-        console.error("Failed to read or parse draws from localStorage", e);
-    }
-    // Default to max draws if nothing is stored
-    setAvailableDraws(MAX_DRAWS);
-    try {
-        localStorage.setItem(DRAWS_STORAGE_KEY, JSON.stringify({ count: MAX_DRAWS }));
-    } catch(e) {
-        console.error("Failed to initialize draws in localStorage", e);
-    }
+  const refreshDraws = useCallback(() => {
+    const draws = loadDraws();
+    setAvailableDraws(draws);
   }, []);
 
   useEffect(() => {
-    loadDraws();
+    refreshDraws();
 
     // Listen for storage changes from other tabs/windows (e.g., the shop or room)
     const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === DRAWS_STORAGE_KEY) {
-        loadDraws();
+      if (event.key === 'plenty-of-plants-draws') {
+        refreshDraws();
       }
     };
     
-    // Also check on focus in case a draw was used in another tab
+    // Also check on focus in case a draw was used in another tab or replenished
     const handleFocus = () => {
-      loadDraws();
+      refreshDraws();
     };
 
     window.addEventListener('storage', handleStorageChange);
@@ -149,7 +131,7 @@ export default function HomePage() {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [loadDraws]);
+  }, [refreshDraws]);
 
 
   useEffect(() => {
@@ -189,7 +171,7 @@ export default function HomePage() {
         toast({
             variant: "destructive",
             title: "No Draws Left",
-            description: "Visit the shop to get more draws.",
+            description: "Visit the shop to get more draws or wait for your daily refill.",
         });
         return;
     }
@@ -227,12 +209,10 @@ export default function HomePage() {
             ...drawnPlantResult,
             imageDataUri: compressedImageDataUri,
         });
-
+        
         // Decrement draws
-        const newDrawCount = availableDraws - 1;
-        setAvailableDraws(newDrawCount);
-        localStorage.setItem(DRAWS_STORAGE_KEY, JSON.stringify({ count: newDrawCount }));
-
+        useDraw();
+        refreshDraws();
 
     } catch (e) {
         console.error(e);
@@ -416,3 +396,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
