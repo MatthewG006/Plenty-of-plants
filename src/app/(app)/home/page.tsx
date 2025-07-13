@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Settings, User, Check, X, Loader2, Leaf } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Plant } from '@/interfaces/plant';
 import { drawPlant, type DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 import { useToast } from '@/hooks/use-toast';
@@ -103,14 +103,22 @@ export default function HomePage() {
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawnPlant, setDrawnPlant] = useState<DrawPlantOutput | null>(null);
   const [availableDraws, setAvailableDraws] = useState(0);
+  const notificationShown = useRef(false);
 
   const refreshDraws = useCallback(() => {
     const draws = loadDraws();
     setAvailableDraws(draws);
+    return draws;
   }, []);
 
   useEffect(() => {
-    refreshDraws();
+    const draws = refreshDraws();
+    if (draws > 0 && !notificationShown.current) {
+        toast({
+            title: "You have draws available!",
+        });
+        notificationShown.current = true;
+    }
 
     // Listen for storage changes from other tabs/windows (e.g., the shop or room)
     const handleStorageChange = (event: StorageEvent) => {
@@ -131,7 +139,7 @@ export default function HomePage() {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [refreshDraws]);
+  }, [refreshDraws, toast]);
 
 
   useEffect(() => {
@@ -377,9 +385,6 @@ export default function HomePage() {
                 'Draw New Plant'
               )}
             </Button>
-            <p className="text-sm text-muted-foreground text-center">
-              {availableDraws > 0 ? "You have draws available!" : "Out of draws. Visit the shop for more."}
-            </p>
           </CardContent>
         </Card>
       </main>
@@ -396,5 +401,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-    
