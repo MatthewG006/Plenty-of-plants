@@ -243,7 +243,7 @@ export default function HomePage() {
 
         const compressedImageDataUri = await compressImage(drawnPlantResult.imageDataUri);
         
-        playSfx('chime');
+        playSfx('success');
         setDrawnPlant({
             ...drawnPlantResult,
             imageDataUri: compressedImageDataUri,

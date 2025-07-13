@@ -14,12 +14,12 @@ import path from 'path';
 const BUILT_IN_FALLBACK_PLANTS_DIR = path.join(process.cwd(), 'public', 'fallback-plants');
 
 // Add a hardcoded list of built-in plants as a final fallback.
-// This is the most reliable method.
-const BUILT_IN_PLANTS = [
-    { name: "Sunny Succulent", file: "succulent.png" },
-    { name: "Happy Cactus", file: "cactus.png" },
-    { name: "Blushing Bloom", file: "flower.png" },
-];
+const BUILT_IN_PLANTS = {
+    "succulent": { name: "Sunny Succulent", file: "succulent.png" },
+    "cactus": { name: "Happy Cactus", file: "cactus.png" },
+    "flower": { name: "Blushing Bloom", file: "flower.png" },
+};
+const PLANT_TYPES = Object.keys(BUILT_IN_PLANTS);
 
 
 // Helper function to convert image file to data URI
@@ -28,7 +28,6 @@ async function toDataURL(filePath: string, mimeType: string): Promise<string> {
     const base64 = fileBuffer.toString('base64');
     return `data:${mimeType};base64,${base64}`;
 }
-
 
 const GetFallbackPlantOutputSchema = z.object({
   name: z.string().describe('The creative and unique name of the new plant.'),
@@ -44,9 +43,10 @@ export type GetFallbackPlantOutput = z.infer<typeof GetFallbackPlantOutputSchema
 
 const fallbackPlantDetailsPrompt = ai.definePrompt({
     name: 'fallbackPlantDetailsPrompt',
-    input: { schema: z.object({ plantType: z.string() }) },
+    input: { schema: z.object({}) },
     output: {
       schema: z.object({
+        plantType: z.enum(PLANT_TYPES).describe('The type of plant to generate.'),
         name: z
           .string()
           .describe(
@@ -59,28 +59,27 @@ const fallbackPlantDetailsPrompt = ai.definePrompt({
           ),
       }),
     },
-    prompt: `You are a creative botanist for a game. Based on the plant type "{{plantType}}", generate a unique two-word name and a whimsical one-sentence description for it.`,
+    prompt: `You are a creative botanist for a game. Randomly select one of the following plant types: ${PLANT_TYPES.join(', ')}. Then, generate a unique two-word name and a whimsical one-sentence description for it.`,
 });
 
 
-export const getFallbackPlant = ai.defineFlow(
+const getFallbackPlantFlow = ai.defineFlow(
   {
     name: 'getFallbackPlantFlow',
     inputSchema: z.object({}),
     outputSchema: GetFallbackPlantOutputSchema,
   },
   async () => {
-    // Rely on the hardcoded list as it's the most robust solution.
-    const randomPlant = BUILT_IN_PLANTS[Math.floor(Math.random() * BUILT_IN_PLANTS.length)];
-    const imagePath = path.join(BUILT_IN_FALLBACK_PLANTS_DIR, randomPlant.file);
-    
     try {
-        const imageDataUri = await toDataURL(imagePath, 'image/png');
-        const { output: plantDetails } = await fallbackPlantDetailsPrompt({ plantType: randomPlant.name });
+        const { output: plantDetails } = await fallbackPlantDetailsPrompt({});
         
-        if (!plantDetails) {
-            throw new Error("Could not generate details for hardcoded fallback.");
+        if (!plantDetails || !BUILT_IN_PLANTS[plantDetails.plantType]) {
+            throw new Error("Could not generate details for fallback.");
         }
+
+        const chosenPlant = BUILT_IN_PLANTS[plantDetails.plantType];
+        const imagePath = path.join(BUILT_IN_FALLBACK_PLANTS_DIR, chosenPlant.file);
+        const imageDataUri = await toDataURL(imagePath, 'image/png');
 
         return {
             name: plantDetails.name,
@@ -88,7 +87,7 @@ export const getFallbackPlant = ai.defineFlow(
             imageDataUri,
         };
     } catch (error) {
-        console.error("Critical error: Could not load hardcoded fallback image.", error);
+        console.error("Critical error: Could not load or generate fallback plant.", error);
         // This is a final failsafe to prevent a crash, returning a transparent pixel.
         return {
             name: "Resilient Sprout",
@@ -98,3 +97,8 @@ export const getFallbackPlant = ai.defineFlow(
     }
   }
 );
+
+
+export async function getFallbackPlant(input: {}): Promise<GetFallbackPlantOutput> {
+  return getFallbackPlantFlow(input);
+}
