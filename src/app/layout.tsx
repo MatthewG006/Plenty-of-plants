@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
+import { AudioProvider } from '@/context/AudioContext';
+import MusicPlayer from '@/components/music-player';
 
 export const metadata: Metadata = {
   title: 'Plenty of Plants',
@@ -22,8 +24,11 @@ export default function RootLayout({
         <meta name="theme-color" content="#4FDF81" />
       </head>
       <body className="font-body antialiased">
-        {children}
-        <Toaster />
+        <AudioProvider>
+          {children}
+          <Toaster />
+          <MusicPlayer />
+        </AudioProvider>
       </body>
     </html>
   );
