@@ -43,7 +43,7 @@ const PLANTS_DATA_STORAGE_KEY = 'plenty-of-plants-data';
 export default function SettingsPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const { isPlaying, togglePlay, volume, setVolume } = useAudio();
+  const { isPlaying, togglePlay, volume, setVolume, sfxVolume, setSfxVolume, playSfx } = useAudio();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -89,7 +89,11 @@ export default function SettingsPage() {
             <Switch id="sounds" checked={isPlaying} onCheckedChange={togglePlay} aria-label="Toggle music" />
           </SettingRow>
           <SettingRow icon={Zap} label="FX">
-            <Switch id="fx" defaultChecked />
+            <Switch id="fx" defaultChecked onCheckedChange={(checked) => {
+              // This is a simple toggle. If you want to save this state, you'd need to expand the context.
+              // For now, we'll just use it to mute/unmute SFX via volume.
+              setSfxVolume(checked ? 0.75 : 0);
+            }} />
           </SettingRow>
         </CardContent>
       </Card>
@@ -110,7 +114,15 @@ export default function SettingsPage() {
               />
           </SettingRow>
            <SettingRow icon={Zap} label="Effects">
-              <Slider defaultValue={[75]} max={100} step={1} className="w-1/2" />
+              <Slider 
+                value={[sfxVolume * 100]} 
+                onValueChange={(value) => setSfxVolume(value[0] / 100)}
+                onValueCommit={() => playSfx('tap')}
+                max={100} 
+                step={1} 
+                className="w-1/2" 
+                aria-label="Effects volume"
+              />
           </SettingRow>
         </CardContent>
       </Card>
