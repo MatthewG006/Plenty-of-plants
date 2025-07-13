@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { loadDraws, useDraw, MAX_DRAWS, getStoredDraws } from '@/lib/draw-manager';
+import { useAudio } from '@/context/AudioContext';
 
 const PLANTS_DATA_STORAGE_KEY = 'plenty-of-plants-data';
 const NUM_POTS = 3;
@@ -107,6 +108,7 @@ function formatTime(ms: number) {
 
 export default function HomePage() {
   const { toast } = useToast();
+  const { playSfx } = useAudio();
   const [latestPlant, setLatestPlant] = useState<Plant | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawnPlant, setDrawnPlant] = useState<DrawPlantOutput | null>(null);
@@ -143,6 +145,7 @@ export default function HomePage() {
   useEffect(() => {
     const draws = refreshDraws();
     if (draws > 0 && !notificationShown.current) {
+        playSfx('chime');
         toast({
             title: "You have draws available!",
         });
@@ -166,7 +169,7 @@ export default function HomePage() {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [refreshDraws, toast]);
+  }, [refreshDraws, toast, playSfx]);
 
 
   useEffect(() => {
