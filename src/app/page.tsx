@@ -10,15 +10,22 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Megaphone } from 'lucide-react';
+import { useAudio } from '@/context/AudioContext';
 
 const USER_DATA_STORAGE_KEY = 'plenty-of-plants-user';
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
+  const { isPlaying, togglePlay } = useAudio();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!isPlaying) {
+      togglePlay();
+    }
+
     const storedUserRaw = localStorage.getItem(USER_DATA_STORAGE_KEY);
     let userData;
 
