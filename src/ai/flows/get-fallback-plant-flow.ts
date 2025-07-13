@@ -14,12 +14,12 @@ import path from 'path';
 const BUILT_IN_FALLBACK_PLANTS_DIR = path.join(process.cwd(), 'public', 'fallback-plants');
 
 // Add a hardcoded list of built-in plants as a final fallback.
-const BUILT_IN_PLANTS = {
+const BUILT_IN_PLANTS: Record<string, { name: string; file: string }> = {
     "succulent": { name: "Sunny Succulent", file: "succulent.png" },
     "cactus": { name: "Happy Cactus", file: "cactus.png" },
     "flower": { name: "Blushing Bloom", file: "flower.png" },
 };
-const PLANT_TYPES = Object.keys(BUILT_IN_PLANTS);
+const PLANT_TYPES = Object.keys(BUILT_IN_PLANTS) as [string, ...string[]];
 
 
 // Helper function to convert image file to data URI

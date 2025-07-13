@@ -7,9 +7,11 @@ import { useToast } from '@/hooks/use-toast';
 import { claimFreeDraw, loadDraws } from '@/lib/draw-manager';
 import { Gift } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useAudio } from '@/context/AudioContext';
 
 export default function ShopPage() {
   const { toast } = useToast();
+  const { playSfx } = useAudio();
   const [newDrawCount, setNewDrawCount] = useState(0);
 
   // Effect to load draws on mount to have an initial value
@@ -21,6 +23,7 @@ export default function ShopPage() {
     const result = claimFreeDraw();
 
     if (result.success) {
+      playSfx('reward');
       toast({
         title: "Free Draw Claimed!",
         description: `You now have ${result.newCount} draw(s) available.`,
@@ -63,5 +66,3 @@ export default function ShopPage() {
     </div>
   );
 }
-
-    
