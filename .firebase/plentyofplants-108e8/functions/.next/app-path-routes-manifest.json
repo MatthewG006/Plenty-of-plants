@@ -8,5 +8,6 @@
   "/(app)/home/page": "/home",
   "/(app)/profile/page": "/profile",
   "/(app)/room/page": "/room",
-  "/(app)/settings/page": "/settings"
+  "/(app)/settings/page": "/settings",
+  "/(app)/shop/page": "/shop"
 }
