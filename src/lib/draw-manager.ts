@@ -10,7 +10,7 @@ interface DrawData {
   lastUpdated: number;
 }
 
-function getStoredDraws(): DrawData {
+export function getStoredDraws(): DrawData {
   try {
     const storedDrawsRaw = localStorage.getItem(DRAWS_STORAGE_KEY);
     if (storedDrawsRaw) {
@@ -88,5 +88,3 @@ export function claimFreeDraw(): { success: boolean, newCount: number } {
 
   return { success: true, newCount: newCount };
 }
-
-    
