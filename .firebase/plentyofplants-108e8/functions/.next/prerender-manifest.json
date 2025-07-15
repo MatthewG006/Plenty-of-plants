@@ -54,30 +54,6 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/signup": {
-      "experimentalBypassFor": [
-        {
-          "type": "header",
-          "key": "Next-Action"
-        },
-        {
-          "type": "header",
-          "key": "content-type",
-          "value": "multipart/form-data;.*"
-        }
-      ],
-      "initialRevalidateSeconds": false,
-      "srcRoute": "/signup",
-      "dataRoute": "/signup.rsc",
-      "allowHeader": [
-        "host",
-        "x-matched-path",
-        "x-prerender-revalidate",
-        "x-prerender-revalidate-if-generated",
-        "x-next-revalidated-tags",
-        "x-next-revalidate-tag-token"
-      ]
-    },
     "/login": {
       "experimentalBypassFor": [
         {
@@ -102,7 +78,7 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/room": {
+    "/signup": {
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -115,8 +91,8 @@
         }
       ],
       "initialRevalidateSeconds": false,
-      "srcRoute": "/room",
-      "dataRoute": "/room.rsc",
+      "srcRoute": "/signup",
+      "dataRoute": "/signup.rsc",
       "allowHeader": [
         "host",
         "x-matched-path",
@@ -150,7 +126,7 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/community": {
+    "/room": {
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -163,8 +139,8 @@
         }
       ],
       "initialRevalidateSeconds": false,
-      "srcRoute": "/community",
-      "dataRoute": "/community.rsc",
+      "srcRoute": "/room",
+      "dataRoute": "/room.rsc",
       "allowHeader": [
         "host",
         "x-matched-path",
@@ -222,6 +198,30 @@
         "x-next-revalidate-tag-token"
       ]
     },
+    "/community": {
+      "experimentalBypassFor": [
+        {
+          "type": "header",
+          "key": "Next-Action"
+        },
+        {
+          "type": "header",
+          "key": "content-type",
+          "value": "multipart/form-data;.*"
+        }
+      ],
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/community",
+      "dataRoute": "/community.rsc",
+      "allowHeader": [
+        "host",
+        "x-matched-path",
+        "x-prerender-revalidate",
+        "x-prerender-revalidate-if-generated",
+        "x-next-revalidated-tags",
+        "x-next-revalidate-tag-token"
+      ]
+    },
     "/settings": {
       "experimentalBypassFor": [
         {
@@ -250,8 +250,8 @@
   "dynamicRoutes": {},
   "notFoundRoutes": [],
   "preview": {
-    "previewModeId": "b24879a6b65a2ebabc175f216af27e94",
-    "previewModeSigningKey": "08e1e7fccd0a1375633bd6368c6e9974e98942c7eb77af1ff8b21529e713cd63",
-    "previewModeEncryptionKey": "e56c0f3ecf7e76b8bc8ac9887c46c9d26eb6cb0d67721dc05eb517aef8623ddf"
+    "previewModeId": "8e6a52c9257902e9e8994373052611d2",
+    "previewModeSigningKey": "e08d8c5b0a2f20a2da029cb6226130e4cbf6fef17c86de3c16af5d1605b652af",
+    "previewModeEncryptionKey": "80dca5d71e01061bbb9e6b4b5bea63e63c3e42310a487d7fa92c5c3e183c209c"
   }
 }

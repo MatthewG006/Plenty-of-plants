@@ -130,12 +130,12 @@ function PlantDetailDialog({ plant, open, onOpenChange }: { plant: Plant | null,
     );
 }
 
-function PlantImageUI({ plant }: { plant: Plant }) {
+function PlantImageUI({ plant, blendMode = false }: { plant: Plant, blendMode?: boolean }) {
   return (
     <div className="flex flex-col items-center text-center">
       <div className="relative h-20 w-20 pointer-events-none flex items-center justify-center">
         {plant.image !== 'placeholder' ? (
-            <Image src={plant.image} alt={plant.name} fill className="object-contain" data-ai-hint={plant.hint} />
+            <Image src={plant.image} alt={plant.name} fill className={cn("object-contain", blendMode && "mix-blend-multiply")} data-ai-hint={plant.hint} />
         ) : (
             <div className="w-full h-full flex items-center justify-center rounded-lg bg-muted/20">
               <Leaf className="w-12 h-12 text-muted-foreground/50" />
@@ -189,7 +189,7 @@ function DraggablePlant({ plant, source, onClick }: { plant: Plant; source: 'des
                 onClick={onClick}
                 className="flex flex-col items-center text-center cursor-grab active:cursor-grabbing h-full w-full justify-center"
             >
-                <PlantImageUI plant={plant} />
+                <PlantImageUI plant={plant} blendMode={true} />
             </div>
         );
     }
@@ -226,7 +226,7 @@ function DroppablePot({
          <DraggablePlant plant={plant} source="desk" onClick={() => onClickPlant(plant)} />
       ) : isOver && activePlantData ? (
           <div className="flex flex-col items-center text-center opacity-60 pointer-events-none">
-              <PlantImageUI plant={activePlantData.plant} />
+              <PlantImageUI plant={activePlantData.plant} blendMode={true} />
           </div>
       ) : (
           <PlantPot />
@@ -535,7 +535,7 @@ export default function RoomPage() {
         <DragOverlay>
             {activePlantData ? (
                 activePlantData.source === 'desk' ? (
-                    <PlantImageUI plant={activePlantData.plant} />
+                    <PlantImageUI plant={activePlantData.plant} blendMode={true} />
                 ) : (
                     <div className="w-28">
                         <PlantCardUI plant={activePlantData.plant} />
@@ -559,5 +559,7 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
+
+    
 
     
