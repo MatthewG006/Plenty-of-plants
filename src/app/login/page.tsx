@@ -19,7 +19,7 @@ export default function SplashPage() {
   return (
     <div className="flex h-screen w-full flex-col items-center justify-center bg-app-gradient p-4">
       <div className="flex flex-col items-center justify-center text-center animate-fade-in-up">
-        <Image src="/logo.png" alt="Plenty of Plants Logo" width={240} height={240} className="mb-6" data-ai-hint="plant logo" />
+        <Image src="/logo.png" alt="Plenty of Plants Logo" width={280} height={280} className="mb-6" data-ai-hint="plant logo" />
         <p className="mt-2 text-lg text-foreground/80 font-body">
           Your digital conservatory awaits.
         </p>
