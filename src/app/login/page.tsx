@@ -17,7 +17,8 @@ export default function SplashPage() {
   };
 
   return (
-    <div className="flex h-screen w-full flex-col items-center justify-center bg-app-gradient p-4">
+    <div className="flex h-screen w-full flex-col items-center justify-between p-4 bg-app-gradient">
+      <div className="flex-grow-[1]" />
       <div className="flex flex-col items-center justify-center text-center animate-fade-in-up">
         <Image src="/logo.png" alt="Plenty of Plants Logo" width={320} height={320} className="" data-ai-hint="plant logo" />
         <p className="text-lg text-foreground/80 font-body -mt-16">
@@ -27,6 +28,7 @@ export default function SplashPage() {
           <Link href="/home" className="font-headline text-xl px-8" onClick={handleEnter}>Tap to Enter</Link>
         </Button>
       </div>
+      <div className="flex-grow-[3]" />
     </div>
   );
 }
