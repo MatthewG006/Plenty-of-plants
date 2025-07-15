@@ -11,13 +11,17 @@ import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Megaphone } from 'lucide-react';
 import { useAudio } from '@/context/AudioContext';
+import { loadDraws } from '@/lib/draw-manager';
+import { useToast } from '@/hooks/use-toast';
 
 const USER_DATA_STORAGE_KEY = 'plenty-of-plants-user';
+const NOTIFICATION_SHOWN_KEY = 'plenty-of-plants-notified';
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
-  const { isPlaying, togglePlay } = useAudio();
+  const { isPlaying, togglePlay, playSfx } = useAudio();
+  const { toast } = useToast();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +45,17 @@ export default function LoginPage() {
     }
     
     localStorage.setItem(USER_DATA_STORAGE_KEY, JSON.stringify(userData));
+
+    const notificationShown = sessionStorage.getItem(NOTIFICATION_SHOWN_KEY);
+    const availableDraws = loadDraws();
+    if (availableDraws > 0 && !notificationShown) {
+      playSfx('chime');
+      toast({
+        title: "You have draws available!",
+      });
+      sessionStorage.setItem(NOTIFICATION_SHOWN_KEY, 'true');
+    }
+
     router.push('/login');
   };
 
