@@ -4,7 +4,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { User, LogOut } from 'lucide-react';
+import { User, LogOut, Coins } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Plant } from '@/interfaces/plant';
 import { cn } from '@/lib/utils';
@@ -28,14 +28,16 @@ interface UserData {
   email: string;
   gameId: string;
   avatarColor?: string;
+  gold?: number;
 }
 
 const PLANTS_DATA_STORAGE_KEY = 'plenty-of-plants-data';
 const USER_DATA_STORAGE_KEY = 'plenty-of-plants-user';
 
-function InfoRow({ label, value, valueClassName }: { label: string, value: string | number, valueClassName?: string }) {
+function InfoRow({ icon: Icon, label, value, valueClassName }: { icon?: React.ElementType, label: string, value: string | number, valueClassName?: string }) {
   return (
     <div className="flex items-center justify-start gap-4 py-3">
+      {Icon && <Icon className="h-5 w-5 text-muted-foreground" />}
       <p className="text-muted-foreground w-32">{label}</p>
       <p className={cn("font-semibold text-primary", valueClassName)}>{value}</p>
     </div>
@@ -48,73 +50,87 @@ export default function ProfilePage() {
   const [userData, setUserData] = useState<UserData>({
     username: 'PlantLover',
     email: 'you@example.com',
-    gameId: '#GAMEID00000'
+    gameId: '#GAMEID00000',
+    gold: 0,
   });
   const [avatarColor, setAvatarColor] = useState<string>('');
   const router = useRouter();
 
   useEffect(() => {
-    // Load user data
-    let storedUserRaw;
-    try {
-        storedUserRaw = localStorage.getItem(USER_DATA_STORAGE_KEY);
-    } catch(e) {
-      console.error("Failed to read user data from localStorage", e);
-    }
-
-    let user: UserData;
-    if (storedUserRaw) {
+    // This function will run on mount and also when the window gets focus
+    const loadData = () => {
+        // Load user data
+        let storedUserRaw;
         try {
-            user = JSON.parse(storedUserRaw);
-        } catch (e) {
-            console.error("Failed to parse user data on profile page", e);
-            user = { username: 'PlantLover', email: 'you@example.com', gameId: '#GAMEID00000' };
+            storedUserRaw = localStorage.getItem(USER_DATA_STORAGE_KEY);
+        } catch(e) {
+          console.error("Failed to read user data from localStorage", e);
         }
-    } else {
-        user = { username: 'PlantLover', email: 'you@example.com', gameId: '#GAMEID00000' };
-    }
 
-    if (user.avatarColor) {
-        setAvatarColor(user.avatarColor);
-    } else {
-        const hue = Math.floor(Math.random() * 360);
-        const newAvatarColor = `hsl(${hue}, 70%, 85%)`;
-        setAvatarColor(newAvatarColor);
-        user.avatarColor = newAvatarColor;
+        let user: UserData;
+        if (storedUserRaw) {
+            try {
+                user = JSON.parse(storedUserRaw);
+            } catch (e) {
+                console.error("Failed to parse user data on profile page", e);
+                user = { username: 'PlantLover', email: 'you@example.com', gameId: '#GAMEID00000', gold: 0 };
+            }
+        } else {
+            user = { username: 'PlantLover', email: 'you@example.com', gameId: '#GAMEID00000', gold: 0 };
+        }
+
+        if (user.avatarColor) {
+            setAvatarColor(user.avatarColor);
+        } else {
+            const hue = Math.floor(Math.random() * 360);
+            const newAvatarColor = `hsl(${hue}, 70%, 85%)`;
+            setAvatarColor(newAvatarColor);
+            user.avatarColor = newAvatarColor;
+        }
+
+        if (typeof user.gold === 'undefined') {
+            user.gold = 0;
+        }
+
         try {
             localStorage.setItem(USER_DATA_STORAGE_KEY, JSON.stringify(user));
         } catch (e) {
-            console.error("Failed to save avatar color to localStorage", e);
+            console.error("Failed to save user data to localStorage", e);
         }
-    }
-    setUserData(user);
+
+        setUserData(user);
 
 
-    // Load plant data
-    let storedDataRaw;
-    try {
-        storedDataRaw = localStorage.getItem(PLANTS_DATA_STORAGE_KEY);
-    } catch (e) {
-        console.error("Failed to read localStorage on profile page", e);
-    }
-    
-    if (storedDataRaw) {
-      try {
-        const storedData = JSON.parse(storedDataRaw);
-        const collectionPlants: Plant[] = storedData.collection || [];
-        const deskPlants: Plant[] = (storedData.desk || []).filter((p: Plant | null): p is Plant => p !== null);
-        const allPlants = [...collectionPlants, ...deskPlants];
-
-        setPlantsCollected(allPlants.length);
+        // Load plant data
+        let storedDataRaw;
+        try {
+            storedDataRaw = localStorage.getItem(PLANTS_DATA_STORAGE_KEY);
+        } catch (e) {
+            console.error("Failed to read localStorage on profile page", e);
+        }
         
-        const evolvedCount = allPlants.filter(p => p.form !== 'Base').length;
-        setPlantsEvolved(evolvedCount);
-      } catch (e) {
-        console.error("Failed to parse stored plants on profile page", e);
-        setPlantsCollected(0);
-        setPlantsEvolved(0);
-      }
-    }
+        if (storedDataRaw) {
+          try {
+            const storedData = JSON.parse(storedDataRaw);
+            const collectionPlants: Plant[] = storedData.collection || [];
+            const deskPlants: Plant[] = (storedData.desk || []).filter((p: Plant | null): p is Plant => p !== null);
+            const allPlants = [...collectionPlants, ...deskPlants];
+
+            setPlantsCollected(allPlants.length);
+            
+            const evolvedCount = allPlants.filter(p => p.form !== 'Base').length;
+            setPlantsEvolved(evolvedCount);
+          } catch (e) {
+            console.error("Failed to parse stored plants on profile page", e);
+            setPlantsCollected(0);
+            setPlantsEvolved(0);
+          }
+        }
+    };
+    
+    loadData();
+    window.addEventListener('focus', loadData);
+    return () => window.removeEventListener('focus', loadData);
   }, []);
 
   const handleLogout = () => {
@@ -146,6 +162,8 @@ export default function ProfilePage() {
         <CardContent>
           <Separator className="my-2"/>
           <InfoRow label="Email" value={userData.email} valueClassName="text-xs" />
+          <Separator />
+          <InfoRow label="Gold" value={userData.gold ?? 0} valueClassName="text-xs" icon={Coins} />
           <Separator />
           <InfoRow label="Plants Collected" value={plantsCollected} valueClassName="text-xs" />
           <Separator />
@@ -182,3 +200,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+    

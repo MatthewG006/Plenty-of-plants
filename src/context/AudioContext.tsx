@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
 
-type SfxType = 'tap' | 'whoosh' | 'chime' | 'success' | 'reward';
+type SfxType = 'tap' | 'whoosh' | 'chime' | 'success' | 'reward' | 'watering';
 
 interface AudioContextType {
   isPlaying: boolean;
@@ -24,6 +24,7 @@ const sfxFiles: Record<SfxType, string> = {
   chime: '/sfx/chime.mp3',
   success: '/sfx/success.mp3',
   reward: '/sfx/reward.mp3',
+  watering: '/sfx/watering.mp3',
 };
 
 export const AudioProvider = ({ children }: { children: ReactNode }) => {
@@ -96,3 +97,5 @@ export const useAudio = () => {
   }
   return context;
 };
+
+    

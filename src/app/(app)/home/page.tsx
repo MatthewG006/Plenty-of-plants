@@ -21,6 +21,7 @@ import {
 import { cn } from '@/lib/utils';
 import { loadDraws, useDraw, MAX_DRAWS, getStoredDraws } from '@/lib/draw-manager';
 import { useAudio } from '@/context/AudioContext';
+import { Progress } from '@/components/ui/progress';
 
 const PLANTS_DATA_STORAGE_KEY = 'plenty-of-plants-data';
 const NUM_POTS = 3;
@@ -284,6 +285,9 @@ export default function HomePage() {
         image: drawnPlant.imageDataUri,
         hint: drawnPlant.name === 'Friendly Fern' ? 'fern plant' : drawnPlant.name.toLowerCase().split(' ').slice(0, 2).join(' '),
         description: drawnPlant.description,
+        level: 1,
+        xp: 0,
+        lastWatered: [],
     };
     
     const firstEmptyPotIndex = deskPlants.findIndex(p => p === null);
@@ -343,7 +347,7 @@ export default function HomePage() {
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center text-center min-h-[260px]">
             {latestPlant ? (
-              <Link href="/room" className="flex flex-col items-center gap-4 transition-transform hover:scale-105">
+              <Link href="/room" className="flex flex-col items-center gap-2 transition-transform hover:scale-105">
                 <div className="w-48 h-48 rounded-lg overflow-hidden border-2 border-primary/30 shadow-md">
                   {latestPlant.image !== 'placeholder' ? (
                       <Image
@@ -361,6 +365,9 @@ export default function HomePage() {
                   )}
                 </div>
                 <h3 className="text-xl font-headline text-primary">{latestPlant.name}</h3>
+                <div className="w-4/5">
+                    <Progress value={(latestPlant.xp / 1000) * 100} className="h-2" />
+                </div>
               </Link>
             ) : (
               <p className="text-muted-foreground">
@@ -423,3 +430,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    

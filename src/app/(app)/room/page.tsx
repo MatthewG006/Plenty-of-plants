@@ -3,9 +3,9 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { drawPlant, type DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
-import { Leaf, Loader2 } from 'lucide-react';
+import { Leaf, Loader2, Droplet, PlusCircle } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -23,82 +23,92 @@ import {
   useSensors,
   TouchSensor
 } from '@dnd-kit/core';
-import { loadDraws, useDraw, claimFreeDraw } from '@/lib/draw-manager';
+import { loadDraws, useDraw } from '@/lib/draw-manager';
+import { Progress } from '@/components/ui/progress';
+import { useAudio } from '@/context/AudioContext';
 
 
-const OLD_PLANTS_STORAGE_KEY = 'plenty-of-plants-collection';
 const PLANTS_DATA_STORAGE_KEY = 'plenty-of-plants-data';
+const USER_DATA_STORAGE_KEY = 'plenty-of-plants-user';
 const NUM_POTS = 3;
-
-// Helper function to compress an image
-async function compressImage(dataUri: string, maxSize = 256): Promise<string> {
-    return new Promise((resolve, reject) => {
-        const img = new window.Image();
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            let { width, height } = img;
-
-            if (width > height) {
-                if (width > maxSize) {
-                    height = Math.round((height * maxSize) / width);
-                    width = maxSize;
-                }
-            } else {
-                if (height > maxSize) {
-                    width = Math.round((width * maxSize) / height);
-                    height = maxSize;
-                }
-            }
-
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) {
-                return reject(new Error('Could not get canvas context'));
-            }
-            ctx.drawImage(img, 0, 0, width, height);
-            resolve(canvas.toDataURL('image/png'));
-        };
-        img.onerror = reject;
-        img.src = dataUri;
-    });
-}
+const MAX_WATERINGS_PER_DAY = 4;
+const XP_PER_WATERING = 200;
+const XP_PER_LEVEL = 1000;
+const GOLD_PER_WATERING = 10;
 
 
-function PlantPot() {
+function WaterDropletAnimation() {
     return (
-        <div className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-primary/30 pointer-events-none" />
-    )
-}
-
-function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlantOutput | null, open: boolean, onOpenChange: (open: boolean) => void }) {
-    if (!plant) return null;
-
-    return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-sm">
-                <DialogHeader>
-                    <DialogTitle className="font-headline text-3xl text-center">A new plant!</DialogTitle>
-                </DialogHeader>
-                <div className="flex flex-col items-center gap-4 py-4">
-                    <div className="w-64 h-64 rounded-lg overflow-hidden border-4 border-primary/50 shadow-lg bg-green-100">
-                        <Image src={plant.imageDataUri} alt={plant.name} width={256} height={256} className="object-cover w-full h-full" />
-                    </div>
-                    <h3 className="text-2xl font-headline text-primary">{plant.name}</h3>
-                    <p className="text-muted-foreground text-center">{plant.description}</p>
-                </div>
-                <DialogFooter>
-                    <DialogClose asChild>
-                        <Button className="w-full font-headline text-lg">Collect</Button>
-                    </DialogClose>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+        <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
+            {Array.from({ length: 5 }).map((_, i) => (
+                <Droplet key={i} className="absolute text-blue-400 animate-water-drop" style={{
+                    left: `${Math.random() * 100}%`,
+                    animationDelay: `${Math.random() * 0.5}s`,
+                    animationDuration: `${0.5 + Math.random() * 0.5}s`,
+                    width: `${16 + Math.random() * 16}px`,
+                    height: `${16 + Math.random() * 16}px`,
+                }} />
+            ))}
+        </div>
     );
 }
 
-function PlantDetailDialog({ plant, open, onOpenChange }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void }) {
+
+function PlantDetailDialog({ plant, open, onOpenChange, onPlantUpdate }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, onPlantUpdate: (updatedPlant: Plant) => void }) {
+    const { playSfx } = useAudio();
+    const { toast } = useToast();
+    const [isWatering, setIsWatering] = useState(false);
+
     if (!plant) return null;
+
+    const today = new Date().toDateString();
+    const timesWateredToday = plant.lastWatered?.filter(ts => new Date(ts).toDateString() === today).length ?? 0;
+    const canWater = timesWateredToday < MAX_WATERINGS_PER_DAY;
+
+    const handleWaterPlant = () => {
+        if (!canWater) return;
+        
+        playSfx('watering');
+        setIsWatering(true);
+
+        let newXp = plant.xp + XP_PER_WATERING;
+        let newLevel = plant.level;
+
+        if (newXp >= XP_PER_LEVEL) {
+            newLevel += 1;
+            newXp -= XP_PER_LEVEL;
+            playSfx('reward');
+             toast({
+                title: "Level Up!",
+                description: `${plant.name} has reached level ${newLevel}!`,
+            });
+        }
+        
+        const now = Date.now();
+        const updatedLastWatered = [...(plant.lastWatered || []).filter(ts => new Date(ts).toDateString() === today), now];
+
+        const updatedPlant: Plant = {
+            ...plant,
+            xp: newXp,
+            level: newLevel,
+            lastWatered: updatedLastWatered,
+        };
+
+        onPlantUpdate(updatedPlant);
+
+        // Update user's gold
+        try {
+            const userRaw = localStorage.getItem(USER_DATA_STORAGE_KEY);
+            const userData = userRaw ? JSON.parse(userRaw) : {};
+            const newGold = (userData.gold || 0) + GOLD_PER_WATERING;
+            localStorage.setItem(USER_DATA_STORAGE_KEY, JSON.stringify({ ...userData, gold: newGold }));
+        } catch (e) {
+            console.error("Failed to update gold", e);
+        }
+
+
+        setTimeout(() => setIsWatering(false), 1000); // Animation duration
+    };
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -107,20 +117,32 @@ function PlantDetailDialog({ plant, open, onOpenChange }: { plant: Plant | null,
                     <DialogTitle className="font-headline text-3xl text-center">{plant.name}</DialogTitle>
                 </DialogHeader>
                 <div className="flex flex-col items-center gap-4 py-4">
-                    <div className="w-64 h-64 rounded-lg overflow-hidden border-4 border-primary/50 shadow-lg bg-green-100 flex items-center justify-center">
-                        {plant.image !== 'placeholder' ? (
-                            <Image src={plant.image} alt={plant.name} width={256} height={256} className="object-cover w-full h-full" data-ai-hint={plant.hint} />
-                        ) : (
-                            <Leaf className="w-24 h-24 text-muted-foreground/50" />
-                        )}
+                    <div className="w-64 h-64 relative">
+                        <div className="rounded-lg overflow-hidden border-4 border-primary/50 shadow-lg bg-green-100 flex items-center justify-center h-full">
+                            {plant.image !== 'placeholder' ? (
+                                <Image src={plant.image} alt={plant.name} width={256} height={256} className="object-cover w-full h-full" data-ai-hint={plant.hint} />
+                            ) : (
+                                <Leaf className="w-24 h-24 text-muted-foreground/50" />
+                            )}
+                        </div>
+                        {isWatering && <WaterDropletAnimation />}
                     </div>
+
                     <p className="text-muted-foreground text-center mt-2">{plant.description}</p>
-                    <div className="text-center">
-                        <p className="text-sm text-muted-foreground">Form</p>
-                        <p className="text-lg font-semibold text-primary">{plant.form}</p>
+                    
+                    <div className="w-full px-4 space-y-2">
+                        <div className="flex justify-between items-baseline">
+                            <p className="text-lg font-semibold text-primary">Level {plant.level}</p>
+                             <p className="text-sm text-muted-foreground">{plant.xp} / {XP_PER_LEVEL} XP</p>
+                        </div>
+                        <Progress value={(plant.xp / XP_PER_LEVEL) * 100} className="w-full" />
                     </div>
                 </div>
-                <DialogFooter>
+                <DialogFooter className="flex-col gap-2">
+                    <Button onClick={handleWaterPlant} disabled={!canWater || isWatering} className="w-full">
+                        <Droplet className="mr-2 h-4 w-4" />
+                        {isWatering ? 'Watering...' : `Water Plant (${timesWateredToday}/${MAX_WATERINGS_PER_DAY})`}
+                    </Button>
                     <DialogClose asChild>
                         <Button variant="outline" className="w-full">Close</Button>
                     </DialogClose>
@@ -128,6 +150,12 @@ function PlantDetailDialog({ plant, open, onOpenChange }: { plant: Plant | null,
             </DialogContent>
         </Dialog>
     );
+}
+
+function PlantPot() {
+    return (
+        <div className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-primary/30 pointer-events-none" />
+    )
 }
 
 function PlantImageUI({ plant, blendMode = false }: { plant: Plant, blendMode?: boolean }) {
@@ -158,9 +186,9 @@ function PlantCardUI({ plant }: { plant: Plant }) {
                         <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
                     )}
                 </div>
-                <div className="p-2 text-center bg-white/50">
+                <div className="p-2 text-center bg-white/50 space-y-1">
                     <p className="text-sm font-semibold text-primary truncate">{plant.name}</p>
-                    <p className="text-xs text-muted-foreground">{plant.form}</p>
+                    <Progress value={(plant.xp / XP_PER_LEVEL) * 100} className="h-1.5" />
                 </div>
             </CardContent>
         </Card>
@@ -306,15 +334,6 @@ export default function RoomPage() {
           return;
         }
       }
-      
-      const oldStoredPlantsRaw = localStorage.getItem(OLD_PLANTS_STORAGE_KEY);
-      if (oldStoredPlantsRaw) {
-        const oldPlants = JSON.parse(oldStoredPlantsRaw);
-        const newDeskState = Array(NUM_POTS).fill(null);
-        setCollectedPlants(oldPlants);
-        setDeskPlants(newDeskState);
-        localStorage.setItem(PLANTS_DATA_STORAGE_KEY, JSON.stringify({ collection: oldPlants, desk: newDeskState }));
-      }
     } catch (e) {
       console.error("Failed to parse stored plants, starting fresh.", e);
       setCollectedPlants([]);
@@ -322,7 +341,7 @@ export default function RoomPage() {
     }
   }, []);
 
-  const saveData = (collection: Plant[], desk: (Plant | null)[]) => {
+  const saveData = useCallback((collection: Plant[], desk: (Plant | null)[]) => {
     try {
         const dataToStore = {
             collection: collection,
@@ -337,16 +356,17 @@ export default function RoomPage() {
             description: "Could not save your plant arrangement. Your device storage might be full.",
         });
     }
-  };
+  }, [toast]);
 
-  useEffect(() => {
-    if (collectedPlants.length === 0 && deskPlants.every(p => p === null)) {
-      const storedDataRaw = localStorage.getItem(PLANTS_DATA_STORAGE_KEY);
-      if (storedDataRaw) return;
-    }
-    saveData(collectedPlants, deskPlants);
-  }, [collectedPlants, deskPlants]);
+  const handlePlantUpdate = useCallback((updatedPlant: Plant) => {
+    const newDeskPlants = deskPlants.map(p => p?.id === updatedPlant.id ? updatedPlant : p);
+    const newCollectedPlants = collectedPlants.map(p => p.id === updatedPlant.id ? updatedPlant : p);
 
+    setDeskPlants(newDeskPlants);
+    setCollectedPlants(newCollectedPlants);
+    setSelectedPlant(updatedPlant); // Keep dialog open with updated info
+    saveData(newCollectedPlants, newDeskPlants);
+  }, [collectedPlants, deskPlants, saveData]);
 
   const handleDraw = async () => {
      if (availableDraws <= 0) {
@@ -360,13 +380,7 @@ export default function RoomPage() {
     setIsDrawing(true);
     try {
         const result = await drawPlant();
-        const compressedImageDataUri = await compressImage(result.imageDataUri);
-        setNewPlant({
-            ...result,
-            imageDataUri: compressedImageDataUri,
-        });
-
-        // Decrement draws
+        setNewPlant(result);
         useDraw();
         refreshDraws();
 
@@ -386,18 +400,21 @@ export default function RoomPage() {
     const allCurrentPlants = [...collectedPlants, ...deskPlants.filter((p): p is Plant => p !== null)];
     const lastId = allCurrentPlants.reduce((maxId, p) => Math.max(p.id, maxId), 0);
 
-    const compressedImageDataUri = await compressImage(plantToCollect.imageDataUri);
-
     const newPlantItem: Plant = {
         id: lastId + 1,
         name: plantToCollect.name,
         form: 'Base',
-        image: compressedImageDataUri,
+        image: plantToCollect.imageDataUri,
         hint: plantToCollect.name.toLowerCase().split(' ').slice(0, 2).join(' '),
         description: plantToCollect.description,
+        level: 1,
+        xp: 0,
+        lastWatered: [],
     };
     
-    setCollectedPlants(prev => [...prev, newPlantItem]);
+    const updatedCollectedPlants = [...collectedPlants, newPlantItem];
+    setCollectedPlants(updatedCollectedPlants);
+    saveData(updatedCollectedPlants, deskPlants);
   };
 
 
@@ -449,8 +466,10 @@ export default function RoomPage() {
       }
     }
   
+    const finalCollected = newCollectedPlants.sort((a,b) => a.id - b.id);
     setDeskPlants(newDeskPlants);
-    setCollectedPlants(newCollectedPlants.sort((a,b) => a.id - b.id));
+    setCollectedPlants(finalCollected);
+    saveData(finalCollected, newDeskPlants);
   };
 
   return (
@@ -509,19 +528,6 @@ export default function RoomPage() {
           </DroppableCollectionArea>
         </section>
 
-        <NewPlantDialog 
-          plant={newPlant} 
-          open={!!newPlant}
-          onOpenChange={(isOpen) => {
-              if (!isOpen) {
-                  if (newPlant) {
-                      handleCollect(newPlant);
-                  }
-                  setNewPlant(null);
-              }
-          }}
-        />
-
         <PlantDetailDialog
           plant={selectedPlant}
           open={!!selectedPlant}
@@ -530,6 +536,7 @@ export default function RoomPage() {
                   setSelectedPlant(null);
               }
           }}
+          onPlantUpdate={handlePlantUpdate}
         />
 
         <DragOverlay>
@@ -559,7 +566,5 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
-
-    
 
     
