@@ -1,3 +1,4 @@
+
 export interface Plant {
   id: number;
   name: string;
@@ -5,4 +6,9 @@ export interface Plant {
   image: string;
   hint: string;
   description: string;
+  level: number;
+  xp: number;
+  lastWatered: number[];
 }
+
+    
