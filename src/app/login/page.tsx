@@ -2,6 +2,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { useAudio } from '@/context/AudioContext';
 
@@ -18,6 +19,7 @@ export default function SplashPage() {
   return (
     <div className="flex h-screen w-full flex-col items-center justify-center bg-app-gradient p-4">
       <div className="flex flex-col items-center justify-center text-center animate-fade-in-up">
+        <Image src="/logo.png" alt="Plenty of Plants Logo" width={120} height={120} className="mb-6" data-ai-hint="plant logo" />
         <h1
           className="text-5xl font-headline text-white font-bold"
           style={{ textShadow: '0 2px 4px rgba(0,0,0,0.4)' }}
@@ -27,7 +29,7 @@ export default function SplashPage() {
         <p className="mt-2 text-lg text-foreground/80 font-body">
           Your digital conservatory awaits.
         </p>
-        <Button asChild className="mt-12 animate-pulse-subtle" size="lg">
+        <Button asChild className="mt-12 animate-pulse-subtle" size="lg" disableSfx>
           <Link href="/home" className="font-headline text-xl px-8" onClick={handleEnter}>Tap to Enter</Link>
         </Button>
       </div>

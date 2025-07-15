@@ -71,7 +71,8 @@
 
 @layer utilities {
   .bg-app-gradient {
-    @apply bg-gradient-to-b from-[#4FDF81] to-background;
+    @apply bg-cover bg-center;
+    background-image: linear-gradient(to bottom, #4FDF81, hsl(var(--background))), url('/splash-bg.png');
   }
   
   @keyframes fade-in-up {
