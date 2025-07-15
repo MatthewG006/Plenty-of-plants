@@ -20,7 +20,7 @@ export default function SplashPage() {
     <div className="flex h-screen w-full flex-col items-center justify-center bg-app-gradient p-4">
       <div className="flex flex-col items-center justify-center text-center animate-fade-in-up">
         <Image src="/logo.png" alt="Plenty of Plants Logo" width={320} height={320} className="" data-ai-hint="plant logo" />
-        <p className="text-lg text-foreground/80 font-body">
+        <p className="text-lg text-foreground/80 font-body -mt-16">
           Your digital conservatory awaits.
         </p>
         <Button asChild className="mt-12 animate-pulse-subtle" size="lg" disableSfx>
