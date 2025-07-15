@@ -545,7 +545,7 @@ export default function RoomPage() {
                     <PlantImageUI plant={activePlantData.plant} blendMode={true} />
                 ) : (
                     <div className="w-28">
-                        <PlantCardUI plant={activePlantData.plant} />
+                        <PlantCardUI plant={activePlant-data.plant} />
                     </div>
                 )
             ) : null}
