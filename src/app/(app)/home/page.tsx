@@ -114,7 +114,6 @@ export default function HomePage() {
   const [drawnPlant, setDrawnPlant] = useState<DrawPlantOutput | null>(null);
   const [availableDraws, setAvailableDraws] = useState(0);
   const [nextDrawTime, setNextDrawTime] = useState<string | null>(null);
-  const notificationShown = useRef(false);
 
   const refreshDraws = useCallback(() => {
     const draws = loadDraws();
@@ -136,6 +135,7 @@ export default function HomePage() {
   }, []);
   
   useEffect(() => {
+    refreshDraws();
     const interval = setInterval(() => {
         refreshDraws();
     }, 60000); // Update timer every minute
@@ -143,15 +143,6 @@ export default function HomePage() {
   }, [refreshDraws]);
 
   useEffect(() => {
-    const draws = refreshDraws();
-    if (draws > 0 && !notificationShown.current) {
-        playSfx('chime');
-        toast({
-            title: "You have draws available!",
-        });
-        notificationShown.current = true;
-    }
-
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === 'plenty-of-plants-draws') {
         refreshDraws();
@@ -169,7 +160,7 @@ export default function HomePage() {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [refreshDraws, toast, playSfx]);
+  }, [refreshDraws]);
 
 
   useEffect(() => {
