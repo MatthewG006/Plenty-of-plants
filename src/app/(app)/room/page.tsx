@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { drawPlant, type DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 import { Leaf, Loader2, Droplet, PlusCircle, Coins } from 'lucide-react';
 import Image from 'next/image';
@@ -75,6 +75,7 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
     const { playSfx } = useAudio();
     const { toast } = useToast();
     const [isWatering, setIsWatering] = useState(false);
+    const [showGold, setShowGold] = useState(false);
     const [plant, setPlant] = useState(initialPlant);
 
     useEffect(() => {
@@ -92,6 +93,7 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
         
         playSfx('watering');
         setIsWatering(true);
+        setShowGold(true);
 
         let newXp = plant.xp + XP_PER_WATERING;
         let newLevel = plant.level;
@@ -131,6 +133,7 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
 
 
         setTimeout(() => setIsWatering(false), 1000); // Animation duration
+        setTimeout(() => setShowGold(false), 1000); // Gold fadeout duration
     };
 
     return (
@@ -150,6 +153,12 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
                         </div>
                         {isWatering && <WaterDropletAnimation />}
                         {isWatering && <GoldCoinAnimation />}
+                        {showGold && (
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-1 bg-yellow-400/80 text-white font-bold px-3 py-1 rounded-full shadow-lg animate-fade-out-fast pointer-events-none">
+                                <Coins className="w-5 h-5" />
+                                <span>+10</span>
+                            </div>
+                        )}
                     </div>
 
                     <p className="text-muted-foreground text-center mt-2">{plant.description}</p>
@@ -167,9 +176,7 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
                         <Droplet className="mr-2 h-4 w-4" />
                         {isWatering ? 'Watering...' : `Water Plant (${timesWateredToday}/${MAX_WATERINGS_PER_DAY})`}
                     </Button>
-                    <DialogClose asChild>
-                        <Button variant="outline" className="w-full">Close</Button>
-                    </DialogClose>
+                    <Button variant="outline" className="w-full" onClick={() => onOpenChange(false)}>Close</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

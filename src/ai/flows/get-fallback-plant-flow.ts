@@ -45,6 +45,7 @@ const fallbackPlantDetailsPrompt = ai.definePrompt({
     name: 'fallbackPlantDetailsPrompt',
     input: { schema: z.object({}) },
     output: {
+      format: 'json',
       schema: z.object({
         plantType: z.enum(PLANT_TYPES).describe('The type of plant to generate.'),
         name: z
@@ -59,7 +60,7 @@ const fallbackPlantDetailsPrompt = ai.definePrompt({
           ),
       }),
     },
-    prompt: `You are a creative botanist for a game. Randomly select one of the following plant types: ${PLANT_TYPES.join(', ')}. Then, generate a unique two-word name and a whimsical one-sentence description for it.`,
+    prompt: `You are a creative botanist for a game. Randomly select one of the following plant types: ${PLANT_TYPES.join(', ')}. Then, generate a unique two-word name and a whimsical one-sentence description for it. Return the response as a JSON object.`,
 });
 
 
