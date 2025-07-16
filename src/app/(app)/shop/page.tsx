@@ -130,6 +130,10 @@ export default function ShopPage() {
     <div className="p-4">
       <header className="flex items-center justify-between pb-4">
         <h1 className="font-headline text-2xl text-primary">Shop</h1>
+        <div className="flex items-center gap-2 rounded-full bg-yellow-100/80 px-3 py-1 border border-yellow-300/80">
+            <Coins className="h-5 w-5 text-yellow-500" />
+            <span className="font-bold text-yellow-700">{goldCount}</span>
+        </div>
       </header>
 
       <div className="grid gap-6">
