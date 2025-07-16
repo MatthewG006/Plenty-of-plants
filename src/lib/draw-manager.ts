@@ -8,6 +8,7 @@ const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
 interface DrawData {
   count: number;
   lastUpdated: number;
+  lastFreeDrawClaimed?: number;
 }
 
 export function getStoredDraws(): DrawData {
@@ -17,7 +18,11 @@ export function getStoredDraws(): DrawData {
       const storedDraws = JSON.parse(storedDrawsRaw);
       // Basic validation
       if (typeof storedDraws.count === 'number' && typeof storedDraws.lastUpdated === 'number') {
-        return storedDraws;
+        return {
+            count: storedDraws.count,
+            lastUpdated: storedDraws.lastUpdated,
+            lastFreeDrawClaimed: storedDraws.lastFreeDrawClaimed
+        };
       }
     }
   } catch (e) {
@@ -45,7 +50,7 @@ export function loadDraws(): number {
     const newCount = Math.min(draws.count + drawsToAdd, MAX_DRAWS);
     const newLastUpdated = draws.lastUpdated + (drawsToAdd * REFILL_INTERVAL);
     
-    saveDraws({ count: newCount, lastUpdated: newLastUpdated });
+    saveDraws({ ...draws, count: newCount, lastUpdated: newLastUpdated });
     return newCount;
   }
 
@@ -58,29 +63,48 @@ export function useDraw() {
         const newCount = draws.count - 1;
         // If we just used the last draw that was maxed out, reset the timer
         const newLastUpdated = (draws.count === MAX_DRAWS) ? Date.now() : draws.lastUpdated;
-        saveDraws({ count: newCount, lastUpdated: newLastUpdated });
+        
+        const newDrawsData = { ...draws, count: newCount, lastUpdated: newLastUpdated };
+        saveDraws(newDrawsData);
         // Manually dispatch a storage event to notify other open tabs
         window.dispatchEvent(new StorageEvent('storage', {
             key: DRAWS_STORAGE_KEY,
-            newValue: JSON.stringify({ count: newCount, lastUpdated: newLastUpdated }),
+            newValue: JSON.stringify(newDrawsData),
         }));
     }
 }
 
-export function claimFreeDraw(): { success: boolean, newCount: number } {
+export function hasClaimedDailyDraw(): boolean {
+    const draws = getStoredDraws();
+    if (!draws.lastFreeDrawClaimed) {
+        return false;
+    }
+    const lastClaimDate = new Date(draws.lastFreeDrawClaimed).toDateString();
+    const todayDate = new Date().toDateString();
+    return lastClaimDate === todayDate;
+}
+
+export function claimFreeDraw(options?: { bypassTimeCheck?: boolean }): { success: boolean, newCount: number, reason?: 'max_draws' | 'already_claimed' } {
   const draws = getStoredDraws();
 
   if (draws.count >= MAX_DRAWS) {
-    return { success: false, newCount: draws.count };
+    return { success: false, newCount: draws.count, reason: 'max_draws' };
   }
   
-  const newCount = Math.min(draws.count + 1, MAX_DRAWS);
-  const newLastUpdated = (newCount === MAX_DRAWS) ? Date.now() : draws.lastUpdated;
+  if (!options?.bypassTimeCheck && hasClaimedDailyDraw()) {
+    return { success: false, newCount: draws.count, reason: 'already_claimed' };
+  }
 
-  const newDrawsData = { count: newCount, lastUpdated: newLastUpdated };
+  const newCount = draws.count + 1;
+  const now = Date.now();
+
+  const newDrawsData: DrawData = {
+    ...draws,
+    count: newCount,
+    lastFreeDrawClaimed: options?.bypassTimeCheck ? draws.lastFreeDrawClaimed : now,
+  };
   saveDraws(newDrawsData);
 
-  // Manually dispatch a storage event to notify other tabs
   window.dispatchEvent(new StorageEvent('storage', {
     key: DRAWS_STORAGE_KEY,
     newValue: JSON.stringify(newDrawsData),

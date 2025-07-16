@@ -4,8 +4,8 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { claimFreeDraw, loadDraws, useDraw, MAX_DRAWS } from '@/lib/draw-manager';
-import { Gift, Coins, Leaf } from 'lucide-react';
+import { claimFreeDraw, loadDraws, MAX_DRAWS, hasClaimedDailyDraw } from '@/lib/draw-manager';
+import { Gift, Coins, Leaf, Clock } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { useAudio } from '@/context/AudioContext';
 import { Separator } from '@/components/ui/separator';
@@ -13,14 +13,31 @@ import { Separator } from '@/components/ui/separator';
 const USER_DATA_STORAGE_KEY = 'plenty-of-plants-user';
 const DRAW_COST_IN_GOLD = 10;
 
+function getNextDrawTimeString() {
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    
+    const diff = tomorrow.getTime() - now.getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+    return `${hours}h ${minutes}m`;
+}
+
 export default function ShopPage() {
   const { toast } = useToast();
   const { playSfx } = useAudio();
   const [drawCount, setDrawCount] = useState(0);
   const [goldCount, setGoldCount] = useState(0);
+  const [dailyDrawClaimed, setDailyDrawClaimed] = useState(false);
+  const [nextDrawTime, setNextDrawTime] = useState(getNextDrawTimeString());
+
 
   const refreshData = useCallback(() => {
     setDrawCount(loadDraws());
+    setDailyDrawClaimed(hasClaimedDailyDraw());
     try {
         const userRaw = localStorage.getItem(USER_DATA_STORAGE_KEY);
         const userData = userRaw ? JSON.parse(userRaw) : { gold: 0 };
@@ -33,9 +50,12 @@ export default function ShopPage() {
 
   useEffect(() => {
     refreshData();
-    // Refresh data when tab is focused to get latest values
+    const timer = setInterval(() => {
+        setNextDrawTime(getNextDrawTimeString());
+        setDailyDrawClaimed(hasClaimedDailyDraw());
+    }, 60000); // Update every minute
+
     window.addEventListener('focus', refreshData);
-    // Listen for storage changes from other tabs
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === 'plenty-of-plants-draws' || event.key === USER_DATA_STORAGE_KEY) {
         refreshData();
@@ -44,6 +64,7 @@ export default function ShopPage() {
     window.addEventListener('storage', handleStorageChange);
 
     return () => {
+        clearInterval(timer);
         window.removeEventListener('focus', refreshData);
         window.removeEventListener('storage', handleStorageChange);
     };
@@ -56,14 +77,14 @@ export default function ShopPage() {
       playSfx('reward');
       toast({
         title: "Free Draw Claimed!",
-        description: `You now have ${result.newCount} draw(s) available.`,
+        description: "Come back tomorrow for another one.",
       });
-      setDrawCount(result.newCount);
+      refreshData();
     } else {
       toast({
         variant: "destructive",
-        title: "Max Draws Reached",
-        description: "You already have the maximum number of draws.",
+        title: result.reason === 'max_draws' ? "Max Draws Reached" : "Already Claimed",
+        description: result.reason === 'max_draws' ? "You already have the maximum number of draws." : "You can claim your next free draw tomorrow.",
       });
     }
   };
@@ -87,14 +108,14 @@ export default function ShopPage() {
         localStorage.setItem(USER_DATA_STORAGE_KEY, JSON.stringify(newUserData));
         window.dispatchEvent(new StorageEvent('storage', { key: USER_DATA_STORAGE_KEY, newValue: JSON.stringify(newUserData) }));
 
-        // Add draw (by using the claimFreeDraw logic)
-        const result = claimFreeDraw();
+        // Add draw
+        const result = claimFreeDraw({ bypassTimeCheck: true });
         if (result.success) {
             playSfx('reward');
             toast({ title: "Purchase Successful!", description: `You bought 1 draw for ${DRAW_COST_IN_GOLD} gold.` });
             refreshData();
         } else {
-            // This case should theoretically not be hit due to checks above, but as a fallback:
+            // This case should not be hit due to checks above, but as a fallback:
             // Refund gold
             localStorage.setItem(USER_DATA_STORAGE_KEY, JSON.stringify(userData));
             toast({ variant: "destructive", title: "Purchase Failed", description: "Something went wrong. Your gold was not spent." });
@@ -117,17 +138,22 @@ export default function ShopPage() {
             <div className="flex items-center gap-4">
               <Gift className="h-8 w-8 text-primary" />
               <div>
-                <CardTitle className="font-headline text-xl">Free Draw</CardTitle>
-                <CardDescription>Replenish one of your used draws.</CardDescription>
+                <CardTitle className="font-headline text-xl">Daily Free Draw</CardTitle>
+                <CardDescription>Claim one free draw every day.</CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent className="flex flex-col items-start gap-4">
             <p className="text-2xl font-bold text-chart-3">FREE</p>
-            <Button onClick={handleClaimFreeDraw} className="w-full font-semibold" disabled={drawCount >= MAX_DRAWS}>
-              {drawCount >= MAX_DRAWS ? "Draws Full" : "Claim"}
+            <Button onClick={handleClaimFreeDraw} className="w-full font-semibold" disabled={drawCount >= MAX_DRAWS || dailyDrawClaimed}>
+              {dailyDrawClaimed ? "Claimed for Today" : drawCount >= MAX_DRAWS ? "Draws Full" : "Claim"}
             </Button>
-            <p className="text-xs text-muted-foreground text-center w-full">You can claim this as many times as you like to refill your draws up to the max limit.</p>
+            {dailyDrawClaimed && (
+                <div className="text-xs text-muted-foreground text-center w-full flex items-center justify-center gap-1.5">
+                    <Clock className="w-3 h-3" />
+                    <span>Next free draw in {nextDrawTime}</span>
+                </div>
+            )}
           </CardContent>
         </Card>
 
@@ -139,7 +165,7 @@ export default function ShopPage() {
               <Leaf className="h-8 w-8 text-primary" />
               <div>
                 <CardTitle className="font-headline text-xl">Buy a Draw</CardTitle>
-                <CardDescription>Use your gold to get a new draw.</CardDescription>
+                <CardDescription>Use your gold to get another draw.</CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -158,5 +184,3 @@ export default function ShopPage() {
     </div>
   );
 }
-
-    
