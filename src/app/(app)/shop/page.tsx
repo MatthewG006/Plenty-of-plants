@@ -181,7 +181,6 @@ export default function ShopPage() {
             <Button onClick={handleBuyDrawWithGold} className="w-full font-semibold" disabled={goldCount < DRAW_COST_IN_GOLD || drawCount >= MAX_DRAWS}>
               {drawCount >= MAX_DRAWS ? "Draws Full" : goldCount < DRAW_COST_IN_GOLD ? "Not Enough Gold" : "Buy Draw"}
             </Button>
-             <p className="text-xs text-muted-foreground text-center w-full">Your Gold: {goldCount}</p>
           </CardContent>
         </Card>
       </div>
