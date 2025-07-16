@@ -99,6 +99,6 @@ const getFallbackPlantFlow = ai.defineFlow(
 );
 
 
-export async function getFallbackPlant(input: {}): Promise<GetFallbackPlantOutput> {
-  return getFallbackPlantFlow(input);
+export async function getFallbackPlant(): Promise<GetFallbackPlantOutput> {
+  return getFallbackPlantFlow({});
 }

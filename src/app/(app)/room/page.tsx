@@ -54,10 +54,15 @@ function WaterDropletAnimation() {
 }
 
 
-function PlantDetailDialog({ plant, open, onOpenChange, onPlantUpdate }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, onPlantUpdate: (updatedPlant: Plant) => void }) {
+function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpdate }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, onPlantUpdate: (updatedPlant: Plant) => void }) {
     const { playSfx } = useAudio();
     const { toast } = useToast();
     const [isWatering, setIsWatering] = useState(false);
+    const [plant, setPlant] = useState(initialPlant);
+
+    useEffect(() => {
+        setPlant(initialPlant);
+    }, [initialPlant]);
 
     if (!plant) return null;
 
@@ -93,7 +98,8 @@ function PlantDetailDialog({ plant, open, onOpenChange, onPlantUpdate }: { plant
             level: newLevel,
             lastWatered: updatedLastWatered,
         };
-
+        
+        setPlant(updatedPlant);
         onPlantUpdate(updatedPlant);
 
         // Update user's gold
@@ -364,7 +370,6 @@ export default function RoomPage() {
 
     setDeskPlants(newDeskPlants);
     setCollectedPlants(newCollectedPlants);
-    setSelectedPlant(updatedPlant); // Keep dialog open with updated info
     saveData(newCollectedPlants, newDeskPlants);
   }, [collectedPlants, deskPlants, saveData]);
 
