@@ -9,7 +9,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { getFallbackPlant } from './get-fallback-plant-flow';
+import { getFallbackPlantFlow } from './get-fallback-plant-flow';
 
 
 const DrawPlantInputSchema = z.object({});
@@ -87,7 +87,7 @@ const drawPlantFlow = ai.defineFlow(
     } catch (error) {
         console.error("Gemini image generation failed, using fallback.", error);
         // If Gemini fails (e.g., quota exhausted), use a fallback image.
-        const fallbackPlant = await getFallbackPlant();
+        const fallbackPlant = await getFallbackPlantFlow({});
         return fallbackPlant;
     }
   }
