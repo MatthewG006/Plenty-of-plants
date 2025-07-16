@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { drawPlant, type DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 import { Leaf, Loader2, Droplet, PlusCircle } from 'lucide-react';
 import Image from 'next/image';
