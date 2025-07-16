@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { drawPlant, type DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
-import { Leaf, Loader2, Droplet, PlusCircle } from 'lucide-react';
+import { Leaf, Loader2, Droplet, PlusCircle, Coins } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -47,6 +47,23 @@ function WaterDropletAnimation() {
                     animationDuration: `${0.5 + Math.random() * 0.5}s`,
                     width: `${16 + Math.random() * 16}px`,
                     height: `${16 + Math.random() * 16}px`,
+                }} />
+            ))}
+        </div>
+    );
+}
+
+function GoldCoinAnimation() {
+    return (
+        <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
+            {Array.from({ length: 3 }).map((_, i) => (
+                <Coins key={i} className="absolute text-yellow-400 animate-float-up" style={{
+                    left: `${20 + Math.random() * 60}%`, // Keep them more centered
+                    bottom: '20px',
+                    animationDelay: `${Math.random() * 0.5}s`,
+                    animationDuration: `${1 + Math.random() * 0.5}s`,
+                    width: `${20 + Math.random() * 12}px`,
+                    height: `${20 + Math.random() * 12}px`,
                 }} />
             ))}
         </div>
@@ -132,6 +149,7 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
                             )}
                         </div>
                         {isWatering && <WaterDropletAnimation />}
+                        {isWatering && <GoldCoinAnimation />}
                     </div>
 
                     <p className="text-muted-foreground text-center mt-2">{plant.description}</p>

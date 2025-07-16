@@ -106,6 +106,17 @@
     }
   }
 
+  @keyframes float-up {
+    0% {
+      transform: translateY(0) scale(0.9);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-60px) scale(1.1);
+      opacity: 0;
+    }
+  }
+
   .animate-fade-in-up {
     animation: fade-in-up 0.8s ease-out forwards;
   }
@@ -117,6 +128,8 @@
   .animate-water-drop {
     animation: water-drop ease-out forwards;
   }
+  
+  .animate-float-up {
+    animation: float-up ease-out forwards;
+  }
 }
-
-    

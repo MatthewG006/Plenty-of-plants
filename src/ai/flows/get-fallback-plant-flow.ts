@@ -3,7 +3,7 @@
 /**
  * @fileOverview A flow for providing a fallback plant when the primary generation fails.
  *
- * - getFallbackPlant - A function that returns a pre-packaged plant image with a generated name/description.
+ * - getFallbackPlantFlow - A function that returns a pre-packaged plant image with a generated name/description.
  * - GetFallbackPlantOutput - The return type for the getFallbackPlant function.
  */
 import {ai} from '@/ai/genkit';
@@ -63,7 +63,7 @@ const fallbackPlantDetailsPrompt = ai.definePrompt({
 });
 
 
-const getFallbackPlantFlow = ai.defineFlow(
+export const getFallbackPlantFlow = ai.defineFlow(
   {
     name: 'getFallbackPlantFlow',
     inputSchema: z.object({}),
@@ -97,8 +97,3 @@ const getFallbackPlantFlow = ai.defineFlow(
     }
   }
 );
-
-
-export async function getFallbackPlant(): Promise<GetFallbackPlantOutput> {
-  return getFallbackPlantFlow({});
-}
