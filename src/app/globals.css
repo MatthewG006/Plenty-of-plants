@@ -73,7 +73,7 @@
   }
   
   .splash-bg {
-    background-image: url('/background-splash.png');
+    background-image: url('/splash-bg.png');
     background-size: cover;
     background-position: center bottom;
   }
