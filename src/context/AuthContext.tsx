@@ -29,15 +29,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(currentUser);
       
       const isAuthPage = pathname === '/' || pathname === '/signup';
+      const isSplashPage = pathname === '/login';
 
       if (currentUser) {
-        // If user is logged in, redirect from auth pages to home.
+        // User is logged in.
+        // If they are on an auth page (login/signup), redirect them to the splash page.
         if (isAuthPage) {
-            router.push('/home');
+            router.push('/login');
         }
       } else {
-        // If user is not logged in, redirect from protected pages to login.
-        if (!isAuthPage) {
+        // User is not logged in.
+        // If they are on a protected page, redirect to login page.
+        // Allow access to login, signup, and splash (as it's part of the login flow).
+        if (!isAuthPage && !isSplashPage) {
             router.push('/');
         }
       }
@@ -47,19 +51,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [pathname, router]);
 
   useEffect(() => {
+    let unsub: (() => void) | undefined;
     if (user) {
         setLoading(true);
-        const unsub = onSnapshot(doc(db, "users", user.uid), (doc) => {
+        unsub = onSnapshot(doc(db, "users", user.uid), (doc) => {
             if (doc.exists()) {
                 setGameData(doc.data() as GameData);
             }
             setLoading(false);
+        }, (error) => {
+            console.error("Error fetching user game data:", error);
+            setLoading(false);
         });
-        return () => unsub();
     } else {
         setLoading(false);
         setGameData(null);
     }
+    return () => {
+        if (unsub) {
+            unsub();
+        }
+    };
   }, [user]);
 
 
