@@ -27,52 +27,51 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      
-      const isAuthPage = pathname === '/' || pathname === '/signup';
-      const isSplashPage = pathname === '/login';
-
-      if (currentUser) {
-        // User IS logged in
-        if (isAuthPage) {
-          // If logged-in user is on login/signup, send to splash
-          router.push('/login');
-        }
-      } else {
-        // User is NOT logged in
-        if (!isAuthPage) {
-          // If they are on any page other than login/signup,
-          // send them to the login page.
-          router.push('/');
-        }
-      }
+      // We will handle data fetching and initial loading state separately
     });
-
     return () => unsubscribeAuth();
-  }, [pathname, router, user]); // Added user to dependency array
+  }, []);
 
   useEffect(() => {
-    let unsub: (() => void) | undefined;
+    let unsubFirestore: (() => void) | undefined;
+
     if (user) {
-        setLoading(true);
-        unsub = onSnapshot(doc(db, "users", user.uid), (doc) => {
-            if (doc.exists()) {
-                setGameData(doc.data() as GameData);
-            }
-            setLoading(false);
-        }, (error) => {
-            console.error("Error fetching user game data:", error);
-            setLoading(false);
-        });
+      unsubFirestore = onSnapshot(doc(db, "users", user.uid), (doc) => {
+          if (doc.exists()) {
+              setGameData(doc.data() as GameData);
+          }
+          // Finished loading game data
+          setLoading(false); 
+      }, (error) => {
+          console.error("Error fetching user game data:", error);
+          setLoading(false);
+      });
     } else {
-        setLoading(false);
-        setGameData(null);
+      // No user, not loading
+      setLoading(false);
+      setGameData(null);
     }
+    
     return () => {
-        if (unsub) {
-            unsub();
-        }
+      if (unsubFirestore) {
+        unsubFirestore();
+      }
     };
   }, [user]);
+
+  useEffect(() => {
+    if (loading) return; // Wait until auth check and data loading is complete
+
+    const isAuthPage = pathname === '/' || pathname === '/signup';
+
+    if (user && isAuthPage) {
+      // If a logged-in user is on an auth page, send them to the splash screen
+      router.push('/login');
+    } else if (!user && !isAuthPage) {
+      // If a logged-out user is on a protected page, send them to login
+      router.push('/');
+    }
+  }, [user, loading, pathname, router]);
 
 
   if (loading) {
