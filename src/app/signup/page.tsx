@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -7,23 +8,59 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-
-const USER_DATA_STORAGE_KEY = 'plenty-of-plants-user';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 
 export default function SignupPage() {
   const router = useRouter();
+  const { toast } = useToast();
+  
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    const userData = {
-      username,
-      email,
-      gameId: `#GAMEID${Math.floor(10000 + Math.random() * 90000)}`
-    };
-    localStorage.setItem(USER_DATA_STORAGE_KEY, JSON.stringify(userData));
-    router.push('/login');
+    setIsLoading(true);
+
+    if (username.length < 3) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid Username',
+        description: 'Username must be at least 3 characters long.',
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // Update the user's profile with the username
+      await updateProfile(userCredential.user, {
+        displayName: username,
+      });
+
+      toast({
+        title: 'Account Created!',
+        description: 'You can now log in.',
+      });
+
+      router.push('/'); // Redirect to login page after successful signup
+
+    } catch (error: any) {
+      console.error("Firebase Signup Error:", error);
+      toast({
+        variant: "destructive",
+        title: "Signup Failed",
+        description: error.message || "Could not create your account. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -37,18 +74,18 @@ export default function SignupPage() {
           <form className="space-y-4" onSubmit={handleSignup}>
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
-              <Input id="username" type="text" placeholder="plantlover" required value={username} onChange={(e) => setUsername(e.target.value)} />
+              <Input id="username" type="text" placeholder="plantlover" required value={username} onChange={(e) => setUsername(e.target.value)} disabled={isLoading} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="you@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
+              <Input id="email" type="email" placeholder="you@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" required />
+              <Input id="password" type="password" placeholder="••••••••" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading}/>
             </div>
-            <Button type="submit" className="w-full font-headline text-lg">
-                Create Account
+            <Button type="submit" className="w-full font-headline text-lg" disabled={isLoading}>
+                {isLoading ? <Loader2 className="animate-spin" /> : 'Create Account'}
             </Button>
           </form>
         </CardContent>
