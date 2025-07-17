@@ -6,58 +6,61 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Megaphone } from 'lucide-react';
+import { Megaphone, Loader2 } from 'lucide-react';
 import { useAudio } from '@/context/AudioContext';
-import { loadDraws } from '@/lib/draw-manager';
 import { useToast } from '@/hooks/use-toast';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { useAuth } from '@/context/AuthContext';
 
-const USER_DATA_STORAGE_KEY = 'plenty-of-plants-user';
-const NOTIFICATION_SHOWN_KEY = 'plenty-of-plants-notified';
 
 export default function LoginPage() {
+  const { user } = useAuth();
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const { isPlaying, togglePlay, playSfx } = useAudio();
   const { toast } = useToast();
+  
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const { isPlaying, togglePlay } = useAudio();
 
-  const handleLogin = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (user) {
+      router.push('/login'); // Redirect to the splash/enter page
+    }
+  }, [user, router]);
+
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
 
     if (!isPlaying) {
       togglePlay();
     }
 
-    const storedUserRaw = localStorage.getItem(USER_DATA_STORAGE_KEY);
-    let userData;
-
-    if (storedUserRaw) {
-        userData = JSON.parse(storedUserRaw);
-        userData.email = email;
-    } else {
-        userData = {
-            username: email.split('@')[0] || 'PlantLover',
-            email,
-            gameId: `#GAMEID${Math.floor(10000 + Math.random() * 90000)}`
-        };
-    }
-    
-    localStorage.setItem(USER_DATA_STORAGE_KEY, JSON.stringify(userData));
-
-    const notificationShown = sessionStorage.getItem(NOTIFICATION_SHOWN_KEY);
-    const availableDraws = loadDraws();
-    if (availableDraws > 0 && !notificationShown) {
-      playSfx('chime');
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      // Let the useEffect handle the redirect
+    } catch (error: any) {
+      console.error("Firebase Login Error:", error);
       toast({
-        title: "You have draws available!",
+        variant: "destructive",
+        title: "Login Failed",
+        description: error.message || "Please check your credentials and try again.",
       });
-      sessionStorage.setItem(NOTIFICATION_SHOWN_KEY, 'true');
+    } finally {
+      setIsLoading(false);
     }
-
-    router.push('/login');
   };
+
+  if (user) {
+    return null; // Don't render anything while redirecting
+  }
 
   return (
     <div className="flex h-screen w-full items-center justify-center bg-app-gradient p-4">
@@ -77,14 +80,14 @@ export default function LoginPage() {
           <form className="space-y-4" onSubmit={handleLogin}>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="you@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
+              <Input id="email" type="email" placeholder="you@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" required />
+              <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading} />
             </div>
-            <Button type="submit" className="w-full font-headline text-lg">
-                Login
+            <Button type="submit" className="w-full font-headline text-lg" disabled={isLoading}>
+                {isLoading ? <Loader2 className="animate-spin" /> : 'Login'}
             </Button>
           </form>
         </CardContent>
@@ -97,9 +100,6 @@ export default function LoginPage() {
               <Link href="/signup">Create a new one</Link>
             </Button>
           </div>
-          <Button variant="ghost" asChild>
-            <Link href="/login">Skip for testing</Link>
-          </Button>
         </CardFooter>
       </Card>
     </div>
