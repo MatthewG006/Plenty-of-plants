@@ -1,3 +1,4 @@
+
 require('dotenv').config();
 import type {NextConfig} from 'next';
 
@@ -17,6 +18,11 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+    ],
+  },
+  devIndicators: {
+    allowedDevOrigins: [
+        '*.cluster-ux5mmlia3zhhask7riihruxydo.cloudworkstations.dev',
     ],
   },
   env: {
