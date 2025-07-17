@@ -44,35 +44,38 @@ export default function ShopPage() {
     }
   }, [user, router]);
   
-  const refreshData = useCallback(() => {
-    setDrawCount(loadDraws());
-    setDailyDrawClaimed(hasClaimedDailyDraw());
-  }, []);
+  const refreshData = useCallback(async () => {
+    if (!user) return;
+    setDrawCount(await loadDraws(user.uid));
+    setDailyDrawClaimed(await hasClaimedDailyDraw(user.uid));
+  }, [user]);
+
+  useEffect(() => {
+    if (gameData) {
+      setDrawCount(gameData.draws || 0);
+      const checkClaimed = async () => {
+        if(user) setDailyDrawClaimed(await hasClaimedDailyDraw(user.uid));
+      };
+      checkClaimed();
+    }
+  }, [gameData, user]);
+
 
   useEffect(() => {
     refreshData();
     const timer = setInterval(() => {
         setNextDrawTime(getNextDrawTimeString());
-        setDailyDrawClaimed(hasClaimedDailyDraw());
-    }, 60000);
-
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'plenty-of-plants-draws') {
         refreshData();
-      }
-    };
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('focus', refreshData);
+    }, 60000);
 
     return () => {
         clearInterval(timer);
-        window.removeEventListener('storage', handleStorageChange);
-        window.removeEventListener('focus', refreshData);
     };
   }, [refreshData]);
 
-  const handleClaimFreeDraw = () => {
-    const result = claimFreeDraw();
+  const handleClaimFreeDraw = async () => {
+    if (!user) return;
+    const result = await claimFreeDraw(user.uid);
 
     if (result.success) {
       playSfx('reward');
@@ -103,7 +106,7 @@ export default function ShopPage() {
     }
 
     try {
-        const result = claimFreeDraw({ bypassTimeCheck: true });
+        const result = await claimFreeDraw(user.uid, { bypassTimeCheck: true });
         if (result.success) {
             await updateUserGold(user.uid, -DRAW_COST_IN_GOLD);
             playSfx('reward');

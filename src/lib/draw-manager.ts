@@ -1,114 +1,93 @@
 
 'use client';
 
-const DRAWS_STORAGE_KEY = 'plenty-of-plants-draws';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { db } from './firebase-client';
+import type { GameData } from './firestore';
+import { getUserGameData } from './firestore';
+
 export const MAX_DRAWS = 2;
 const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
 
-interface DrawData {
-  count: number;
-  lastUpdated: number;
-  lastFreeDrawClaimed?: number;
-}
+export async function loadDraws(userId: string): Promise<number> {
+  const gameData = await getUserGameData(userId);
+  if (!gameData) return 0;
 
-export function getStoredDraws(): DrawData {
-  try {
-    const storedDrawsRaw = localStorage.getItem(DRAWS_STORAGE_KEY);
-    if (storedDrawsRaw) {
-      const storedDraws = JSON.parse(storedDrawsRaw);
-      // Basic validation
-      if (typeof storedDraws.count === 'number' && typeof storedDraws.lastUpdated === 'number') {
-        return {
-            count: storedDraws.count,
-            lastUpdated: storedDraws.lastUpdated,
-            lastFreeDrawClaimed: storedDraws.lastFreeDrawClaimed
-        };
-      }
-    }
-  } catch (e) {
-    console.error("Failed to read or parse draws from localStorage", e);
-  }
-  // Return default if nothing is stored or data is invalid
-  return { count: MAX_DRAWS, lastUpdated: Date.now() };
-}
-
-function saveDraws(data: DrawData) {
-  try {
-    localStorage.setItem(DRAWS_STORAGE_KEY, JSON.stringify(data));
-  } catch (e) {
-    console.error("Failed to save draws to localStorage", e);
-  }
-}
-
-export function loadDraws(): number {
-  const draws = getStoredDraws();
   const now = Date.now();
-  const timeSinceUpdate = now - draws.lastUpdated;
+  const lastRefill = gameData.lastDrawRefill || now;
+  const currentDraws = gameData.draws || 0;
 
-  if (timeSinceUpdate > REFILL_INTERVAL && draws.count < MAX_DRAWS) {
+  const timeSinceUpdate = now - lastRefill;
+
+  if (timeSinceUpdate > REFILL_INTERVAL && currentDraws < MAX_DRAWS) {
     const drawsToAdd = Math.floor(timeSinceUpdate / REFILL_INTERVAL);
-    const newCount = Math.min(draws.count + drawsToAdd, MAX_DRAWS);
-    const newLastUpdated = draws.lastUpdated + (drawsToAdd * REFILL_INTERVAL);
+    const newCount = Math.min(currentDraws + drawsToAdd, MAX_DRAWS);
+    const newLastUpdated = lastRefill + (drawsToAdd * REFILL_INTERVAL);
     
-    saveDraws({ ...draws, count: newCount, lastUpdated: newLastUpdated });
+    const userDocRef = doc(db, 'users', userId);
+    await updateDoc(userDocRef, {
+        draws: newCount,
+        lastDrawRefill: newLastUpdated,
+    });
     return newCount;
   }
 
-  return draws.count;
+  return currentDraws;
 }
 
-export function useDraw() {
-    const draws = getStoredDraws();
-    if (draws.count > 0) {
-        const newCount = draws.count - 1;
-        // If we just used the last draw that was maxed out, reset the timer
-        const newLastUpdated = (draws.count === MAX_DRAWS) ? Date.now() : draws.lastUpdated;
+export async function useDraw(userId: string) {
+    const gameData = await getUserGameData(userId);
+    if (!gameData) return;
+
+    if (gameData.draws > 0) {
+        const newCount = gameData.draws - 1;
+        const newLastUpdated = (gameData.draws === MAX_DRAWS) ? Date.now() : gameData.lastDrawRefill;
         
-        const newDrawsData = { ...draws, count: newCount, lastUpdated: newLastUpdated };
-        saveDraws(newDrawsData);
-        // Manually dispatch a storage event to notify other open tabs
-        window.dispatchEvent(new StorageEvent('storage', {
-            key: DRAWS_STORAGE_KEY,
-            newValue: JSON.stringify(newDrawsData),
-        }));
+        const userDocRef = doc(db, 'users', userId);
+        await updateDoc(userDocRef, {
+            draws: newCount,
+            lastDrawRefill: newLastUpdated,
+        });
     }
 }
 
-export function hasClaimedDailyDraw(): boolean {
-    const draws = getStoredDraws();
-    if (!draws.lastFreeDrawClaimed) {
+export async function hasClaimedDailyDraw(userId: string): Promise<boolean> {
+    const gameData = await getUserGameData(userId);
+    if (!gameData || !gameData.lastFreeDrawClaimed) {
         return false;
     }
-    const lastClaimDate = new Date(draws.lastFreeDrawClaimed).toDateString();
+    const lastClaimDate = new Date(gameData.lastFreeDrawClaimed).toDateString();
     const todayDate = new Date().toDateString();
     return lastClaimDate === todayDate;
 }
 
-export function claimFreeDraw(options?: { bypassTimeCheck?: boolean }): { success: boolean, newCount: number, reason?: 'max_draws' | 'already_claimed' } {
-  const draws = getStoredDraws();
+export async function claimFreeDraw(userId: string, options?: { bypassTimeCheck?: boolean }): Promise<{ success: boolean; newCount: number; reason?: 'max_draws' | 'already_claimed' }> {
+  const gameData = await getUserGameData(userId);
+  if (!gameData) return { success: false, newCount: 0 };
+  
+  const currentDraws = gameData.draws || 0;
 
-  if (draws.count >= MAX_DRAWS) {
-    return { success: false, newCount: draws.count, reason: 'max_draws' };
+  if (currentDraws >= MAX_DRAWS) {
+    return { success: false, newCount: currentDraws, reason: 'max_draws' };
   }
   
-  if (!options?.bypassTimeCheck && hasClaimedDailyDraw()) {
-    return { success: false, newCount: draws.count, reason: 'already_claimed' };
+  if (!options?.bypassTimeCheck && await hasClaimedDailyDraw(userId)) {
+    return { success: false, newCount: currentDraws, reason: 'already_claimed' };
   }
 
-  const newCount = draws.count + 1;
+  const newCount = currentDraws + 1;
   const now = Date.now();
-
-  const newDrawsData: DrawData = {
-    ...draws,
-    count: newCount,
-    lastFreeDrawClaimed: options?.bypassTimeCheck ? draws.lastFreeDrawClaimed : now,
+  
+  const userDocRef = doc(db, 'users', userId);
+  const updateData: Partial<GameData> = {
+      draws: newCount,
   };
-  saveDraws(newDrawsData);
+  
+  if (!options?.bypassTimeCheck) {
+      updateData.lastFreeDrawClaimed = now;
+  }
 
-  window.dispatchEvent(new StorageEvent('storage', {
-    key: DRAWS_STORAGE_KEY,
-    newValue: JSON.stringify(newDrawsData),
-  }));
+  await updateDoc(userDocRef, updateData);
 
   return { success: true, newCount: newCount };
 }

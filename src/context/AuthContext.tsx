@@ -3,8 +3,8 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
-import { doc, getFirestore, onSnapshot } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { GameData } from '@/lib/firestore';
 
@@ -15,7 +15,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-const db = getFirestore(auth.app);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -36,6 +35,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (user) {
+        setLoading(true);
         const unsub = onSnapshot(doc(db, "users", user.uid), (doc) => {
             if (doc.exists()) {
                 setGameData(doc.data() as GameData);

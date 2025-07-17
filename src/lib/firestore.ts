@@ -1,11 +1,10 @@
 
-import { doc, getDoc, setDoc, getFirestore, updateDoc, arrayUnion, DocumentData } from 'firebase/firestore';
-import { app } from './firebase';
+import { doc, getDoc, setDoc, getFirestore, updateDoc, arrayUnion, DocumentData, writeBatch } from 'firebase/firestore';
+import { app, db } from './firebase';
 import type { Plant } from '@/interfaces/plant';
 import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 import { User } from 'firebase/auth';
-
-const db = getFirestore(app);
+import { MAX_DRAWS } from './draw-manager';
 
 const NUM_POTS = 3;
 
@@ -13,6 +12,9 @@ export interface GameData {
     gold: number;
     collection: Plant[];
     desk: (Plant | null)[];
+    draws: number;
+    lastDrawRefill: number;
+    lastFreeDrawClaimed: number;
 }
 
 export async function getUserGameData(userId: string): Promise<GameData | null> {
@@ -26,6 +28,9 @@ export async function getUserGameData(userId: string): Promise<GameData | null> 
             gold: data.gold || 0,
             collection: data.collection || [],
             desk: data.desk || Array(NUM_POTS).fill(null),
+            draws: data.draws ?? MAX_DRAWS,
+            lastDrawRefill: data.lastDrawRefill || Date.now(),
+            lastFreeDrawClaimed: data.lastFreeDrawClaimed || 0,
         };
     } else {
         return null;
@@ -47,7 +52,10 @@ export async function createUserDocument(user: User) {
             gold: 0,
             collection: [],
             desk: Array(NUM_POTS).fill(null),
-            gameId: `#${user.uid.slice(0, 8).toUpperCase()}`
+            gameId: `#${user.uid.slice(0, 8).toUpperCase()}`,
+            draws: MAX_DRAWS,
+            lastDrawRefill: Date.now(),
+            lastFreeDrawClaimed: 0,
         });
     }
 }
@@ -108,4 +116,16 @@ export async function updateUserGold(userId: string, amount: number) {
 
     const newGold = (gameData.gold || 0) + amount;
     await setDoc(doc(db, 'users', userId), { gold: newGold }, { merge: true });
+}
+
+export async function resetUserGameData(userId: string) {
+    const userDocRef = doc(db, 'users', userId);
+    await updateDoc(userDocRef, {
+        collection: [],
+        desk: [null, null, null],
+        gold: 0,
+        draws: MAX_DRAWS,
+        lastDrawRefill: Date.now(),
+        lastFreeDrawClaimed: 0
+    });
 }
