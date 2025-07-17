@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      setLoading(false); // Auth check is complete
+      setLoading(false);
     });
     return () => unsubscribeAuth();
   }, []);
@@ -55,20 +55,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   useEffect(() => {
-    if (loading) return; // Wait until initial auth check is done
+    if (loading) return;
 
     const isAuthPage = pathname === '/' || pathname === '/signup';
     const isSplashPage = pathname === '/login';
-
+    
+    // If user is logged in
     if (user) {
-      // If user is logged in and on the login/signup page, redirect to splash.
       if (isAuthPage) {
         router.push('/login');
       }
-    } else {
-      // If user is not logged in and not on an auth page, redirect to login.
-      if (!isAuthPage) {
-        router.push('/');
+    } 
+    // If user is not logged in
+    else {
+      if (!isAuthPage && !isSplashPage) {
+          router.push('/');
       }
     }
   }, [user, loading, pathname, router]);
