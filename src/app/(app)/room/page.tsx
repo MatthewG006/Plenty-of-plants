@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { drawPlant, type DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 import { Leaf, Loader2, Droplet, PlusCircle, Coins } from 'lucide-react';
 import Image from 'next/image';
@@ -70,6 +70,14 @@ function GoldCoinAnimation() {
     );
 }
 
+// Helper to check if a timestamp is from the current day
+function isToday(timestamp: number): boolean {
+    const today = new Date();
+    const someDate = new Date(timestamp);
+    return someDate.getDate() === today.getDate() &&
+           someDate.getMonth() === today.getMonth() &&
+           someDate.getFullYear() === today.getFullYear();
+}
 
 function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpdate }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, onPlantUpdate: (updatedPlant: Plant) => void }) {
     const { playSfx } = useAudio();
@@ -84,8 +92,7 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
 
     if (!plant) return null;
 
-    const today = new Date().toDateString();
-    const timesWateredToday = plant.lastWatered?.filter(ts => new Date(ts).toDateString() === today).length ?? 0;
+    const timesWateredToday = plant.lastWatered?.filter(isToday).length ?? 0;
     const canWater = timesWateredToday < MAX_WATERINGS_PER_DAY;
 
     const handleWaterPlant = () => {
@@ -109,7 +116,7 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
         }
         
         const now = Date.now();
-        const updatedLastWatered = [...(plant.lastWatered || []).filter(ts => new Date(ts).toDateString() === today), now];
+        const updatedLastWatered = [...(plant.lastWatered || []).filter(isToday), now];
 
         const updatedPlant: Plant = {
             ...plant,
@@ -176,7 +183,9 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
                         <Droplet className="mr-2 h-4 w-4" />
                         {isWatering ? 'Watering...' : `Water Plant (${timesWateredToday}/${MAX_WATERINGS_PER_DAY})`}
                     </Button>
-                    <Button variant="outline" className="w-full" onClick={() => onOpenChange(false)}>Close</Button>
+                    <DialogClose asChild>
+                        <Button variant="outline" className="w-full">Close</Button>
+                    </DialogClose>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
