@@ -1,24 +1,13 @@
 
 import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AudioProvider } from '@/context/AudioContext';
 import MusicPlayer from '@/components/music-player';
 import { AuthProvider } from '@/context/AuthContext';
-import { Belleza, Alegreya } from 'next/font/google';
 
-const belleza = Belleza({
-  subsets: ['latin'],
-  weight: ['400'],
-  variable: '--font-belleza',
-});
-
-const alegreya = Alegreya({
-  subsets: ['latin'],
-  weight: ['400', '700'],
-  style: ['normal', 'italic'],
-  variable: '--font-alegreya',
-});
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Plenty of Plants',
@@ -34,9 +23,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#90EE90" />
+        <meta name="theme-color" content="#FFFFFF" />
       </head>
-      <body className={`${belleza.variable} ${alegreya.variable} font-body antialiased`}>
+      <body className={`${inter.className} antialiased`}>
         <AuthProvider>
           <AudioProvider>
             {children}
