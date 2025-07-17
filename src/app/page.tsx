@@ -36,7 +36,6 @@ export default function LoginPage() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       // On successful login, the AuthContext will handle the redirect.
-      // No need to push the router here.
     } catch (error: any) {
       console.error("Firebase Login Error:", error);
       toast({

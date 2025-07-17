@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      // We will handle data fetching and initial loading state separately
+      setLoading(false); // Auth check is complete
     });
     return () => unsubscribeAuth();
   }, []);
@@ -40,15 +40,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (doc.exists()) {
               setGameData(doc.data() as GameData);
           }
-          // Finished loading game data
-          setLoading(false); 
       }, (error) => {
           console.error("Error fetching user game data:", error);
-          setLoading(false);
       });
     } else {
-      // No user, not loading
-      setLoading(false);
       setGameData(null);
     }
     
@@ -60,23 +55,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   useEffect(() => {
-    if (loading) return; // Wait until auth check and data loading is complete
+    if (loading) return; // Wait until initial auth check is done
 
     const isAuthPage = pathname === '/' || pathname === '/signup';
+    const isSplashPage = pathname === '/login';
 
-    if (user && isAuthPage) {
-      // If a logged-in user is on an auth page, send them to the splash screen
-      router.push('/login');
-    } else if (!user && !isAuthPage) {
-      // If a logged-out user is on a protected page, send them to login
-      router.push('/');
+    if (user) {
+      // If user is logged in and on the login/signup page, redirect to splash.
+      if (isAuthPage) {
+        router.push('/login');
+      }
+    } else {
+      // If user is not logged in and not on an auth page, redirect to login.
+      if (!isAuthPage) {
+        router.push('/');
+      }
     }
   }, [user, loading, pathname, router]);
 
 
   if (loading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center">
+      <div className="flex h-screen w-full items-center justify-center bg-splash-gradient">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
