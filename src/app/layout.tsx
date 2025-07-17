@@ -5,6 +5,20 @@ import { Toaster } from "@/components/ui/toaster";
 import { AudioProvider } from '@/context/AudioContext';
 import MusicPlayer from '@/components/music-player';
 import { AuthProvider } from '@/context/AuthContext';
+import { Belleza, Alegreya } from 'next/font/google';
+
+const belleza = Belleza({
+  subsets: ['latin'],
+  weight: ['400'],
+  variable: '--font-belleza',
+});
+
+const alegreya = Alegreya({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  style: ['normal', 'italic'],
+  variable: '--font-alegreya',
+});
 
 export const metadata: Metadata = {
   title: 'Plenty of Plants',
@@ -19,13 +33,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#4FDF81" />
+        <meta name="theme-color" content="#90EE90" />
       </head>
-      <body className="font-body antialiased">
+      <body className={`${belleza.variable} ${alegreya.variable} font-body antialiased`}>
         <AuthProvider>
           <AudioProvider>
             {children}
