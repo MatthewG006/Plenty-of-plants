@@ -23,8 +23,7 @@ import { useRouter } from 'next/navigation';
 import { useAudio } from '@/context/AudioContext';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { getFirestore, writeBatch, doc } from 'firebase/firestore';
-import { auth } from '@/lib/firebase';
+import { resetUserGameData } from '@/lib/firestore';
 
 
 function SettingRow({ icon: Icon, label, children }: { icon: React.ElementType, label: string, children: React.ReactNode }) {
@@ -58,20 +57,7 @@ export default function SettingsPage() {
   const handleClearData = async () => {
     if (!user) return;
     try {
-        const db = getFirestore(auth.app);
-        const userDocRef = doc(db, 'users', user.uid);
-        
-        const batch = writeBatch(db);
-        batch.update(userDocRef, {
-            collection: [],
-            desk: [null, null, null],
-            gold: 0
-        });
-        await batch.commit();
-
-        // Also clear local draw manager state
-        localStorage.removeItem('plenty-of-plants-draws');
-
+        await resetUserGameData(user.uid);
         toast({
           title: "Game Reset",
           description: "Your collection and gold have been cleared.",

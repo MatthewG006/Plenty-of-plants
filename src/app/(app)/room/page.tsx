@@ -330,6 +330,7 @@ export default function RoomPage() {
     if (gameData) {
         setCollectedPlants(gameData.collection || []);
         setDeskPlants(gameData.desk || Array(NUM_POTS).fill(null));
+        setAvailableDraws(gameData.draws || 0);
     }
   }, [gameData]);
 
@@ -343,36 +344,24 @@ export default function RoomPage() {
     return plant ? { plant, source } : null;
   })();
 
-  const refreshDraws = useCallback(() => {
-    const draws = loadDraws();
+  const refreshDraws = useCallback(async () => {
+    if (!user) return;
+    const draws = await loadDraws(user.uid);
     setAvailableDraws(draws);
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     refreshDraws();
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'plenty-of-plants-draws') {
-        refreshDraws();
-      }
-    };
-    const handleFocus = () => refreshDraws();
-    window.addEventListener('focus', handleFocus);
-    window.addEventListener('storage', handleStorageChange);
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('focus', handleFocus);
-    };
   }, [refreshDraws]);
 
   const handlePlantUpdate = useCallback((updatedPlant: Plant) => {
-    const newDeskPlants = deskPlants.map(p => p?.id === updatedPlant.id ? updatedPlant : p);
-    const newCollectedPlants = collectedPlants.map(p => p.id === updatedPlant.id ? updatedPlant : p);
-    setDeskPlants(newDeskPlants);
-    setCollectedPlants(newCollectedPlants);
-  }, [collectedPlants, deskPlants]);
+    setDeskPlants(prev => prev.map(p => p?.id === updatedPlant.id ? updatedPlant : p));
+    setCollectedPlants(prev => prev.map(p => p.id === updatedPlant.id ? updatedPlant : p));
+    setSelectedPlant(updatedPlant);
+  }, []);
 
   const handleDraw = async () => {
-     if (availableDraws <= 0) {
+     if (!user || availableDraws <= 0) {
         toast({
             variant: "destructive",
             title: "No Draws Left",
@@ -383,8 +372,14 @@ export default function RoomPage() {
     setIsDrawing(true);
     try {
         const result = await drawPlant();
-        setNewPlant(result);
-        useDraw();
+        // Here, we don't save the plant, just show it.
+        // The save happens on the home page after collection.
+        // For simplicity in room, we'll just show a "Go to Home" prompt.
+        toast({
+          title: "New Plant Drawn!",
+          description: "Go to the Home page to see and collect your new plant.",
+        });
+        await useDraw(user.uid);
         refreshDraws();
 
     } catch (e) {

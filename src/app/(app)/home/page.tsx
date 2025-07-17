@@ -19,7 +19,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { loadDraws, useDraw, MAX_DRAWS, getStoredDraws } from '@/lib/draw-manager';
+import { loadDraws, useDraw, MAX_DRAWS } from '@/lib/draw-manager';
 import { useAudio } from '@/context/AudioContext';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/context/AuthContext';
@@ -125,13 +125,13 @@ export default function HomePage() {
     }
   }, [user, router]);
   
-  const refreshDraws = useCallback(() => {
-    const draws = loadDraws();
-    const drawData = getStoredDraws();
+  const refreshDraws = useCallback(async () => {
+    if (!user || !gameData) return;
+    const draws = await loadDraws(user.uid);
     setAvailableDraws(draws);
 
     if (draws < MAX_DRAWS) {
-        const timeRemaining = REFILL_INTERVAL - (Date.now() - drawData.lastUpdated);
+        const timeRemaining = REFILL_INTERVAL - (Date.now() - (gameData.lastDrawRefill || 0));
         if (timeRemaining > 0) {
             setNextDrawTime(formatTime(timeRemaining));
         } else {
@@ -140,26 +140,14 @@ export default function HomePage() {
     } else {
         setNextDrawTime(null);
     }
-  }, []);
+  }, [user, gameData]);
   
   useEffect(() => {
     refreshDraws();
     const interval = setInterval(() => refreshDraws(), 60000);
     
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'plenty-of-plants-draws') {
-        refreshDraws();
-      }
-    };
-    const handleFocus = () => refreshDraws();
-
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('focus', handleFocus);
-
     return () => {
       clearInterval(interval);
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('focus', handleFocus);
     };
   }, [refreshDraws]);
 
@@ -218,7 +206,7 @@ export default function HomePage() {
             imageDataUri: compressedImageDataUri,
         });
         
-        useDraw();
+        await useDraw(user.uid);
         refreshDraws();
 
     } catch (e) {
