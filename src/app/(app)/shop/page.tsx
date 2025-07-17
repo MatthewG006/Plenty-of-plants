@@ -5,12 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { claimFreeDraw, loadDraws, MAX_DRAWS, hasClaimedDailyDraw } from '@/lib/draw-manager';
-import { Gift, Coins, Leaf, Clock } from 'lucide-react';
+import { Gift, Coins, Leaf, Clock, Loader2 } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { useAudio } from '@/context/AudioContext';
 import { Separator } from '@/components/ui/separator';
+import { useAuth } from '@/context/AuthContext';
+import { updateUserGold } from '@/lib/firestore';
+import { useRouter } from 'next/navigation';
 
-const USER_DATA_STORAGE_KEY = 'plenty-of-plants-user';
 const DRAW_COST_IN_GOLD = 10;
 
 function getNextDrawTimeString() {
@@ -27,25 +29,24 @@ function getNextDrawTimeString() {
 }
 
 export default function ShopPage() {
+  const { user, gameData } = useAuth();
+  const router = useRouter();
   const { toast } = useToast();
   const { playSfx } = useAudio();
+  
   const [drawCount, setDrawCount] = useState(0);
-  const [goldCount, setGoldCount] = useState(0);
   const [dailyDrawClaimed, setDailyDrawClaimed] = useState(false);
   const [nextDrawTime, setNextDrawTime] = useState(getNextDrawTimeString());
 
-
+  useEffect(() => {
+    if (!user) {
+        router.push('/');
+    }
+  }, [user, router]);
+  
   const refreshData = useCallback(() => {
     setDrawCount(loadDraws());
     setDailyDrawClaimed(hasClaimedDailyDraw());
-    try {
-        const userRaw = localStorage.getItem(USER_DATA_STORAGE_KEY);
-        const userData = userRaw ? JSON.parse(userRaw) : { gold: 0 };
-        setGoldCount(userData.gold || 0);
-    } catch (e) {
-        console.error("Failed to load gold from storage", e);
-        setGoldCount(0);
-    }
   }, []);
 
   useEffect(() => {
@@ -53,20 +54,20 @@ export default function ShopPage() {
     const timer = setInterval(() => {
         setNextDrawTime(getNextDrawTimeString());
         setDailyDrawClaimed(hasClaimedDailyDraw());
-    }, 60000); // Update every minute
+    }, 60000);
 
-    window.addEventListener('focus', refreshData);
     const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'plenty-of-plants-draws' || event.key === USER_DATA_STORAGE_KEY) {
+      if (event.key === 'plenty-of-plants-draws') {
         refreshData();
       }
     };
     window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('focus', refreshData);
 
     return () => {
         clearInterval(timer);
-        window.removeEventListener('focus', refreshData);
         window.removeEventListener('storage', handleStorageChange);
+        window.removeEventListener('focus', refreshData);
     };
   }, [refreshData]);
 
@@ -89,8 +90,10 @@ export default function ShopPage() {
     }
   };
 
-  const handleBuyDrawWithGold = () => {
-    if (goldCount < DRAW_COST_IN_GOLD) {
+  const handleBuyDrawWithGold = async () => {
+    if (!user || !gameData) return;
+
+    if (gameData.gold < DRAW_COST_IN_GOLD) {
         toast({ variant: "destructive", title: "Not Enough Gold", description: `You need ${DRAW_COST_IN_GOLD} gold to buy a draw.` });
         return;
     }
@@ -100,24 +103,13 @@ export default function ShopPage() {
     }
 
     try {
-        // Deduct gold
-        const userRaw = localStorage.getItem(USER_DATA_STORAGE_KEY);
-        const userData = userRaw ? JSON.parse(userRaw) : {};
-        const newGold = userData.gold - DRAW_COST_IN_GOLD;
-        const newUserData = { ...userData, gold: newGold };
-        localStorage.setItem(USER_DATA_STORAGE_KEY, JSON.stringify(newUserData));
-        window.dispatchEvent(new StorageEvent('storage', { key: USER_DATA_STORAGE_KEY, newValue: JSON.stringify(newUserData) }));
-
-        // Add draw
         const result = claimFreeDraw({ bypassTimeCheck: true });
         if (result.success) {
+            await updateUserGold(user.uid, -DRAW_COST_IN_GOLD);
             playSfx('reward');
             toast({ title: "Purchase Successful!", description: `You bought 1 draw for ${DRAW_COST_IN_GOLD} gold.` });
             refreshData();
         } else {
-            // This case should not be hit due to checks above, but as a fallback:
-            // Refund gold
-            localStorage.setItem(USER_DATA_STORAGE_KEY, JSON.stringify(userData));
             toast({ variant: "destructive", title: "Purchase Failed", description: "Something went wrong. Your gold was not spent." });
         }
     } catch (e) {
@@ -125,6 +117,16 @@ export default function ShopPage() {
         toast({ variant: "destructive", title: "Error", description: "Could not complete the purchase." });
     }
   };
+
+  if (!user || !gameData) {
+    return (
+        <div className="flex h-screen w-full items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    );
+  }
+  
+  const goldCount = gameData.gold || 0;
 
   return (
     <div className="p-4">

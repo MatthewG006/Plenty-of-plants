@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { Music, Zap, Trash2 } from 'lucide-react';
+import { Music, Zap, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -22,6 +22,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useAudio } from '@/context/AudioContext';
 import { useEffect, useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { getFirestore, writeBatch, doc } from 'firebase/firestore';
+import { auth } from '@/lib/firebase';
+
 
 function SettingRow({ icon: Icon, label, children }: { icon: React.ElementType, label: string, children: React.ReactNode }) {
     return (
@@ -37,41 +41,58 @@ function SettingRow({ icon: Icon, label, children }: { icon: React.ElementType, 
     )
 }
 
-const OLD_PLANTS_STORAGE_KEY = 'plenty-of-plants-collection';
-const PLANTS_DATA_STORAGE_KEY = 'plenty-of-plants-data';
-
 export default function SettingsPage() {
-  const { toast } = useToast();
+  const { user } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   const { isPlaying, togglePlay, volume, setVolume, sfxVolume, setSfxVolume, playSfx } = useAudio();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    if (!user) {
+        router.push('/');
+    }
+  }, [user, router]);
 
-  const handleClearData = () => {
+  const handleClearData = async () => {
+    if (!user) return;
     try {
-        localStorage.removeItem(OLD_PLANTS_STORAGE_KEY);
-        localStorage.removeItem(PLANTS_DATA_STORAGE_KEY);
-        toast({
-          title: "Collection Cleared",
-          description: "You can now start a new collection from scratch.",
+        const db = getFirestore(auth.app);
+        const userDocRef = doc(db, 'users', user.uid);
+        
+        const batch = writeBatch(db);
+        batch.update(userDocRef, {
+            collection: [],
+            desk: [null, null, null],
+            gold: 0
         });
-        router.push('/home');
-        router.refresh();
+        await batch.commit();
+
+        // Also clear local draw manager state
+        localStorage.removeItem('plenty-of-plants-draws');
+
+        toast({
+          title: "Game Reset",
+          description: "Your collection and gold have been cleared.",
+        });
+
     } catch (e) {
-        console.error("Failed to clear data from localStorage", e);
+        console.error("Failed to clear data from Firestore", e);
         toast({
             variant: "destructive",
             title: "Error",
-            description: "Could not clear your collection data.",
+            description: "Could not reset your game data.",
         });
     }
   };
 
-  if (!isClient) {
-    return null; // or a loading spinner
+  if (!isClient || !user) {
+    return (
+        <div className="flex h-screen w-full items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    );
   }
 
   return (
@@ -89,11 +110,7 @@ export default function SettingsPage() {
             <Switch id="sounds" checked={isPlaying} onCheckedChange={togglePlay} aria-label="Toggle music" />
           </SettingRow>
           <SettingRow icon={Zap} label="FX">
-            <Switch id="fx" defaultChecked onCheckedChange={(checked) => {
-              // This is a simple toggle. If you want to save this state, you'd need to expand the context.
-              // For now, we'll just use it to mute/unmute SFX via volume.
-              setSfxVolume(checked ? 0.75 : 0);
-            }} />
+            <Switch id="fx" checked={sfxVolume > 0} onCheckedChange={(checked) => setSfxVolume(checked ? 0.75 : 0)} />
           </SettingRow>
         </CardContent>
       </Card>
@@ -135,26 +152,26 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between">
             <div className="flex flex-col">
               <p className="font-semibold text-primary">Reset Game</p>
-              <p className="text-sm text-muted-foreground">This will permanently delete your plant collection.</p>
+              <p className="text-sm text-muted-foreground">This will permanently delete your plant collection and gold.</p>
             </div>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive">
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Clear Data
+                  Reset Game
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete your entire plant collection and you will have to start over.
+                    This action cannot be undone. This will permanently delete your entire plant collection and reset your gold to 0.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction onClick={handleClearData} className="bg-destructive hover:bg-destructive/90">
-                    Yes, delete my collection
+                    Yes, reset my game
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

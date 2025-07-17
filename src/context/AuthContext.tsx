@@ -4,27 +4,48 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { doc, getFirestore, onSnapshot } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
+import { GameData } from '@/lib/firestore';
 
 interface AuthContextType {
   user: User | null;
+  gameData: GameData | null;
   loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const db = getFirestore(auth.app);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [gameData, setGameData] = useState<GameData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       setUser(user);
-      setLoading(false);
+      if (!user) {
+        setLoading(false);
+        setGameData(null);
+      }
     });
 
-    return () => unsubscribe();
+    return () => unsubscribeAuth();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+        const unsub = onSnapshot(doc(db, "users", user.uid), (doc) => {
+            if (doc.exists()) {
+                setGameData(doc.data() as GameData);
+            }
+            setLoading(false);
+        });
+        return () => unsub();
+    }
+  }, [user]);
+
 
   if (loading) {
     return (
@@ -35,7 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading }}>
+    <AuthContext.Provider value={{ user, gameData, loading }}>
       {children}
     </AuthContext.Provider>
   );

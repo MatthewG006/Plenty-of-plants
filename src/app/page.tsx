@@ -51,7 +51,9 @@ export default function LoginPage() {
       toast({
         variant: "destructive",
         title: "Login Failed",
-        description: error.message || "Please check your credentials and try again.",
+        description: error.code === 'auth/invalid-credential'
+          ? "Invalid email or password. Please try again."
+          : "An unexpected error occurred. Please try again later.",
       });
     } finally {
       setIsLoading(false);
@@ -59,7 +61,12 @@ export default function LoginPage() {
   };
 
   if (user) {
-    return null; // Don't render anything while redirecting
+    // Render nothing or a loader while redirecting
+    return (
+        <div className="flex h-screen w-full items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    );
   }
 
   return (

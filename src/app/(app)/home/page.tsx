@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Settings, User, Check, X, Loader2, Leaf } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { Plant } from '@/interfaces/plant';
 import { drawPlant, type DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 import { useToast } from '@/hooks/use-toast';
@@ -22,9 +22,10 @@ import { cn } from '@/lib/utils';
 import { loadDraws, useDraw, MAX_DRAWS, getStoredDraws } from '@/lib/draw-manager';
 import { useAudio } from '@/context/AudioContext';
 import { Progress } from '@/components/ui/progress';
+import { useAuth } from '@/context/AuthContext';
+import { savePlant } from '@/lib/firestore';
+import { useRouter } from 'next/navigation';
 
-const PLANTS_DATA_STORAGE_KEY = 'plenty-of-plants-data';
-const NUM_POTS = 3;
 const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
 
 // Helper function to convert image URL to data URI
@@ -66,13 +67,12 @@ async function compressImage(dataUri: string, maxSize = 256): Promise<string> {
                 return reject(new Error('Could not get canvas context'));
             }
             ctx.drawImage(img, 0, 0, width, height);
-            resolve(canvas.toDataURL('image/png')); // Use PNG to preserve transparency
+            resolve(canvas.toDataURL('image/png'));
         };
         img.onerror = reject;
         img.src = dataUri;
     });
 }
-
 
 function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlantOutput | null, open: boolean, onOpenChange: (open: boolean) => void }) {
     if (!plant) return null;
@@ -108,14 +108,23 @@ function formatTime(ms: number) {
 }
 
 export default function HomePage() {
+  const { user, gameData } = useAuth();
+  const router = useRouter();
   const { toast } = useToast();
   const { playSfx } = useAudio();
+
   const [latestPlant, setLatestPlant] = useState<Plant | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawnPlant, setDrawnPlant] = useState<DrawPlantOutput | null>(null);
   const [availableDraws, setAvailableDraws] = useState(0);
   const [nextDrawTime, setNextDrawTime] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!user) {
+        router.push('/');
+    }
+  }, [user, router]);
+  
   const refreshDraws = useCallback(() => {
     const draws = loadDraws();
     const drawData = getStoredDraws();
@@ -131,54 +140,34 @@ export default function HomePage() {
     } else {
         setNextDrawTime(null);
     }
-
-    return draws;
   }, []);
   
   useEffect(() => {
     refreshDraws();
-    const interval = setInterval(() => {
-        refreshDraws();
-    }, 60000); // Update timer every minute
-    return () => clearInterval(interval);
-  }, [refreshDraws]);
-
-  useEffect(() => {
+    const interval = setInterval(() => refreshDraws(), 60000);
+    
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === 'plenty-of-plants-draws') {
         refreshDraws();
       }
     };
-    
-    const handleFocus = () => {
-      refreshDraws();
-    };
+    const handleFocus = () => refreshDraws();
 
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('focus', handleFocus);
 
     return () => {
+      clearInterval(interval);
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('focus', handleFocus);
     };
   }, [refreshDraws]);
 
-
   useEffect(() => {
-    let storedDataRaw;
-    try {
-        storedDataRaw = localStorage.getItem(PLANTS_DATA_STORAGE_KEY);
-    } catch (e) {
-        console.error("Failed to read from localStorage", e);
-        return;
-    }
-
-    if (storedDataRaw) {
-      try {
-        const storedData = JSON.parse(storedDataRaw);
+    if (gameData) {
         const allPlants: Plant[] = [
-          ...(storedData.collection || []),
-          ...(storedData.desk || []).filter((p: Plant | null): p is Plant => p !== null),
+          ...(gameData.collection || []),
+          ...(gameData.desk || []).filter((p: Plant | null): p is Plant => p !== null),
         ];
 
         if (allPlants.length > 0) {
@@ -187,14 +176,8 @@ export default function HomePage() {
         } else {
           setLatestPlant(null);
         }
-      } catch (e) {
-        console.error("Failed to parse stored plants on home page", e);
-        setLatestPlant(null);
-      }
-    } else {
-      setLatestPlant(null);
     }
-  }, [drawnPlant]);
+  }, [gameData]);
 
   const handleDraw = async () => {
     if (availableDraws <= 0) {
@@ -205,25 +188,19 @@ export default function HomePage() {
         });
         return;
     }
+    if (!user || !gameData) return;
+
     setIsDrawing(true);
     try {
-        let storedData;
-        try {
-            const storedDataRaw = localStorage.getItem(PLANTS_DATA_STORAGE_KEY);
-            storedData = storedDataRaw ? JSON.parse(storedDataRaw) : { collection: [], desk: [] };
-        } catch (e) {
-            console.error("Failed to read or parse localStorage", e);
-            storedData = { collection: [], desk: [] };
-        }
-
         const allPlants: Plant[] = [
-            ...(storedData.collection || []), 
-            ...(storedData.desk || []).filter((p: Plant | null): p is Plant => p !== null)
+            ...(gameData.collection || []), 
+            ...(gameData.desk || []).filter((p: Plant | null): p is Plant => p !== null)
         ];
         
         let drawnPlantResult: DrawPlantOutput;
+        const isFirstPlant = allPlants.length === 0;
 
-        if (allPlants.length === 0) {
+        if (isFirstPlant) {
             drawnPlantResult = {
                 name: "Friendly Fern",
                 description: "A happy little fern to start your collection.",
@@ -257,66 +234,36 @@ export default function HomePage() {
   };
 
   const handleCollect = async () => {
-    if (!drawnPlant) return;
+    if (!drawnPlant || !user || !gameData) return;
 
-    let storedData;
     try {
-        const storedDataRaw = localStorage.getItem(PLANTS_DATA_STORAGE_KEY);
-        storedData = storedDataRaw ? JSON.parse(storedDataRaw) : { collection: [], desk: Array(NUM_POTS).fill(null) };
+        const allPlants: Plant[] = [
+            ...(gameData.collection || []), 
+            ...(gameData.desk || []).filter((p: Plant | null): p is Plant => p !== null)
+        ];
+        const isFirstPlant = allPlants.length === 0;
+
+        const newPlant = await savePlant(user.uid, drawnPlant, isFirstPlant);
+        setLatestPlant(newPlant);
     } catch (e) {
-        console.error("Failed to read or parse localStorage", e);
-        storedData = { collection: [], desk: Array(NUM_POTS).fill(null) };
-    }
-    
-    let collectionPlants: Plant[] = storedData.collection || [];
-    const deskPlants: (Plant | null)[] = storedData.desk || Array(NUM_POTS).fill(null);
-
-    const allCurrentPlants: Plant[] = [
-        ...collectionPlants,
-        ...deskPlants.filter((p): p is Plant => p !== null)
-    ];
-
-    const lastId = allCurrentPlants.reduce((maxId, p) => Math.max(p.id, maxId), 0);
-    
-    const newPlant: Plant = {
-        id: lastId + 1,
-        name: drawnPlant.name,
-        form: 'Base',
-        image: drawnPlant.imageDataUri,
-        hint: drawnPlant.name === 'Friendly Fern' ? 'fern plant' : drawnPlant.name.toLowerCase().split(' ').slice(0, 2).join(' '),
-        description: drawnPlant.description,
-        level: 1,
-        xp: 0,
-        lastWatered: [],
-    };
-    
-    const firstEmptyPotIndex = deskPlants.findIndex(p => p === null);
-    if (firstEmptyPotIndex !== -1) {
-        deskPlants[firstEmptyPotIndex] = newPlant;
-    } else {
-        collectionPlants.push(newPlant);
-    }
-
-    const updatedData = {
-        collection: collectionPlants,
-        desk: deskPlants,
-    };
-    
-    try {
-        localStorage.setItem(PLANTS_DATA_STORAGE_KEY, JSON.stringify(updatedData));
-    } catch (e) {
-        console.error("Failed to save to localStorage (quota may be exceeded)", e);
+        console.error("Failed to save plant to Firestore", e);
         toast({
             variant: "destructive",
             title: "Storage Error",
-            description: "Could not save your new plant. Your device storage might be full.",
+            description: "Could not save your new plant.",
         });
     }
     
-    setLatestPlant(newPlant);
     setDrawnPlant(null);
   };
 
+  if (!user || !gameData) {
+      return (
+        <div className="flex h-screen w-full items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      );
+  }
 
   return (
     <div className="p-4 space-y-6 bg-background">
@@ -430,5 +377,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-    

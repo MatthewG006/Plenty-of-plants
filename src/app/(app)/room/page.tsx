@@ -26,16 +26,24 @@ import {
 import { loadDraws, useDraw } from '@/lib/draw-manager';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
+import { updatePlantArrangement, updatePlantData, updateUserGold, savePlant } from '@/lib/firestore';
 
-
-const PLANTS_DATA_STORAGE_KEY = 'plenty-of-plants-data';
-const USER_DATA_STORAGE_KEY = 'plenty-of-plants-user';
 const NUM_POTS = 3;
 const MAX_WATERINGS_PER_DAY = 4;
 const XP_PER_WATERING = 200;
 const XP_PER_LEVEL = 1000;
 const GOLD_PER_WATERING = 10;
 
+// Helper to check if a timestamp is from the current day
+function isToday(timestamp: number): boolean {
+    const today = new Date();
+    const someDate = new Date(timestamp);
+    return someDate.getDate() === today.getDate() &&
+           someDate.getMonth() === today.getMonth() &&
+           someDate.getFullYear() === today.getFullYear();
+}
 
 function WaterDropletAnimation() {
     return (
@@ -58,7 +66,7 @@ function GoldCoinAnimation() {
         <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
             {Array.from({ length: 3 }).map((_, i) => (
                 <Coins key={i} className="absolute text-yellow-400 animate-float-up" style={{
-                    left: `${20 + Math.random() * 60}%`, // Keep them more centered
+                    left: `${20 + Math.random() * 60}%`,
                     bottom: '20px',
                     animationDelay: `${Math.random() * 0.5}s`,
                     animationDuration: `${1 + Math.random() * 0.5}s`,
@@ -70,16 +78,8 @@ function GoldCoinAnimation() {
     );
 }
 
-// Helper to check if a timestamp is from the current day
-function isToday(timestamp: number): boolean {
-    const today = new Date();
-    const someDate = new Date(timestamp);
-    return someDate.getDate() === today.getDate() &&
-           someDate.getMonth() === today.getMonth() &&
-           someDate.getFullYear() === today.getFullYear();
-}
 
-function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpdate }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, onPlantUpdate: (updatedPlant: Plant) => void }) {
+function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpdate, userId }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, onPlantUpdate: (updatedPlant: Plant) => void, userId: string }) {
     const { playSfx } = useAudio();
     const { toast } = useToast();
     const [isWatering, setIsWatering] = useState(false);
@@ -95,8 +95,8 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
     const timesWateredToday = plant.lastWatered?.filter(isToday).length ?? 0;
     const canWater = timesWateredToday < MAX_WATERINGS_PER_DAY;
 
-    const handleWaterPlant = () => {
-        if (!canWater) return;
+    const handleWaterPlant = async () => {
+        if (!canWater || !plant) return;
         
         playSfx('watering');
         setIsWatering(true);
@@ -128,19 +128,16 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
         setPlant(updatedPlant);
         onPlantUpdate(updatedPlant);
 
-        // Update user's gold
         try {
-            const userRaw = localStorage.getItem(USER_DATA_STORAGE_KEY);
-            const userData = userRaw ? JSON.parse(userRaw) : {};
-            const newGold = (userData.gold || 0) + GOLD_PER_WATERING;
-            localStorage.setItem(USER_DATA_STORAGE_KEY, JSON.stringify({ ...userData, gold: newGold }));
-        } catch (e) {
-            console.error("Failed to update gold", e);
+            await updatePlantData(userId, updatedPlant);
+            await updateUserGold(userId, GOLD_PER_WATERING);
+        } catch(e) {
+            console.error("Failed to update plant or gold", e);
+            toast({ variant: 'destructive', title: "Error", description: "Could not save watering progress."})
         }
 
-
-        setTimeout(() => setIsWatering(false), 1000); // Animation duration
-        setTimeout(() => setShowGold(false), 1000); // Gold fadeout duration
+        setTimeout(() => setIsWatering(false), 1000);
+        setTimeout(() => setShowGold(false), 1000);
     };
 
     return (
@@ -305,29 +302,37 @@ function DroppablePot({
 
 
 export default function RoomPage() {
+  const { user, gameData } = useAuth();
+  const router = useRouter();
   const { toast } = useToast();
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [newPlant, setNewPlant] = useState<DrawPlantOutput | null>(null);
+  
   const [collectedPlants, setCollectedPlants] = useState<Plant[]>([]);
   const [deskPlants, setDeskPlants] = useState<(Plant | null)[]>(Array(NUM_POTS).fill(null));
+
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [newPlant, setNewPlant] = useState<DrawPlantOutput | null>(null);
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [availableDraws, setAvailableDraws] = useState(0);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 150,
-        tolerance: 5,
-      },
-    })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
   );
   
+  useEffect(() => {
+    if (!user) {
+        router.push('/');
+    }
+  }, [user, router]);
+  
+  useEffect(() => {
+    if (gameData) {
+        setCollectedPlants(gameData.collection || []);
+        setDeskPlants(gameData.desk || Array(NUM_POTS).fill(null));
+    }
+  }, [gameData]);
+
   const activePlantData = (() => {
     if (!activeId) return null;
     const [source, idStr] = activeId.split(":");
@@ -350,62 +355,21 @@ export default function RoomPage() {
         refreshDraws();
       }
     };
-    window.addEventListener('storage', handleStorageChange);
-    // Also check on focus in case a draw was used in another tab or replenished
-    const handleFocus = () => {
-      refreshDraws();
-    };
+    const handleFocus = () => refreshDraws();
     window.addEventListener('focus', handleFocus);
+    window.addEventListener('storage', handleStorageChange);
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('focus', handleFocus);
     };
   }, [refreshDraws]);
 
-
-  useEffect(() => {
-    try {
-      const storedDataRaw = localStorage.getItem(PLANTS_DATA_STORAGE_KEY);
-      if (storedDataRaw) {
-        const storedData = JSON.parse(storedDataRaw);
-        if (storedData.collection && storedData.desk) {
-          setCollectedPlants(storedData.collection);
-          setDeskPlants(storedData.desk);
-          return;
-        }
-      }
-    } catch (e) {
-      console.error("Failed to parse stored plants, starting fresh.", e);
-      setCollectedPlants([]);
-      setDeskPlants(Array(NUM_POTS).fill(null));
-    }
-  }, []);
-
-  const saveData = useCallback((collection: Plant[], desk: (Plant | null)[]) => {
-    try {
-        const dataToStore = {
-            collection: collection,
-            desk: desk,
-        };
-        localStorage.setItem(PLANTS_DATA_STORAGE_KEY, JSON.stringify(dataToStore));
-    } catch (e) {
-        console.error("Failed to save to localStorage (quota may be exceeded)", e);
-        toast({
-            variant: "destructive",
-            title: "Storage Error",
-            description: "Could not save your plant arrangement. Your device storage might be full.",
-        });
-    }
-  }, [toast]);
-
   const handlePlantUpdate = useCallback((updatedPlant: Plant) => {
     const newDeskPlants = deskPlants.map(p => p?.id === updatedPlant.id ? updatedPlant : p);
     const newCollectedPlants = collectedPlants.map(p => p.id === updatedPlant.id ? updatedPlant : p);
-
     setDeskPlants(newDeskPlants);
     setCollectedPlants(newCollectedPlants);
-    saveData(newCollectedPlants, newDeskPlants);
-  }, [collectedPlants, deskPlants, saveData]);
+  }, [collectedPlants, deskPlants]);
 
   const handleDraw = async () => {
      if (availableDraws <= 0) {
@@ -435,34 +399,10 @@ export default function RoomPage() {
     }
   };
   
-  const handleCollect = async (plantToCollect: DrawPlantOutput) => {
-    const allCurrentPlants = [...collectedPlants, ...deskPlants.filter((p): p is Plant => p !== null)];
-    const lastId = allCurrentPlants.reduce((maxId, p) => Math.max(p.id, maxId), 0);
-
-    const newPlantItem: Plant = {
-        id: lastId + 1,
-        name: plantToCollect.name,
-        form: 'Base',
-        image: plantToCollect.imageDataUri,
-        hint: plantToCollect.name.toLowerCase().split(' ').slice(0, 2).join(' '),
-        description: plantToCollect.description,
-        level: 1,
-        xp: 0,
-        lastWatered: [],
-    };
-    
-    const updatedCollectedPlants = [...collectedPlants, newPlantItem];
-    setCollectedPlants(updatedCollectedPlants);
-    saveData(updatedCollectedPlants, deskPlants);
-  };
-
-
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
-  };
-  
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = async (event: DragEndEvent) => {
     setActiveId(null);
+    if (!user) return;
+
     const { active, over } = event;
   
     if (!over || !active || active.id === over.id) {
@@ -508,11 +448,19 @@ export default function RoomPage() {
     const finalCollected = newCollectedPlants.sort((a,b) => a.id - b.id);
     setDeskPlants(newDeskPlants);
     setCollectedPlants(finalCollected);
-    saveData(finalCollected, newDeskPlants);
+    await updatePlantArrangement(user.uid, finalCollected, newDeskPlants);
   };
 
+  if (!user || !gameData) {
+    return (
+        <div className="flex h-screen w-full items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    );
+  }
+
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => setActiveId(null)}>
+    <DndContext sensors={sensors} onDragStart={(e) => setActiveId(e.active.id as string)} onDragEnd={handleDragEnd} onDragCancel={() => setActiveId(null)}>
       <div className="space-y-4">
         <header className="flex items-center justify-between p-4">
           <h1 className="font-headline text-2xl text-primary">My Room</h1>
@@ -570,12 +518,9 @@ export default function RoomPage() {
         <PlantDetailDialog
           plant={selectedPlant}
           open={!!selectedPlant}
-          onOpenChange={(isOpen) => {
-              if (!isOpen) {
-                  setSelectedPlant(null);
-              }
-          }}
+          onOpenChange={(isOpen) => !isOpen && setSelectedPlant(null)}
           onPlantUpdate={handlePlantUpdate}
+          userId={user.uid}
         />
 
         <DragOverlay>

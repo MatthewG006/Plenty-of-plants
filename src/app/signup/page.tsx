@@ -12,6 +12,7 @@ import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { createUserDocument } from '@/lib/firestore';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -38,25 +39,27 @@ export default function SignupPage() {
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      await updateProfile(user, { displayName: username });
       
-      // Update the user's profile with the username
-      await updateProfile(userCredential.user, {
-        displayName: username,
-      });
+      await createUserDocument(user);
 
       toast({
         title: 'Account Created!',
         description: 'You can now log in.',
       });
 
-      router.push('/'); // Redirect to login page after successful signup
+      router.push('/'); 
 
     } catch (error: any) {
       console.error("Firebase Signup Error:", error);
       toast({
         variant: "destructive",
         title: "Signup Failed",
-        description: error.message || "Could not create your account. Please try again.",
+        description: error.code === 'auth/email-already-in-use' 
+            ? 'This email is already in use.' 
+            : 'Could not create your account. Please try again.',
       });
     } finally {
       setIsLoading(false);
@@ -82,7 +85,7 @@ export default function SignupPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" placeholder="••••••••" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading}/>
+              <Input id="password" type="password" placeholder="••••••••" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading}/>
             </div>
             <Button type="submit" className="w-full font-headline text-lg" disabled={isLoading}>
                 {isLoading ? <Loader2 className="animate-spin" /> : 'Create Account'}
