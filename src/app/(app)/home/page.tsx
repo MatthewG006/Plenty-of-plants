@@ -28,18 +28,6 @@ import { useRouter } from 'next/navigation';
 
 const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
 
-// Helper function to convert image URL to data URI
-async function toDataURL(url: string): Promise<string> {
-    const response = await fetch(url);
-    const blob = await response.blob();
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-    });
-}
-
 // Helper function to compress an image
 async function compressImage(dataUri: string, maxSize = 256): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -88,7 +76,7 @@ function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlantOutput 
                         <Image src={plant.imageDataUri} alt={plant.name} width={256} height={256} className="object-cover w-full h-full" />
                     </div>
                     <h3 className="text-2xl font-headline text-primary">{plant.name}</h3>
-                    <p className="text-muted-foreground text-center">{plant.description}</p>
+                    <p className="text-muted-foreground text-center font-body">{plant.description}</p>
                 </div>
                 <DialogFooter>
                     <DialogClose asChild>
@@ -180,24 +168,7 @@ export default function HomePage() {
 
     setIsDrawing(true);
     try {
-        const allPlants: Plant[] = [
-            ...(gameData.collection || []), 
-            ...(gameData.desk || []).filter((p: Plant | null): p is Plant => p !== null)
-        ];
-        
-        let drawnPlantResult: DrawPlantOutput;
-        const isFirstPlant = allPlants.length === 0;
-
-        if (isFirstPlant) {
-            drawnPlantResult = {
-                name: "Friendly Fern",
-                description: "A happy little fern to start your collection.",
-                imageDataUri: await toDataURL("/fern.png"),
-            };
-        } else {
-            drawnPlantResult = await drawPlant();
-        }
-
+        const drawnPlantResult = await drawPlant();
         const compressedImageDataUri = await compressImage(drawnPlantResult.imageDataUri);
         
         playSfx('success');
@@ -225,13 +196,7 @@ export default function HomePage() {
     if (!drawnPlant || !user || !gameData) return;
 
     try {
-        const allPlants: Plant[] = [
-            ...(gameData.collection || []), 
-            ...(gameData.desk || []).filter((p: Plant | null): p is Plant => p !== null)
-        ];
-        const isFirstPlant = allPlants.length === 0;
-
-        const newPlant = await savePlant(user.uid, drawnPlant, isFirstPlant);
+        const newPlant = await savePlant(user.uid, drawnPlant);
         setLatestPlant(newPlant);
     } catch (e) {
         console.error("Failed to save plant to Firestore", e);
@@ -256,7 +221,7 @@ export default function HomePage() {
   return (
     <div className="p-4 space-y-6 bg-background">
       <header className="flex flex-col items-center space-y-2">
-        <h1 className="font-headline text-3xl text-chart-2 font-bold">
+        <h1 className="font-headline text-3xl text-foreground font-bold">
           Plenty Of Plants
         </h1>
         <div className="flex w-full items-center justify-between">
@@ -278,7 +243,7 @@ export default function HomePage() {
       <main className="space-y-6">
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle className="text-xl font-semibold text-center">Your Latest Plant</CardTitle>
+            <CardTitle className="text-xl font-headline text-center">Your Latest Plant</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center text-center min-h-[260px]">
             {latestPlant ? (
@@ -305,7 +270,7 @@ export default function HomePage() {
                 </div>
               </Link>
             ) : (
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground font-body">
                 No plants collected yet. Time to draw one!
               </p>
             )}
@@ -332,14 +297,14 @@ export default function HomePage() {
                         );
                     })}
                 </div>
-                <div className="text-sm text-muted-foreground text-center">
+                <div className="text-sm text-muted-foreground text-center font-body">
                     <span>Draws Available</span>
                     {nextDrawTime && availableDraws < MAX_DRAWS && (
                         <span className="ml-2">({`New draw in ${nextDrawTime}`})</span>
                     )}
                 </div>
             </div>
-            <Button onClick={handleDraw} disabled={isDrawing || availableDraws <= 0} size="lg" className="w-full font-semibold rounded-full mt-2">
+            <Button onClick={handleDraw} disabled={isDrawing || availableDraws <= 0} size="lg" className="w-full font-headline rounded-full mt-2">
               {isDrawing ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

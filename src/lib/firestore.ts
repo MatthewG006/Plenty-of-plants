@@ -45,12 +45,24 @@ export async function createUserDocument(user: User) {
         const hue = Math.floor(Math.random() * 360);
         const avatarColor = `hsl(${hue}, 70%, 85%)`;
 
+        const startingPlant: Plant = {
+            id: 1,
+            name: "Friendly Fern",
+            description: "A happy little fern to start your collection.",
+            image: "/fern.png",
+            form: "Base",
+            hint: "fern plant",
+            level: 1,
+            xp: 0,
+            lastWatered: [],
+        };
+
         await setDoc(docRef, {
             email: user.email,
             username: user.displayName,
             avatarColor: avatarColor,
             gold: 0,
-            collection: [],
+            collection: [startingPlant],
             desk: Array(NUM_POTS).fill(null),
             gameId: `#${user.uid.slice(0, 8).toUpperCase()}`,
             draws: MAX_DRAWS,
@@ -60,7 +72,7 @@ export async function createUserDocument(user: User) {
     }
 }
 
-export async function savePlant(userId: string, plant: DrawPlantOutput, isFirstPlant: boolean) {
+export async function savePlant(userId: string, plant: DrawPlantOutput) {
     const gameData = await getUserGameData(userId);
     if (!gameData) throw new Error("User data not found.");
 
@@ -73,7 +85,7 @@ export async function savePlant(userId: string, plant: DrawPlantOutput, isFirstP
         name: plant.name,
         form: 'Base',
         image: plant.imageDataUri,
-        hint: isFirstPlant ? 'fern plant' : plant.name.toLowerCase().split(' ').slice(0, 2).join(' '),
+        hint: plant.name.toLowerCase().split(' ').slice(0, 2).join(' '),
         description: plant.description,
         level: 1,
         xp: 0,
