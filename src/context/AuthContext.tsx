@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(currentUser);
       if (currentUser) {
         if (pathname === '/' || pathname === '/signup') {
-            router.push('/home');
+            router.push('/login');
         }
       } else {
         // Allow access to login and signup pages if not logged in
