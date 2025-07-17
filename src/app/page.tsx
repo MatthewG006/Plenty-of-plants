@@ -29,10 +29,8 @@ export default function LoginPage() {
   const { isPlaying, togglePlay } = useAudio();
 
   useEffect(() => {
-    // This is a more robust way to handle redirection after login.
-    // When the user state changes to a logged-in user, we redirect.
     if (user) {
-      router.push('/login');
+      router.push('/home');
     }
   }, [user, router]);
 
@@ -62,8 +60,6 @@ export default function LoginPage() {
     }
   };
 
-  // We show the login form regardless, and the useEffect handles redirection.
-  // This prevents issues where the component might try to redirect before hydration is complete.
   return (
     <div className="flex h-screen w-full items-center justify-center bg-app-gradient p-4">
       <Card className="w-full max-w-sm shadow-xl">
@@ -72,10 +68,10 @@ export default function LoginPage() {
           <CardDescription>Log in to tend to your plants.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Alert className="mb-4 bg-accent/50 border-accent-foreground/20">
+          <Alert className="mb-4 border-accent-foreground/20 bg-accent">
             <Megaphone className="h-4 w-4" />
-            <AlertTitle className="font-headline">New Game Update!</AlertTitle>
-            <AlertDescription>
+            <AlertTitle className="font-bold text-accent-foreground">New Game Update!</AlertTitle>
+            <AlertDescription className="text-accent-foreground/80">
               We've refreshed the UI and added new features. Enjoy!
             </AlertDescription>
           </Alert>
@@ -102,6 +98,9 @@ export default function LoginPage() {
               <Link href="/signup">Create a new one</Link>
             </Button>
           </div>
+          <Button variant="link" asChild className="p-0 h-auto text-muted-foreground">
+            <Link href="/login">Skip for testing</Link>
+          </Button>
         </CardFooter>
       </Card>
     </div>
