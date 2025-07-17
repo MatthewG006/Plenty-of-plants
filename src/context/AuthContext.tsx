@@ -7,6 +7,7 @@ import { auth, db } from '@/lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { GameData } from '@/lib/firestore';
+import { usePathname, useRouter } from 'next/navigation';
 
 interface AuthContextType {
   user: User | null;
@@ -20,18 +21,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [gameData, setGameData] = useState<GameData | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       setUser(user);
-      if (!user) {
+      if (user) {
+        if (pathname === '/' || pathname === '/signup') {
+            router.push('/home');
+        }
+      } else {
+        if (pathname !== '/' && pathname !== '/signup') {
+            router.push('/');
+        }
         setLoading(false);
         setGameData(null);
       }
     });
 
     return () => unsubscribeAuth();
-  }, []);
+  }, [pathname, router]);
 
   useEffect(() => {
     if (user) {
