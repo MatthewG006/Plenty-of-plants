@@ -476,8 +476,7 @@ export default function RoomPage() {
 
         <section className="px-4">
           <div
-            className="h-48 rounded-lg border-2 border-primary/20 bg-cover bg-center p-6"
-            style={{ backgroundImage: 'url(/desk.jpg)' }}
+            className="h-48 rounded-lg border-2 border-primary/20 bg-card/80 p-6"
           >
             <div className="flex h-full items-end justify-around">
               {deskPlants.map((plant, index) => (

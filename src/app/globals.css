@@ -66,10 +66,12 @@
   }
   body {
     @apply bg-background text-foreground;
+    background-image: url(/background.png);
+    background-repeat: repeat;
   }
 
   .bg-app-gradient {
-    background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--background) / 0.5) 50%, #FFFFFF 100%);
+    background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--background) / 0.5) 50%, transparent 100%);
   }
 }
 
