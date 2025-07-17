@@ -68,18 +68,8 @@
     @apply bg-background text-foreground;
   }
 
-  .bg-app-gradient {
-    background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--background) / 0.5) 50%, transparent 100%);
-  }
-  
-  .splash-bg {
-    background-image: url('/splash-bg.png');
-    background-size: cover;
-    background-position: center bottom;
-  }
-
-  .splash-gradient {
-    background: radial-gradient(circle at 50% 0%, hsla(140, 50%, 80%, 0.4), transparent 70%);
+  .bg-splash-gradient {
+    background: linear-gradient(180deg, #90EE90 0%, #FFFFFF 100%);
   }
 }
 

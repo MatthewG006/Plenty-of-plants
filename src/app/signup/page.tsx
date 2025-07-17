@@ -67,7 +67,7 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-app-gradient p-4">
+    <div className="flex h-screen w-full items-center justify-center bg-splash-gradient p-4">
       <Card className="w-full max-w-sm shadow-xl">
         <CardHeader className="text-center">
           <CardTitle className="font-headline text-3xl">Join the Fun!</CardTitle>
