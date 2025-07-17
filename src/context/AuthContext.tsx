@@ -25,18 +25,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      if (user) {
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
         if (pathname === '/' || pathname === '/signup') {
-            router.push('/login');
+            router.push('/home');
         }
       } else {
+        // Allow access to login and signup pages if not logged in
         if (pathname !== '/' && pathname !== '/signup') {
             router.push('/');
         }
-        setLoading(false);
-        setGameData(null);
       }
     });
 
@@ -53,6 +52,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setLoading(false);
         });
         return () => unsub();
+    } else {
+        setLoading(false);
+        setGameData(null);
     }
   }, [user]);
 
