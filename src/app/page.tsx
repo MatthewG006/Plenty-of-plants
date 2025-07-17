@@ -6,34 +6,24 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Megaphone, Loader2 } from 'lucide-react';
 import { useAudio } from '@/context/AudioContext';
 import { useToast } from '@/hooks/use-toast';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { useAuth } from '@/context/AuthContext';
-
+import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
-  const { user } = useAuth();
-  const router = useRouter();
   const { toast } = useToast();
+  const router = useRouter();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
   const { isPlaying, togglePlay } = useAudio();
-
-  useEffect(() => {
-    if (user) {
-      router.push('/home');
-    }
-  }, [user, router]);
-
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +35,7 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // The useEffect above will handle the redirect once the user state is updated.
+      // AuthProvider will handle the redirect.
     } catch (error: any) {
       console.error("Firebase Login Error:", error);
       toast({
@@ -55,7 +45,6 @@ export default function LoginPage() {
           ? "Invalid email or password. Please try again."
           : "An unexpected error occurred. Please try again later.",
       });
-    } finally {
       setIsLoading(false);
     }
   };
