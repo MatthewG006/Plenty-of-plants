@@ -71,6 +71,16 @@
   .bg-app-gradient {
     background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--background) / 0.5) 50%, transparent 100%);
   }
+  
+  .splash-bg {
+    background-image: url('/background-splash.png');
+    background-size: cover;
+    background-position: center bottom;
+  }
+
+  .splash-gradient {
+    background: radial-gradient(circle at 50% 0%, hsla(140, 50%, 80%, 0.4), transparent 70%);
+  }
 }
 
 @layer utilities {
