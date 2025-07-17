@@ -1,13 +1,10 @@
 
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AudioProvider } from '@/context/AudioContext';
 import MusicPlayer from '@/components/music-player';
 import { AuthProvider } from '@/context/AuthContext';
-
-const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Plenty of Plants',
@@ -22,7 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head />
-      <body className={`${inter.className} antialiased`}>
+      <body className="font-body antialiased">
         <AuthProvider>
           <AudioProvider>
             {children}

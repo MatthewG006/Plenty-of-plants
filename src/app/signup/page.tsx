@@ -45,14 +45,10 @@ export default function SignupPage() {
       
       await createUserDocument(user);
 
-      toast({
-        title: 'Account Created!',
-        description: 'You can now log in.',
-      });
+      // No need to toast, just redirect. The user is now logged in.
+      router.push('/home'); 
 
-      router.push('/'); 
-
-    } catch (error: any) {
+    } catch (error: any)
       console.error("Firebase Signup Error:", error);
       toast({
         variant: "destructive",
@@ -97,7 +93,7 @@ export default function SignupPage() {
             Already have an account?
           </p>
           <Button variant="link" asChild>
-            <Link href="/">Log in</Link>
+            <Link href="/login">Log in</Link>
           </Button>
         </CardFooter>
       </Card>

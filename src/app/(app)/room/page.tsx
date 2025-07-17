@@ -303,7 +303,6 @@ function DroppablePot({
 
 export default function RoomPage() {
   const { user, gameData } = useAuth();
-  const router = useRouter();
   const { toast } = useToast();
   
   const [collectedPlants, setCollectedPlants] = useState<Plant[]>([]);
@@ -319,12 +318,6 @@ export default function RoomPage() {
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
   );
-  
-  useEffect(() => {
-    if (!user) {
-        router.push('/');
-    }
-  }, [user, router]);
   
   useEffect(() => {
     if (gameData) {
@@ -458,7 +451,7 @@ export default function RoomPage() {
     <DndContext sensors={sensors} onDragStart={(e) => setActiveId(e.active.id as string)} onDragEnd={handleDragEnd} onDragCancel={() => setActiveId(null)}>
       <div className="space-y-4">
         <header className="flex items-center justify-between p-4">
-          <h1 className="font-headline text-2xl text-primary">My Room</h1>
+          <h1 className="font-headline text-3xl text-primary">My Room</h1>
           <Button variant="secondary" className="font-semibold" onClick={handleDraw} disabled={isDrawing || availableDraws <= 0}>
             {isDrawing ? (
               <>

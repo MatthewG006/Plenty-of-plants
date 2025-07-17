@@ -97,7 +97,6 @@ function formatTime(ms: number) {
 
 export default function HomePage() {
   const { user, gameData } = useAuth();
-  const router = useRouter();
   const { toast } = useToast();
   const { playSfx } = useAudio();
 

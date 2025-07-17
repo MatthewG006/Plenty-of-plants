@@ -49,10 +49,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     setIsClient(true);
-    if (!user) {
-        router.push('/');
-    }
-  }, [user, router]);
+  }, []);
 
   const handleClearData = async () => {
     if (!user) return;
@@ -84,7 +81,7 @@ export default function SettingsPage() {
   return (
     <div className="p-4">
       <header className="flex items-center justify-between pb-4">
-        <h1 className="font-headline text-2xl text-primary">Settings</h1>
+        <h1 className="font-headline text-3xl text-primary">Settings</h1>
       </header>
 
       <Card>
