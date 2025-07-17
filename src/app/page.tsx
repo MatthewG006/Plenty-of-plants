@@ -29,8 +29,10 @@ export default function LoginPage() {
   const { isPlaying, togglePlay } = useAudio();
 
   useEffect(() => {
+    // This is a more robust way to handle redirection after login.
+    // When the user state changes to a logged-in user, we redirect.
     if (user) {
-      router.push('/login'); // Redirect to the splash/enter page
+      router.push('/login');
     }
   }, [user, router]);
 
@@ -45,7 +47,7 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // Let the useEffect handle the redirect
+      // The useEffect above will handle the redirect once the user state is updated.
     } catch (error: any) {
       console.error("Firebase Login Error:", error);
       toast({
@@ -60,15 +62,8 @@ export default function LoginPage() {
     }
   };
 
-  if (user) {
-    // Render nothing or a loader while redirecting
-    return (
-        <div className="flex h-screen w-full items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-    );
-  }
-
+  // We show the login form regardless, and the useEffect handles redirection.
+  // This prevents issues where the component might try to redirect before hydration is complete.
   return (
     <div className="flex h-screen w-full items-center justify-center bg-app-gradient p-4">
       <Card className="w-full max-w-sm shadow-xl">
