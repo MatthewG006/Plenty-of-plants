@@ -22,7 +22,7 @@ export default function SplashPage() {
   };
 
   return (
-    <div className="flex h-screen w-full flex-col items-center justify-between p-4 bg-splash-gradient bg-splash-image">
+    <div className="flex h-screen w-full flex-col items-center justify-between p-4 bg-splash-image">
       <div className="flex-grow-[1] z-10" />
       <div className="z-10 flex flex-col items-center justify-center text-center animate-fade-in-up">
         <Image src="/logo.png" alt="Plenty of Plants Logo" width={320} height={320} className="" data-ai-hint="plant logo" />
