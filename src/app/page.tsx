@@ -35,6 +35,8 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
+      // On successful login, AuthContext will detect the change,
+      // but we will also push to the splash page to ensure the flow.
       router.push('/login');
     } catch (error: any) {
       console.error("Firebase Login Error:", error);
