@@ -27,13 +27,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      
+      const isAuthPage = pathname === '/' || pathname === '/signup';
+
       if (currentUser) {
-        if (pathname === '/' || pathname === '/signup') {
-            router.push('/login');
+        // If user is logged in, redirect from auth pages to home.
+        if (isAuthPage) {
+            router.push('/home');
         }
       } else {
-        // Allow access to login and signup pages if not logged in
-        if (pathname !== '/' && pathname !== '/signup') {
+        // If user is not logged in, redirect from protected pages to login.
+        if (!isAuthPage) {
             router.push('/');
         }
       }
