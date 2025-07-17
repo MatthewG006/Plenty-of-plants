@@ -107,12 +107,6 @@ export default function HomePage() {
   const [availableDraws, setAvailableDraws] = useState(0);
   const [nextDrawTime, setNextDrawTime] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!user) {
-        router.push('/');
-    }
-  }, [user, router]);
-  
   const refreshDraws = useCallback(async () => {
     if (!user || !gameData) return;
     const draws = await loadDraws(user.uid);
