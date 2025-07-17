@@ -66,8 +66,6 @@
   }
   body {
     @apply bg-background text-foreground;
-    background-image: url(/background.png);
-    background-repeat: repeat;
   }
 
   .bg-app-gradient {
