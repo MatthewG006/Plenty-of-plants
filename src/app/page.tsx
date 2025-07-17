@@ -61,7 +61,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-splash-gradient p-4">
+    <div className="flex h-screen w-full items-center justify-center bg-splash-image bg-splash-gradient p-4">
       <Card className="w-full max-w-sm shadow-xl">
         <CardHeader className="text-center">
           <CardTitle className="font-headline text-3xl">Welcome Back!</CardTitle>
@@ -98,9 +98,6 @@ export default function LoginPage() {
               <Link href="/signup">Create a new one</Link>
             </Button>
           </div>
-          <Button variant="link" asChild className="p-0 h-auto text-muted-foreground">
-            <Link href="/login">Skip for testing</Link>
-          </Button>
         </CardFooter>
       </Card>
     </div>

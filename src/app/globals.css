@@ -74,6 +74,13 @@
 }
 
 @layer utilities {
+  .bg-splash-image {
+      background-image: url('/splash-bg.png');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+  }
+
   @keyframes fade-in-up {
     from {
       opacity: 0;
