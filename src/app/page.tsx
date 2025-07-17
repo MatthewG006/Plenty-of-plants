@@ -35,9 +35,8 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // On successful login, AuthContext will detect the change,
-      // but we will also push to the splash page to ensure the flow.
-      router.push('/login');
+      // On successful login, the AuthContext will handle the redirect.
+      // No need to push the router here.
     } catch (error: any) {
       console.error("Firebase Login Error:", error);
       toast({
@@ -47,7 +46,8 @@ export default function LoginPage() {
           ? "Invalid email or password. Please try again."
           : "An unexpected error occurred. Please try again later.",
       });
-      setIsLoading(false);
+    } finally {
+        setIsLoading(false);
     }
   };
 
