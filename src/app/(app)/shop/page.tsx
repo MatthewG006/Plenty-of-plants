@@ -30,19 +30,12 @@ function getNextDrawTimeString() {
 
 export default function ShopPage() {
   const { user, gameData } = useAuth();
-  const router = useRouter();
   const { toast } = useToast();
   const { playSfx } = useAudio();
   
   const [drawCount, setDrawCount] = useState(0);
   const [dailyDrawClaimed, setDailyDrawClaimed] = useState(false);
   const [nextDrawTime, setNextDrawTime] = useState(getNextDrawTimeString());
-
-  useEffect(() => {
-    if (!user) {
-        router.push('/');
-    }
-  }, [user, router]);
   
   const refreshData = useCallback(async () => {
     if (!user) return;
@@ -134,7 +127,7 @@ export default function ShopPage() {
   return (
     <div className="p-4">
       <header className="flex items-center justify-between pb-4">
-        <h1 className="font-headline text-2xl text-primary">Shop</h1>
+        <h1 className="font-headline text-3xl text-primary">Shop</h1>
         <div className="flex items-center gap-2 rounded-full bg-yellow-100/80 px-3 py-1 border border-yellow-300/80">
             <Coins className="h-5 w-5 text-yellow-500" />
             <span className="font-bold text-yellow-700">{goldCount}</span>

@@ -51,12 +51,6 @@ export default function ProfilePage() {
   const [plantsEvolved, setPlantsEvolved] = useState(0);
   
   useEffect(() => {
-    if (!user) {
-        router.push('/');
-    }
-  }, [user, router]);
-  
-  useEffect(() => {
     if (gameData) {
         const collectionPlants: Plant[] = gameData.collection || [];
         const deskPlants: Plant[] = (gameData.desk || []).filter((p: Plant | null): p is Plant => p !== null);
@@ -71,7 +65,7 @@ export default function ProfilePage() {
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      router.push('/');
+      router.push('/login');
     } catch (e) {
       console.error("Failed to log out", e);
     }
@@ -96,7 +90,7 @@ export default function ProfilePage() {
   return (
     <div className="p-4 space-y-6">
       <header className="flex items-center justify-between pb-4">
-        <h1 className="font-headline text-2xl text-primary">My Profile</h1>
+        <h1 className="font-headline text-3xl text-primary">My Profile</h1>
       </header>
 
       <Card>

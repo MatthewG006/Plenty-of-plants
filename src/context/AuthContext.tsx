@@ -15,7 +15,11 @@ interface AuthContextType {
   loading: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  gameData: null,
+  loading: true,
+});
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -57,21 +61,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (loading) return;
 
-    const isAuthPage = pathname === '/' || pathname === '/signup';
-    const isSplashPage = pathname === '/login';
+    const isAuthPage = pathname === '/login' || pathname === '/signup';
     
-    // If user is logged in
-    if (user) {
-      if (isAuthPage) {
-        router.push('/login');
-      }
-    } 
-    // If user is not logged in
-    else {
-      if (!isAuthPage && !isSplashPage) {
-          router.push('/');
-      }
+    // If user is not logged in and not on an auth page or the splash screen, redirect to login
+    if (!user && !isAuthPage && pathname !== '/') {
+      router.push('/login');
     }
+    
+    // If user is logged in and on an auth page, redirect to home
+    if (user && isAuthPage) {
+      router.push('/home');
+    }
+
   }, [user, loading, pathname, router]);
 
 
