@@ -32,23 +32,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const isSplashPage = pathname === '/login';
 
       if (currentUser) {
-        // User is logged in.
-        // If they are on an auth page (login/signup), redirect them to the splash page.
+        // User IS logged in
         if (isAuthPage) {
-            router.push('/login');
+          // If logged-in user is on login/signup, send to splash
+          router.push('/login');
         }
       } else {
-        // User is not logged in.
-        // If they are on a protected page, redirect to login page.
-        // Allow access to login, signup, and splash (as it's part of the login flow).
-        if (!isAuthPage && !isSplashPage) {
-            router.push('/');
+        // User is NOT logged in
+        if (!isAuthPage) {
+          // If they are on any page other than login/signup,
+          // send them to the login page.
+          router.push('/');
         }
       }
     });
 
     return () => unsubscribeAuth();
-  }, [pathname, router]);
+  }, [pathname, router, user]); // Added user to dependency array
 
   useEffect(() => {
     let unsub: (() => void) | undefined;
