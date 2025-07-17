@@ -1,3 +1,4 @@
+require('dotenv').config();
 import type {NextConfig} from 'next';
 import withPWA from '@ducanh2912/next-pwa';
 
