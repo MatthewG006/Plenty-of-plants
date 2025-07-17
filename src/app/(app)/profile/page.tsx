@@ -4,7 +4,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { User, LogOut, Coins } from 'lucide-react';
+import { User, LogOut, Coins, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Plant } from '@/interfaces/plant';
 import { cn } from '@/lib/utils';
@@ -21,18 +21,17 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { useAuth } from '@/context/AuthContext';
+import { auth } from '@/lib/firebase';
+import { signOut } from 'firebase/auth';
 
-
-interface UserData {
+interface ProfileData {
   username: string;
   email: string;
   gameId: string;
   avatarColor?: string;
   gold?: number;
 }
-
-const PLANTS_DATA_STORAGE_KEY = 'plenty-of-plants-data';
-const USER_DATA_STORAGE_KEY = 'plenty-of-plants-user';
 
 function InfoRow({ icon: Icon, label, value, valueClassName }: { icon?: React.ElementType, label: string, value: string | number, valueClassName?: string }) {
   return (
@@ -45,102 +44,54 @@ function InfoRow({ icon: Icon, label, value, valueClassName }: { icon?: React.El
 }
 
 export default function ProfilePage() {
-  const [plantsCollected, setPlantsCollected] = useState(0);
-  const [plantsEvolved, setPlantsEvolved] = useState(0);
-  const [userData, setUserData] = useState<UserData>({
-    username: 'PlantLover',
-    email: 'you@example.com',
-    gameId: '#GAMEID00000',
-    gold: 0,
-  });
-  const [avatarColor, setAvatarColor] = useState<string>('');
+  const { user, gameData } = useAuth();
   const router = useRouter();
 
+  const [plantsCollected, setPlantsCollected] = useState(0);
+  const [plantsEvolved, setPlantsEvolved] = useState(0);
+  
   useEffect(() => {
-    // This function will run on mount and also when the window gets focus
-    const loadData = () => {
-        // Load user data
-        let storedUserRaw;
-        try {
-            storedUserRaw = localStorage.getItem(USER_DATA_STORAGE_KEY);
-        } catch(e) {
-          console.error("Failed to read user data from localStorage", e);
-        }
-
-        let user: UserData;
-        if (storedUserRaw) {
-            try {
-                user = JSON.parse(storedUserRaw);
-            } catch (e) {
-                console.error("Failed to parse user data on profile page", e);
-                user = { username: 'PlantLover', email: 'you@example.com', gameId: '#GAMEID00000', gold: 0 };
-            }
-        } else {
-            user = { username: 'PlantLover', email: 'you@example.com', gameId: '#GAMEID00000', gold: 0 };
-        }
-
-        if (user.avatarColor) {
-            setAvatarColor(user.avatarColor);
-        } else {
-            const hue = Math.floor(Math.random() * 360);
-            const newAvatarColor = `hsl(${hue}, 70%, 85%)`;
-            setAvatarColor(newAvatarColor);
-            user.avatarColor = newAvatarColor;
-        }
-
-        if (typeof user.gold === 'undefined') {
-            user.gold = 0;
-        }
-
-        try {
-            localStorage.setItem(USER_DATA_STORAGE_KEY, JSON.stringify(user));
-        } catch (e) {
-            console.error("Failed to save user data to localStorage", e);
-        }
-
-        setUserData(user);
-
-
-        // Load plant data
-        let storedDataRaw;
-        try {
-            storedDataRaw = localStorage.getItem(PLANTS_DATA_STORAGE_KEY);
-        } catch (e) {
-            console.error("Failed to read localStorage on profile page", e);
-        }
-        
-        if (storedDataRaw) {
-          try {
-            const storedData = JSON.parse(storedDataRaw);
-            const collectionPlants: Plant[] = storedData.collection || [];
-            const deskPlants: Plant[] = (storedData.desk || []).filter((p: Plant | null): p is Plant => p !== null);
-            const allPlants = [...collectionPlants, ...deskPlants];
-
-            setPlantsCollected(allPlants.length);
-            
-            const evolvedCount = allPlants.filter(p => p.form !== 'Base').length;
-            setPlantsEvolved(evolvedCount);
-          } catch (e) {
-            console.error("Failed to parse stored plants on profile page", e);
-            setPlantsCollected(0);
-            setPlantsEvolved(0);
-          }
-        }
-    };
-    
-    loadData();
-    window.addEventListener('focus', loadData);
-    return () => window.removeEventListener('focus', loadData);
-  }, []);
-
-  const handleLogout = () => {
-    try {
-      localStorage.removeItem(USER_DATA_STORAGE_KEY);
-    } catch (e) {
-      console.error("Failed to remove user data from localStorage", e);
+    if (!user) {
+        router.push('/');
     }
-    router.push('/');
+  }, [user, router]);
+  
+  useEffect(() => {
+    if (gameData) {
+        const collectionPlants: Plant[] = gameData.collection || [];
+        const deskPlants: Plant[] = (gameData.desk || []).filter((p: Plant | null): p is Plant => p !== null);
+        const allPlants = [...collectionPlants, ...deskPlants];
+
+        setPlantsCollected(allPlants.length);
+        const evolvedCount = allPlants.filter(p => p.form !== 'Base').length;
+        setPlantsEvolved(evolvedCount);
+    }
+  }, [gameData]);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.push('/');
+    } catch (e) {
+      console.error("Failed to log out", e);
+    }
   };
+
+  if (!user || !gameData) {
+    return (
+        <div className="flex h-screen w-full items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    );
+  }
+
+  const profileData: ProfileData = {
+      username: user.displayName || 'PlantLover',
+      email: user.email || 'you@example.com',
+      gameId: `#${user.uid.slice(0, 8).toUpperCase()}`,
+      gold: gameData.gold || 0,
+      avatarColor: (gameData as any).avatarColor || 'hsl(120, 70%, 85%)'
+  }
 
   return (
     <div className="p-4 space-y-6">
@@ -152,18 +103,18 @@ export default function ProfilePage() {
         <CardHeader className="items-center text-center">
           <Avatar className="h-24 w-24 mb-4">
             <AvatarImage src="" alt="User avatar" />
-            <AvatarFallback style={{ backgroundColor: avatarColor }} className="text-4xl font-bold text-primary/70">
-              {userData.username ? userData.username.charAt(0).toUpperCase() : <User className="h-12 w-12" />}
+            <AvatarFallback style={{ backgroundColor: profileData.avatarColor }} className="text-4xl font-bold text-primary/70">
+              {profileData.username ? profileData.username.charAt(0).toUpperCase() : <User className="h-12 w-12" />}
             </AvatarFallback>
           </Avatar>
-          <CardTitle className="font-headline text-2xl">{userData.username}</CardTitle>
-          <p className="text-muted-foreground">{userData.gameId}</p>
+          <CardTitle className="font-headline text-2xl">{profileData.username}</CardTitle>
+          <p className="text-muted-foreground">{profileData.gameId}</p>
         </CardHeader>
         <CardContent>
           <Separator className="my-2"/>
-          <InfoRow label="Email" value={userData.email} valueClassName="text-xs" />
+          <InfoRow label="Email" value={profileData.email} valueClassName="text-xs" />
           <Separator />
-          <InfoRow label="Gold" value={userData.gold ?? 0} valueClassName="text-xs" icon={Coins} />
+          <InfoRow label="Gold" value={profileData.gold ?? 0} valueClassName="text-xs" icon={Coins} />
           <Separator />
           <InfoRow label="Plants Collected" value={plantsCollected} valueClassName="text-xs" />
           <Separator />
@@ -184,7 +135,7 @@ export default function ProfilePage() {
                     <AlertDialogHeader>
                     <AlertDialogTitle>Are you sure you want to log out?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        You will be returned to the login screen. Your plant collection will be saved for when you log back in.
+                        You will be returned to the login screen. Your plant collection is saved to your account.
                     </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -200,5 +151,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-    
