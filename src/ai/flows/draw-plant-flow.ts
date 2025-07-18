@@ -69,7 +69,7 @@ const drawPlantFlow = ai.defineFlow(
 
       const {media} = await ai.generate({
         model: 'googleai/gemini-2.0-flash-preview-image-generation',
-        prompt: `A cute, 2D vector art illustration of a magical plant character: ${plantDetails.imagePrompt}. The plant should be in a simple terracotta pot with a happy, smiling face. The style should be clean, with bold outlines, suitable for a mobile game. The background must be solid white.`,
+        prompt: `A cute, 2D vector art illustration of a magical plant character, similar in style to a happy cartoon fern. The plant is: ${plantDetails.imagePrompt}. The plant must be in a simple terracotta pot. The pot must have a happy, smiling face on it. The style should be clean, with bold black outlines, suitable for a mobile game. The background must be solid white.`,
         config: {
           responseModalities: ['TEXT', 'IMAGE'],
         },
