@@ -27,7 +27,7 @@ export default function SplashPage() {
       <div className="z-10 flex flex-col items-center justify-center text-center animate-fade-in-up">
         <Image src="/logo.png" alt="Plenty of Plants Logo" width={320} height={320} className="" data-ai-hint="plant logo" />
         <p className="text-lg text-white font-bold -mt-16 [text-shadow:0_2px_4px_rgba(0,0,0,0.5)]">
-          Your digital conservatory awaits.
+          Your Digital Conservatory Awaits.
         </p>
         <Button onClick={handleEnter} className="mt-12 animate-pulse-subtle" size="lg" disableSfx>
           <span className="text-xl px-8">Tap to Enter</span>
