@@ -10,6 +10,8 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { getFallbackPlantFlow } from './get-fallback-plant-flow';
+import fs from 'fs/promises';
+import path from 'path';
 
 
 const DrawPlantInputSchema = z.object({});
@@ -69,21 +71,29 @@ const drawPlantFlow = ai.defineFlow(
         throw new Error('Could not generate plant details.');
       }
 
-      // Step 2: Use the details from Step 1 to generate the image.
+      // Step 2: Read the reference image from the filesystem.
+      const imagePath = path.join(process.cwd(), 'public', 'fern.png');
+      const referenceImageBuffer = await fs.readFile(imagePath);
+      const referenceImageDataUri = `data:image/png;base64,${referenceImageBuffer.toString('base64')}`;
+
+      // Step 3: Use the details and reference image to generate the new plant image.
       const { media } = await ai.generate({
         model: 'googleai/gemini-2.0-flash-preview-image-generation',
-        prompt: `A cute, 2D vector art illustration of a magical plant character in a simple terracotta pot. The plant is: ${plantDetails.imagePrompt}. The background must be solid white.`,
+        prompt: [
+          { media: { url: referenceImageDataUri, contentType: 'image/png' } },
+          { text: `Generate a new, unique plant based on this art style. The new plant is: ${plantDetails.imagePrompt}. The new plant should be in a simple terracotta pot with a happy, smiling face, just like the example. The background must be solid white.` }
+        ],
         config: {
           responseModalities: ['TEXT', 'IMAGE'],
         },
       });
 
-      // Step 3: Check if the image was generated successfully.
+      // Step 4: Check if the image was generated successfully.
       if (!media || !media.url) {
         throw new Error('Could not generate plant image from AI.');
       }
 
-      // Step 4: Return the complete plant data.
+      // Step 5: Return the complete plant data.
       return {
         name: plantDetails.name,
         description: plantDetails.description,
