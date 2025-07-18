@@ -89,11 +89,19 @@ const drawPlantFlow = ai.defineFlow(
         description: plantDetails.description,
         imageDataUri: media.url,
       };
-    } catch (error) {
-        // If any step in the try block fails, trigger the fallback.
+    } catch (error: any) {
+        // Check if the error is due to an invalid API key.
+        if (error.message && error.message.includes('API key not valid')) {
+            console.error("Authentication Error: The provided Google AI API key is invalid or missing.", error);
+            // Re-throw a specific error for the UI to catch.
+            throw new Error("Invalid API Key");
+        }
+
+        // For any other type of error, trigger the fallback.
         console.error("Primary plant generation failed, triggering fallback.", error);
         const fallbackPlant = await getFallbackPlantFlow({});
         return fallbackPlant;
     }
   }
 );
+

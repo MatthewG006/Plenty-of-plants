@@ -141,13 +141,21 @@ export default function HomePage() {
             imageDataUri: compressedImageDataUri,
         });
 
-    } catch (e) {
+    } catch (e: any) {
         console.error(e);
-        toast({
-            variant: "destructive",
-            title: "Failed to draw a plant",
-            description: "There was an issue with the AI. Please try again.",
-        });
+        if (e.message === 'Invalid API Key') {
+            toast({
+                variant: "destructive",
+                title: "Invalid API Key",
+                description: "Please check your GOOGLE_API_KEY in the .env file.",
+            });
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Failed to draw a plant",
+                description: "There was an issue with the AI. Please try again.",
+            });
+        }
     } finally {
         setIsDrawing(false);
     }
