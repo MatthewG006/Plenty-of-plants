@@ -62,13 +62,15 @@ const drawPlantFlow = ai.defineFlow(
   },
   async () => {
     try {
-      const {output: plantDetails} = await plantDetailsPrompt({});
+      // Step 1: Generate the plant's details first and wait for the result.
+      const { output: plantDetails } = await plantDetailsPrompt({});
       
       if (!plantDetails) {
         throw new Error('Could not generate plant details.');
       }
 
-      const {media} = await ai.generate({
+      // Step 2: Use the details from Step 1 to generate the image.
+      const { media } = await ai.generate({
         model: 'googleai/gemini-2.0-flash-preview-image-generation',
         prompt: `A cute, 2D vector art illustration of a magical plant character, similar in style to a happy cartoon fern. The plant is: ${plantDetails.imagePrompt}. The plant must be in a simple terracotta pot. The pot must have a happy, smiling face on it. The style should be clean, with bold black outlines, suitable for a mobile game. The background must be solid white.`,
         config: {
@@ -76,18 +78,20 @@ const drawPlantFlow = ai.defineFlow(
         },
       });
 
+      // Step 3: Check if the image was generated successfully.
       if (!media || !media.url) {
         throw new Error('Could not generate plant image from AI.');
       }
 
+      // Step 4: Return the complete plant data.
       return {
         name: plantDetails.name,
         description: plantDetails.description,
         imageDataUri: media.url,
       };
     } catch (error) {
+        // If any step in the try block fails, trigger the fallback.
         console.error("Primary plant generation failed, triggering fallback.", error);
-        // If any part of the primary flow fails, use the fallback.
         const fallbackPlant = await getFallbackPlantFlow({});
         return fallbackPlant;
     }
