@@ -24,7 +24,6 @@ import { useAudio } from '@/context/AudioContext';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/context/AuthContext';
 import { savePlant } from '@/lib/firestore';
-import { useRouter } from 'next/navigation';
 
 const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
 
@@ -202,14 +201,6 @@ export default function HomePage() {
     
     setDrawnPlant(null);
   };
-
-  if (!user || !gameData) {
-      return (
-        <div className="flex h-screen w-full items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      );
-  }
 
   return (
     <div className="p-4 space-y-6 bg-background">
