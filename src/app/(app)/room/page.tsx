@@ -466,9 +466,17 @@ export default function RoomPage() {
 
         <section className="px-4">
           <div
-            className="h-48 rounded-lg border-2 border-primary/20 bg-card/80 p-6"
+            className="relative h-48 rounded-lg border-2 border-primary/20 bg-card/80 p-6 overflow-hidden"
           >
-            <div className="flex h-full items-end justify-around">
+            <Image
+              src="/desk.png"
+              alt="A wooden desk for plants"
+              layout="fill"
+              objectFit="cover"
+              className="z-0"
+              data-ai-hint="desk wood"
+            />
+            <div className="relative z-10 flex h-full items-end justify-around">
               {deskPlants.map((plant, index) => (
                   <DroppablePot
                     key={plant?.id || `pot-${index}`}
