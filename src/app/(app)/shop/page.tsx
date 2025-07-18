@@ -99,13 +99,21 @@ export default function ShopPage() {
     }
   };
   
+  if (!user || !gameData) {
+    return (
+        <div className="flex h-screen w-full items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    );
+  }
+  
   const goldCount = gameData?.gold || 0;
   const drawCount = gameData?.draws || 0;
 
   return (
     <div className="p-4">
       <header className="flex items-center justify-between pb-4">
-        <h1 className="font-headline text-3xl text-primary">Shop</h1>
+        <h1 className="text-3xl text-primary">Shop</h1>
         <div className="flex items-center gap-2 rounded-full bg-yellow-100/80 px-3 py-1 border border-yellow-300/80">
             <Coins className="h-5 w-5 text-yellow-500" />
             <span className="font-bold text-yellow-700">{goldCount}</span>
@@ -118,7 +126,7 @@ export default function ShopPage() {
             <div className="flex items-center gap-4">
               <Gift className="h-8 w-8 text-primary" />
               <div>
-                <CardTitle className="font-headline text-xl">Daily Free Draw</CardTitle>
+                <CardTitle className="text-xl">Daily Free Draw</CardTitle>
                 <CardDescription>Claim one free draw every day.</CardDescription>
               </div>
             </div>
@@ -144,7 +152,7 @@ export default function ShopPage() {
             <div className="flex items-center gap-4">
               <Leaf className="h-8 w-8 text-primary" />
               <div>
-                <CardTitle className="font-headline text-xl">Buy a Draw</CardTitle>
+                <CardTitle className="text-xl">Buy a Draw</CardTitle>
                 <CardDescription>Use your gold to get another draw.</CardDescription>
               </div>
             </div>

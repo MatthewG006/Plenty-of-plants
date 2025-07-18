@@ -68,18 +68,18 @@ function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlantOutput 
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-sm">
                 <DialogHeader>
-                    <DialogTitle className="font-headline text-3xl text-center">A new plant!</DialogTitle>
+                    <DialogTitle className="text-3xl text-center">A new plant!</DialogTitle>
                 </DialogHeader>
                 <div className="flex flex-col items-center gap-4 py-4">
                     <div className="w-64 h-64 rounded-lg overflow-hidden border-4 border-primary/50 shadow-lg bg-green-100">
                         <Image src={plant.imageDataUri} alt={plant.name} width={256} height={256} className="object-cover w-full h-full" />
                     </div>
-                    <h3 className="text-2xl font-headline text-primary">{plant.name}</h3>
-                    <p className="text-muted-foreground text-center font-body">{plant.description}</p>
+                    <h3 className="text-2xl font-semibold text-primary">{plant.name}</h3>
+                    <p className="text-muted-foreground text-center">{plant.description}</p>
                 </div>
                 <DialogFooter>
                     <DialogClose asChild>
-                        <Button className="w-full font-headline text-lg">Collect</Button>
+                        <Button className="w-full text-lg">Collect</Button>
                     </DialogClose>
                 </DialogFooter>
             </DialogContent>
@@ -202,10 +202,18 @@ export default function HomePage() {
     setDrawnPlant(null);
   };
 
+  if (!gameData) {
+    return (
+        <div className="flex h-screen w-full items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    );
+  }
+
   return (
     <div className="p-4 space-y-6 bg-background">
       <header className="flex flex-col items-center space-y-2">
-        <h1 className="font-headline text-3xl text-foreground font-bold">
+        <h1 className="text-3xl text-foreground font-bold">
           Plenty Of Plants
         </h1>
         <div className="flex w-full items-center justify-between">
@@ -227,7 +235,7 @@ export default function HomePage() {
       <main className="space-y-6">
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle className="text-xl font-headline text-center">Your Latest Plant</CardTitle>
+            <CardTitle className="text-xl text-center">Your Latest Plant</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center text-center min-h-[260px]">
             {latestPlant ? (
@@ -248,13 +256,13 @@ export default function HomePage() {
                       </div>
                   )}
                 </div>
-                <h3 className="text-xl font-headline text-primary">{latestPlant.name}</h3>
+                <h3 className="text-xl font-semibold text-primary">{latestPlant.name}</h3>
                 <div className="w-4/5">
                     <Progress value={(latestPlant.xp / 1000) * 100} className="h-2" />
                 </div>
               </Link>
             ) : (
-              <p className="text-muted-foreground font-body">
+              <p className="text-muted-foreground">
                 No plants collected yet. Time to draw one!
               </p>
             )}
@@ -281,14 +289,14 @@ export default function HomePage() {
                         );
                     })}
                 </div>
-                <div className="text-sm text-muted-foreground text-center font-body">
+                <div className="text-sm text-muted-foreground text-center">
                     <span>Draws Available</span>
                     {nextDrawTime && availableDraws < MAX_DRAWS && (
                         <span className="ml-2">({`New draw in ${nextDrawTime}`})</span>
                     )}
                 </div>
             </div>
-            <Button onClick={handleDraw} disabled={isDrawing || availableDraws <= 0} size="lg" className="w-full font-headline rounded-full mt-2">
+            <Button onClick={handleDraw} disabled={isDrawing || availableDraws <= 0} size="lg" className="w-full rounded-full mt-2">
               {isDrawing ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
