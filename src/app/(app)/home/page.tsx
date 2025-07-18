@@ -202,16 +202,8 @@ export default function HomePage() {
     setDrawnPlant(null);
   };
 
-  if (!gameData) {
-    return (
-        <div className="flex h-screen w-full items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-    );
-  }
-
   return (
-    <div className="p-4 space-y-6 bg-background">
+    <div className="p-4 space-y-6 bg-white">
       <header className="flex flex-col items-center space-y-2">
         <h1 className="text-3xl text-foreground font-bold">
           Plenty Of Plants

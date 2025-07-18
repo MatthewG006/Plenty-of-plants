@@ -323,9 +323,14 @@ export default function RoomPage() {
     if (gameData) {
         setCollectedPlants(gameData.collection || []);
         setDeskPlants(gameData.desk || Array(NUM_POTS).fill(null));
-        setAvailableDraws(gameData.draws || 0);
     }
   }, [gameData]);
+
+  useEffect(() => {
+    if (gameData?.draws) {
+      setAvailableDraws(gameData.draws);
+    }
+  }, [gameData?.draws])
 
   const activePlantData = (() => {
     if (!activeId) return null;
@@ -439,17 +444,9 @@ export default function RoomPage() {
     await updatePlantArrangement(user.uid, finalCollected, newDeskPlants);
   };
 
-  if (!user || !gameData) {
-    return (
-        <div className="flex h-screen w-full items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-    );
-  }
-
   return (
     <DndContext sensors={sensors} onDragStart={(e) => setActiveId(e.active.id as string)} onDragEnd={handleDragEnd} onDragCancel={() => setActiveId(null)}>
-      <div className="space-y-4">
+      <div className="space-y-4 bg-white">
         <header className="flex items-center justify-between p-4">
           <h1 className="text-3xl text-primary">My Room</h1>
           <Button variant="secondary" className="font-semibold" onClick={handleDraw} disabled={isDrawing || availableDraws <= 0}>
@@ -507,7 +504,7 @@ export default function RoomPage() {
           open={!!selectedPlant}
           onOpenChange={(isOpen) => !isOpen && setSelectedPlant(null)}
           onPlantUpdate={handlePlantUpdate}
-          userId={user.uid}
+          userId={user!.uid}
         />
 
         <DragOverlay>
