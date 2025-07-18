@@ -5,7 +5,7 @@
 
 @layer base {
   :root {
-    --background: 120 60% 97%; /* Light Green */
+    --background: 0 0% 100%; /* White */
     --foreground: 222.2 47.4% 11.2%; /* Dark Blue-Black */
     --card: 0 0% 100%;
     --card-foreground: 222.2 47.4% 11.2%;
@@ -71,10 +71,10 @@
 
 @layer utilities {
   .bg-splash-image {
-      background-image: linear-gradient(to top, rgba(83, 223, 129, 0.8), rgba(83, 223, 129, 0.05)), url('/splash-bg.png');
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
+    background-image: linear-gradient(to top, rgba(83, 223, 129, 0.8), rgba(83, 223, 129, 0.05)), url('/splash-bg.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
   }
 
   @keyframes fade-in-up {

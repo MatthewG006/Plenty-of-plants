@@ -203,7 +203,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="p-4 space-y-6 bg-white">
+    <div className="p-4 space-y-6">
       <header className="flex flex-col items-center space-y-2">
         <h1 className="text-3xl text-foreground font-bold">
           Plenty Of Plants

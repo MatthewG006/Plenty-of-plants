@@ -4,7 +4,7 @@ import { Users } from 'lucide-react';
 
 export default function CommunityPage() {
   return (
-    <div className="p-4 bg-white">
+    <div className="p-4">
       <header className="flex items-center justify-between pb-4">
         <h1 className="text-3xl text-chart-2">Community</h1>
       </header>
