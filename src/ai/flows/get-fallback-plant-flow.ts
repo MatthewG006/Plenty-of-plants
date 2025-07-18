@@ -88,12 +88,14 @@ export const getFallbackPlantFlow = ai.defineFlow(
             imageDataUri,
         };
     } catch (error) {
-        console.error("Critical error: Could not load or generate fallback plant.", error);
-        // This is a final failsafe to prevent a crash, returning a transparent pixel.
+        console.error("Critical error in fallback AI call, returning hardcoded plant.", error);
+        // This is a final failsafe to prevent a crash, especially if the API key is invalid.
+        const imagePath = path.join(BUILT_IN_FALLBACK_PLANTS_DIR, 'succulent.png');
+        const imageDataUri = await toDataURL(imagePath, 'image/png');
         return {
-            name: "Resilient Sprout",
-            description: "This little sprout survived a digital apocalypse to be here!",
-            imageDataUri: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+            name: "Resilient Succulent",
+            description: "This little plant survived an error to be here!",
+            imageDataUri: imageDataUri
         };
     }
   }
