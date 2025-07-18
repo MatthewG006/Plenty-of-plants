@@ -33,7 +33,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       if (!currentUser) {
-        // If user logs out, clear game data and stop loading
         setGameData(null);
         setLoading(false);
       }
@@ -42,15 +41,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
   
   useEffect(() => {
-    if (loading && pathname === '/') {
-        setLoading(false);
-        return;
-    }
-
     let unsubscribeFirestore: Unsubscribe | undefined;
 
     if (user) {
-      setLoading(true); // Start loading when we have a user
+      setLoading(true);
       const docRef = doc(db, 'users', user.uid);
       unsubscribeFirestore = onSnapshot(docRef, (docSnap) => {
         if (docSnap.exists()) {
@@ -64,7 +58,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             lastFreeDrawClaimed: data.lastFreeDrawClaimed || 0,
           });
         } else {
-            // User exists but has no data doc, set default state
             setGameData({
               gold: 0,
               collection: [],
@@ -81,8 +74,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setLoading(false);
       });
     } else {
-      // No user, not loading.
-      if (pathname !== '/') setLoading(false);
+      setLoading(false);
     }
     
     return () => {
@@ -90,27 +82,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         unsubscribeFirestore();
       }
     };
-  }, [user, pathname]);
+  }, [user]);
 
   useEffect(() => {
     if (loading) return;
 
-    const protectedPaths = ['/home', '/room', '/shop', '/community', '/profile', '/settings'];
-    const isProtectedPage = protectedPaths.some(p => pathname.startsWith(p));
     const isAuthPage = ['/login', '/signup'].includes(pathname);
-    
-    // Allow splash page to be visible always
-    if (pathname === '/') return;
+    const isSplashPage = pathname === '/';
 
-    if (!user && isProtectedPage) {
-        router.push('/login');
+    if (isSplashPage) {
+      return;
+    }
+
+    if (!user && !isAuthPage) {
+      router.push('/login');
     } else if (user && isAuthPage) {
       router.push('/home');
     }
 
   }, [user, loading, pathname, router]);
 
-  // Show a global loader for any route that is not the splash page while loading auth state.
   if (loading && pathname !== '/') {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
