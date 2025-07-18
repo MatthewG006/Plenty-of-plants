@@ -8,9 +8,8 @@
  */
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-
-// Add a hardcoded list of built-in plants as a final fallback.
-const PLANT_TYPES = ["succulent", "cactus", "flower", "fern", "bonsai"];
+import fs from 'fs/promises';
+import path from 'path';
 
 const GetFallbackPlantOutputSchema = z.object({
   name: z.string().describe('The creative and unique name of the new plant.'),
@@ -24,16 +23,28 @@ const GetFallbackPlantOutputSchema = z.object({
 
 export type GetFallbackPlantOutput = z.infer<typeof GetFallbackPlantOutputSchema>;
 
+// Helper function to convert image file to data URI
+async function toDataURL(filePath: string, mimeType: string): Promise<string> {
+    const fileBuffer = await fs.readFile(filePath);
+    const base64 = fileBuffer.toString('base64');
+    return `data:${mimeType};base64,${base64}`;
+}
+
+
 const fallbackPlantDetailsPrompt = ai.definePrompt({
     name: 'fallbackPlantDetailsPrompt',
-    input: { schema: z.object({}) },
+    input: { 
+        schema: z.object({
+            plantType: z.string().describe("The type of plant, e.g. 'succulent', 'fern'.")
+        }) 
+    },
     output: {
       format: 'json',
       schema: z.object({
         name: z
           .string()
           .describe(
-            'A creative and unique two-word name for a randomly chosen type of plant.'
+            'A creative and unique two-word name for the provided plant type.'
           ),
         description: z
           .string()
@@ -42,7 +53,7 @@ const fallbackPlantDetailsPrompt = ai.definePrompt({
           ),
       }),
     },
-    prompt: `You are a creative botanist for a game. Randomly select one of the following plant types: ${PLANT_TYPES.join(', ')}. Then, generate a unique two-word name and a whimsical one-sentence description for it. Return the response as a JSON object.`,
+    prompt: `You are a creative botanist for a game. For the plant type "{{plantType}}", generate a unique two-word name and a whimsical one-sentence description for it. Return the response as a JSON object.`,
 });
 
 
@@ -54,7 +65,22 @@ export const getFallbackPlantFlow = ai.defineFlow(
   },
   async () => {
     try {
-        const { output: plantDetails } = await fallbackPlantDetailsPrompt({});
+        const fallbackDir = path.join(process.cwd(), 'public', 'fallback-plants');
+        const files = await fs.readdir(fallbackDir);
+        const imageFiles = files.filter(file => file.endsWith('.png') || file.endsWith('.jpg') || file.endsWith('.jpeg'));
+
+        if (imageFiles.length === 0) {
+            throw new Error("No fallback images found in the directory.");
+        }
+
+        const randomImageFile = imageFiles[Math.floor(Math.random() * imageFiles.length)];
+        const plantType = path.parse(randomImageFile).name; // e.g., "succulent" from "succulent.png"
+        const imagePath = path.join(fallbackDir, randomImageFile);
+        const mimeType = `image/${path.extname(randomImageFile).substring(1)}`;
+
+        const imageDataUri = await toDataURL(imagePath, mimeType);
+
+        const { output: plantDetails } = await fallbackPlantDetailsPrompt({ plantType });
         
         if (!plantDetails) {
             throw new Error("Could not generate details for fallback.");
@@ -63,12 +89,11 @@ export const getFallbackPlantFlow = ai.defineFlow(
         return {
             name: plantDetails.name,
             description: plantDetails.description,
-            // Use a placeholder image to avoid filesystem errors.
-            imageDataUri: "https://placehold.co/256x256.png",
+            imageDataUri: imageDataUri,
         };
     } catch (error) {
-        console.error("Critical error in fallback AI call, returning hardcoded plant.", error);
-        // This is a final failsafe to prevent a crash, especially if the API key is invalid.
+        console.error("Critical error in fallback flow, returning hardcoded plant.", error);
+        // This is a final failsafe to prevent a crash, especially if the API key is invalid or files are missing.
         return {
             name: "Resilient Succulent",
             description: "This little plant survived an error to be here!",
