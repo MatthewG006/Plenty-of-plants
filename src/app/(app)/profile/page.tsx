@@ -4,7 +4,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { User, LogOut, Coins, Loader2 } from 'lucide-react';
+import { User, LogOut, Coins } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Plant } from '@/interfaces/plant';
 import { cn } from '@/lib/utils';
@@ -71,19 +71,11 @@ export default function ProfilePage() {
     }
   };
 
-  if (!user || !gameData) {
-    return (
-        <div className="flex h-screen w-full items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-    );
-  }
-
   const profileData: ProfileData = {
-      username: user.displayName || 'PlantLover',
-      email: user.email || 'you@example.com',
-      gameId: `#${user.uid.slice(0, 8).toUpperCase()}`,
-      gold: gameData.gold || 0,
+      username: user!.displayName || 'PlantLover',
+      email: user!.email || 'you@example.com',
+      gameId: `#${user!.uid.slice(0, 8).toUpperCase()}`,
+      gold: gameData!.gold || 0,
       avatarColor: (gameData as any).avatarColor || 'hsl(120, 70%, 85%)'
   }
 
