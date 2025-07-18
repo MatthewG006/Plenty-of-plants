@@ -9,30 +9,30 @@ import { getUserGameData } from './firestore';
 export const MAX_DRAWS = 2;
 const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
 
-export async function loadDraws(userId: string): Promise<number> {
+export async function refillDraws(userId: string) {
   const gameData = await getUserGameData(userId);
-  if (!gameData) return 0;
-
+  if (!gameData) return;
+  
   const now = Date.now();
-  const lastRefill = gameData.lastDrawRefill || now;
-  let currentDraws = gameData.draws || 0;
-
+  let currentDraws = gameData.draws;
+  
   if (currentDraws < MAX_DRAWS) {
+    const lastRefill = gameData.lastDrawRefill || now;
     const timeSinceRefill = now - lastRefill;
+
     if (timeSinceRefill >= REFILL_INTERVAL) {
-        const drawsToAdd = Math.floor(timeSinceRefill / REFILL_INTERVAL);
-        const newDraws = Math.min(currentDraws + drawsToAdd, MAX_DRAWS);
-        
+      const drawsToAdd = Math.floor(timeSinceRefill / REFILL_INTERVAL);
+      const newDraws = Math.min(currentDraws + drawsToAdd, MAX_DRAWS);
+
+      if (newDraws > currentDraws) {
         const userDocRef = doc(db, 'users', userId);
         await updateDoc(userDocRef, {
-            draws: newDraws,
-            lastDrawRefill: now,
+          draws: newDraws,
+          lastDrawRefill: now,
         });
-        return newDraws;
+      }
     }
   }
-
-  return currentDraws;
 }
 
 export async function useDraw(userId: string) {

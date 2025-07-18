@@ -23,7 +23,7 @@ import {
   useSensors,
   TouchSensor
 } from '@dnd-kit/core';
-import { loadDraws, useDraw } from '@/lib/draw-manager';
+import { useDraw } from '@/lib/draw-manager';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
@@ -312,7 +312,6 @@ export default function RoomPage() {
   const [newPlant, setNewPlant] = useState<DrawPlantOutput | null>(null);
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [availableDraws, setAvailableDraws] = useState(0);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -326,12 +325,6 @@ export default function RoomPage() {
     }
   }, [gameData]);
 
-  useEffect(() => {
-    if (gameData?.draws) {
-      setAvailableDraws(gameData.draws);
-    }
-  }, [gameData?.draws])
-
   const activePlantData = (() => {
     if (!activeId) return null;
     const [source, idStr] = activeId.split(":");
@@ -342,16 +335,6 @@ export default function RoomPage() {
     return plant ? { plant, source } : null;
   })();
 
-  const refreshDraws = useCallback(async () => {
-    if (!user) return;
-    const draws = await loadDraws(user.uid);
-    setAvailableDraws(draws);
-  }, [user]);
-
-  useEffect(() => {
-    refreshDraws();
-  }, [refreshDraws]);
-
   const handlePlantUpdate = useCallback((updatedPlant: Plant) => {
     setDeskPlants(prev => prev.map(p => p?.id === updatedPlant.id ? updatedPlant : p));
     setCollectedPlants(prev => prev.map(p => p.id === updatedPlant.id ? updatedPlant : p));
@@ -359,7 +342,7 @@ export default function RoomPage() {
   }, []);
 
   const handleDraw = async () => {
-     if (!user || availableDraws <= 0) {
+     if (!user || !gameData || gameData.draws <= 0) {
         toast({
             variant: "destructive",
             title: "No Draws Left",
@@ -378,7 +361,6 @@ export default function RoomPage() {
           description: "Go to the Home page to see and collect your new plant.",
         });
         await useDraw(user.uid);
-        refreshDraws();
 
     } catch (e) {
         console.error(e);
@@ -457,7 +439,7 @@ export default function RoomPage() {
       <div className="space-y-4 bg-white min-h-screen">
         <header className="flex items-center justify-between p-4">
           <h1 className="text-3xl text-primary">My Room</h1>
-          <Button variant="secondary" className="font-semibold" onClick={handleDraw} disabled={isDrawing || availableDraws <= 0}>
+          <Button variant="secondary" className="font-semibold" onClick={handleDraw} disabled={isDrawing || gameData.draws <= 0}>
             {isDrawing ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -466,7 +448,7 @@ export default function RoomPage() {
             ) : (
               <>
                 <Leaf className="mr-2 h-4 w-4" />
-                Draw Plant ({availableDraws} left)
+                Draw Plant ({gameData.draws} left)
               </>
             )}
           </Button>

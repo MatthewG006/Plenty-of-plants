@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Settings, User, Check, X, Loader2, Leaf } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import type { Plant } from '@/interfaces/plant';
 import { drawPlant, type DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 import { useToast } from '@/hooks/use-toast';
@@ -19,13 +19,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { loadDraws, useDraw, MAX_DRAWS } from '@/lib/draw-manager';
+import { useDraw, MAX_DRAWS, refillDraws } from '@/lib/draw-manager';
 import { useAudio } from '@/context/AudioContext';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/context/AuthContext';
 import { savePlant } from '@/lib/firestore';
-
-const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
 
 // Helper function to compress an image
 async function compressImage(dataUri: string, maxSize = 256): Promise<string> {
@@ -87,13 +85,6 @@ function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlantOutput 
     );
 }
 
-function formatTime(ms: number) {
-    const totalSeconds = Math.floor(ms / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    return `${hours}h ${minutes}m`;
-}
-
 export default function HomePage() {
   const { user, gameData } = useAuth();
   const { toast } = useToast();
@@ -102,34 +93,12 @@ export default function HomePage() {
   const [latestPlant, setLatestPlant] = useState<Plant | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawnPlant, setDrawnPlant] = useState<DrawPlantOutput | null>(null);
-  const [availableDraws, setAvailableDraws] = useState(0);
-  const [nextDrawTime, setNextDrawTime] = useState<string | null>(null);
 
-  const refreshDraws = useCallback(async () => {
-    if (!user || !gameData) return;
-    const draws = await loadDraws(user.uid);
-    setAvailableDraws(draws);
-
-    if (draws < MAX_DRAWS) {
-        const timeRemaining = REFILL_INTERVAL - (Date.now() - (gameData.lastDrawRefill || 0));
-        if (timeRemaining > 0) {
-            setNextDrawTime(formatTime(timeRemaining));
-        } else {
-             setNextDrawTime(null);
-        }
-    } else {
-        setNextDrawTime(null);
-    }
-  }, [user, gameData]);
-  
   useEffect(() => {
-    refreshDraws();
-    const interval = setInterval(() => refreshDraws(), 60000);
-    
-    return () => {
-      clearInterval(interval);
-    };
-  }, [refreshDraws]);
+    if (user) {
+        refillDraws(user.uid);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (gameData) {
@@ -148,7 +117,7 @@ export default function HomePage() {
   }, [gameData]);
 
   const handleDraw = async () => {
-    if (availableDraws <= 0) {
+    if (!gameData || gameData.draws <= 0) {
         toast({
             variant: "destructive",
             title: "No Draws Left",
@@ -156,10 +125,12 @@ export default function HomePage() {
         });
         return;
     }
-    if (!user || !gameData) return;
+    if (!user) return;
 
     setIsDrawing(true);
     try {
+        await useDraw(user.uid);
+
         const drawnPlantResult = await drawPlant();
         const compressedImageDataUri = await compressImage(drawnPlantResult.imageDataUri);
         
@@ -168,9 +139,6 @@ export default function HomePage() {
             ...drawnPlantResult,
             imageDataUri: compressedImageDataUri,
         });
-        
-        await useDraw(user.uid);
-        refreshDraws();
 
     } catch (e) {
         console.error(e);
@@ -185,7 +153,7 @@ export default function HomePage() {
   };
 
   const handleCollect = async () => {
-    if (!drawnPlant || !user || !gameData) return;
+    if (!drawnPlant || !user) return;
 
     try {
         const newPlant = await savePlant(user.uid, drawnPlant);
@@ -201,9 +169,17 @@ export default function HomePage() {
     
     setDrawnPlant(null);
   };
+  
+  if (!user || !gameData) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="p-4 space-y-6 bg-white">
       <header className="flex flex-col items-center space-y-2">
         <h1 className="text-3xl text-foreground font-bold">
           Plenty Of Plants
@@ -266,7 +242,7 @@ export default function HomePage() {
             <div className="flex flex-col items-center gap-2">
                 <div className="flex items-center gap-3">
                     {Array.from({ length: MAX_DRAWS }).map((_, index) => {
-                        const isAvailable = index < availableDraws;
+                        const isAvailable = index < gameData.draws;
                         return (
                             <div key={index} className={cn(
                                 "h-8 w-8 rounded-full flex items-center justify-center text-white shadow-inner",
@@ -283,12 +259,9 @@ export default function HomePage() {
                 </div>
                 <div className="text-sm text-muted-foreground text-center">
                     <span>Draws Available</span>
-                    {nextDrawTime && availableDraws < MAX_DRAWS && (
-                        <span className="ml-2">({`New draw in ${nextDrawTime}`})</span>
-                    )}
                 </div>
             </div>
-            <Button onClick={handleDraw} disabled={isDrawing || availableDraws <= 0} size="lg" className="w-full rounded-full mt-2">
+            <Button onClick={handleDraw} disabled={isDrawing || gameData.draws <= 0} size="lg" className="w-full rounded-full mt-2">
               {isDrawing ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
