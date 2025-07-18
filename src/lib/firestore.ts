@@ -73,8 +73,19 @@ export async function createUserDocument(user: User) {
 }
 
 export async function savePlant(userId: string, plant: DrawPlantOutput) {
-    const gameData = await getUserGameData(userId);
-    if (!gameData) throw new Error("User data not found.");
+    let gameData = await getUserGameData(userId);
+
+    // If gameData doesn't exist, create a default structure.
+    if (!gameData) {
+        gameData = {
+            gold: 0,
+            collection: [],
+            desk: Array(NUM_POTS).fill(null),
+            draws: MAX_DRAWS,
+            lastDrawRefill: Date.now(),
+            lastFreeDrawClaimed: 0,
+        };
+    }
 
     const { collection, desk } = gameData;
     const allCurrentPlants = [...collection, ...desk.filter((p): p is Plant => p !== null)];
