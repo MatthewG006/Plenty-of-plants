@@ -15,21 +15,21 @@ export async function loadDraws(userId: string): Promise<number> {
 
   const now = Date.now();
   const lastRefill = gameData.lastDrawRefill || now;
-  const currentDraws = gameData.draws || 0;
+  let currentDraws = gameData.draws || 0;
 
-  const timeSinceUpdate = now - lastRefill;
-
-  if (timeSinceUpdate > REFILL_INTERVAL && currentDraws < MAX_DRAWS) {
-    const drawsToAdd = Math.floor(timeSinceUpdate / REFILL_INTERVAL);
-    const newCount = Math.min(currentDraws + drawsToAdd, MAX_DRAWS);
-    const newLastUpdated = lastRefill + (drawsToAdd * REFILL_INTERVAL);
-    
-    const userDocRef = doc(db, 'users', userId);
-    await updateDoc(userDocRef, {
-        draws: newCount,
-        lastDrawRefill: newLastUpdated,
-    });
-    return newCount;
+  if (currentDraws < MAX_DRAWS) {
+    const timeSinceRefill = now - lastRefill;
+    if (timeSinceRefill >= REFILL_INTERVAL) {
+        const drawsToAdd = Math.floor(timeSinceRefill / REFILL_INTERVAL);
+        const newDraws = Math.min(currentDraws + drawsToAdd, MAX_DRAWS);
+        
+        const userDocRef = doc(db, 'users', userId);
+        await updateDoc(userDocRef, {
+            draws: newDraws,
+            lastDrawRefill: now,
+        });
+        return newDraws;
+    }
   }
 
   return currentDraws;
@@ -41,13 +41,15 @@ export async function useDraw(userId: string) {
 
     if (gameData.draws > 0) {
         const newCount = gameData.draws - 1;
-        const newLastUpdated = (gameData.draws === MAX_DRAWS) ? Date.now() : gameData.lastDrawRefill;
+        const updatePayload: { draws: number, lastDrawRefill?: number } = { draws: newCount };
+
+        // If we were at max draws, this is the first time we've used one, so start the timer.
+        if (gameData.draws === MAX_DRAWS) {
+            updatePayload.lastDrawRefill = Date.now();
+        }
         
         const userDocRef = doc(db, 'users', userId);
-        await updateDoc(userDocRef, {
-            draws: newCount,
-            lastDrawRefill: newLastUpdated,
-        });
+        await updateDoc(userDocRef, updatePayload);
     }
 }
 
@@ -65,7 +67,7 @@ export async function claimFreeDraw(userId: string, options?: { bypassTimeCheck?
   const gameData = await getUserGameData(userId);
   if (!gameData) return { success: false, newCount: 0 };
   
-  const currentDraws = gameData.draws || 0;
+  let currentDraws = gameData.draws || 0;
 
   if (currentDraws >= MAX_DRAWS) {
     return { success: false, newCount: currentDraws, reason: 'max_draws' };
@@ -85,6 +87,11 @@ export async function claimFreeDraw(userId: string, options?: { bypassTimeCheck?
   
   if (!options?.bypassTimeCheck) {
       updateData.lastFreeDrawClaimed = now;
+  }
+  
+  // If we just added the last draw to become full, we don't need a timer.
+  if (newCount === MAX_DRAWS) {
+      updateData.lastDrawRefill = now;
   }
 
   await updateDoc(userDocRef, updateData);
