@@ -61,13 +61,11 @@ const drawPlantFlow = ai.defineFlow(
     outputSchema: DrawPlantOutputSchema,
   },
   async () => {
-    let plantDetails;
     try {
-      const {output} = await plantDetailsPrompt({});
-      if (!output) {
+      const {output: plantDetails} = await plantDetailsPrompt({});
+      if (!plantDetails) {
         throw new Error('Could not generate plant details.');
       }
-      plantDetails = output;
 
       const {media} = await ai.generate({
         model: 'googleai/gemini-2.0-flash-preview-image-generation',
