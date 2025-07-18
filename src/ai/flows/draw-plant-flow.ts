@@ -61,11 +61,13 @@ const drawPlantFlow = ai.defineFlow(
     outputSchema: DrawPlantOutputSchema,
   },
   async () => {
+    let plantDetails;
     try {
-      const {output: plantDetails} = await plantDetailsPrompt({});
-      if (!plantDetails) {
+      const {output} = await plantDetailsPrompt({});
+      if (!output) {
         throw new Error('Could not generate plant details.');
       }
+      plantDetails = output;
 
       const {media} = await ai.generate({
         model: 'googleai/gemini-2.0-flash-preview-image-generation',
@@ -76,7 +78,7 @@ const drawPlantFlow = ai.defineFlow(
       });
 
       if (!media || !media.url) {
-        throw new Error('Could not generate plant image.');
+        throw new Error('Could not generate plant image from AI.');
       }
 
       return {
@@ -85,8 +87,8 @@ const drawPlantFlow = ai.defineFlow(
         imageDataUri: media.url,
       };
     } catch (error) {
-        console.error("Gemini image generation failed, using fallback.", error);
-        // If Gemini fails (e.g., quota exhausted), use a fallback image.
+        console.error("Primary plant generation failed, triggering fallback.", error);
+        // If any part of the primary flow fails, use the fallback.
         const fallbackPlant = await getFallbackPlantFlow({});
         return fallbackPlant;
     }
