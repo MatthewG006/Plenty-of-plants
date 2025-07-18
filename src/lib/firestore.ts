@@ -62,8 +62,8 @@ export async function createUserDocument(user: User) {
             username: user.displayName,
             avatarColor: avatarColor,
             gold: 0,
-            collection: [startingPlant],
-            desk: Array(NUM_POTS).fill(null),
+            collection: [],
+            desk: [startingPlant, null, null],
             gameId: `#${user.uid.slice(0, 8).toUpperCase()}`,
             draws: MAX_DRAWS,
             lastDrawRefill: Date.now(),
@@ -73,18 +73,11 @@ export async function createUserDocument(user: User) {
 }
 
 export async function savePlant(userId: string, plant: DrawPlantOutput) {
-    let gameData = await getUserGameData(userId);
+    const userDocRef = doc(db, 'users', userId);
+    const gameData = await getUserGameData(userId);
 
-    // If gameData doesn't exist, create a default structure.
     if (!gameData) {
-        gameData = {
-            gold: 0,
-            collection: [],
-            desk: Array(NUM_POTS).fill(null),
-            draws: MAX_DRAWS,
-            lastDrawRefill: Date.now(),
-            lastFreeDrawClaimed: 0,
-        };
+        throw new Error("User data not found, cannot save plant.");
     }
 
     const { collection, desk } = gameData;
@@ -105,12 +98,15 @@ export async function savePlant(userId: string, plant: DrawPlantOutput) {
 
     const firstEmptyPotIndex = desk.findIndex(p => p === null);
     if (firstEmptyPotIndex !== -1) {
-        desk[firstEmptyPotIndex] = newPlant;
+        const newDesk = [...desk];
+        newDesk[firstEmptyPotIndex] = newPlant;
+        await updateDoc(userDocRef, { desk: newDesk });
     } else {
-        collection.push(newPlant);
+        await updateDoc(userDocRef, {
+            collection: arrayUnion(newPlant)
+        });
     }
     
-    await setDoc(doc(db, 'users', userId), { collection, desk }, { merge: true });
     return newPlant;
 }
 
