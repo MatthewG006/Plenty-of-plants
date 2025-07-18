@@ -6,7 +6,7 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
-import { GameData } from '@/lib/firestore';
+import { GameData, getUserGameData } from '@/lib/firestore';
 import { usePathname, useRouter } from 'next/navigation';
 
 interface AuthContextType {
@@ -29,57 +29,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
+      if (currentUser) {
+        // Fetch game data when user logs in
+        const data = await getUserGameData(currentUser.uid);
+        setGameData(data);
+      } else {
+        // Clear game data when user logs out
+        setGameData(null);
+      }
       setLoading(false);
     });
+
     return () => unsubscribeAuth();
   }, []);
-
+  
   useEffect(() => {
-    let unsubFirestore: (() => void) | undefined;
+    if (loading) return; // Don't do anything until initial auth check is done
 
-    if (user) {
-      unsubFirestore = onSnapshot(doc(db, "users", user.uid), (doc) => {
-          if (doc.exists()) {
-              setGameData(doc.data() as GameData);
-          }
-      }, (error) => {
-          console.error("Error fetching user game data:", error);
-      });
-    } else {
-      setGameData(null);
+    const unprotectedPaths = ['/', '/login', '/signup'];
+    const isProtectedPage = !unprotectedPaths.includes(pathname);
+
+    // If user is not logged in, redirect them to the main page from any protected page
+    if (!user && isProtectedPage) {
+      router.push('/');
     }
     
-    return () => {
-      if (unsubFirestore) {
-        unsubFirestore();
-      }
-    };
-  }, [user]);
-
-  useEffect(() => {
-    if (loading) return;
-
-    const isAuthPage = pathname === '/login' || pathname === '/signup';
-    
-    // If user is not logged in and not on an auth page or the splash screen, redirect to login
-    if (!user && !isAuthPage && pathname !== '/') {
-      router.push('/login');
+    // If user is logged in, redirect them away from the main/login/signup pages
+    if (user && !isProtectedPage) {
+        if (pathname === '/') {
+            router.push('/home');
+        } else if (pathname === '/login' || pathname === '/signup') {
+            router.push('/home');
+        }
     }
-    
-    // If user is logged in and on an auth page, redirect to home
-    if (user && isAuthPage) {
-      router.push('/home');
-    }
-
   }, [user, loading, pathname, router]);
 
 
   if (loading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-splash-gradient">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
