@@ -81,7 +81,7 @@
 
 @layer utilities {
   .bg-splash-image {
-      background-image: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.8) 100%), url('/splash-bg.png');
+      background-image: linear-gradient(rgba(83, 223, 129, 0.2), rgba(83, 223, 129, 0.95)), url('/splash-bg.png');
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
