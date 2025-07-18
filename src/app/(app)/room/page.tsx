@@ -446,7 +446,7 @@ export default function RoomPage() {
 
   return (
     <DndContext sensors={sensors} onDragStart={(e) => setActiveId(e.active.id as string)} onDragEnd={handleDragEnd} onDragCancel={() => setActiveId(null)}>
-      <div className="space-y-4 bg-white">
+      <div className="space-y-4">
         <header className="flex items-center justify-between p-4">
           <h1 className="text-3xl text-primary">My Room</h1>
           <Button variant="secondary" className="font-semibold" onClick={handleDraw} disabled={isDrawing || availableDraws <= 0}>

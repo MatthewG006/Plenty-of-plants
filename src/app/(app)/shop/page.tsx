@@ -103,7 +103,7 @@ export default function ShopPage() {
   const drawCount = gameData?.draws || 0;
 
   return (
-    <div className="p-4 bg-white">
+    <div className="p-4">
       <header className="flex items-center justify-between pb-4">
         <h1 className="text-3xl text-primary">Shop</h1>
         <div className="flex items-center gap-2 rounded-full bg-yellow-100/80 px-3 py-1 border border-yellow-300/80">
