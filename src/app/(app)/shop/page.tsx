@@ -33,38 +33,25 @@ export default function ShopPage() {
   const { toast } = useToast();
   const { playSfx } = useAudio();
   
-  const [drawCount, setDrawCount] = useState(0);
   const [dailyDrawClaimed, setDailyDrawClaimed] = useState(false);
   const [nextDrawTime, setNextDrawTime] = useState(getNextDrawTimeString());
   
-  const refreshData = useCallback(async () => {
-    if (!user) return;
-    setDrawCount(await loadDraws(user.uid));
-    setDailyDrawClaimed(await hasClaimedDailyDraw(user.uid));
-  }, [user]);
-
   useEffect(() => {
-    if (gameData) {
-      setDrawCount(gameData.draws || 0);
+    if (user && gameData) {
       const checkClaimed = async () => {
-        if(user) setDailyDrawClaimed(await hasClaimedDailyDraw(user.uid));
+        setDailyDrawClaimed(await hasClaimedDailyDraw(user.uid));
       };
       checkClaimed();
     }
-  }, [gameData, user]);
-
+  }, [user, gameData]);
 
   useEffect(() => {
-    refreshData();
     const timer = setInterval(() => {
         setNextDrawTime(getNextDrawTimeString());
-        refreshData();
     }, 60000);
 
-    return () => {
-        clearInterval(timer);
-    };
-  }, [refreshData]);
+    return () => clearInterval(timer);
+  }, []);
 
   const handleClaimFreeDraw = async () => {
     if (!user) return;
@@ -76,7 +63,9 @@ export default function ShopPage() {
         title: "Free Draw Claimed!",
         description: "Come back tomorrow for another one.",
       });
-      refreshData();
+      if (user) {
+         setDailyDrawClaimed(await hasClaimedDailyDraw(user.uid));
+      }
     } else {
       toast({
         variant: "destructive",
@@ -93,7 +82,7 @@ export default function ShopPage() {
         toast({ variant: "destructive", title: "Not Enough Gold", description: `You need ${DRAW_COST_IN_GOLD} gold to buy a draw.` });
         return;
     }
-    if (drawCount >= MAX_DRAWS) {
+    if (gameData.draws >= MAX_DRAWS) {
         toast({ variant: "destructive", title: "Max Draws Reached", description: "You cannot buy more draws." });
         return;
     }
@@ -104,7 +93,6 @@ export default function ShopPage() {
             await updateUserGold(user.uid, -DRAW_COST_IN_GOLD);
             playSfx('reward');
             toast({ title: "Purchase Successful!", description: `You bought 1 draw for ${DRAW_COST_IN_GOLD} gold.` });
-            refreshData();
         } else {
             toast({ variant: "destructive", title: "Purchase Failed", description: "Something went wrong. Your gold was not spent." });
         }
@@ -123,6 +111,7 @@ export default function ShopPage() {
   }
   
   const goldCount = gameData.gold || 0;
+  const drawCount = gameData.draws || 0;
 
   return (
     <div className="p-4">
