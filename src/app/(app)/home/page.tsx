@@ -29,6 +29,7 @@ import { savePlant } from '@/lib/firestore';
 async function compressImage(dataUri: string, maxSize = 256): Promise<string> {
     return new Promise((resolve, reject) => {
         const img = new window.Image();
+        img.crossOrigin = 'anonymous'; // Fix for tainted canvas error
         img.onload = () => {
             const canvas = document.createElement('canvas');
             let { width, height } = img;
