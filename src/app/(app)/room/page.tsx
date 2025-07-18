@@ -477,7 +477,7 @@ export default function RoomPage() {
             className="relative h-48 rounded-lg border-2 border-primary/20 bg-card/80 p-6 overflow-hidden"
           >
             <Image
-              src="/desk.png"
+              src="/desk.jpg"
               alt="A wooden desk for plants"
               layout="fill"
               objectFit="cover"
