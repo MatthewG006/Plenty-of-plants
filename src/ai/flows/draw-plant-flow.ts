@@ -93,7 +93,25 @@ const drawPlantFlow = ai.defineFlow(
         throw new Error('Could not generate plant image from AI.');
       }
 
-      // Step 5: Return the complete plant data.
+      // Step 5: Save the newly generated plant image to the fallback folder.
+      const fallbackDir = path.join(process.cwd(), 'public', 'fallback-plants');
+      const safeFilename = `${plantDetails.name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-')}.png`;
+      const savePath = path.join(fallbackDir, safeFilename);
+      
+      // Extract the base64 data from the data URI
+      const base64Data = media.url.split(';base64,').pop();
+      if (base64Data) {
+        try {
+          await fs.mkdir(fallbackDir, { recursive: true }); // Ensure the directory exists
+          await fs.writeFile(savePath, base64Data, 'base64');
+          console.log(`Saved new plant image to: ${savePath}`);
+        } catch (saveError) {
+          // Log the error, but don't fail the entire flow if saving fails.
+          console.error(`Failed to save new plant image to fallback folder: ${saveError}`);
+        }
+      }
+
+      // Step 6: Return the complete plant data.
       return {
         name: plantDetails.name,
         description: plantDetails.description,
