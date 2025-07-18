@@ -37,21 +37,20 @@ export default function ShopPage() {
   const [nextDrawTime, setNextDrawTime] = useState(getNextDrawTimeString());
   
   useEffect(() => {
-    if (user && gameData) {
       const checkClaimed = async () => {
-        setDailyDrawClaimed(await hasClaimedDailyDraw(user.uid));
+        if (user) {
+            setDailyDrawClaimed(await hasClaimedDailyDraw(user.uid));
+        }
       };
       checkClaimed();
-    }
+
+      const timer = setInterval(() => {
+          setNextDrawTime(getNextDrawTimeString());
+      }, 60000);
+
+      return () => clearInterval(timer);
   }, [user, gameData]);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-        setNextDrawTime(getNextDrawTimeString());
-    }, 60000);
-
-    return () => clearInterval(timer);
-  }, []);
 
   const handleClaimFreeDraw = async () => {
     if (!user) return;
@@ -63,9 +62,7 @@ export default function ShopPage() {
         title: "Free Draw Claimed!",
         description: "Come back tomorrow for another one.",
       });
-      if (user) {
-         setDailyDrawClaimed(await hasClaimedDailyDraw(user.uid));
-      }
+      setDailyDrawClaimed(true);
     } else {
       toast({
         variant: "destructive",
@@ -101,17 +98,9 @@ export default function ShopPage() {
         toast({ variant: "destructive", title: "Error", description: "Could not complete the purchase." });
     }
   };
-
-  if (!user || !gameData) {
-    return (
-        <div className="flex h-screen w-full items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-    );
-  }
   
-  const goldCount = gameData.gold || 0;
-  const drawCount = gameData.draws || 0;
+  const goldCount = gameData?.gold || 0;
+  const drawCount = gameData?.draws || 0;
 
   return (
     <div className="p-4">
