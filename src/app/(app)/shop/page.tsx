@@ -49,7 +49,7 @@ export default function ShopPage() {
       }, 60000);
 
       return () => clearInterval(timer);
-  }, [user, gameData]);
+  }, [user]);
 
 
   const handleClaimFreeDraw = async () => {
@@ -99,19 +99,11 @@ export default function ShopPage() {
     }
   };
   
-  if (!user || !gameData) {
-    return (
-        <div className="flex h-screen w-full items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-    );
-  }
-  
   const goldCount = gameData?.gold || 0;
   const drawCount = gameData?.draws || 0;
 
   return (
-    <div className="p-4">
+    <div className="p-4 bg-white">
       <header className="flex items-center justify-between pb-4">
         <h1 className="text-3xl text-primary">Shop</h1>
         <div className="flex items-center gap-2 rounded-full bg-yellow-100/80 px-3 py-1 border border-yellow-300/80">
