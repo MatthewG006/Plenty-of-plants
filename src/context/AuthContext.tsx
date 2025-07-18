@@ -4,9 +4,10 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
-import { GameData, getUserGameData } from '@/lib/firestore';
+import { GameData } from '@/lib/firestore';
+import { MAX_DRAWS } from '@/lib/draw-manager';
 import { usePathname, useRouter } from 'next/navigation';
 
 interface AuthContextType {
@@ -29,45 +30,71 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      if (currentUser) {
-        // Fetch game data when user logs in
-        const data = await getUserGameData(currentUser.uid);
-        setGameData(data);
-      } else {
-        // Clear game data when user logs out
+      if (!currentUser) {
         setGameData(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
-
     return () => unsubscribeAuth();
   }, []);
   
   useEffect(() => {
-    if (loading) return; // Don't do anything until initial auth check is done
+    let unsubscribeFirestore: Unsubscribe | undefined;
 
-    const unprotectedPaths = ['/', '/login', '/signup'];
-    const isProtectedPage = !unprotectedPaths.includes(pathname);
-
-    // If user is not logged in, redirect them to the main page from any protected page
-    if (!user && isProtectedPage) {
-      router.push('/');
+    if (user) {
+      const docRef = doc(db, 'users', user.uid);
+      unsubscribeFirestore = onSnapshot(docRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+           setGameData({
+            gold: data.gold || 0,
+            collection: data.collection || [],
+            desk: data.desk || Array(3).fill(null),
+            draws: data.draws ?? MAX_DRAWS,
+            lastDrawRefill: data.lastDrawRefill || Date.now(),
+            lastFreeDrawClaimed: data.lastFreeDrawClaimed || 0,
+        });
+        } else {
+            setGameData(null); // Or handle user creation
+        }
+        setLoading(false);
+      }, (error) => {
+        console.error("Firestore snapshot error:", error);
+        setGameData(null);
+        setLoading(false);
+      });
+    } else {
+       setLoading(false);
     }
     
-    // If user is logged in, redirect them away from the main/login/signup pages
-    if (user && !isProtectedPage) {
-        if (pathname === '/') {
-            router.push('/home');
-        } else if (pathname === '/login' || pathname === '/signup') {
-            router.push('/home');
-        }
+    return () => {
+      if (unsubscribeFirestore) {
+        unsubscribeFirestore();
+      }
+    };
+  }, [user]);
+
+  useEffect(() => {
+    if (loading) return;
+
+    const protectedPaths = ['/home', '/room', '/shop', '/community', '/profile', '/settings'];
+    const isProtectedPage = protectedPaths.some(p => pathname.startsWith(p));
+    const isAuthPage = ['/login', '/signup'].includes(pathname);
+    
+    if (pathname === '/') return;
+
+    if (!user && isProtectedPage) {
+        router.push('/login');
+    } else if (user && isAuthPage) {
+      router.push('/home');
     }
+
   }, [user, loading, pathname, router]);
 
 
-  if (loading) {
+  if (loading && pathname !== '/') {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
