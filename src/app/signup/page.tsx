@@ -45,8 +45,8 @@ export default function SignupPage() {
       
       await createUserDocument(user);
 
-      // No need to toast, just redirect. The user is now logged in.
-      router.push('/home'); 
+      // On successful signup, route to splash screen.
+      router.push('/'); 
 
     } catch (error: any) {
       console.error("Firebase Signup Error:", error);
