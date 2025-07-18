@@ -63,6 +63,7 @@ const drawPlantFlow = ai.defineFlow(
   async () => {
     try {
       const {output: plantDetails} = await plantDetailsPrompt({});
+      
       if (!plantDetails) {
         throw new Error('Could not generate plant details.');
       }
