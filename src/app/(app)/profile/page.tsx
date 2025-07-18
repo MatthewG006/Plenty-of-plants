@@ -62,14 +62,6 @@ export default function ProfilePage() {
     }
   }, [gameData]);
 
-  if (!user || !gameData) {
-    return (
-        <div className="flex h-screen w-full items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-    );
-  }
-
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -78,6 +70,14 @@ export default function ProfilePage() {
       console.error("Failed to log out", e);
     }
   };
+  
+  if (!user || !gameData) {
+    return (
+        <div className="flex h-screen w-full items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    );
+  }
 
   const profileData: ProfileData = {
       username: user.displayName || 'PlantLover',
@@ -90,7 +90,7 @@ export default function ProfilePage() {
   return (
     <div className="p-4 space-y-6">
       <header className="flex items-center justify-between pb-4">
-        <h1 className="font-headline text-3xl text-primary">My Profile</h1>
+        <h1 className="text-3xl text-primary">My Profile</h1>
       </header>
 
       <Card>
@@ -101,7 +101,7 @@ export default function ProfilePage() {
               {profileData.username ? profileData.username.charAt(0).toUpperCase() : <User className="h-12 w-12" />}
             </AvatarFallback>
           </Avatar>
-          <CardTitle className="font-headline text-2xl">{profileData.username}</CardTitle>
+          <CardTitle className="text-2xl">{profileData.username}</CardTitle>
           <p className="text-muted-foreground">{profileData.gameId}</p>
         </CardHeader>
         <CardContent>

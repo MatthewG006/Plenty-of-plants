@@ -55,7 +55,7 @@ export default function LoginPage() {
     <div className="flex h-screen w-full items-center justify-center bg-splash-image bg-splash-gradient p-4">
       <Card className="w-full max-w-sm shadow-xl">
         <CardHeader className="text-center">
-          <CardTitle className="font-headline text-3xl">Welcome Back!</CardTitle>
+          <CardTitle className="text-3xl">Welcome Back!</CardTitle>
           <CardDescription>Log in to tend to your plants.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -75,7 +75,7 @@ export default function LoginPage() {
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading} />
             </div>
-            <Button type="submit" className="w-full font-headline text-lg" disabled={isLoading}>
+            <Button type="submit" className="w-full text-lg" disabled={isLoading}>
                 {isLoading ? <Loader2 className="animate-spin" /> : 'Login'}
             </Button>
           </form>

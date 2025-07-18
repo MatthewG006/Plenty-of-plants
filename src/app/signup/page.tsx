@@ -48,7 +48,7 @@ export default function SignupPage() {
       // No need to toast, just redirect. The user is now logged in.
       router.push('/home'); 
 
-    } catch (error: any)
+    } catch (error: any) {
       console.error("Firebase Signup Error:", error);
       toast({
         variant: "destructive",
@@ -66,7 +66,7 @@ export default function SignupPage() {
     <div className="flex h-screen w-full items-center justify-center bg-splash-gradient p-4">
       <Card className="w-full max-w-sm shadow-xl">
         <CardHeader className="text-center">
-          <CardTitle className="font-headline text-3xl">Join the Fun!</CardTitle>
+          <CardTitle className="text-3xl">Join the Fun!</CardTitle>
           <CardDescription>Create an account to start your collection.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -83,7 +83,7 @@ export default function SignupPage() {
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" placeholder="••••••••" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading}/>
             </div>
-            <Button type="submit" className="w-full font-headline text-lg" disabled={isLoading}>
+            <Button type="submit" className="w-full text-lg" disabled={isLoading}>
                 {isLoading ? <Loader2 className="animate-spin" /> : 'Create Account'}
             </Button>
           </form>

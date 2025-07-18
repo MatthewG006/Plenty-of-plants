@@ -81,12 +81,12 @@ export default function SettingsPage() {
   return (
     <div className="p-4">
       <header className="flex items-center justify-between pb-4">
-        <h1 className="font-headline text-3xl text-primary">Settings</h1>
+        <h1 className="text-3xl text-primary">Settings</h1>
       </header>
 
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline">Game Controls</CardTitle>
+          <CardTitle>Game Controls</CardTitle>
         </CardHeader>
         <CardContent>
           <SettingRow icon={Music} label="Sounds">
@@ -100,7 +100,7 @@ export default function SettingsPage() {
 
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle className="font-headline">Volume</CardTitle>
+          <CardTitle>Volume</CardTitle>
         </CardHeader>
         <CardContent>
            <SettingRow icon={Music} label="Music">
@@ -129,7 +129,7 @@ export default function SettingsPage() {
       
       <Card className="mt-6 border-destructive">
         <CardHeader>
-          <CardTitle className="font-headline text-destructive">Danger Zone</CardTitle>
+          <CardTitle className="text-destructive">Danger Zone</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between">

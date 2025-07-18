@@ -144,7 +144,7 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-sm">
                 <DialogHeader>
-                    <DialogTitle className="font-headline text-3xl text-center">{plant.name}</DialogTitle>
+                    <DialogTitle className="text-3xl text-center">{plant.name}</DialogTitle>
                 </DialogHeader>
                 <div className="flex flex-col items-center gap-4 py-4">
                     <div className="w-64 h-64 relative">
@@ -451,7 +451,7 @@ export default function RoomPage() {
     <DndContext sensors={sensors} onDragStart={(e) => setActiveId(e.active.id as string)} onDragEnd={handleDragEnd} onDragCancel={() => setActiveId(null)}>
       <div className="space-y-4">
         <header className="flex items-center justify-between p-4">
-          <h1 className="font-headline text-3xl text-primary">My Room</h1>
+          <h1 className="text-3xl text-primary">My Room</h1>
           <Button variant="secondary" className="font-semibold" onClick={handleDraw} disabled={isDrawing || availableDraws <= 0}>
             {isDrawing ? (
               <>
@@ -486,7 +486,7 @@ export default function RoomPage() {
         </section>
 
         <section className="px-4 pb-4">
-            <h2 className="mb-4 font-headline text-xl text-primary">My Collection</h2>
+            <h2 className="mb-4 text-xl text-primary">My Collection</h2>
             <DroppableCollectionArea>
               <div className="grid grid-cols-3 gap-4 md:grid-cols-4 lg:grid-cols-5">
                   {collectedPlants.length > 0 ? (

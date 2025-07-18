@@ -45,7 +45,7 @@ export default function BottomNavBar() {
                 )} />
               </div>
               <span className={cn(
-                'text-xs font-medium font-headline',
+                'text-xs font-medium',
                 isActive ? 'text-accent-foreground' : 'text-muted-foreground'
               )}>
                 {item.label}
