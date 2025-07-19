@@ -122,7 +122,8 @@ export async function updatePlant(userId: string, plantToUpdate: Plant) {
     const gameData = await getUserGameData(userId);
     if (!gameData) throw new Error("User data not found for plant update.");
 
-    // Firestore cannot handle Proxy objects, so we need to clone it to a plain JS object
+    // Firestore cannot handle Proxy objects from React state.
+    // Convert the plant object to a plain JS object before using it.
     const plainPlant = JSON.parse(JSON.stringify(plantToUpdate));
 
     const newDesk = gameData.desk.map(p => p?.id === plainPlant.id ? plainPlant : p);
