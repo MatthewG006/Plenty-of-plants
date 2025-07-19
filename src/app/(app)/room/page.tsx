@@ -481,10 +481,7 @@ export default function RoomPage() {
 
     setIsEvolving(true);
     try {
-        // First, save the progress from watering that triggered evolution
-        await updateUserGold(user.uid, GOLD_PER_WATERING);
-        
-        // Then, generate the new image
+        // First, generate the new image
         const { newImageDataUri } = await evolvePlant({
             name: plainPlantToEvolve.name,
             imageDataUri: plainPlantToEvolve.image,
@@ -496,7 +493,8 @@ export default function RoomPage() {
             form: 'Evolved',
         };
 
-        // Finally, save the new evolved state
+        // If AI is successful, then save progress and update gold
+        await updateUserGold(user.uid, GOLD_PER_WATERING);
         await updatePlant(user.uid, evolvedPlantData);
         handlePlantUpdate(evolvedPlantData);
         
