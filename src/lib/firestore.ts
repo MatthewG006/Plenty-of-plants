@@ -103,7 +103,8 @@ export async function savePlant(userId: string, plant: DrawPlantOutput) {
     if (firstEmptyPotIndex !== -1) {
         const newDesk = [...desk];
         newDesk[firstEmptyPotIndex] = newPlant;
-        await updateDoc(userDocRef, { desk: newDesk });
+        // Sanitize the array before writing to Firestore
+        await updateDoc(userDocRef, { desk: JSON.parse(JSON.stringify(newDesk)) });
     } else {
         await updateDoc(userDocRef, {
             collection: arrayUnion(newPlant)
@@ -114,7 +115,10 @@ export async function savePlant(userId: string, plant: DrawPlantOutput) {
 }
 
 export async function updatePlantArrangement(userId: string, collection: Plant[], desk: (Plant | null)[]) {
-    await setDoc(doc(db, 'users', userId), { collection, desk }, { merge: true });
+    await setDoc(doc(db, 'users', userId), { 
+        collection: JSON.parse(JSON.stringify(collection)), 
+        desk: JSON.parse(JSON.stringify(desk)) 
+    }, { merge: true });
 }
 
 export async function updatePlant(userId: string, plantToUpdate: Plant) {
