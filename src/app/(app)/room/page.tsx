@@ -67,7 +67,8 @@ async function compressImage(dataUri: string, maxSize = 256): Promise<string> {
                 return reject(new Error('Could not get canvas context'));
             }
             ctx.drawImage(img, 0, 0, width, height);
-            resolve(canvas.toDataURL('image/png'));
+            // Use JPEG with a quality setting for better compression
+            resolve(canvas.toDataURL('image/jpeg', 0.7));
         };
         img.onerror = reject;
         img.src = dataUri;
