@@ -81,7 +81,13 @@ const drawPlantFlow = ai.defineFlow(
         model: 'googleai/gemini-2.0-flash-preview-image-generation',
         prompt: [
           { media: { url: referenceImageDataUri, contentType: 'image/png' } },
-          { text: `Generate a single, solo plant character based on this art style for a 2D game. The new plant is: ${plantDetails.imagePrompt}. The plant should have a cute and simple appearance, not strange or other-worldly. The new plant must be in a simple terracotta pot with a happy, smiling face, just like the example. The pot must not have feet. The background must be a solid white color. There must be NO other objects, people, or hands in the image. IMPORTANT: The plant character must NOT have arms or legs.` }
+          { text: `Replicate the art style of the provided image exactly for a new plant character for a 2D game. The new plant to create is: "${plantDetails.imagePrompt}".
+          Follow these rules strictly:
+          1. The new plant MUST be in a simple terracotta pot with a happy, smiling face, identical in style to the example.
+          2. The pot MUST NOT have feet or any other decorations.
+          3. The plant character itself should have a cute and simple appearance. It must NOT have arms or legs.
+          4. The background MUST be a solid white color.
+          5. The image must contain only the single plant character. NO other objects, text, people, or hands.` }
         ],
         config: {
           responseModalities: ['TEXT', 'IMAGE'],
