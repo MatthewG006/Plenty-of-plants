@@ -479,7 +479,6 @@ export default function RoomPage() {
 
     try {
         // First, save the progress from watering that triggered evolution
-        await updatePlant(user.uid, plantToEvolve);
         await updateUserGold(user.uid, GOLD_PER_WATERING);
         
         // Then, generate the new image
@@ -488,15 +487,17 @@ export default function RoomPage() {
             imageDataUri: plantToEvolve.image,
         });
 
+        // Create a clean, plain JS object from the state object before updating
+        const plainPlantToEvolve = JSON.parse(JSON.stringify(plantToEvolve));
+
         const evolvedPlantData: Plant = {
-            ...plantToEvolve,
+            ...plainPlantToEvolve,
             image: newImageDataUri,
             form: 'Evolved',
         };
 
         // Finally, save the new evolved state
         await updatePlant(user.uid, evolvedPlantData);
-
         handlePlantUpdate(evolvedPlantData);
         
         playSfx('success');
