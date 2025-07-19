@@ -198,30 +198,6 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/shop": {
-      "experimentalBypassFor": [
-        {
-          "type": "header",
-          "key": "Next-Action"
-        },
-        {
-          "type": "header",
-          "key": "content-type",
-          "value": "multipart/form-data;.*"
-        }
-      ],
-      "initialRevalidateSeconds": false,
-      "srcRoute": "/shop",
-      "dataRoute": "/shop.rsc",
-      "allowHeader": [
-        "host",
-        "x-matched-path",
-        "x-prerender-revalidate",
-        "x-prerender-revalidate-if-generated",
-        "x-next-revalidated-tags",
-        "x-next-revalidate-tag-token"
-      ]
-    },
     "/settings": {
       "experimentalBypassFor": [
         {
@@ -245,13 +221,37 @@
         "x-next-revalidated-tags",
         "x-next-revalidate-tag-token"
       ]
+    },
+    "/shop": {
+      "experimentalBypassFor": [
+        {
+          "type": "header",
+          "key": "Next-Action"
+        },
+        {
+          "type": "header",
+          "key": "content-type",
+          "value": "multipart/form-data;.*"
+        }
+      ],
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/shop",
+      "dataRoute": "/shop.rsc",
+      "allowHeader": [
+        "host",
+        "x-matched-path",
+        "x-prerender-revalidate",
+        "x-prerender-revalidate-if-generated",
+        "x-next-revalidated-tags",
+        "x-next-revalidate-tag-token"
+      ]
     }
   },
   "dynamicRoutes": {},
   "notFoundRoutes": [],
   "preview": {
-    "previewModeId": "5acbaabe488eab73c9b3d859e039a486",
-    "previewModeSigningKey": "41de1dd8c9d6298987465eef5f4ad8edb55ee00224bab1ed2674e19a7a75b88a",
-    "previewModeEncryptionKey": "a35f3bd9784a801bbf5b675564acc6b18d33f2ae693e9af6d99af496a21f9d2f"
+    "previewModeId": "e7956c2b5fa7b89f05e6c7f605fcdbe9",
+    "previewModeSigningKey": "35de709a2ae0050f4e4ad49a3eee91ae1c1fb142741efe638a25283fc49f987a",
+    "previewModeEncryptionKey": "6081823b69b79707689ac2b5a26ea4901e7601f6752499c509f85fb0e87941af"
   }
 }
