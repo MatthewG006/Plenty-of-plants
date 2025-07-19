@@ -488,7 +488,7 @@ export default function RoomPage() {
 
         const hasWaterRefills = gameData.waterRefills > 0;
         await batchUpdateOnWatering({
-            userId,
+            userId: user.uid,
             updatedPlant: evolvedPlantData,
             goldToAdd: GOLD_PER_WATERING,
             usedRefill: hasWaterRefills
