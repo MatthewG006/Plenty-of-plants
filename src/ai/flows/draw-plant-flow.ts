@@ -81,13 +81,14 @@ const drawPlantFlow = ai.defineFlow(
         model: 'googleai/gemini-2.0-flash-preview-image-generation',
         prompt: [
           { media: { url: referenceImageDataUri, contentType: 'image/png' } },
-          { text: `Replicate the art style of the provided image exactly for a new plant character for a 2D game. The new plant to create is: "${plantDetails.imagePrompt}".
-          Follow these rules strictly:
-          1. The new plant MUST be in a simple terracotta pot with a happy, smiling face, identical in style to the example.
-          2. The pot MUST NOT have feet or any other decorations.
-          3. The plant character itself should have a cute and simple appearance. It must NOT have arms or legs.
-          4. The background MUST be a solid white color.
-          5. The image must contain only the single plant character. NO other objects, text, people, or hands.` }
+          { text: `Your primary goal is to replicate the art style of the provided reference image EXACTLY. Create a new plant character based on the description: "${plantDetails.imagePrompt}".
+
+          You MUST adhere to the following rules without exception:
+          1. **Art Style:** The final image must perfectly match the clean, 2D, illustrated style of the reference image.
+          2. **The Pot:** The plant MUST be in a simple, smiling terracotta pot. The pot's style, shape, color, and happy face must be identical to the one in the reference image. Do not add feet, patterns, or any other decorations to the pot.
+          3. **The Plant:** The new plant character must be cute and simple. It absolutely MUST NOT have arms, legs, or a human-like body.
+          4. **The Background:** The background MUST be a solid, pure white. No gradients, textures, or shadows.
+          5. **Composition:** The image must contain ONLY the single plant character in its pot. NO other objects, text, people, hands, or background elements are allowed.` }
         ],
         config: {
           responseModalities: ['TEXT', 'IMAGE'],
