@@ -28,7 +28,7 @@ import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { updatePlantArrangement, updateUserGold, savePlant, useWaterRefill, batchUpdateOnWatering } from '@/lib/firestore';
+import { updatePlantArrangement, updateUserGold, savePlant, useWaterRefill, updatePlant } from '@/lib/firestore';
 import { evolvePlant } from '@/ai/flows/evolve-plant-flow';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
@@ -136,8 +136,10 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
         let updatedLastWatered = plant.lastWatered || [];
 
         try {
-            const usedRefill = hasWaterRefills;
+            const usedRefill = hasWaterRefills && timesWateredToday >= MAX_WATERINGS_PER_DAY;
+            
             if (usedRefill) {
+                 await useWaterRefill(userId);
                  toast({
                     title: "Water Refill Used",
                     description: `You have ${gameData.waterRefills - 1} refills remaining.`,
@@ -155,15 +157,15 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
             
             setPlant(updatedPlant);
             
+            // If evolution is triggered, we pass this to the onEvolutionStart handler.
+            // The actual database write will be handled there.
             if (shouldEvolve) {
-                // If evolution is triggered, we pass this to the onEvolutionStart handler.
-                // The actual database write will be handled there.
                 onEvolutionStart(updatedPlant);
                 onOpenChange(false); // Close details to show evolution dialog
             } else {
-                // If no evolution, just update the plant data.
-                // Ensure the plant object is a plain JS object before sending to Firestore
-                await batchUpdateOnWatering({ userId, updatedPlant: JSON.parse(JSON.stringify(updatedPlant)), goldToAdd: GOLD_PER_WATERING, usedRefill });
+                // If no evolution, just update the plant data and gold separately.
+                await updatePlant(userId, updatedPlant);
+                await updateUserGold(userId, GOLD_PER_WATERING);
                 onPlantUpdate(updatedPlant);
             }
 
@@ -476,6 +478,11 @@ export default function RoomPage() {
     setIsEvolving(true);
 
     try {
+        // First, save the progress from watering that triggered evolution
+        await updatePlant(user.uid, plantToEvolve);
+        await updateUserGold(user.uid, GOLD_PER_WATERING);
+        
+        // Then, generate the new image
         const { newImageDataUri } = await evolvePlant({
             name: plantToEvolve.name,
             imageDataUri: plantToEvolve.image,
@@ -487,13 +494,8 @@ export default function RoomPage() {
             form: 'Evolved',
         };
 
-        const hasWaterRefills = gameData.waterRefills > 0;
-        await batchUpdateOnWatering({
-            userId: user.uid,
-            updatedPlant: JSON.parse(JSON.stringify(evolvedPlantData)),
-            goldToAdd: GOLD_PER_WATERING,
-            usedRefill: hasWaterRefills
-        });
+        // Finally, save the new evolved state
+        await updatePlant(user.uid, evolvedPlantData);
 
         handlePlantUpdate(evolvedPlantData);
         
