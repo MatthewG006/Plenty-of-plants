@@ -475,20 +475,20 @@ export default function RoomPage() {
 
   const handleEvolve = async () => {
     if (!plantToEvolve || !user || !gameData) return;
-    setIsEvolving(true);
 
+    // Sanitize the plant object from state to prevent serialization errors.
+    const plainPlantToEvolve = JSON.parse(JSON.stringify(plantToEvolve));
+
+    setIsEvolving(true);
     try {
         // First, save the progress from watering that triggered evolution
         await updateUserGold(user.uid, GOLD_PER_WATERING);
         
         // Then, generate the new image
         const { newImageDataUri } = await evolvePlant({
-            name: plantToEvolve.name,
-            imageDataUri: plantToEvolve.image,
+            name: plainPlantToEvolve.name,
+            imageDataUri: plainPlantToEvolve.image,
         });
-
-        // Create a clean, plain JS object from the state object before updating
-        const plainPlantToEvolve = JSON.parse(JSON.stringify(plantToEvolve));
 
         const evolvedPlantData: Plant = {
             ...plainPlantToEvolve,

@@ -152,7 +152,7 @@ export async function updatePlant(userId: string, plantToUpdate: Plant) {
     });
 
     if (!plantFound) {
-        console.warn("Attempted to update a plant that was not found in user's data.");
+        console.warn("Attempted to update a plant that was not found in user's data. This can happen if state is out of sync. Plant ID:", plainPlant.id);
         return;
     }
 
