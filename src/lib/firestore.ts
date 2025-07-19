@@ -132,6 +132,34 @@ export async function updatePlantData(userId: string, updatedPlant: Plant) {
     }, { merge: true });
 }
 
+export async function batchUpdateOnWatering(userId: string, updatedPlant: Plant, goldToAdd: number, usedRefill: boolean) {
+    const userDocRef = doc(db, 'users', userId);
+    const gameData = await getUserGameData(userId);
+    if (!gameData) throw new Error("User data not found.");
+
+    const { collection, desk } = gameData;
+    
+    const newDesk = desk.map(p => p?.id === updatedPlant.id ? updatedPlant : p);
+    const newCollection = collection.map(p => p.id === updatedPlant.id ? updatedPlant : p);
+
+    const batch = writeBatch(db);
+
+    batch.update(userDocRef, {
+        collection: newCollection,
+        desk: newDesk,
+        gold: increment(goldToAdd),
+    });
+
+    if (usedRefill) {
+        batch.update(userDocRef, {
+            waterRefills: increment(-1)
+        });
+    }
+    
+    await batch.commit();
+}
+
+
 export async function updateUserGold(userId: string, amount: number) {
     const userDocRef = doc(db, 'users', userId);
     await updateDoc(userDocRef, {

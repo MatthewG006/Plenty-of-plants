@@ -28,7 +28,7 @@ import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { updatePlantArrangement, updatePlantData, updateUserGold, savePlant, useWaterRefill } from '@/lib/firestore';
+import { updatePlantArrangement, updatePlantData, updateUserGold, savePlant, useWaterRefill, batchUpdateOnWatering } from '@/lib/firestore';
 import { evolvePlant } from '@/ai/flows/evolve-plant-flow';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
@@ -135,8 +135,8 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
         let updatedLastWatered = plant.lastWatered || [];
 
         try {
-            if (hasWaterRefills) {
-                await useWaterRefill(userId);
+            const usedRefill = hasWaterRefills;
+            if (usedRefill) {
                  toast({
                     title: "Water Refill Used",
                     description: `You have ${gameData.waterRefills - 1} refills remaining.`,
@@ -154,9 +154,8 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
             
             setPlant(updatedPlant);
             onPlantUpdate(updatedPlant);
-
-            await updatePlantData(userId, updatedPlant);
-            await updateUserGold(userId, GOLD_PER_WATERING);
+            
+            await batchUpdateOnWatering(userId, updatedPlant, GOLD_PER_WATERING, usedRefill);
 
             if (shouldEvolve) {
                 onEvolutionStart(updatedPlant);
