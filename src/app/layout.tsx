@@ -4,6 +4,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AudioProvider } from '@/context/AudioContext';
 import MusicPlayer from '@/components/music-player';
+import { AuthProvider } from '@/context/AuthContext';
 
 export const metadata: Metadata = {
   title: 'Plenty of Plants',
@@ -20,9 +21,11 @@ export default function RootLayout({
       <head />
       <body className="font-body antialiased">
         <AudioProvider>
-          {children}
-          <Toaster />
-          <MusicPlayer />
+          <AuthProvider>
+            {children}
+            <Toaster />
+            <MusicPlayer />
+          </AuthProvider>
         </AudioProvider>
       </body>
     </html>
