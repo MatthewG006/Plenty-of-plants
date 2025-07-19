@@ -107,23 +107,27 @@ export async function savePlant(userId: string, plant: DrawPlantOutput): Promise
         xp: 0,
         lastWatered: [],
     };
+    
+    // This is a plain object, so it's safe to send to Firestore.
+    const plainNewPlant = JSON.parse(JSON.stringify(newPlant));
 
     const firstEmptyPotIndex = gameData.deskPlantIds.findIndex(id => id === null);
+
+    const updatePayload: { [key: string]: any } = {
+        [`plants.${plainNewPlant.id}`]: plainNewPlant,
+    };
+    
     if (firstEmptyPotIndex !== -1) {
         const newDeskPlantIds = [...gameData.deskPlantIds];
-        newDeskPlantIds[firstEmptyPotIndex] = newPlant.id;
-        await updateDoc(userDocRef, {
-            [`plants.${newPlant.id}`]: newPlant,
-            deskPlantIds: newDeskPlantIds,
-        });
+        newDeskPlantIds[firstEmptyPotIndex] = plainNewPlant.id;
+        updatePayload.deskPlantIds = newDeskPlantIds;
     } else {
-        await updateDoc(userDocRef, {
-            [`plants.${newPlant.id}`]: newPlant,
-            collectionPlantIds: arrayUnion(newPlant.id),
-        });
+        updatePayload.collectionPlantIds = arrayUnion(plainNewPlant.id);
     }
     
-    return newPlant;
+    await updateDoc(userDocRef, updatePayload);
+    
+    return plainNewPlant;
 }
 
 
