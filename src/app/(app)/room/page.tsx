@@ -109,6 +109,7 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
         if (!canWater || !plant) return;
         
         playSfx('watering');
+        setTimeout(() => playSfx('watering'), 200);
         setIsWatering(true);
         setShowGold(true);
 
@@ -170,7 +171,7 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
             toast({ variant: 'destructive', title: "Error", description: "Could not save watering progress."})
         }
 
-        setTimeout(() => setIsWatering(false), 1000);
+        setTimeout(() => setIsWatering(false), 2000);
         setTimeout(() => setShowGold(false), 1000);
     };
 
