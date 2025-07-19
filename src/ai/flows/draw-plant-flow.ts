@@ -53,7 +53,7 @@ const plantDetailsPrompt = ai.definePrompt({
         ),
     }),
   },
-  prompt: `You are a creative botanist for a game about collecting magical plants. Generate one new, unique, and whimsical plant. The plant must have a highly creative and unusual two-word name that is not a common plant type. It should also have a short, one-sentence description, and a prompt for an image generator. The plant should sound like a cute character.`,
+  prompt: `You are a creative botanist for a 2D game about collecting cute, magical plants. Generate one new, unique, and whimsical plant. The plant should have a cute and simple design, not a strange or other-worldly appearance. The plant must have a highly creative and unusual two-word name that is not a common plant type. It should also have a short, one-sentence description, and a prompt for an image generator.`,
 });
 
 const drawPlantFlow = ai.defineFlow(
@@ -81,7 +81,7 @@ const drawPlantFlow = ai.defineFlow(
         model: 'googleai/gemini-2.0-flash-preview-image-generation',
         prompt: [
           { media: { url: referenceImageDataUri, contentType: 'image/png' } },
-          { text: `Generate a single, solo plant character based on this art style. The new plant is: ${plantDetails.imagePrompt}. The new plant must be in a simple terracotta pot with a happy, smiling face, just like the example. The pot must not have feet. The background must be a solid white color. There must be NO other objects, people, or hands in the image. IMPORTANT: The plant character must NOT have arms or legs.` }
+          { text: `Generate a single, solo plant character based on this art style for a 2D game. The new plant is: ${plantDetails.imagePrompt}. The plant should have a cute and simple appearance, not strange or other-worldly. The new plant must be in a simple terracotta pot with a happy, smiling face, just like the example. The pot must not have feet. The background must be a solid white color. There must be NO other objects, people, or hands in the image. IMPORTANT: The plant character must NOT have arms or legs.` }
         ],
         config: {
           responseModalities: ['TEXT', 'IMAGE'],
