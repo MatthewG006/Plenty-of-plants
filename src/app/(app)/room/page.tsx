@@ -28,7 +28,7 @@ import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { updatePlantArrangement, updatePlantData, updateUserGold, savePlant, useWaterRefill, batchUpdateOnWatering } from '@/lib/firestore';
+import { updatePlantArrangement, updateUserGold, savePlant, useWaterRefill, batchUpdateOnWatering } from '@/lib/firestore';
 import { evolvePlant } from '@/ai/flows/evolve-plant-flow';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
@@ -153,13 +153,16 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
             };
             
             setPlant(updatedPlant);
-            onPlantUpdate(updatedPlant);
             
-            await batchUpdateOnWatering(userId, updatedPlant, GOLD_PER_WATERING, usedRefill);
-
             if (shouldEvolve) {
+                // If evolution is triggered, we pass this to the onEvolutionStart handler.
+                // The actual database write will be handled there.
                 onEvolutionStart(updatedPlant);
                 onOpenChange(false); // Close details to show evolution dialog
+            } else {
+                // If no evolution, just update the plant data.
+                await batchUpdateOnWatering({ userId, updatedPlant, goldToAdd: GOLD_PER_WATERING, usedRefill });
+                onPlantUpdate(updatedPlant);
             }
 
         } catch(e) {
@@ -467,7 +470,7 @@ export default function RoomPage() {
   };
 
   const handleEvolve = async () => {
-    if (!plantToEvolve || !user) return;
+    if (!plantToEvolve || !user || !gameData) return;
     setIsEvolving(true);
 
     try {
@@ -476,19 +479,26 @@ export default function RoomPage() {
             imageDataUri: plantToEvolve.image,
         });
 
-        const evolvedPlant: Plant = {
+        const evolvedPlantData: Plant = {
             ...plantToEvolve,
             image: newImageDataUri,
             form: 'Evolved',
         };
 
-        await updatePlantData(user.uid, evolvedPlant);
-        handlePlantUpdate(evolvedPlant); // Update local state
+        const hasWaterRefills = gameData.waterRefills > 0;
+        await batchUpdateOnWatering({
+            userId,
+            updatedPlant: evolvedPlantData,
+            goldToAdd: GOLD_PER_WATERING,
+            usedRefill: hasWaterRefills
+        });
+
+        handlePlantUpdate(evolvedPlantData);
         
         playSfx('success');
         toast({
             title: "Evolution Complete!",
-            description: `${evolvedPlant.name} has evolved!`,
+            description: `${evolvedPlantData.name} has evolved!`,
         });
 
     } catch (e) {

@@ -117,22 +117,7 @@ export async function updatePlantArrangement(userId: string, collection: Plant[]
     await setDoc(doc(db, 'users', userId), { collection, desk }, { merge: true });
 }
 
-export async function updatePlantData(userId: string, updatedPlant: Plant) {
-    const gameData = await getUserGameData(userId);
-    if (!gameData) throw new Error("User data not found.");
-
-    const { collection, desk } = gameData;
-    
-    const newDesk = desk.map(p => p?.id === updatedPlant.id ? updatedPlant : p);
-    const newCollection = collection.map(p => p.id === updatedPlant.id ? updatedPlant : p);
-
-    await setDoc(doc(db, 'users', userId), {
-        collection: newCollection,
-        desk: newDesk,
-    }, { merge: true });
-}
-
-export async function batchUpdateOnWatering(userId: string, updatedPlant: Plant, goldToAdd: number, usedRefill: boolean) {
+export async function batchUpdateOnWatering({ userId, updatedPlant, goldToAdd, usedRefill }: { userId: string, updatedPlant: Plant, goldToAdd: number, usedRefill: boolean }) {
     const userDocRef = doc(db, 'users', userId);
     const gameData = await getUserGameData(userId);
     if (!gameData) throw new Error("User data not found.");
@@ -144,17 +129,17 @@ export async function batchUpdateOnWatering(userId: string, updatedPlant: Plant,
 
     const batch = writeBatch(db);
 
-    batch.update(userDocRef, {
+    const updatePayload: any = {
         collection: newCollection,
         desk: newDesk,
         gold: increment(goldToAdd),
-    });
+    };
 
     if (usedRefill) {
-        batch.update(userDocRef, {
-            waterRefills: increment(-1)
-        });
+        updatePayload.waterRefills = increment(-1);
     }
+    
+    batch.update(userDocRef, updatePayload);
     
     await batch.commit();
 }
