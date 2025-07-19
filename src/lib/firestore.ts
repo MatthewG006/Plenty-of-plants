@@ -1,5 +1,5 @@
 
-import { doc, getDoc, setDoc, getFirestore, updateDoc, arrayUnion, DocumentData, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, setDoc, getFirestore, updateDoc, arrayUnion, DocumentData, writeBatch, increment } from 'firebase/firestore';
 import { app, db } from './firebase';
 import type { Plant } from '@/interfaces/plant';
 import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
@@ -15,6 +15,7 @@ export interface GameData {
     draws: number;
     lastDrawRefill: number;
     lastFreeDrawClaimed: number;
+    waterRefills: number;
 }
 
 export async function getUserGameData(userId: string): Promise<GameData | null> {
@@ -31,6 +32,7 @@ export async function getUserGameData(userId: string): Promise<GameData | null> 
             draws: data.draws ?? MAX_DRAWS,
             lastDrawRefill: data.lastDrawRefill || Date.now(),
             lastFreeDrawClaimed: data.lastFreeDrawClaimed || 0,
+            waterRefills: data.waterRefills || 0,
         };
     } else {
         return null;
@@ -68,6 +70,7 @@ export async function createUserDocument(user: User) {
             draws: MAX_DRAWS,
             lastDrawRefill: Date.now(),
             lastFreeDrawClaimed: 0,
+            waterRefills: 0,
         });
     }
 }
@@ -130,11 +133,37 @@ export async function updatePlantData(userId: string, updatedPlant: Plant) {
 }
 
 export async function updateUserGold(userId: string, amount: number) {
-    const gameData = await getUserGameData(userId);
-    if (!gameData) throw new Error("User data not found.");
+    const userDocRef = doc(db, 'users', userId);
+    await updateDoc(userDocRef, {
+        gold: increment(amount)
+    });
+}
 
-    const newGold = (gameData.gold || 0) + amount;
-    await setDoc(doc(db, 'users', userId), { gold: newGold }, { merge: true });
+export async function purchaseWaterRefills(userId: string, quantity: number, cost: number) {
+    const userDocRef = doc(db, 'users', userId);
+    const gameData = await getUserGameData(userId);
+
+    if (!gameData || gameData.gold < cost) {
+        throw new Error("Not enough gold to purchase.");
+    }
+
+    await updateDoc(userDocRef, {
+        gold: increment(-cost),
+        waterRefills: increment(quantity)
+    });
+}
+
+export async function useWaterRefill(userId: string) {
+    const userDocRef = doc(db, 'users', userId);
+    const gameData = await getUserGameData(userId);
+
+    if (!gameData || gameData.waterRefills <= 0) {
+        throw new Error("No water refills to use.");
+    }
+
+    await updateDoc(userDocRef, {
+        waterRefills: increment(-1)
+    });
 }
 
 export async function resetUserGameData(userId: string) {
@@ -145,6 +174,7 @@ export async function resetUserGameData(userId: string) {
         gold: 0,
         draws: MAX_DRAWS,
         lastDrawRefill: Date.now(),
-        lastFreeDrawClaimed: 0
+        lastFreeDrawClaimed: 0,
+        waterRefills: 0
     });
 }

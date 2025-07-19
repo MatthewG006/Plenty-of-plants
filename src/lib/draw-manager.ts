@@ -1,7 +1,7 @@
 
 'use client';
 
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
 import { db } from './firebase';
 import type { GameData } from './firestore';
 import { getUserGameData } from './firestore';
@@ -63,7 +63,7 @@ export async function hasClaimedDailyDraw(userId: string): Promise<boolean> {
     return lastClaimDate === todayDate;
 }
 
-export async function claimFreeDraw(userId: string, options?: { bypassTimeCheck?: boolean }): Promise<{ success: boolean; newCount: number; reason?: 'max_draws' | 'already_claimed' }> {
+export async function claimFreeDraw(userId: string, options?: { bypassTimeCheck?: boolean, cost?: number }): Promise<{ success: boolean; newCount: number; reason?: 'max_draws' | 'already_claimed' }> {
   const gameData = await getUserGameData(userId);
   if (!gameData) return { success: false, newCount: 0 };
   
@@ -76,17 +76,26 @@ export async function claimFreeDraw(userId: string, options?: { bypassTimeCheck?
   if (!options?.bypassTimeCheck && await hasClaimedDailyDraw(userId)) {
     return { success: false, newCount: currentDraws, reason: 'already_claimed' };
   }
+  
+  if (options?.cost && gameData.gold < options.cost) {
+      // This is an extra server-side check, though the UI should prevent this.
+      return { success: false, newCount: currentDraws };
+  }
 
   const newCount = currentDraws + 1;
   const now = Date.now();
   
   const userDocRef = doc(db, 'users', userId);
-  const updateData: Partial<GameData> = {
+  const updateData: any = {
       draws: newCount,
   };
   
   if (!options?.bypassTimeCheck) {
       updateData.lastFreeDrawClaimed = now;
+  }
+  
+  if (options?.cost) {
+      updateData.gold = increment(-options.cost);
   }
   
   // If we just added the last draw to become full, we don't need a timer.

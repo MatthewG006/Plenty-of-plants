@@ -28,7 +28,7 @@ import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { updatePlantArrangement, updatePlantData, updateUserGold, savePlant } from '@/lib/firestore';
+import { updatePlantArrangement, updatePlantData, updateUserGold, savePlant, useWaterRefill } from '@/lib/firestore';
 
 const NUM_POTS = 3;
 const MAX_WATERINGS_PER_DAY = 4;
@@ -82,6 +82,7 @@ function GoldCoinAnimation() {
 function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpdate, userId }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, onPlantUpdate: (updatedPlant: Plant) => void, userId: string }) {
     const { playSfx } = useAudio();
     const { toast } = useToast();
+    const { gameData } = useAuth();
     const [isWatering, setIsWatering] = useState(false);
     const [showGold, setShowGold] = useState(false);
     const [plant, setPlant] = useState(initialPlant);
@@ -90,10 +91,16 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
         setPlant(initialPlant);
     }, [initialPlant]);
 
-    if (!plant) return null;
+    if (!plant || !gameData) return null;
 
     const timesWateredToday = plant.lastWatered?.filter(isToday).length ?? 0;
-    const canWater = timesWateredToday < MAX_WATERINGS_PER_DAY;
+    const hasWaterRefills = gameData.waterRefills > 0;
+    const canWater = hasWaterRefills || (timesWateredToday < MAX_WATERINGS_PER_DAY);
+    const waterButtonText = () => {
+        if (isWatering) return 'Watering...';
+        if (hasWaterRefills) return `Use Refill (${gameData.waterRefills} left)`;
+        return `Water Plant (${timesWateredToday}/${MAX_WATERINGS_PER_DAY})`;
+    };
 
     const handleWaterPlant = async () => {
         if (!canWater || !plant) return;
@@ -116,21 +123,32 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
         }
         
         const now = Date.now();
-        const updatedLastWatered = [...(plant.lastWatered || []).filter(isToday), now];
-
-        const updatedPlant: Plant = {
-            ...plant,
-            xp: newXp,
-            level: newLevel,
-            lastWatered: updatedLastWatered,
-        };
-        
-        setPlant(updatedPlant);
-        onPlantUpdate(updatedPlant);
+        let updatedLastWatered = plant.lastWatered || [];
 
         try {
+            if (hasWaterRefills) {
+                await useWaterRefill(userId);
+                 toast({
+                    title: "Water Refill Used",
+                    description: `You have ${gameData.waterRefills - 1} refills remaining.`,
+                });
+            } else {
+                 updatedLastWatered = [...updatedLastWatered.filter(isToday), now];
+            }
+
+            const updatedPlant: Plant = {
+                ...plant,
+                xp: newXp,
+                level: newLevel,
+                lastWatered: updatedLastWatered,
+            };
+            
+            setPlant(updatedPlant);
+            onPlantUpdate(updatedPlant);
+
             await updatePlantData(userId, updatedPlant);
             await updateUserGold(userId, GOLD_PER_WATERING);
+
         } catch(e) {
             console.error("Failed to update plant or gold", e);
             toast({ variant: 'destructive', title: "Error", description: "Could not save watering progress."})
@@ -178,7 +196,7 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
                 <DialogFooter className="flex-col gap-2">
                     <Button onClick={handleWaterPlant} disabled={!canWater || isWatering} className="w-full">
                         <Droplet className="mr-2 h-4 w-4" />
-                        {isWatering ? 'Watering...' : `Water Plant (${timesWateredToday}/${MAX_WATERINGS_PER_DAY})`}
+                        {waterButtonText()}
                     </Button>
                     <DialogClose asChild>
                         <Button variant="outline" className="w-full">Close</Button>

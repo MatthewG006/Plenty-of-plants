@@ -56,6 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             draws: data.draws ?? MAX_DRAWS,
             lastDrawRefill: data.lastDrawRefill || Date.now(),
             lastFreeDrawClaimed: data.lastFreeDrawClaimed || 0,
+            waterRefills: data.waterRefills || 0,
           });
         } else {
             setGameData({
@@ -65,6 +66,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               draws: MAX_DRAWS,
               lastDrawRefill: Date.now(),
               lastFreeDrawClaimed: 0,
+              waterRefills: 0,
             });
         }
         setLoading(false);
