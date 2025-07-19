@@ -102,12 +102,8 @@ export default function HomePage() {
   }, [user]);
 
   useEffect(() => {
-    if (gameData) {
-        const allPlants: Plant[] = [
-          ...(gameData.collection || []),
-          ...(gameData.desk || []).filter((p: Plant | null): p is Plant => p !== null),
-        ];
-
+    if (gameData?.plants) {
+        const allPlants = Object.values(gameData.plants);
         if (allPlants.length > 0) {
           const latest = allPlants.reduce((latest, plant) => (plant.id > latest.id ? plant : latest), allPlants[0]);
           setLatestPlant(latest);

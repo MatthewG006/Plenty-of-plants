@@ -51,11 +51,8 @@ export default function ProfilePage() {
   const [plantsEvolved, setPlantsEvolved] = useState(0);
   
   useEffect(() => {
-    if (gameData) {
-        const collectionPlants: Plant[] = gameData.collection || [];
-        const deskPlants: Plant[] = (gameData.desk || []).filter((p: Plant | null): p is Plant => p !== null);
-        const allPlants = [...collectionPlants, ...deskPlants];
-
+    if (gameData?.plants) {
+        const allPlants = Object.values(gameData.plants);
         setPlantsCollected(allPlants.length);
         const evolvedCount = allPlants.filter(p => p.form !== 'Base').length;
         setPlantsEvolved(evolvedCount);

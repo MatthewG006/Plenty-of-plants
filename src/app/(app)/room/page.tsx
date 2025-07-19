@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogC
 import { drawPlant, type DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 import { Leaf, Loader2, Droplet, PlusCircle, Coins, Sparkles } from 'lucide-react';
 import Image from 'next/image';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import type { Plant } from '@/interfaces/plant';
 import { cn } from '@/lib/utils';
@@ -148,18 +148,21 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
                  updatedLastWatered = [...updatedLastWatered.filter(isToday), now];
             }
 
-            const updatedPlant: Plant = {
-                ...plant,
+            const updatedPlantData: Partial<Plant> = {
                 xp: newXp,
                 level: newLevel,
                 lastWatered: updatedLastWatered,
             };
             
-            setPlant(updatedPlant);
+            const updatedPlantFull: Plant = {
+                ...plant,
+                ...updatedPlantData,
+            };
+            setPlant(updatedPlantFull);
             
-            await updatePlant(userId, updatedPlant);
+            await updatePlant(userId, plant.id, updatedPlantData);
             await updateUserGold(userId, GOLD_PER_WATERING);
-            onPlantUpdate(updatedPlant);
+            onPlantUpdate(updatedPlantFull);
 
             if (shouldEvolve) {
                 onEvolutionStart(plant.id);
@@ -350,8 +353,9 @@ export default function RoomPage() {
   const { toast } = useToast();
   const { playSfx } = useAudio();
   
-  const [collectedPlants, setCollectedPlants] = useState<Plant[]>([]);
-  const [deskPlants, setDeskPlants] = useState<(Plant | null)[]>(Array(NUM_POTS).fill(null));
+  const [allPlants, setAllPlants] = useState<Record<string, Plant>>({});
+  const [deskPlantIds, setDeskPlantIds] = useState<(number | null)[]>(Array(NUM_POTS).fill(null));
+  const [collectionPlantIds, setCollectionPlantIds] = useState<number[]>([]);
 
   const [isDrawing, setIsDrawing] = useState(false);
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
@@ -369,24 +373,28 @@ export default function RoomPage() {
   
   useEffect(() => {
     if (gameData) {
-        setCollectedPlants(gameData.collection || []);
-        setDeskPlants(gameData.desk || Array(NUM_POTS).fill(null));
+        setAllPlants(gameData.plants || {});
+        setDeskPlantIds(gameData.deskPlantIds || Array(NUM_POTS).fill(null));
+        setCollectionPlantIds(gameData.collectionPlantIds || []);
     }
   }, [gameData]);
+
+  const deskPlants = useMemo(() => deskPlantIds.map(id => id ? allPlants[id] : null), [deskPlantIds, allPlants]);
+  const collectedPlants = useMemo(() => collectionPlantIds.map(id => allPlants[id]).filter(Boolean), [collectionPlantIds, allPlants]);
 
   const activePlantData = (() => {
     if (!activeId) return null;
     const [source, idStr] = activeId.split(":");
     const id = parseInt(idStr, 10);
-    const plant = source === 'desk' 
-        ? deskPlants.find(p => p?.id === id)
-        : collectedPlants.find(p => p.id === id);
+    const plant = allPlants[id];
     return plant ? { plant, source } : null;
   })();
 
   const handlePlantUpdate = useCallback((updatedPlant: Plant) => {
-    setDeskPlants(prev => prev.map(p => p?.id === updatedPlant.id ? updatedPlant : p));
-    setCollectedPlants(prev => prev.map(p => p.id === updatedPlant.id ? updatedPlant : p));
+    setAllPlants(prev => ({
+        ...prev,
+        [updatedPlant.id]: updatedPlant
+    }));
     setSelectedPlant(updatedPlant); // Keep dialog open with updated data
   }, []);
 
@@ -436,46 +444,44 @@ export default function RoomPage() {
     const [activeSource] = (active.id as string).split(':');
     const [overType, overIdStr] = (over.id as string).split(':');
   
-    let newDeskPlants = [...deskPlants];
-    let newCollectedPlants = [...collectedPlants];
+    let newDeskPlantIds = [...deskPlantIds];
+    let newCollectionPlantIds = [...collectionPlantIds];
   
-    const sourcePotIndex = activeSource === 'desk' ? newDeskPlants.findIndex(p => p?.id === activePlant.id) : -1;
+    const sourcePotIndex = activeSource === 'desk' ? newDeskPlantIds.findIndex(id => id === activePlant.id) : -1;
   
     if (overType === 'pot') {
       const targetPotIndex = parseInt(overIdStr, 10);
-      const plantAtTarget = newDeskPlants[targetPotIndex];
+      const plantIdAtTarget = newDeskPlantIds[targetPotIndex];
   
       if (activeSource === 'collection') {
-        newCollectedPlants = newCollectedPlants.filter(p => p.id !== activePlant.id);
-        if (plantAtTarget) {
-          newCollectedPlants.push(plantAtTarget);
+        newCollectionPlantIds = newCollectionPlantIds.filter(id => id !== activePlant.id);
+        if (plantIdAtTarget) {
+          newCollectionPlantIds.push(plantIdAtTarget);
         }
-        newDeskPlants[targetPotIndex] = activePlant;
+        newDeskPlantIds[targetPotIndex] = activePlant.id;
       }
       else if (activeSource === 'desk' && sourcePotIndex !== -1) {
-        newDeskPlants[targetPotIndex] = activePlant;
-        newDeskPlants[sourcePotIndex] = plantAtTarget;
+        newDeskPlantIds[targetPotIndex] = activePlant.id;
+        newDeskPlantIds[sourcePotIndex] = plantIdAtTarget;
       }
     } 
     else if (overType === 'collection') {
       if (activeSource === 'desk' && sourcePotIndex !== -1) {
-        newDeskPlants[sourcePotIndex] = null;
-        if (!newCollectedPlants.find(p => p.id === activePlant.id)) {
-            newCollectedPlants.push(activePlant);
+        newDeskPlantIds[sourcePotIndex] = null;
+        if (!newCollectionPlantIds.includes(activePlant.id)) {
+            newCollectionPlantIds.push(activePlant.id);
         }
       }
     }
   
-    const finalCollected = newCollectedPlants.sort((a,b) => a.id - b.id);
-    setDeskPlants(newDeskPlants);
-    setCollectedPlants(finalCollected);
-    await updatePlantArrangement(user.uid, finalCollected, newDeskPlants);
+    const finalCollectionIds = newCollectionPlantIds.sort((a,b) => a - b);
+    setDeskPlantIds(newDeskPlantIds);
+    setCollectionPlantIds(finalCollectionIds);
+    await updatePlantArrangement(user.uid, finalCollectionIds, newDeskPlantIds);
   };
   
   const handleEvolutionStart = (plantId: number) => {
-    if (!user) return;
-    const allPlants = [...deskPlants, ...collectedPlants].filter(Boolean) as Plant[];
-    const plant = allPlants.find(p => p.id === plantId);
+    const plant = allPlants[plantId];
     if (plant) {
         setEvolutionPlantName(plant.name);
         setPlantIdToEvolve(plantId);
@@ -497,19 +503,23 @@ export default function RoomPage() {
             imageDataUri: plantToEvolve.image,
         });
 
-        const evolvedPlantData: Plant = {
-            ...plantToEvolve,
+        const evolvedPlantData: Partial<Plant> = {
             image: newImageDataUri,
             form: 'Evolved',
         };
 
-        await updatePlant(user.uid, evolvedPlantData);
-        handlePlantUpdate(evolvedPlantData);
+        await updatePlant(user.uid, plantIdToEvolve, evolvedPlantData);
+        
+        const fullEvolvedPlant = {
+            ...plantToEvolve,
+            ...evolvedPlantData,
+        };
+        handlePlantUpdate(fullEvolvedPlant);
         
         playSfx('success');
         toast({
             title: "Evolution Complete!",
-            description: `${evolvedPlantData.name} has evolved!`,
+            description: `${fullEvolvedPlant.name} has evolved!`,
         });
 
     } catch (e) {

@@ -41,7 +41,7 @@ function SettingRow({ icon: Icon, label, children }: { icon: React.ElementType, 
 }
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user, gameData } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const { isPlaying, togglePlay, volume, setVolume, sfxVolume, setSfxVolume, playSfx } = useAudio();
@@ -70,7 +70,7 @@ export default function SettingsPage() {
     }
   };
 
-  if (!isClient || !user) {
+  if (!isClient || !user || !gameData) {
     return (
         <div className="flex h-screen w-full items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />

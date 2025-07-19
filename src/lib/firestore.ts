@@ -10,8 +10,9 @@ const NUM_POTS = 3;
 
 export interface GameData {
     gold: number;
-    collection: Plant[];
-    desk: (Plant | null)[];
+    plants: Record<string, Plant>;
+    collectionPlantIds: number[];
+    deskPlantIds: (number | null)[];
     draws: number;
     lastDrawRefill: number;
     lastFreeDrawClaimed: number;
@@ -27,8 +28,9 @@ export async function getUserGameData(userId: string): Promise<GameData | null> 
         // Ensure default values if fields are missing
         return {
             gold: data.gold || 0,
-            collection: data.collection || [],
-            desk: data.desk || Array(NUM_POTS).fill(null),
+            plants: data.plants || {},
+            collectionPlantIds: data.collectionPlantIds || [],
+            deskPlantIds: data.deskPlantIds || Array(NUM_POTS).fill(null),
             draws: data.draws ?? MAX_DRAWS,
             lastDrawRefill: data.lastDrawRefill || Date.now(),
             lastFreeDrawClaimed: data.lastFreeDrawClaimed || 0,
@@ -41,10 +43,9 @@ export async function getUserGameData(userId: string): Promise<GameData | null> 
 
 export async function getPlantById(userId: string, plantId: number): Promise<Plant | null> {
     const gameData = await getUserGameData(userId);
-    if (!gameData) return null;
+    if (!gameData || !gameData.plants) return null;
 
-    const allPlants = [...gameData.desk, ...gameData.collection].filter(Boolean) as Plant[];
-    return allPlants.find(p => p.id === plantId) || null;
+    return gameData.plants[plantId] || null;
 }
 
 export async function createUserDocument(user: User) {
@@ -72,8 +73,9 @@ export async function createUserDocument(user: User) {
             username: user.displayName,
             avatarColor: avatarColor,
             gold: 0,
-            collection: [],
-            desk: [startingPlant, null, null],
+            plants: { '1': startingPlant },
+            collectionPlantIds: [],
+            deskPlantIds: [1, null, null],
             gameId: `#${user.uid.slice(0, 8).toUpperCase()}`,
             draws: MAX_DRAWS,
             lastDrawRefill: Date.now(),
@@ -83,7 +85,7 @@ export async function createUserDocument(user: User) {
     }
 }
 
-export async function savePlant(userId: string, plant: DrawPlantOutput) {
+export async function savePlant(userId: string, plant: DrawPlantOutput): Promise<Plant> {
     const userDocRef = doc(db, 'users', userId);
     const gameData = await getUserGameData(userId);
 
@@ -91,9 +93,8 @@ export async function savePlant(userId: string, plant: DrawPlantOutput) {
         throw new Error("User data not found, cannot save plant.");
     }
 
-    const { collection, desk } = gameData;
-    const allCurrentPlants = [...collection, ...desk.filter((p): p is Plant => p !== null)];
-    const lastId = allCurrentPlants.reduce((maxId, p) => Math.max(p.id, maxId), 0);
+    const allPlantIds = Object.keys(gameData.plants).map(Number);
+    const lastId = allPlantIds.length > 0 ? Math.max(...allPlantIds) : 0;
 
     const newPlant: Plant = {
         id: lastId + 1,
@@ -107,65 +108,45 @@ export async function savePlant(userId: string, plant: DrawPlantOutput) {
         lastWatered: [],
     };
 
-    const firstEmptyPotIndex = desk.findIndex(p => p === null);
+    const firstEmptyPotIndex = gameData.deskPlantIds.findIndex(id => id === null);
     if (firstEmptyPotIndex !== -1) {
-        const newDesk = [...desk];
-        newDesk[firstEmptyPotIndex] = newPlant;
-        // Sanitize the array before writing to Firestore
-        await updateDoc(userDocRef, { desk: JSON.parse(JSON.stringify(newDesk)) });
+        const newDeskPlantIds = [...gameData.deskPlantIds];
+        newDeskPlantIds[firstEmptyPotIndex] = newPlant.id;
+        await updateDoc(userDocRef, {
+            [`plants.${newPlant.id}`]: newPlant,
+            deskPlantIds: newDeskPlantIds,
+        });
     } else {
         await updateDoc(userDocRef, {
-            collection: arrayUnion(newPlant)
+            [`plants.${newPlant.id}`]: newPlant,
+            collectionPlantIds: arrayUnion(newPlant.id),
         });
     }
     
     return newPlant;
 }
 
-export async function updatePlantArrangement(userId: string, collection: Plant[], desk: (Plant | null)[]) {
-    await setDoc(doc(db, 'users', userId), { 
-        collection: JSON.parse(JSON.stringify(collection)), 
-        desk: JSON.parse(JSON.stringify(desk)) 
-    }, { merge: true });
+
+export async function updatePlantArrangement(userId: string, collectionPlantIds: number[], deskPlantIds: (number | null)[]) {
+    await updateDoc(doc(db, 'users', userId), { 
+        collectionPlantIds: collectionPlantIds, 
+        deskPlantIds: deskPlantIds
+    });
 }
 
-export async function updatePlant(userId: string, plantToUpdate: Plant) {
+export async function updatePlant(userId: string, plantId: number, plantUpdateData: Partial<Plant>) {
     const userDocRef = doc(db, 'users', userId);
     
-    const gameData = await getUserGameData(userId);
-    if (!gameData) {
-        throw new Error("User data not found for plant update.");
+    const updates: { [key: string]: any } = {};
+    for (const [key, value] of Object.entries(plantUpdateData)) {
+        updates[`plants.${plantId}.${key}`] = value;
     }
 
-    const plainPlant = JSON.parse(JSON.stringify(plantToUpdate));
-
-    let plantFound = false;
-    const newDesk = gameData.desk.map(p => {
-        if (p?.id === plainPlant.id) {
-            plantFound = true;
-            return plainPlant;
-        }
-        return p;
-    });
-
-    const newCollection = gameData.collection.map(p => {
-        if (p.id === plainPlant.id) {
-            plantFound = true;
-            return plainPlant;
-        }
-        return p;
-    });
-
-    if (!plantFound) {
-        console.warn("Attempted to update a plant that was not found in user's data. This can happen if state is out of sync. Plant ID:", plainPlant.id);
-        return;
+    if (Object.keys(updates).length > 0) {
+        await updateDoc(userDocRef, updates);
     }
-
-    await updateDoc(userDocRef, {
-        desk: newDesk,
-        collection: newCollection
-    });
 }
+
 
 export async function updateUserGold(userId: string, amount: number) {
     const userDocRef = doc(db, 'users', userId);
@@ -203,9 +184,24 @@ export async function useWaterRefill(userId: string) {
 
 export async function resetUserGameData(userId: string) {
     const userDocRef = doc(db, 'users', userId);
+    
+    // Create a starter plant, since we are wiping the existing ones
+    const startingPlant: Plant = {
+        id: 1,
+        name: "Friendly Fern",
+        description: "A happy little fern to start your collection.",
+        image: "/fern.png",
+        form: "Base",
+        hint: "fern plant",
+        level: 1,
+        xp: 0,
+        lastWatered: [],
+    };
+
     await updateDoc(userDocRef, {
-        collection: [],
-        desk: [null, null, null],
+        plants: { '1': startingPlant },
+        collectionPlantIds: [],
+        deskPlantIds: [1, null, null],
         gold: 0,
         draws: MAX_DRAWS,
         lastDrawRefill: Date.now(),
