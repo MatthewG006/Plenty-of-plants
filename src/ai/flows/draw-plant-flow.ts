@@ -39,7 +39,7 @@ const plantDetailsPrompt = ai.definePrompt({
       name: z
         .string()
         .describe(
-          'A creative and unique name for a new fantasy plant. Should be two words.'
+          'A creative and unique name for a new fantasy plant. Should be two words. Avoid common plant names like "fern" or "cactus".'
         ),
       description: z
         .string()
@@ -53,7 +53,7 @@ const plantDetailsPrompt = ai.definePrompt({
         ),
     }),
   },
-  prompt: `You are a creative botanist for a game about collecting magical plants. Generate one new, unique, and whimsical plant. The plant should have a two-word name, a short one-sentence description, and a prompt for an image generator. The plant should sound like a cute character.`,
+  prompt: `You are a creative botanist for a game about collecting magical plants. Generate one new, unique, and whimsical plant. The plant must have a highly creative and unusual two-word name that is not a common plant type. It should also have a short, one-sentence description, and a prompt for an image generator. The plant should sound like a cute character.`,
 });
 
 const drawPlantFlow = ai.defineFlow(
