@@ -28,7 +28,7 @@ import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { updatePlantArrangement, updateUserGold, savePlant, useWaterRefill, updatePlant } from '@/lib/firestore';
+import { updatePlantArrangement, updateUserGold, savePlant, useWaterRefill, updatePlant, getPlantById } from '@/lib/firestore';
 import { evolvePlant } from '@/ai/flows/evolve-plant-flow';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
@@ -82,7 +82,7 @@ function GoldCoinAnimation() {
 }
 
 
-function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpdate, onEvolutionStart, userId }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, onPlantUpdate: (updatedPlant: Plant) => void, onEvolutionStart: (plant: Plant) => void, userId: string }) {
+function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpdate, onEvolutionStart, userId }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, onPlantUpdate: (updatedPlant: Plant) => void, onEvolutionStart: (plantId: number) => void, userId: string }) {
     const { playSfx } = useAudio();
     const { toast } = useToast();
     const { gameData } = useAuth();
@@ -157,16 +157,13 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
             
             setPlant(updatedPlant);
             
-            // If evolution is triggered, we pass this to the onEvolutionStart handler.
-            // The actual database write will be handled there.
+            await updatePlant(userId, updatedPlant);
+            await updateUserGold(userId, GOLD_PER_WATERING);
+            onPlantUpdate(updatedPlant);
+
             if (shouldEvolve) {
-                onEvolutionStart(updatedPlant);
+                onEvolutionStart(plant.id);
                 onOpenChange(false); // Close details to show evolution dialog
-            } else {
-                // If no evolution, just update the plant data and gold separately.
-                await updatePlant(userId, updatedPlant);
-                await updateUserGold(userId, GOLD_PER_WATERING);
-                onPlantUpdate(updatedPlant);
             }
 
         } catch(e) {
@@ -360,8 +357,10 @@ export default function RoomPage() {
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
 
-  const [plantToEvolve, setPlantToEvolve] = useState<Plant | null>(null);
+  const [plantIdToEvolve, setPlantIdToEvolve] = useState<number | null>(null);
   const [isEvolving, setIsEvolving] = useState(false);
+  const [evolutionPlantName, setEvolutionPlantName] = useState('');
+
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -472,29 +471,38 @@ export default function RoomPage() {
     setCollectedPlants(finalCollected);
     await updatePlantArrangement(user.uid, finalCollected, newDeskPlants);
   };
+  
+  const handleEvolutionStart = (plantId: number) => {
+    if (!user) return;
+    const allPlants = [...deskPlants, ...collectedPlants].filter(Boolean) as Plant[];
+    const plant = allPlants.find(p => p.id === plantId);
+    if (plant) {
+        setEvolutionPlantName(plant.name);
+        setPlantIdToEvolve(plantId);
+    }
+  };
 
   const handleEvolve = async () => {
-    if (!plantToEvolve || !user || !gameData) return;
-
-    // Sanitize the plant object from state to prevent serialization errors.
-    const plainPlantToEvolve = JSON.parse(JSON.stringify(plantToEvolve));
+    if (!plantIdToEvolve || !user || !gameData) return;
 
     setIsEvolving(true);
     try {
-        // First, generate the new image
+        const plantToEvolve = await getPlantById(user.uid, plantIdToEvolve);
+        if (!plantToEvolve) {
+            throw new Error("Plant not found for evolution.");
+        }
+
         const { newImageDataUri } = await evolvePlant({
-            name: plainPlantToEvolve.name,
-            imageDataUri: plainPlantToEvolve.image,
+            name: plantToEvolve.name,
+            imageDataUri: plantToEvolve.image,
         });
 
         const evolvedPlantData: Plant = {
-            ...plainPlantToEvolve,
+            ...plantToEvolve,
             image: newImageDataUri,
             form: 'Evolved',
         };
 
-        // If AI is successful, then save progress and update gold
-        await updateUserGold(user.uid, GOLD_PER_WATERING);
         await updatePlant(user.uid, evolvedPlantData);
         handlePlantUpdate(evolvedPlantData);
         
@@ -509,7 +517,8 @@ export default function RoomPage() {
         toast({ variant: 'destructive', title: "Evolution Failed", description: "Could not evolve your plant. Please try again." });
     } finally {
         setIsEvolving(false);
-        setPlantToEvolve(null);
+        setPlantIdToEvolve(null);
+        setEvolutionPlantName('');
     }
   };
   
@@ -589,18 +598,18 @@ export default function RoomPage() {
           open={!!selectedPlant}
           onOpenChange={(isOpen) => !isOpen && setSelectedPlant(null)}
           onPlantUpdate={handlePlantUpdate}
-          onEvolutionStart={setPlantToEvolve}
+          onEvolutionStart={handleEvolutionStart}
           userId={user.uid}
         />
 
-        <AlertDialog open={!!plantToEvolve || isEvolving} onOpenChange={(isOpen) => !isOpen && setPlantToEvolve(null)}>
+        <AlertDialog open={!!plantIdToEvolve || isEvolving} onOpenChange={(isOpen) => !isOpen && setPlantIdToEvolve(null)}>
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>
                         {isEvolving ? "Evolving..." : "Your plant is growing!"}
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                        {isEvolving ? "Please wait a moment." : `${plantToEvolve?.name} is ready for a new form! Would you like to evolve it?`}
+                        {isEvolving ? "Please wait a moment." : `${evolutionPlantName} is ready for a new form! Would you like to evolve it?`}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 {isEvolving && (

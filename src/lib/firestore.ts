@@ -39,6 +39,14 @@ export async function getUserGameData(userId: string): Promise<GameData | null> 
     }
 }
 
+export async function getPlantById(userId: string, plantId: number): Promise<Plant | null> {
+    const gameData = await getUserGameData(userId);
+    if (!gameData) return null;
+
+    const allPlants = [...gameData.desk, ...gameData.collection].filter(Boolean) as Plant[];
+    return allPlants.find(p => p.id === plantId) || null;
+}
+
 export async function createUserDocument(user: User) {
     const docRef = doc(db, 'users', user.uid);
     const docSnap = await getDoc(docRef);
@@ -124,16 +132,13 @@ export async function updatePlantArrangement(userId: string, collection: Plant[]
 export async function updatePlant(userId: string, plantToUpdate: Plant) {
     const userDocRef = doc(db, 'users', userId);
     
-    // Fetch the latest data directly from Firestore to avoid using stale/proxy state
     const gameData = await getUserGameData(userId);
     if (!gameData) {
         throw new Error("User data not found for plant update.");
     }
 
-    // Ensure the plant to update is a plain object
     const plainPlant = JSON.parse(JSON.stringify(plantToUpdate));
 
-    // Find and update the plant in the fresh desk and collection arrays
     let plantFound = false;
     const newDesk = gameData.desk.map(p => {
         if (p?.id === plainPlant.id) {
@@ -156,7 +161,6 @@ export async function updatePlant(userId: string, plantToUpdate: Plant) {
         return;
     }
 
-    // Write the modified, clean arrays back to Firestore
     await updateDoc(userDocRef, {
         desk: newDesk,
         collection: newCollection
