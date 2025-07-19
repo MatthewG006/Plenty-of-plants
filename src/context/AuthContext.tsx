@@ -6,7 +6,7 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
-import { GameData } from '@/lib/firestore';
+import { GameData, createUserDocument } from '@/lib/firestore';
 import { MAX_DRAWS } from '@/lib/draw-manager';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -53,14 +53,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             gold: data.gold || 0,
             plants: data.plants || {},
             collectionPlantIds: data.collectionPlantIds || [],
-            deskPlantIds: data.deskPlantIds || [],
+            deskPlantIds: data.deskPlantIds || [null, null, null],
             draws: data.draws ?? MAX_DRAWS,
             lastDrawRefill: data.lastDrawRefill || Date.now(),
             lastFreeDrawClaimed: data.lastFreeDrawClaimed || 0,
             waterRefills: data.waterRefills || 0,
           });
         } else {
-            setGameData(null); // Let createUserDocument handle new user creation
+            // This case handles a user that is authenticated but doesn't have a document yet.
+            // This can happen on first signup. We create the document and the onSnapshot listener will pick it up.
+            createUserDocument(user).then((newGameData) => {
+                // Manually setting game data here can bridge the small gap before the listener fires.
+                setGameData(newGameData);
+            });
         }
         setLoading(false);
       }, (error) => {
@@ -82,17 +87,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (loading) return;
 
-    const isAuthPage = ['/login', '/signup'].includes(pathname);
-    const isSplashPage = pathname === '/';
+    const publicPages = ['/', '/login', '/signup'];
+    const authPages = ['/login', '/signup'];
+    
+    const isPublicPage = publicPages.includes(pathname);
+    const isAuthPage = authPages.includes(pathname);
 
-    // If user is logged in, they should not be on an auth page. Redirect them.
     if (user && isAuthPage) {
+      // If user is logged in, redirect from auth pages to home.
       router.push('/home');
-      return;
-    }
-
-    // If user is NOT logged in and tries to access a protected page, redirect them.
-    if (!user && !isAuthPage && !isSplashPage) {
+    } else if (!user && !isPublicPage) {
+      // If user is not logged in and not on a public page, redirect to login.
       router.push('/login');
     }
 
