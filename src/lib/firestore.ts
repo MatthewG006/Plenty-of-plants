@@ -123,16 +123,40 @@ export async function updatePlantArrangement(userId: string, collection: Plant[]
 
 export async function updatePlant(userId: string, plantToUpdate: Plant) {
     const userDocRef = doc(db, 'users', userId);
+    
+    // Fetch the latest data directly from Firestore to avoid using stale/proxy state
     const gameData = await getUserGameData(userId);
-    if (!gameData) throw new Error("User data not found for plant update.");
+    if (!gameData) {
+        throw new Error("User data not found for plant update.");
+    }
 
-    // Firestore cannot handle Proxy objects from React state.
-    // Convert the plant object to a plain JS object before using it.
+    // Ensure the plant to update is a plain object
     const plainPlant = JSON.parse(JSON.stringify(plantToUpdate));
 
-    const newDesk = gameData.desk.map(p => p?.id === plainPlant.id ? plainPlant : p);
-    const newCollection = gameData.collection.map(p => p.id === plainPlant.id ? plainPlant : p);
+    // Find and update the plant in the fresh desk and collection arrays
+    let plantFound = false;
+    const newDesk = gameData.desk.map(p => {
+        if (p?.id === plainPlant.id) {
+            plantFound = true;
+            return plainPlant;
+        }
+        return p;
+    });
 
+    const newCollection = gameData.collection.map(p => {
+        if (p.id === plainPlant.id) {
+            plantFound = true;
+            return plainPlant;
+        }
+        return p;
+    });
+
+    if (!plantFound) {
+        console.warn("Attempted to update a plant that was not found in user's data.");
+        return;
+    }
+
+    // Write the modified, clean arrays back to Firestore
     await updateDoc(userDocRef, {
         desk: newDesk,
         collection: newCollection
