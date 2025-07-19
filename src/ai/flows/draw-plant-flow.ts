@@ -126,7 +126,7 @@ const drawPlantFlow = ai.defineFlow(
         throw new Error('Could not generate plant image from AI.');
       }
 
-      // Step 6: Save the newly generated plant image to the public fallback folder so it can be used in the future.
+      // Step 6: Save the newly generated plant image to be used as a future fallback.
       const fallbackDir = path.join(process.cwd(), 'public', 'fallback-plants');
       const safeFilename = `${plantDetails.name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-')}.png`;
       const savePath = path.join(fallbackDir, safeFilename);
@@ -155,7 +155,7 @@ const drawPlantFlow = ai.defineFlow(
         }
 
         console.error("Primary plant generation failed, triggering fallback.", error);
-        return getFallbackPlantFlow({});
+        return getFallbackPlantFlow({ existingNames });
     }
   }
 );
