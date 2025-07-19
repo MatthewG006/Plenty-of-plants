@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -50,23 +51,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const data = docSnap.data();
            setGameData({
             gold: data.gold || 0,
-            collection: data.collection || [],
-            desk: data.desk || Array(3).fill(null),
+            plants: data.plants || {},
+            collectionPlantIds: data.collectionPlantIds || [],
+            deskPlantIds: data.deskPlantIds || Array(3).fill(null),
             draws: data.draws ?? MAX_DRAWS,
             lastDrawRefill: data.lastDrawRefill || Date.now(),
             lastFreeDrawClaimed: data.lastFreeDrawClaimed || 0,
             waterRefills: data.waterRefills || 0,
           });
         } else {
-            setGameData({
-              gold: 0,
-              collection: [],
-              desk: Array(3).fill(null),
-              draws: MAX_DRAWS,
-              lastDrawRefill: Date.now(),
-              lastFreeDrawClaimed: 0,
-              waterRefills: 0,
-            });
+            setGameData(null); // Let createUserDocument handle new user creation
         }
         setLoading(false);
       }, (error) => {
