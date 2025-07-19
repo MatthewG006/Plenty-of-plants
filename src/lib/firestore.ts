@@ -85,49 +85,49 @@ export async function createUserDocument(user: User) {
     }
 }
 
-export async function savePlant(userId: string, plant: DrawPlantOutput): Promise<Plant> {
+export async function savePlant(userId: string, plantData: DrawPlantOutput): Promise<Plant> {
     const userDocRef = doc(db, 'users', userId);
     const gameData = await getUserGameData(userId);
 
     if (!gameData) {
         throw new Error("User data not found, cannot save plant.");
     }
+    
+    // Sanitize the input object to ensure it's a plain JS object
+    const plainPlantData = JSON.parse(JSON.stringify(plantData));
 
     const allPlantIds = Object.keys(gameData.plants).map(Number);
     const lastId = allPlantIds.length > 0 ? Math.max(...allPlantIds) : 0;
 
     const newPlant: Plant = {
         id: lastId + 1,
-        name: plant.name,
+        name: plainPlantData.name,
         form: 'Base',
-        image: plant.imageDataUri,
-        hint: plant.name.toLowerCase().split(' ').slice(0, 2).join(' '),
-        description: plant.description,
+        image: plainPlantData.imageDataUri,
+        hint: plainPlantData.name.toLowerCase().split(' ').slice(0, 2).join(' '),
+        description: plainPlantData.description,
         level: 1,
         xp: 0,
         lastWatered: [],
     };
-    
-    // This is a plain object, so it's safe to send to Firestore.
-    const plainNewPlant = JSON.parse(JSON.stringify(newPlant));
 
     const firstEmptyPotIndex = gameData.deskPlantIds.findIndex(id => id === null);
 
     const updatePayload: { [key: string]: any } = {
-        [`plants.${plainNewPlant.id}`]: plainNewPlant,
+        [`plants.${newPlant.id}`]: newPlant,
     };
     
     if (firstEmptyPotIndex !== -1) {
         const newDeskPlantIds = [...gameData.deskPlantIds];
-        newDeskPlantIds[firstEmptyPotIndex] = plainNewPlant.id;
+        newDeskPlantIds[firstEmptyPotIndex] = newPlant.id;
         updatePayload.deskPlantIds = newDeskPlantIds;
     } else {
-        updatePayload.collectionPlantIds = arrayUnion(plainNewPlant.id);
+        updatePayload.collectionPlantIds = arrayUnion(newPlant.id);
     }
     
     await updateDoc(userDocRef, updatePayload);
     
-    return plainNewPlant;
+    return newPlant;
 }
 
 

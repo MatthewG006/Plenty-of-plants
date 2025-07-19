@@ -161,7 +161,8 @@ export default function HomePage() {
     if (!drawnPlant || !user) return;
 
     try {
-        const newPlant = await savePlant(user.uid, drawnPlant);
+        const plainDrawnPlant = JSON.parse(JSON.stringify(drawnPlant));
+        const newPlant = await savePlant(user.uid, plainDrawnPlant);
         setLatestPlant(newPlant);
     } catch (e) {
         console.error("Failed to save plant to Firestore", e);
