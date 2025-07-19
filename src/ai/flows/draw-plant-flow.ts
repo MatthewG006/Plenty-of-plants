@@ -82,25 +82,38 @@ const drawPlantFlow = ai.defineFlow(
         throw new Error('Could not generate plant details.');
       }
 
-      // Step 2: Read the reference image from the filesystem.
-      const imagePath = path.join(process.cwd(), 'public', 'fern.png');
-      const referenceImageBuffer = await fs.readFile(imagePath);
-      const referenceImageDataUri = `data:image/png;base64,${referenceImageBuffer.toString('base64')}`;
+      // Step 2: Try to read the reference image from the filesystem.
+      let referenceImageDataUri: string | null = null;
+      try {
+        const imagePath = path.join(process.cwd(), 'public', 'fern.png');
+        const referenceImageBuffer = await fs.readFile(imagePath);
+        referenceImageDataUri = `data:image/png;base64,${referenceImageBuffer.toString('base64')}`;
+      } catch (e) {
+        console.warn("Could not load reference image 'fern.png'. Generating image without it.", e);
+      }
 
-      // Step 3: Use the details and reference image to generate the new plant image.
+      // Step 3: Build the prompt. If there's a reference image, include it.
+      const imageGenPrompt: (any)[] = [];
+      const rules = `
+        You MUST adhere to the following rules without exception:
+        1. **Art Style:** The final image must have a clean, 2D, illustrated style.
+        2. **The Pot:** The plant MUST be in a simple, smiling terracotta pot. The pot's style should be consistent.
+        3. **The Plant:** The new plant character must be cute and simple. It absolutely MUST NOT have arms, legs, or a human-like body.
+        4. **The Background:** The background MUST be a solid, pure white. No gradients, textures, or shadows.
+        5. **Composition:** The image must contain ONLY the single plant character in its pot. NO other objects, text, people, hands, or background elements are allowed.
+      `;
+      
+      if (referenceImageDataUri) {
+          imageGenPrompt.push({ media: { url: referenceImageDataUri, contentType: 'image/png' } });
+          imageGenPrompt.push({ text: `Your primary goal is to replicate the art style of the provided reference image EXACTLY. Create a new plant character based on the description: "${plantDetails.imagePrompt}".\n\n${rules}` });
+      } else {
+          imageGenPrompt.push({ text: `Create a new plant character based on the description: "${plantDetails.imagePrompt}".\n\n${rules}` });
+      }
+
+      // Step 4: Use the details to generate the new plant image.
       const result = await ai.generate({
         model: 'googleai/gemini-2.0-flash-preview-image-generation',
-        prompt: [
-          { media: { url: referenceImageDataUri, contentType: 'image/png' } },
-          { text: `Your primary goal is to replicate the art style of the provided reference image EXACTLY. Create a new plant character based on the description: "${plantDetails.imagePrompt}".
-
-          You MUST adhere to the following rules without exception:
-          1. **Art Style:** The final image must perfectly match the clean, 2D, illustrated style of the reference image.
-          2. **The Pot:** The plant MUST be in a simple, smiling terracotta pot. The pot's style, shape, color, and happy face must be identical to the one in the reference image. Do not add feet, patterns, or any other decorations to the pot.
-          3. **The Plant:** The new plant character must be cute and simple. It absolutely MUST NOT have arms, legs, or a human-like body.
-          4. **The Background:** The background MUST be a solid, pure white. No gradients, textures, or shadows.
-          5. **Composition:** The image must contain ONLY the single plant character in its pot. NO other objects, text, people, hands, or background elements are allowed.` }
-        ],
+        prompt: imageGenPrompt,
         config: {
           responseModalities: ['TEXT', 'IMAGE'],
         },
@@ -108,44 +121,39 @@ const drawPlantFlow = ai.defineFlow(
 
       media = result.media;
 
-      // Step 4: Check if the image was generated successfully.
+      // Step 5: Check if the image was generated successfully.
       if (!media || !media.url) {
         throw new Error('Could not generate plant image from AI.');
       }
 
-      // Step 5: Save the newly generated plant image to the public fallback folder so it can be used in the future.
+      // Step 6: Save the newly generated plant image to the public fallback folder so it can be used in the future.
       const fallbackDir = path.join(process.cwd(), 'public', 'fallback-plants');
       const safeFilename = `${plantDetails.name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-')}.png`;
       const savePath = path.join(fallbackDir, safeFilename);
       
-      // Extract the base64 data from the data URI
       const base64Data = media.url.split(';base64,').pop();
       if (base64Data) {
         try {
-          await fs.mkdir(fallbackDir, { recursive: true }); // Ensure the directory exists
+          await fs.mkdir(fallbackDir, { recursive: true });
           await fs.writeFile(savePath, base64Data, 'base64');
           console.log(`Saved new plant image to: ${savePath}`);
         } catch (saveError) {
-          // Log the error, but don't fail the entire flow if saving fails.
           console.error(`Failed to save new plant image to fallback folder: ${saveError}`);
         }
       }
 
-      // Step 6: Return the complete plant data.
+      // Step 7: Return the complete plant data.
       return {
         name: plantDetails.name,
         description: plantDetails.description,
         imageDataUri: media.url,
       };
     } catch (error: any) {
-        // Check if the error is due to an invalid API key.
         if (error.message && error.message.includes('API key not valid')) {
             console.error("Authentication Error: The provided Google AI API key is invalid or missing.", error);
-            // Re-throw a specific error for the UI to catch.
             throw new Error("Invalid API Key");
         }
 
-        // For any other type of error, trigger the fallback.
         console.error("Primary plant generation failed, triggering fallback.", error);
         return getFallbackPlantFlow({});
     }

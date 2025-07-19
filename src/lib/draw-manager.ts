@@ -63,7 +63,7 @@ export async function hasClaimedDailyDraw(userId: string): Promise<boolean> {
     return lastClaimDate === todayDate;
 }
 
-export async function claimFreeDraw(userId: string, options?: { bypassTimeCheck?: boolean, cost?: number }): Promise<{ success: boolean; newCount: number; reason?: 'max_draws' | 'already_claimed' }> {
+export async function claimFreeDraw(userId: string, options?: { bypassTimeCheck?: boolean, cost?: number }): Promise<{ success: boolean; newCount: number; reason?: 'max_draws' | 'already_claimed' | 'not_enough_gold' }> {
   const gameData = await getUserGameData(userId);
   if (!gameData) return { success: false, newCount: 0 };
   
@@ -78,8 +78,7 @@ export async function claimFreeDraw(userId: string, options?: { bypassTimeCheck?
   }
   
   if (options?.cost && gameData.gold < options.cost) {
-      // This is an extra server-side check, though the UI should prevent this.
-      return { success: false, newCount: currentDraws };
+      return { success: false, newCount: currentDraws, reason: 'not_enough_gold' };
   }
 
   const newCount = currentDraws + 1;
