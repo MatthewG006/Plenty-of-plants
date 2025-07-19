@@ -71,9 +71,12 @@ const drawPlantFlow = ai.defineFlow(
     outputSchema: DrawPlantOutputSchema,
   },
   async ({ existingNames }) => {
+    let media;
+    let plantDetails;
     try {
       // Step 1: Generate the plant's details first and wait for the result.
-      const { output: plantDetails } = await plantDetailsPrompt({ existingNames });
+      const { output } = await plantDetailsPrompt({ existingNames });
+      plantDetails = output;
       
       if (!plantDetails) {
         throw new Error('Could not generate plant details.');
@@ -85,7 +88,7 @@ const drawPlantFlow = ai.defineFlow(
       const referenceImageDataUri = `data:image/png;base64,${referenceImageBuffer.toString('base64')}`;
 
       // Step 3: Use the details and reference image to generate the new plant image.
-      const { media } = await ai.generate({
+      const result = await ai.generate({
         model: 'googleai/gemini-2.0-flash-preview-image-generation',
         prompt: [
           { media: { url: referenceImageDataUri, contentType: 'image/png' } },
@@ -102,6 +105,8 @@ const drawPlantFlow = ai.defineFlow(
           responseModalities: ['TEXT', 'IMAGE'],
         },
       });
+
+      media = result.media;
 
       // Step 4: Check if the image was generated successfully.
       if (!media || !media.url) {
@@ -142,8 +147,7 @@ const drawPlantFlow = ai.defineFlow(
 
         // For any other type of error, trigger the fallback.
         console.error("Primary plant generation failed, triggering fallback.", error);
-        const fallbackPlant = await getFallbackPlantFlow({});
-        return fallbackPlant;
+        return getFallbackPlantFlow({});
     }
   }
 );

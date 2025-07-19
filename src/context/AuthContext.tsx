@@ -84,18 +84,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const isAuthPage = ['/login', '/signup'].includes(pathname);
     const isSplashPage = pathname === '/';
-    const isProtectedRoute = !isAuthPage && !isSplashPage;
 
-    if (!user && isProtectedRoute) {
-      router.push('/login');
-    }
-    
+    // If user is logged in, they should not be on an auth page. Redirect them.
     if (user && isAuthPage) {
       router.push('/home');
+      return;
+    }
+
+    // If user is NOT logged in and tries to access a protected page, redirect them.
+    if (!user && !isAuthPage && !isSplashPage) {
+      router.push('/login');
     }
 
   }, [user, loading, pathname, router]);
-
+  
   const isProtectedRoute = !['/', '/login', '/signup'].includes(pathname);
 
   if (loading && isProtectedRoute) {

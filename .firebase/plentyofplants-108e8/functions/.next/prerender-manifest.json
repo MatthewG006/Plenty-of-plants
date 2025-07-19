@@ -198,30 +198,6 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/shop": {
-      "experimentalBypassFor": [
-        {
-          "type": "header",
-          "key": "Next-Action"
-        },
-        {
-          "type": "header",
-          "key": "content-type",
-          "value": "multipart/form-data;.*"
-        }
-      ],
-      "initialRevalidateSeconds": false,
-      "srcRoute": "/shop",
-      "dataRoute": "/shop.rsc",
-      "allowHeader": [
-        "host",
-        "x-matched-path",
-        "x-prerender-revalidate",
-        "x-prerender-revalidate-if-generated",
-        "x-next-revalidated-tags",
-        "x-next-revalidate-tag-token"
-      ]
-    },
     "/settings": {
       "experimentalBypassFor": [
         {
@@ -245,13 +221,37 @@
         "x-next-revalidated-tags",
         "x-next-revalidate-tag-token"
       ]
+    },
+    "/shop": {
+      "experimentalBypassFor": [
+        {
+          "type": "header",
+          "key": "Next-Action"
+        },
+        {
+          "type": "header",
+          "key": "content-type",
+          "value": "multipart/form-data;.*"
+        }
+      ],
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/shop",
+      "dataRoute": "/shop.rsc",
+      "allowHeader": [
+        "host",
+        "x-matched-path",
+        "x-prerender-revalidate",
+        "x-prerender-revalidate-if-generated",
+        "x-next-revalidated-tags",
+        "x-next-revalidate-tag-token"
+      ]
     }
   },
   "dynamicRoutes": {},
   "notFoundRoutes": [],
   "preview": {
-    "previewModeId": "40f90948b714e73cc7f17cc110f134b6",
-    "previewModeSigningKey": "8fd1962f0447c525e88caec91fddc8d5635ad7ee8c0d07ea182459c0453631e5",
-    "previewModeEncryptionKey": "1447247b98a8ebb26cf2de56adf6fcc4ece7d5dbf32e9cf7f18f9822ef2b044a"
+    "previewModeId": "e9f158ae61cdae339d89e9abf5820bec",
+    "previewModeSigningKey": "cab2a9a9fa512215eec967a0762cb9ad21af010ecab5089d0ec155937b8affa1",
+    "previewModeEncryptionKey": "36b77816421cbb7adf046ffd6bd7629504c191739c38d30f4369cef78b2470fb"
   }
 }
