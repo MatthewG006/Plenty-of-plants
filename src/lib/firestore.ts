@@ -117,34 +117,22 @@ export async function updatePlantArrangement(userId: string, collection: Plant[]
     await setDoc(doc(db, 'users', userId), { collection, desk }, { merge: true });
 }
 
-export async function batchUpdateOnWatering({ userId, updatedPlant, goldToAdd, usedRefill }: { userId: string, updatedPlant: Plant, goldToAdd: number, usedRefill: boolean }) {
+export async function updatePlant(userId: string, plantToUpdate: Plant) {
     const userDocRef = doc(db, 'users', userId);
     const gameData = await getUserGameData(userId);
-    if (!gameData) throw new Error("User data not found.");
+    if (!gameData) throw new Error("User data not found for plant update.");
 
-    const { collection, desk } = gameData;
-    
-    const newDesk = desk.map(p => p?.id === updatedPlant.id ? updatedPlant : p);
-    const newCollection = collection.map(p => p.id === updatedPlant.id ? updatedPlant : p);
+    // Firestore cannot handle Proxy objects, so we need to clone it to a plain JS object
+    const plainPlant = JSON.parse(JSON.stringify(plantToUpdate));
 
-    const batch = writeBatch(db);
+    const newDesk = gameData.desk.map(p => p?.id === plainPlant.id ? plainPlant : p);
+    const newCollection = gameData.collection.map(p => p.id === plainPlant.id ? plainPlant : p);
 
-    const updatePayload: any = {
-        // Sanitize arrays to plain JS objects to avoid serialization issues with proxies
-        collection: JSON.parse(JSON.stringify(newCollection)),
-        desk: JSON.parse(JSON.stringify(newDesk)),
-        gold: increment(goldToAdd),
-    };
-
-    if (usedRefill) {
-        updatePayload.waterRefills = increment(-1);
-    }
-    
-    batch.update(userDocRef, updatePayload);
-    
-    await batch.commit();
+    await updateDoc(userDocRef, {
+        desk: newDesk,
+        collection: newCollection
+    });
 }
-
 
 export async function updateUserGold(userId: string, amount: number) {
     const userDocRef = doc(db, 'users', userId);
