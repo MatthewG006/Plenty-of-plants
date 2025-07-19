@@ -39,6 +39,41 @@ const XP_PER_LEVEL = 1000;
 const GOLD_PER_WATERING = 10;
 const EVOLUTION_LEVEL = 10;
 
+// Helper function to compress an image
+async function compressImage(dataUri: string, maxSize = 256): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const img = new window.Image();
+        img.crossOrigin = 'anonymous'; // Fix for tainted canvas error
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let { width, height } = img;
+
+            if (width > height) {
+                if (width > maxSize) {
+                    height = Math.round((height * maxSize) / width);
+                    width = maxSize;
+                }
+            } else {
+                if (height > maxSize) {
+                    width = Math.round((width * maxSize) / height);
+                    height = maxSize;
+                }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                return reject(new Error('Could not get canvas context'));
+            }
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/png'));
+        };
+        img.onerror = reject;
+        img.src = dataUri;
+    });
+}
+
 // Helper to check if a timestamp is from the current day
 function isToday(timestamp: number): boolean {
     const today = new Date();
@@ -151,7 +186,11 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
             
             // Note: We are not calling onPlantUpdate here anymore.
             // The AuthContext's onSnapshot listener will handle updating the UI.
-            await updatePlant(userId, plant.id, updatedPlantData);
+            await updatePlant(userId, plant.id, {
+                xp: newXp,
+                level: newLevel,
+                lastWatered: updatedLastWatered,
+            });
             await updateUserGold(userId, GOLD_PER_WATERING);
 
             if (shouldEvolve) {
@@ -487,9 +526,10 @@ export default function RoomPage() {
             name: plantToEvolve.name,
             imageDataUri: plantToEvolve.image,
         });
+
+        const compressedImageDataUri = await compressImage(newImageDataUri);
         
-        // This function now only accepts primitive types
-        await updatePlant(user.uid, plantIdToEvolve, { image: newImageDataUri, form: 'Evolved' });
+        await updatePlant(user.uid, plantIdToEvolve, { image: compressedImageDataUri, form: 'Evolved' });
         
         playSfx('success');
         toast({
