@@ -162,7 +162,8 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
                 onOpenChange(false); // Close details to show evolution dialog
             } else {
                 // If no evolution, just update the plant data.
-                await batchUpdateOnWatering({ userId, updatedPlant, goldToAdd: GOLD_PER_WATERING, usedRefill });
+                // Ensure the plant object is a plain JS object before sending to Firestore
+                await batchUpdateOnWatering({ userId, updatedPlant: JSON.parse(JSON.stringify(updatedPlant)), goldToAdd: GOLD_PER_WATERING, usedRefill });
                 onPlantUpdate(updatedPlant);
             }
 
@@ -489,7 +490,7 @@ export default function RoomPage() {
         const hasWaterRefills = gameData.waterRefills > 0;
         await batchUpdateOnWatering({
             userId: user.uid,
-            updatedPlant: evolvedPlantData,
+            updatedPlant: JSON.parse(JSON.stringify(evolvedPlantData)),
             goldToAdd: GOLD_PER_WATERING,
             usedRefill: hasWaterRefills
         });
