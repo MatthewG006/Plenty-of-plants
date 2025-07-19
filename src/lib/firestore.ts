@@ -130,8 +130,9 @@ export async function batchUpdateOnWatering({ userId, updatedPlant, goldToAdd, u
     const batch = writeBatch(db);
 
     const updatePayload: any = {
-        collection: newCollection,
-        desk: newDesk,
+        // Convert arrays to plain JS objects to avoid serialization issues
+        collection: JSON.parse(JSON.stringify(newCollection)),
+        desk: JSON.parse(JSON.stringify(newDesk)),
         gold: increment(goldToAdd),
     };
 
