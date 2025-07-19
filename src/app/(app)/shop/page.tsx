@@ -108,6 +108,8 @@ export default function ShopPage() {
         if (result.success) {
             playSfx('reward');
             toast({ title: "Purchase Successful!", description: `You bought 1 draw for ${DRAW_COST_IN_GOLD} gold.` });
+        } else if (result.reason === 'not_enough_gold') {
+             toast({ variant: "destructive", title: "Not Enough Gold", description: `You need ${DRAW_COST_IN_GOLD} gold to buy a draw.` });
         } else {
             toast({ variant: "destructive", title: "Purchase Failed", description: "Something went wrong. Your gold was not spent." });
         }

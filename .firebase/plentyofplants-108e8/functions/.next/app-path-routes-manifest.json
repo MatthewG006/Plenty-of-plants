@@ -2,12 +2,12 @@
   "/_not-found/page": "/_not-found",
   "/favicon.ico/route": "/favicon.ico",
   "/login/page": "/login",
-  "/signup/page": "/signup",
   "/page": "/",
-  "/(app)/home/page": "/home",
+  "/signup/page": "/signup",
   "/(app)/community/page": "/community",
+  "/(app)/home/page": "/home",
+  "/(app)/profile/page": "/profile",
   "/(app)/room/page": "/room",
   "/(app)/settings/page": "/settings",
-  "/(app)/profile/page": "/profile",
   "/(app)/shop/page": "/shop"
 }
