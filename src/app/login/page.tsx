@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Megaphone, Loader2 } from 'lucide-react';
 import { useAudio } from '@/context/AudioContext';
@@ -15,6 +15,25 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 
+const updateMessages = [
+    {
+        title: "New Game Update!",
+        description: "We've refreshed the UI and added new features. Enjoy!",
+    },
+    {
+        title: "Watering Cans in Shop!",
+        description: "Need more water? Buy refills in the shop to help your plants grow faster!",
+    },
+    {
+        title: "Did you know?",
+        description: "You can drag plants from your collection onto the pots in your room to display them.",
+    },
+    {
+        title: "Community Coming Soon!",
+        description: "Get ready to connect with other plant lovers and show off your collection.",
+    }
+];
+
 export default function LoginPage() {
   const { toast } = useToast();
   const router = useRouter();
@@ -22,8 +41,15 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [currentUpdate, setCurrentUpdate] = useState(updateMessages[0]);
   
   const { isPlaying, togglePlay } = useAudio();
+
+  useEffect(() => {
+    // Select a random update message on component mount
+    const randomIndex = Math.floor(Math.random() * updateMessages.length);
+    setCurrentUpdate(updateMessages[randomIndex]);
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,9 +87,9 @@ export default function LoginPage() {
         <CardContent>
           <Alert className="mb-4 border-accent-foreground/20 bg-accent">
             <Megaphone className="h-4 w-4" />
-            <AlertTitle className="font-bold text-accent-foreground">New Game Update!</AlertTitle>
+            <AlertTitle className="font-bold text-accent-foreground">{currentUpdate.title}</AlertTitle>
             <AlertDescription className="text-accent-foreground/80">
-              We've refreshed the UI and added new features. Enjoy!
+              {currentUpdate.description}
             </AlertDescription>
           </Alert>
           <form className="space-y-4" onSubmit={handleLogin}>
