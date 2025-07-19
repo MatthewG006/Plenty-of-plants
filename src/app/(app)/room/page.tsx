@@ -463,7 +463,8 @@ export default function RoomPage() {
     try {
         await useDraw(user.uid);
 
-        const drawnPlantResult = await drawPlant();
+        const existingNames = gameData.plants ? Object.values(gameData.plants).map(p => p.name) : [];
+        const drawnPlantResult = await drawPlant(existingNames);
         const compressedImageDataUri = await compressImage(drawnPlantResult.imageDataUri);
         
         playSfx('success');
