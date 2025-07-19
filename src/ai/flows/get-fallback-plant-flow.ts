@@ -66,6 +66,7 @@ export const getFallbackPlantFlow = ai.defineFlow(
   async () => {
     try {
         const fallbackDir = path.join(process.cwd(), 'public', 'fallback-plants');
+        await fs.mkdir(fallbackDir, { recursive: true }); // Ensure the directory exists
         const files = await fs.readdir(fallbackDir);
         const imageFiles = files.filter(file => file.endsWith('.png') || file.endsWith('.jpg') || file.endsWith('.jpeg'));
 
