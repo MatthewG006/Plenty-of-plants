@@ -48,7 +48,7 @@ export async function getPlantById(userId: string, plantId: number): Promise<Pla
     return gameData.plants[plantId] || null;
 }
 
-export async function createUserDocument(user: User) {
+export async function createUserDocument(user: User): Promise<GameData> {
     const docRef = doc(db, 'users', user.uid);
     const docSnap = await getDoc(docRef);
 
@@ -56,21 +56,41 @@ export async function createUserDocument(user: User) {
         const hue = Math.floor(Math.random() * 360);
         const avatarColor = `hsl(${hue}, 70%, 85%)`;
 
-        await setDoc(docRef, {
-            email: user.email,
-            username: user.displayName,
-            avatarColor: avatarColor,
+        const startingPlant: Plant = {
+            id: 1,
+            name: "Friendly Fern",
+            description: "A happy little fern to start your collection.",
+            image: "/fern.png",
+            form: "Base",
+            hint: "fern plant",
+            level: 1,
+            xp: 0,
+            lastWatered: [],
+        };
+        
+        const newGameData: GameData = {
             gold: 0,
-            plants: {},
+            plants: { '1': startingPlant },
             collectionPlantIds: [],
-            deskPlantIds: Array(NUM_POTS).fill(null),
-            gameId: `#${user.uid.slice(0, 8).toUpperCase()}`,
+            deskPlantIds: [1, null, null],
             draws: MAX_DRAWS,
             lastDrawRefill: Date.now(),
             lastFreeDrawClaimed: 0,
             waterRefills: 0,
+        };
+
+        await setDoc(docRef, {
+            email: user.email,
+            username: user.displayName,
+            avatarColor: avatarColor,
+            gameId: `#${user.uid.slice(0, 8).toUpperCase()}`,
+            ...newGameData,
         });
+
+        return newGameData;
     }
+    
+    return (await getUserGameData(user.uid))!;
 }
 
 export async function savePlant(userId: string, plantData: DrawPlantOutput): Promise<Plant> {

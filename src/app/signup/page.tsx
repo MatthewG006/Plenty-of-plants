@@ -43,10 +43,11 @@ export default function SignupPage() {
 
       await updateProfile(user, { displayName: username });
       
+      // Ensure the user document is created before navigating
       await createUserDocument(user);
 
-      // On successful signup, route to the splash screen.
-      router.push('/'); 
+      // On successful signup, route to the home page.
+      router.push('/home'); 
 
     } catch (error: any) {
       console.error("Firebase Signup Error:", error);

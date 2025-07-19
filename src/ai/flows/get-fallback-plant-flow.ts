@@ -39,7 +39,6 @@ const fallbackPlantDetailsPrompt = ai.definePrompt({
         }) 
     },
     output: {
-      format: 'json',
       schema: z.object({
         name: z
           .string()
@@ -53,17 +52,19 @@ const fallbackPlantDetailsPrompt = ai.definePrompt({
           ),
       }),
     },
-    prompt: `You are a creative botanist for a game. For the plant type "{{plantType}}", generate a unique two-word name and a whimsical one-sentence description for it. Return the response as a JSON object.`,
+    prompt: `You are a creative botanist for a game. For the plant type "{{plantType}}", generate a unique two-word name and a whimsical one-sentence description for it.`,
 });
 
 
 export const getFallbackPlantFlow = ai.defineFlow(
   {
     name: 'getFallbackPlantFlow',
-    inputSchema: z.object({}),
+    inputSchema: z.object({
+        existingNames: z.array(z.string()).optional().describe("A list of existing plant names to avoid duplicating."),
+    }),
     outputSchema: GetFallbackPlantOutputSchema,
   },
-  async () => {
+  async ({ existingNames }) => {
     try {
         const fallbackDir = path.join(process.cwd(), 'public', 'fallback-plants');
         await fs.mkdir(fallbackDir, { recursive: true }); // Ensure the directory exists
