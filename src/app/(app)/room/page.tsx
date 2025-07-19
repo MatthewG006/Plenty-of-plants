@@ -120,7 +120,7 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
             newLevel += 1;
             newXp -= XP_PER_LEVEL;
 
-            if (newLevel === EVOLUTION_LEVEL && plant.form === 'Base') {
+            if (newLevel >= EVOLUTION_LEVEL && plant.form === 'Base') {
                 shouldEvolve = true;
             } else {
                 playSfx('reward');
@@ -208,7 +208,7 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
                 </div>
                 <DialogFooter className="flex-col gap-2">
                     <Button onClick={handleWaterPlant} disabled={!canWater || isWatering || plant.form !== 'Base'} className="w-full">
-                        {plant.form !== 'Base' && plant.level >= EVOLUTION_LEVEL ? (
+                        {plant.form !== 'Base' ? (
                             <>
                                 <Sparkles className="mr-2 h-4 w-4" />
                                 Evolved!
@@ -596,9 +596,9 @@ export default function RoomPage() {
                     </div>
                 )}
                 <AlertDialogFooter>
-                    <AlertDialogCancel disabled={isEvolving}>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel disabled={isEvolving}>Later</AlertDialogCancel>
                     <AlertDialogAction onClick={handleEvolve} disabled={isEvolving}>
-                        {isEvolving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Evolving...</> : "OK"}
+                        {isEvolving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Evolving...</> : "Evolve"}
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
