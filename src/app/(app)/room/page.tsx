@@ -32,6 +32,7 @@ import { updatePlantArrangement, updateUserGold, savePlant, useWaterRefill, upda
 import { evolvePlant } from '@/ai/flows/evolve-plant-flow';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { compressImage } from '@/lib/image-compression';
+import { Badge } from '@/components/ui/badge';
 
 const NUM_POTS = 3;
 const MAX_WATERINGS_PER_DAY = 4;
@@ -207,18 +208,9 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
                     </div>
                 </div>
                 <DialogFooter className="flex-col gap-2">
-                    <Button onClick={handleWaterPlant} disabled={!canWater || isWatering || plant.form !== 'Base'} className="w-full">
-                        {plant.form !== 'Base' ? (
-                            <>
-                                <Sparkles className="mr-2 h-4 w-4" />
-                                Evolved!
-                            </>
-                        ) : (
-                            <>
-                                <Droplet className="mr-2 h-4 w-4" />
-                                {waterButtonText()}
-                            </>
-                        )}
+                    <Button onClick={handleWaterPlant} disabled={!canWater || isWatering}>
+                        <Droplet className="mr-2 h-4 w-4" />
+                        {waterButtonText()}
                     </Button>
                     <DialogClose asChild>
                         <Button variant="outline" className="w-full">Close</Button>
@@ -287,6 +279,12 @@ function PlantCardUI({ plant }: { plant: Plant }) {
                         <Image src={plant.image} alt={plant.name} fill className="object-cover" data-ai-hint={plant.hint} />
                     ) : (
                         <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
+                    )}
+                    {plant.form === 'Evolved' && (
+                        <Badge variant="secondary" className="absolute top-2 right-2 shadow-md">
+                            <Sparkles className="w-3 h-3 mr-1" />
+                            Evolved
+                        </Badge>
                     )}
                 </div>
                 <div className="p-2 text-center bg-white/50 space-y-1">
