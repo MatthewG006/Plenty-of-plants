@@ -14,7 +14,9 @@ import fs from 'fs/promises';
 import path from 'path';
 
 
-const DrawPlantInputSchema = z.object({});
+const DrawPlantInputSchema = z.object({
+  existingNames: z.array(z.string()).optional().describe("A list of existing plant names to avoid duplicating."),
+});
 
 const DrawPlantOutputSchema = z.object({
   name: z.string().describe('The creative and unique name of the new plant.'),
@@ -27,8 +29,8 @@ const DrawPlantOutputSchema = z.object({
 });
 export type DrawPlantOutput = z.infer<typeof DrawPlantOutputSchema>;
 
-export async function drawPlant(): Promise<DrawPlantOutput> {
-  return drawPlantFlow({});
+export async function drawPlant(existingNames: string[] = []): Promise<DrawPlantOutput> {
+  return drawPlantFlow({ existingNames });
 }
 
 const plantDetailsPrompt = ai.definePrompt({
@@ -53,7 +55,13 @@ const plantDetailsPrompt = ai.definePrompt({
         ),
     }),
   },
-  prompt: `You are a creative botanist for a 2D game about collecting cute, magical plants. Generate one new, unique, and whimsical plant. The plant should have a cute and simple design, not a strange or other-worldly appearance. The plant must have a highly creative and unusual two-word name that is not a common plant type. It should also have a short, one-sentence description, and a prompt for an image generator.`,
+  prompt: `You are a creative botanist for a 2D game about collecting cute, magical plants. Generate one new, unique, and whimsical plant. The plant should have a cute and simple design, not a strange or other-worldly appearance. The plant must have a highly creative and unusual two-word name that is not a common plant type. It should also have a short, one-sentence description, and a prompt for an image generator.
+
+You MUST NOT use any of the following names:
+{{#each existingNames}}
+- {{this}}
+{{/each}}
+`,
 });
 
 const drawPlantFlow = ai.defineFlow(
@@ -62,10 +70,10 @@ const drawPlantFlow = ai.defineFlow(
     inputSchema: DrawPlantInputSchema,
     outputSchema: DrawPlantOutputSchema,
   },
-  async () => {
+  async ({ existingNames }) => {
     try {
       // Step 1: Generate the plant's details first and wait for the result.
-      const { output: plantDetails } = await plantDetailsPrompt({});
+      const { output: plantDetails } = await plantDetailsPrompt({ existingNames });
       
       if (!plantDetails) {
         throw new Error('Could not generate plant details.');
