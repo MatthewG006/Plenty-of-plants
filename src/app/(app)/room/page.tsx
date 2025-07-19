@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { drawPlant, type DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
-import { Leaf, Loader2, Droplet, PlusCircle, Coins } from 'lucide-react';
+import { Leaf, Loader2, Droplet, PlusCircle, Coins, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -29,12 +29,15 @@ import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { updatePlantArrangement, updatePlantData, updateUserGold, savePlant, useWaterRefill } from '@/lib/firestore';
+import { evolvePlant } from '@/ai/flows/evolve-plant-flow';
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 const NUM_POTS = 3;
 const MAX_WATERINGS_PER_DAY = 4;
 const XP_PER_WATERING = 200;
 const XP_PER_LEVEL = 1000;
 const GOLD_PER_WATERING = 10;
+const EVOLUTION_LEVEL = 10;
 
 // Helper to check if a timestamp is from the current day
 function isToday(timestamp: number): boolean {
@@ -79,7 +82,7 @@ function GoldCoinAnimation() {
 }
 
 
-function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpdate, userId }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, onPlantUpdate: (updatedPlant: Plant) => void, userId: string }) {
+function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpdate, onEvolutionStart, userId }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, onPlantUpdate: (updatedPlant: Plant) => void, onEvolutionStart: (plant: Plant) => void, userId: string }) {
     const { playSfx } = useAudio();
     const { toast } = useToast();
     const { gameData } = useAuth();
@@ -111,15 +114,21 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
 
         let newXp = plant.xp + XP_PER_WATERING;
         let newLevel = plant.level;
+        let shouldEvolve = false;
 
         if (newXp >= XP_PER_LEVEL) {
             newLevel += 1;
             newXp -= XP_PER_LEVEL;
-            playSfx('reward');
-             toast({
-                title: "Level Up!",
-                description: `${plant.name} has reached level ${newLevel}!`,
-            });
+
+            if (newLevel === EVOLUTION_LEVEL && plant.form === 'Base') {
+                shouldEvolve = true;
+            } else {
+                playSfx('reward');
+                toast({
+                    title: "Level Up!",
+                    description: `${plant.name} has reached level ${newLevel}!`,
+                });
+            }
         }
         
         const now = Date.now();
@@ -148,6 +157,11 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
 
             await updatePlantData(userId, updatedPlant);
             await updateUserGold(userId, GOLD_PER_WATERING);
+
+            if (shouldEvolve) {
+                onEvolutionStart(updatedPlant);
+                onOpenChange(false); // Close details to show evolution dialog
+            }
 
         } catch(e) {
             console.error("Failed to update plant or gold", e);
@@ -194,9 +208,18 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
                     </div>
                 </div>
                 <DialogFooter className="flex-col gap-2">
-                    <Button onClick={handleWaterPlant} disabled={!canWater || isWatering} className="w-full">
-                        <Droplet className="mr-2 h-4 w-4" />
-                        {waterButtonText()}
+                    <Button onClick={handleWaterPlant} disabled={!canWater || isWatering || plant.form !== 'Base'} className="w-full">
+                        {plant.form !== 'Base' && plant.level >= EVOLUTION_LEVEL ? (
+                            <>
+                                <Sparkles className="mr-2 h-4 w-4" />
+                                Evolved!
+                            </>
+                        ) : (
+                            <>
+                                <Droplet className="mr-2 h-4 w-4" />
+                                {waterButtonText()}
+                            </>
+                        )}
                     </Button>
                     <DialogClose asChild>
                         <Button variant="outline" className="w-full">Close</Button>
@@ -322,14 +345,17 @@ function DroppablePot({
 export default function RoomPage() {
   const { user, gameData } = useAuth();
   const { toast } = useToast();
+  const { playSfx } = useAudio();
   
   const [collectedPlants, setCollectedPlants] = useState<Plant[]>([]);
   const [deskPlants, setDeskPlants] = useState<(Plant | null)[]>(Array(NUM_POTS).fill(null));
 
   const [isDrawing, setIsDrawing] = useState(false);
-  const [newPlant, setNewPlant] = useState<DrawPlantOutput | null>(null);
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+
+  const [plantToEvolve, setPlantToEvolve] = useState<Plant | null>(null);
+  const [isEvolving, setIsEvolving] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -356,7 +382,7 @@ export default function RoomPage() {
   const handlePlantUpdate = useCallback((updatedPlant: Plant) => {
     setDeskPlants(prev => prev.map(p => p?.id === updatedPlant.id ? updatedPlant : p));
     setCollectedPlants(prev => prev.map(p => p.id === updatedPlant.id ? updatedPlant : p));
-    setSelectedPlant(updatedPlant);
+    setSelectedPlant(updatedPlant); // Keep dialog open with updated data
   }, []);
 
   const handleDraw = async () => {
@@ -371,9 +397,6 @@ export default function RoomPage() {
     setIsDrawing(true);
     try {
         const result = await drawPlant();
-        // Here, we don't save the plant, just show it.
-        // The save happens on the home page after collection.
-        // For simplicity in room, we'll just show a "Go to Home" prompt.
         toast({
           title: "New Plant Drawn!",
           description: "Go to the Home page to see and collect your new plant.",
@@ -442,6 +465,40 @@ export default function RoomPage() {
     setDeskPlants(newDeskPlants);
     setCollectedPlants(finalCollected);
     await updatePlantArrangement(user.uid, finalCollected, newDeskPlants);
+  };
+
+  const handleEvolve = async () => {
+    if (!plantToEvolve || !user) return;
+    setIsEvolving(true);
+
+    try {
+        const { newImageDataUri } = await evolvePlant({
+            name: plantToEvolve.name,
+            imageDataUri: plantToEvolve.image,
+        });
+
+        const evolvedPlant: Plant = {
+            ...plantToEvolve,
+            image: newImageDataUri,
+            form: 'Evolved',
+        };
+
+        await updatePlantData(user.uid, evolvedPlant);
+        handlePlantUpdate(evolvedPlant); // Update local state
+        
+        playSfx('success');
+        toast({
+            title: "Evolution Complete!",
+            description: `${evolvedPlant.name} has evolved!`,
+        });
+
+    } catch (e) {
+        console.error("Evolution failed", e);
+        toast({ variant: 'destructive', title: "Evolution Failed", description: "Could not evolve your plant. Please try again." });
+    } finally {
+        setIsEvolving(false);
+        setPlantToEvolve(null);
+    }
   };
   
   if (!user || !gameData) {
@@ -520,8 +577,34 @@ export default function RoomPage() {
           open={!!selectedPlant}
           onOpenChange={(isOpen) => !isOpen && setSelectedPlant(null)}
           onPlantUpdate={handlePlantUpdate}
+          onEvolutionStart={setPlantToEvolve}
           userId={user.uid}
         />
+
+        <AlertDialog open={!!plantToEvolve || isEvolving}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle className="text-center text-2xl">
+                        {isEvolving ? "Evolving..." : "Your plant is growing!"}
+                    </AlertDialogTitle>
+                    <AlertDialogDescription className="text-center">
+                        {isEvolving ? "Please wait a moment." : `${plantToEvolve?.name} is ready for a new form!`}
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="flex justify-center p-4">
+                    {isEvolving ? (
+                        <Loader2 className="w-12 h-12 text-primary animate-spin" />
+                    ) : (
+                        <Sparkles className="w-12 h-12 text-yellow-400" />
+                    )}
+                </div>
+                <AlertDialogFooter>
+                    <Button onClick={handleEvolve} disabled={isEvolving} className="w-full">
+                        {isEvolving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Evolve"}
+                    </Button>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
 
         <DragOverlay>
             {activePlantData ? (
