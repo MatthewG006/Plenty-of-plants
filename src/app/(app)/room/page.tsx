@@ -184,8 +184,6 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
                 lastWatered: updatedLastWatered,
             };
             
-            // Note: We are not calling onPlantUpdate here anymore.
-            // The AuthContext's onSnapshot listener will handle updating the UI.
             await updatePlant(userId, plant.id, {
                 xp: newXp,
                 level: newLevel,
@@ -258,6 +256,32 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
                     </Button>
                     <DialogClose asChild>
                         <Button variant="outline" className="w-full">Close</Button>
+                    </DialogClose>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlantOutput | null, open: boolean, onOpenChange: (open: boolean) => void }) {
+    if (!plant) return null;
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-sm">
+                <DialogHeader>
+                    <DialogTitle className="text-3xl text-center">A new plant!</DialogTitle>
+                </DialogHeader>
+                <div className="flex flex-col items-center gap-4 py-4">
+                    <div className="w-64 h-64 rounded-lg overflow-hidden border-4 border-primary/50 shadow-lg bg-green-100">
+                        <Image src={plant.imageDataUri} alt={plant.name} width={256} height={256} className="object-cover w-full h-full" />
+                    </div>
+                    <h3 className="text-2xl font-semibold text-primary">{plant.name}</h3>
+                    <p className="text-muted-foreground text-center">{plant.description}</p>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button className="w-full text-lg">Collect</Button>
                     </DialogClose>
                 </DialogFooter>
             </DialogContent>
@@ -386,6 +410,7 @@ export default function RoomPage() {
   const [collectionPlantIds, setCollectionPlantIds] = useState<number[]>([]);
 
   const [isDrawing, setIsDrawing] = useState(false);
+  const [drawnPlant, setDrawnPlant] = useState<DrawPlantOutput | null>(null);
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -424,7 +449,7 @@ export default function RoomPage() {
   })();
 
   const handleDraw = async () => {
-     if (!user || !gameData || gameData.draws <= 0) {
+    if (!user || !gameData || gameData.draws <= 0) {
         toast({
             variant: "destructive",
             title: "No Draws Left",
@@ -432,25 +457,56 @@ export default function RoomPage() {
         });
         return;
     }
+    
     setIsDrawing(true);
     try {
-        const result = await drawPlant();
-        toast({
-          title: "New Plant Drawn!",
-          description: "Go to the Home page to see and collect your new plant.",
-        });
         await useDraw(user.uid);
 
-    } catch (e) {
-        console.error(e);
-        toast({
-            variant: "destructive",
-            title: "Failed to draw a plant",
-            description: "There was an issue with the AI. Please try again.",
+        const drawnPlantResult = await drawPlant();
+        const compressedImageDataUri = await compressImage(drawnPlantResult.imageDataUri);
+        
+        playSfx('success');
+        setDrawnPlant({
+            ...drawnPlantResult,
+            imageDataUri: compressedImageDataUri,
         });
+
+    } catch (e: any) {
+        console.error(e);
+        if (e.message === 'Invalid API Key') {
+            toast({
+                variant: "destructive",
+                title: "Invalid API Key",
+                description: "Please check your GOOGLE_API_KEY in the .env file.",
+            });
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Failed to draw a plant",
+                description: "There was an issue with the AI. Please try again.",
+            });
+        }
     } finally {
         setIsDrawing(false);
     }
+  };
+
+  const handleCollect = async () => {
+    if (!drawnPlant || !user) return;
+
+    try {
+        const plainDrawnPlant = JSON.parse(JSON.stringify(drawnPlant));
+        await savePlant(user.uid, plainDrawnPlant);
+    } catch (e) {
+        console.error("Failed to save plant to Firestore", e);
+        toast({
+            variant: "destructive",
+            title: "Storage Error",
+            description: "Could not save your new plant.",
+        });
+    }
+    
+    setDrawnPlant(null);
   };
   
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -623,6 +679,16 @@ export default function RoomPage() {
           onOpenChange={(isOpen) => !isOpen && setSelectedPlant(null)}
           onEvolutionStart={handleEvolutionStart}
           userId={user.uid}
+        />
+
+        <NewPlantDialog
+          plant={drawnPlant}
+          open={!!drawnPlant}
+          onOpenChange={(isOpen) => {
+            if (!isOpen) {
+              handleCollect();
+            }
+          }}
         />
 
         <AlertDialog open={!!plantIdToEvolve || isEvolving} onOpenChange={(isOpen) => !isOpen && setPlantIdToEvolve(null)}>
