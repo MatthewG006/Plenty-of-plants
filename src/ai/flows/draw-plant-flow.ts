@@ -81,7 +81,7 @@ const drawPlantFlow = ai.defineFlow(
         model: 'googleai/gemini-2.0-flash-preview-image-generation',
         prompt: [
           { media: { url: referenceImageDataUri, contentType: 'image/png' } },
-          { text: `Generate a new, unique plant based on this art style. The new plant is: ${plantDetails.imagePrompt}. The new plant should be in a simple terracotta pot with a happy, smiling face, just like the example. The background must be solid white. IMPORTANT: The plant character must NOT have arms or legs.` }
+          { text: `Generate a new, unique plant based on this art style. The new plant is: ${plantDetails.imagePrompt}. The new plant should be in a simple terracotta pot with a happy, smiling face, just like the example. The pot must not have feet. The background must be solid white and contain no other objects or people. IMPORTANT: The plant character must NOT have arms or legs.` }
         ],
         config: {
           responseModalities: ['TEXT', 'IMAGE'],
