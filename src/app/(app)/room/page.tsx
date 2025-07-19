@@ -30,7 +30,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { updatePlantArrangement, updatePlantData, updateUserGold, savePlant, useWaterRefill } from '@/lib/firestore';
 import { evolvePlant } from '@/ai/flows/evolve-plant-flow';
-import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 const NUM_POTS = 3;
 const MAX_WATERINGS_PER_DAY = 4;
@@ -581,27 +581,26 @@ export default function RoomPage() {
           userId={user.uid}
         />
 
-        <AlertDialog open={!!plantToEvolve || isEvolving}>
+        <AlertDialog open={!!plantToEvolve || isEvolving} onOpenChange={(isOpen) => !isOpen && setPlantToEvolve(null)}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle className="text-center text-2xl">
+                    <AlertDialogTitle>
                         {isEvolving ? "Evolving..." : "Your plant is growing!"}
                     </AlertDialogTitle>
-                    <AlertDialogDescription className="text-center">
-                        {isEvolving ? "Please wait a moment." : `${plantToEvolve?.name} is ready for a new form!`}
+                    <AlertDialogDescription>
+                        {isEvolving ? "Please wait a moment." : `${plantToEvolve?.name} is ready for a new form! Would you like to evolve it?`}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
-                <div className="flex justify-center p-4">
-                    {isEvolving ? (
+                {isEvolving && (
+                    <div className="flex justify-center p-4">
                         <Loader2 className="w-12 h-12 text-primary animate-spin" />
-                    ) : (
-                        <Sparkles className="w-12 h-12 text-yellow-400" />
-                    )}
-                </div>
+                    </div>
+                )}
                 <AlertDialogFooter>
-                    <Button onClick={handleEvolve} disabled={isEvolving} className="w-full">
-                        {isEvolving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Evolve"}
-                    </Button>
+                    <AlertDialogCancel disabled={isEvolving}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleEvolve} disabled={isEvolving}>
+                        {isEvolving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Evolving...</> : "OK"}
+                    </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
