@@ -84,18 +84,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const isAuthPage = ['/login', '/signup'].includes(pathname);
     const isSplashPage = pathname === '/';
+    const isProtectedRoute = !isAuthPage && !isSplashPage;
 
-    if (isSplashPage) {
-      return;
-    }
-
-    if (!user && !isAuthPage) {
+    if (!user && isProtectedRoute) {
       router.push('/login');
     }
 
   }, [user, loading, pathname, router]);
 
-  if (loading && pathname !== '/') {
+  const isProtectedRoute = !['/', '/login', '/signup'].includes(pathname);
+
+  if (loading && isProtectedRoute) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
