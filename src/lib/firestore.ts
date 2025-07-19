@@ -142,6 +142,7 @@ export async function updatePlant(userId: string, plantId: number, plantUpdateDa
     const userDocRef = doc(db, 'users', userId);
     
     const updates: { [key: string]: any } = {};
+    // Ensure we are only updating fields on the specific plant sub-document
     for (const [key, value] of Object.entries(plantUpdateData)) {
         updates[`plants.${plantId}.${key}`] = value;
     }

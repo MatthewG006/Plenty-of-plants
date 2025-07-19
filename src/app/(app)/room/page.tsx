@@ -82,18 +82,13 @@ function GoldCoinAnimation() {
 }
 
 
-function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpdate, onEvolutionStart, userId }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, onPlantUpdate: (updatedPlant: Plant) => void, onEvolutionStart: (plantId: number) => void, userId: string }) {
+function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, onEvolutionStart: (plantId: number) => void, userId: string }) {
     const { playSfx } = useAudio();
     const { toast } = useToast();
     const { gameData } = useAuth();
     const [isWatering, setIsWatering] = useState(false);
     const [showGold, setShowGold] = useState(false);
-    const [plant, setPlant] = useState(initialPlant);
-
-    useEffect(() => {
-        setPlant(initialPlant);
-    }, [initialPlant]);
-
+    
     if (!plant || !gameData) return null;
 
     const timesWateredToday = plant.lastWatered?.filter(isToday).length ?? 0;
@@ -154,15 +149,10 @@ function PlantDetailDialog({ plant: initialPlant, open, onOpenChange, onPlantUpd
                 lastWatered: updatedLastWatered,
             };
             
-            const updatedPlantFull: Plant = {
-                ...plant,
-                ...updatedPlantData,
-            };
-            setPlant(updatedPlantFull);
-            
+            // Note: We are not calling onPlantUpdate here anymore.
+            // The AuthContext's onSnapshot listener will handle updating the UI.
             await updatePlant(userId, plant.id, updatedPlantData);
             await updateUserGold(userId, GOLD_PER_WATERING);
-            onPlantUpdate(updatedPlantFull);
 
             if (shouldEvolve) {
                 onEvolutionStart(plant.id);
@@ -353,7 +343,6 @@ export default function RoomPage() {
   const { toast } = useToast();
   const { playSfx } = useAudio();
   
-  const [allPlants, setAllPlants] = useState<Record<string, Plant>>({});
   const [deskPlantIds, setDeskPlantIds] = useState<(number | null)[]>(Array(NUM_POTS).fill(null));
   const [collectionPlantIds, setCollectionPlantIds] = useState<number[]>([]);
 
@@ -363,7 +352,6 @@ export default function RoomPage() {
 
   const [plantIdToEvolve, setPlantIdToEvolve] = useState<number | null>(null);
   const [isEvolving, setIsEvolving] = useState(false);
-  const [evolutionPlantName, setEvolutionPlantName] = useState('');
 
 
   const sensors = useSensors(
@@ -373,14 +361,20 @@ export default function RoomPage() {
   
   useEffect(() => {
     if (gameData) {
-        setAllPlants(gameData.plants || {});
         setDeskPlantIds(gameData.deskPlantIds || Array(NUM_POTS).fill(null));
         setCollectionPlantIds(gameData.collectionPlantIds || []);
     }
   }, [gameData]);
 
+  const allPlants = useMemo(() => gameData?.plants || {}, [gameData]);
   const deskPlants = useMemo(() => deskPlantIds.map(id => id ? allPlants[id] : null), [deskPlantIds, allPlants]);
   const collectedPlants = useMemo(() => collectionPlantIds.map(id => allPlants[id]).filter(Boolean), [collectionPlantIds, allPlants]);
+  
+  const evolutionPlantName = useMemo(() => {
+    if (!plantIdToEvolve) return '';
+    return allPlants[plantIdToEvolve]?.name || '';
+  }, [plantIdToEvolve, allPlants]);
+
 
   const activePlantData = (() => {
     if (!activeId) return null;
@@ -389,14 +383,6 @@ export default function RoomPage() {
     const plant = allPlants[id];
     return plant ? { plant, source } : null;
   })();
-
-  const handlePlantUpdate = useCallback((updatedPlant: Plant) => {
-    setAllPlants(prev => ({
-        ...prev,
-        [updatedPlant.id]: updatedPlant
-    }));
-    setSelectedPlant(updatedPlant); // Keep dialog open with updated data
-  }, []);
 
   const handleDraw = async () => {
      if (!user || !gameData || gameData.draws <= 0) {
@@ -483,13 +469,12 @@ export default function RoomPage() {
   const handleEvolutionStart = (plantId: number) => {
     const plant = allPlants[plantId];
     if (plant) {
-        setEvolutionPlantName(plant.name);
         setPlantIdToEvolve(plantId);
     }
   };
 
   const handleEvolve = async () => {
-    if (!plantIdToEvolve || !user || !gameData) return;
+    if (!plantIdToEvolve || !user) return;
 
     setIsEvolving(true);
     try {
@@ -502,24 +487,14 @@ export default function RoomPage() {
             name: plantToEvolve.name,
             imageDataUri: plantToEvolve.image,
         });
-
-        const evolvedPlantData: Partial<Plant> = {
-            image: newImageDataUri,
-            form: 'Evolved',
-        };
-
-        await updatePlant(user.uid, plantIdToEvolve, evolvedPlantData);
         
-        const fullEvolvedPlant = {
-            ...plantToEvolve,
-            ...evolvedPlantData,
-        };
-        handlePlantUpdate(fullEvolvedPlant);
+        // This function now only accepts primitive types
+        await updatePlant(user.uid, plantIdToEvolve, { image: newImageDataUri, form: 'Evolved' });
         
         playSfx('success');
         toast({
             title: "Evolution Complete!",
-            description: `${fullEvolvedPlant.name} has evolved!`,
+            description: `${plantToEvolve.name} has evolved!`,
         });
 
     } catch (e) {
@@ -528,7 +503,6 @@ export default function RoomPage() {
     } finally {
         setIsEvolving(false);
         setPlantIdToEvolve(null);
-        setEvolutionPlantName('');
     }
   };
   
@@ -579,7 +553,7 @@ export default function RoomPage() {
                     plant={plant}
                     index={index}
                     activePlantData={activePlantData}
-                    onClickPlant={setSelectedPlant}
+                    onClickPlant={(p) => setSelectedPlant(allPlants[p.id])}
                   />
               ))}
             </div>
@@ -592,7 +566,7 @@ export default function RoomPage() {
               <div className="grid grid-cols-3 gap-4 md:grid-cols-4 lg:grid-cols-5">
                   {collectedPlants.length > 0 ? (
                     collectedPlants.map((plant) => (
-                        <DraggablePlant key={plant.id} plant={plant} source="collection" onClick={() => setSelectedPlant(plant)} />
+                        <DraggablePlant key={plant.id} plant={plant} source="collection" onClick={() => setSelectedPlant(allPlants[plant.id])} />
                     ))
                   ) : (
                     <div className="col-span-3 text-center text-muted-foreground py-8">
@@ -604,10 +578,9 @@ export default function RoomPage() {
         </section>
 
         <PlantDetailDialog
-          plant={selectedPlant}
+          plant={selectedPlant ? allPlants[selectedPlant.id] : null}
           open={!!selectedPlant}
           onOpenChange={(isOpen) => !isOpen && setSelectedPlant(null)}
-          onPlantUpdate={handlePlantUpdate}
           onEvolutionStart={handleEvolutionStart}
           userId={user.uid}
         />
