@@ -1,6 +1,7 @@
 
-import { doc, getDoc, setDoc, getFirestore, updateDoc, arrayUnion, DocumentData, writeBatch, increment, collection, getDocs, query, where, limit } from 'firebase/firestore';
-import { app, db } from './firebase';
+import { doc, getDoc, setDoc, getFirestore, updateDoc, arrayUnion, DocumentData, writeBatch, increment, collection, getDocs, query, where, limit, deleteDoc } from 'firebase/firestore';
+import { app, db, auth } from './firebase';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import type { Plant } from '@/interfaces/plant';
 import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 import { User } from 'firebase/auth';
@@ -269,4 +270,17 @@ export async function updateShowcasePlants(userId: string, plantIds: number[]) {
     await updateDoc(userDocRef, {
         showcasePlantIds: plantIds,
     });
+}
+
+const functions = getFunctions(app);
+
+export async function deleteUserAccount(): Promise<{ success: boolean; message: string }> {
+  try {
+    const deleteUser = httpsCallable(functions, 'deleteUser');
+    const result = await deleteUser();
+    return { success: true, message: "Account deleted successfully." };
+  } catch (error: any) {
+    console.error("Error calling deleteUser function:", error);
+    return { success: false, message: error.message || "An unknown error occurred." };
+  }
 }
