@@ -19,7 +19,7 @@ const CommunityPostOutputSchema = z.object({
       "A generated image of the plant, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
     ),
   username: z.string().describe("A plausible but fictional username for a player in a plant collecting game."),
-  avatarColor: z.string().optional().describe("A random HSL color for the user's avatar background."),
+  avatarColor: z.string().describe("A random HSL color for the user's avatar background, e.g., 'hsl(120, 70%, 85%)'."),
 });
 export type CommunityPost = z.infer<typeof CommunityPostOutputSchema>;
 
@@ -95,12 +95,17 @@ const communityPostFlow = ai.defineFlow(
         throw new Error('Could not generate plant image for community post from AI.');
       }
 
-      // Step 4: Return the complete post data.
+      // Step 4: Generate a random color for the avatar.
+      const hue = Math.floor(Math.random() * 360);
+      const avatarColor = `hsl(${hue}, 70%, 85%)`;
+
+      // Step 5: Return the complete post data.
       return {
         name: postDetails.name,
         description: postDetails.description,
         username: postDetails.username,
         imageDataUri: media.url,
+        avatarColor: avatarColor,
       };
 
     } catch (error: any) {
@@ -110,7 +115,8 @@ const communityPostFlow = ai.defineFlow(
             name: "Mysterious Bloom",
             description: "A very special plant found deep in the enchanted forest.",
             username: "FloraExplorer",
-            imageDataUri: "https://placehold.co/300x300.png"
+            imageDataUri: "https://placehold.co/300x300.png",
+            avatarColor: "hsl(120, 70%, 85%)",
         };
     }
   }

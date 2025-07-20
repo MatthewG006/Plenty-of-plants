@@ -20,10 +20,7 @@ export default function CommunityPage() {
     setIsLoading(true);
     try {
       const newPost = await getCommunityPost();
-      // Add a random color for the avatar fallback
-      const hue = Math.floor(Math.random() * 360);
-      const avatarColor = `hsl(${hue}, 70%, 85%)`;
-      setPosts(prev => [...prev, { ...newPost, avatarColor }]);
+      setPosts(prev => [...prev, newPost]);
     } catch (e) {
       console.error(e);
       toast({
