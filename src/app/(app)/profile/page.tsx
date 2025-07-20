@@ -61,7 +61,14 @@ function ShowcasePlantCard({ plant, isSelected, onSelect }: { plant: Plant, isSe
             <CardContent className="p-0 relative">
                 <div className="aspect-square relative flex items-center justify-center bg-muted/30">
                      {plant.image !== 'placeholder' ? (
-                        <Image src={plant.image} alt={plant.name} fill className="object-cover" data-ai-hint={plant.hint} />
+                        <Image 
+                            src={plant.image} 
+                            alt={plant.name} 
+                            fill 
+                            sizes="(max-width: 768px) 33vw, 20vw"
+                            priority={plant.id === 1}
+                            className="object-cover" 
+                            data-ai-hint={plant.hint} />
                     ) : (
                         <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
                     )}
