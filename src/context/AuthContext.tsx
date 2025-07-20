@@ -90,14 +90,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const publicPages = ['/', '/login', '/signup'];
     const isPublicPage = publicPages.includes(pathname);
-    const isAppPage = pathname.startsWith('/home') || pathname.startsWith('/room') || pathname.startsWith('/shop') || pathname.startsWith('/community') || pathname.startsWith('/profile');
-
-    if (user && isPublicPage && pathname !== '/') {
-        // If user is logged in and on login/signup, redirect to home.
-        router.push('/home');
-    } else if (!user && isAppPage) {
-      // If user is not logged in and on a protected app page, redirect to login.
+    
+    // If the user is not logged in and is trying to access a protected page, redirect to login
+    if (!user && !isPublicPage) {
       router.push('/login');
+    }
+    
+    // If the user IS logged in and lands on a public page (except the splash screen), redirect to home
+    if (user && isPublicPage && pathname !== '/') {
+      router.push('/home');
     }
   }, [user, loading, pathname, router]);
   
