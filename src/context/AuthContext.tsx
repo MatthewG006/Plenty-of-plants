@@ -58,6 +58,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             lastDrawRefill: data.lastDrawRefill || Date.now(),
             lastFreeDrawClaimed: data.lastFreeDrawClaimed || 0,
             waterRefills: data.waterRefills || 0,
+            showcasePlantIds: data.showcasePlantIds || [],
           });
         } else {
             // This case handles a user that is authenticated but doesn't have a document yet.

@@ -1,97 +1,114 @@
 
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Loader2, Users } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Loader2, Users, Leaf, Sparkles } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { getCommunityPost, type CommunityPost } from '@/ai/flows/get-community-post-flow';
+import { getCommunityUsers, type CommunityUser } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import type { Plant } from '@/interfaces/plant';
+
+function ShowcasePlant({ plant }: { plant: Plant }) {
+  return (
+    <div className="w-full aspect-square relative rounded-md overflow-hidden bg-muted/30 border border-primary/10">
+      {plant.image !== 'placeholder' ? (
+        <Image src={plant.image} alt={plant.name} fill className="object-cover" />
+      ) : (
+        <div className="flex items-center justify-center h-full">
+          <Leaf className="w-8 h-8 text-muted-foreground/40" />
+        </div>
+      )}
+       {plant.form === 'Evolved' && (
+          <div className="absolute top-1 right-1 bg-secondary/80 text-secondary-foreground p-1 rounded-full shadow-md backdrop-blur-sm">
+              <Sparkles className="w-2 h-2" />
+          </div>
+        )}
+    </div>
+  )
+}
+
 
 export default function CommunityPage() {
-  const [posts, setPosts] = useState<CommunityPost[]>([]);
+  const [users, setUsers] = useState<CommunityUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchPost = async () => {
-    setIsLoading(true);
-    try {
-      const newPost = await getCommunityPost();
-      setPosts(prev => [...prev, newPost]);
-    } catch (e) {
-      console.error(e);
-      toast({
-        variant: 'destructive',
-        title: 'Failed to load community post',
-        description: 'There was an issue with the AI. Please try again.',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    // Fetch initial post
-    fetchPost();
-  }, []);
+    const fetchUsers = async () => {
+      setIsLoading(true);
+      try {
+        const communityUsers = await getCommunityUsers();
+        setUsers(communityUsers);
+      } catch (e) {
+        console.error(e);
+        toast({
+          variant: 'destructive',
+          title: 'Failed to load community data',
+          description: 'Please try again later.',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchUsers();
+  }, [toast]);
 
   return (
     <div className="p-4 space-y-6">
-      <header className="flex items-center justify-between pb-4">
+      <header className="flex flex-col items-start gap-1 pb-4">
         <h1 className="text-3xl text-primary flex items-center gap-2">
           <Users className="h-8 w-8" />
           Community Showcase
         </h1>
+        <p className="text-muted-foreground">See what other players are growing!</p>
       </header>
 
-      <div className="space-y-4">
-        {posts.map((post, index) => (
-          <Card key={index} className="shadow-md">
-            <CardHeader className="flex flex-row items-center gap-3 space-y-0">
-               <Avatar className="h-10 w-10">
-                <AvatarFallback style={{ backgroundColor: post.avatarColor }} className="text-lg font-bold text-primary/70">
-                  {post.username.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col">
-                <CardTitle className="text-lg">{post.username}</CardTitle>
-                <p className="text-xs text-muted-foreground">discovered a new plant!</p>
-              </div>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center gap-4">
-              <div className="w-full h-72 rounded-lg overflow-hidden border-2 border-primary/20 shadow-inner bg-green-100">
-                <Image
-                  src={post.imageDataUri}
-                  alt={post.name}
-                  width={300}
-                  height={300}
-                  className="object-cover w-full h-full"
-                />
-              </div>
-              <div className="text-center">
-                <h3 className="text-xl font-semibold text-primary">{post.name}</h3>
-                <p className="text-muted-foreground">{post.description}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <div className="flex justify-center pt-4">
-        <Button onClick={fetchPost} disabled={isLoading} className="w-full max-w-xs">
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Loading...
-            </>
+      {isLoading ? (
+        <div className="flex justify-center pt-10">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {users.length > 0 ? (
+            users.map((user) => (
+              <Card key={user.uid} className="shadow-md">
+                <CardHeader className="flex flex-row items-center gap-3 space-y-0">
+                  <Avatar className="h-12 w-12">
+                    <AvatarFallback style={{ backgroundColor: user.avatarColor }} className="text-xl font-bold text-primary/70">
+                      {user.username.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <CardTitle className="text-xl">{user.username}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {user.showcasePlants.length > 0 ? (
+                    <div className="grid grid-cols-5 gap-2">
+                      {user.showcasePlants.map(plant => (
+                        <ShowcasePlant key={plant.id} plant={plant} />
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">This user hasn't selected a showcase yet.</p>
+                  )}
+                </CardContent>
+              </Card>
+            ))
           ) : (
-            'Load More Posts'
+            <Card className="text-center py-10">
+              <CardHeader>
+                <CardTitle>The Community is Growing!</CardTitle>
+                <CardDescription>No one has set up a showcase yet. Be the first!</CardDescription>
+              </CardHeader>
+              <CardContent>
+                 <p className="text-muted-foreground">Go to your Profile page to select your showcase plants.</p>
+              </CardContent>
+            </Card>
           )}
-        </Button>
-      </div>
+        </div>
+      )}
     </div>
   );
 }
