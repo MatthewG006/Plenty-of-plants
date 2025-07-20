@@ -93,7 +93,7 @@ export async function claimFreeDraw(userId: string, options?: { bypassTimeCheck?
       updateData.lastFreeDrawClaimed = now;
   }
   
-  if (options?.cost) {
+  if (options?.cost && options.cost > 0) {
       updateData.gold = increment(-options.cost);
   }
   
