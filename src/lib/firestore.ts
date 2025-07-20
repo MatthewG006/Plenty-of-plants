@@ -1,5 +1,5 @@
 
-import { doc, getDoc, setDoc, getFirestore, updateDoc, arrayUnion, DocumentData, writeBatch, increment } from 'firebase/firestore';
+import { doc, getDoc, setDoc, getFirestore, updateDoc, arrayUnion, DocumentData, writeBatch, increment, collection, getDocs, query, where, limit } from 'firebase/firestore';
 import { app, db } from './firebase';
 import type { Plant } from '@/interfaces/plant';
 import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
@@ -17,6 +17,14 @@ export interface GameData {
     lastDrawRefill: number;
     lastFreeDrawClaimed: number;
     waterRefills: number;
+    showcasePlantIds: number[];
+}
+
+export interface CommunityUser {
+    uid: string;
+    username: string;
+    avatarColor: string;
+    showcasePlants: Plant[];
 }
 
 export async function getUserGameData(userId: string): Promise<GameData | null> {
@@ -35,11 +43,42 @@ export async function getUserGameData(userId: string): Promise<GameData | null> 
             lastDrawRefill: data.lastDrawRefill || Date.now(),
             lastFreeDrawClaimed: data.lastFreeDrawClaimed || 0,
             waterRefills: data.waterRefills || 0,
+            showcasePlantIds: data.showcasePlantIds || [],
         };
     } else {
         return null;
     }
 }
+
+export async function getCommunityUsers(): Promise<CommunityUser[]> {
+    const usersCollection = collection(db, 'users');
+    const q = query(usersCollection, where('showcasePlantIds', '!=', []), limit(20));
+    const querySnapshot = await getDocs(q);
+
+    const communityUsers: CommunityUser[] = [];
+
+    querySnapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        const allPlants = data.plants || {};
+        const showcasePlantIds = data.showcasePlantIds || [];
+        
+        const showcasePlants = showcasePlantIds
+            .map((id: number) => allPlants[id])
+            .filter(Boolean);
+
+        if (showcasePlants.length > 0) {
+            communityUsers.push({
+                uid: docSnap.id,
+                username: data.username || 'Anonymous',
+                avatarColor: data.avatarColor || 'hsl(120, 70%, 85%)',
+                showcasePlants: showcasePlants,
+            });
+        }
+    });
+
+    return communityUsers;
+}
+
 
 export async function getPlantById(userId: string, plantId: number): Promise<Plant | null> {
     const gameData = await getUserGameData(userId);
@@ -77,6 +116,7 @@ export async function createUserDocument(user: User): Promise<GameData> {
             lastDrawRefill: Date.now(),
             lastFreeDrawClaimed: 0,
             waterRefills: 0,
+            showcasePlantIds: [],
         };
 
         await setDoc(docRef, {
@@ -219,6 +259,14 @@ export async function resetUserGameData(userId: string) {
         draws: MAX_DRAWS,
         lastDrawRefill: Date.now(),
         lastFreeDrawClaimed: 0,
-        waterRefills: 0
+        waterRefills: 0,
+        showcasePlantIds: [],
+    });
+}
+
+export async function updateShowcasePlants(userId: string, plantIds: number[]) {
+    const userDocRef = doc(db, 'users', userId);
+    await updateDoc(userDocRef, {
+        showcasePlantIds: plantIds,
     });
 }
