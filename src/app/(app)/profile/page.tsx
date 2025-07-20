@@ -4,7 +4,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { User, LogOut, Coins, Loader2, Leaf, Sparkles, CheckCircle2 } from 'lucide-react';
+import { User, LogOut, Coins, Loader2, Leaf, Sparkles, CheckCircle2, Trash2 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import type { Plant } from '@/interfaces/plant';
@@ -26,7 +26,7 @@ import { useAuth } from '@/context/AuthContext';
 import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
-import { updateShowcasePlants } from '@/lib/firestore';
+import { updateShowcasePlants, deleteUserAccount } from '@/lib/firestore';
 
 const MAX_SHOWCASE_PLANTS = 5;
 
@@ -101,6 +101,7 @@ export default function ProfilePage() {
 
   const [selectedPlantIds, setSelectedPlantIds] = useState<number[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (gameData?.plants) {
@@ -161,6 +162,28 @@ export default function ProfilePage() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    setIsDeleting(true);
+    try {
+      await deleteUserAccount();
+      await signOut(auth);
+      toast({
+        title: 'Account Deleted',
+        description: 'Your account has been successfully deleted.',
+      });
+      router.push('/login');
+    } catch (error) {
+      console.error("Failed to delete account", error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Could not delete your account. Please try again after logging back in.',
+      });
+      setIsDeleting(false);
+    }
+  };
+
   if (!user || !gameData) {
     return (
         <div className="flex h-screen w-full items-center justify-center">
@@ -178,7 +201,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="p-4 space-y-6 pb-24">
       <header className="flex items-center justify-between pb-4">
         <h1 className="text-3xl text-primary">My Profile</h1>
       </header>
@@ -255,6 +278,70 @@ export default function ProfilePage() {
             </AlertDialogContent>
         </AlertDialog>
       </div>
+
+       <Card className="mt-6 border-destructive">
+        <CardHeader>
+          <CardTitle className="text-destructive">Danger Zone</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col">
+              <p className="font-semibold text-primary">Reset Game</p>
+              <p className="text-sm text-muted-foreground">This will permanently delete your plant collection and gold.</p>
+            </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" outline>
+                  Reset Game
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete your entire plant collection and reset your gold to 0.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => {}} className="bg-destructive hover:bg-destructive/90">
+                    Yes, reset my game
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+          <Separator />
+           <div className="flex items-center justify-between">
+            <div className="flex flex-col">
+              <p className="font-semibold text-destructive">Delete Account</p>
+              <p className="text-sm text-muted-foreground">This will permanently delete your account and all data.</p>
+            </div>
+             <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Account
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action is permanent and cannot be undone. Your account, plant collection, and all progress will be permanently deleted.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteAccount} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+                    {isDeleting ? <Loader2 className="animate-spin" /> : "Yes, delete my account"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
