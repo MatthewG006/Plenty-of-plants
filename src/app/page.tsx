@@ -7,10 +7,11 @@ import { Button } from '@/components/ui/button';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 
 export default function SplashPage() {
   const { isPlaying, togglePlay, playSfx } = useAudio();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   const handleEnter = () => {
@@ -20,6 +21,14 @@ export default function SplashPage() {
     playSfx('whoosh');
     router.push(user ? '/home' : '/login');
   };
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-splash-image">
+        <Loader2 className="h-12 w-12 animate-spin text-white" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen w-full flex-col items-center justify-between p-4 bg-splash-image">
