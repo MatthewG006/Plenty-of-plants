@@ -258,7 +258,7 @@ function PlantImageUI({ plant, blendMode = false }: { plant: Plant, blendMode?: 
     <div className="flex flex-col items-center text-center">
       <div className="relative h-20 w-20 pointer-events-none flex items-center justify-center">
         {plant.image !== 'placeholder' ? (
-            <Image src={plant.image} alt={plant.name} fill className={cn("object-contain", blendMode && "mix-blend-multiply")} data-ai-hint={plant.hint} />
+            <Image src={plant.image} alt={plant.name} fill sizes="80px" className={cn("object-contain", blendMode && "mix-blend-multiply")} data-ai-hint={plant.hint} />
         ) : (
             <div className="w-full h-full flex items-center justify-center rounded-lg bg-muted/20">
               <Leaf className="w-12 h-12 text-muted-foreground/50" />
@@ -602,9 +602,8 @@ export default function RoomPage() {
             <Image
               src="/desk.jpg"
               alt="A wooden desk for plants"
-              layout="fill"
-              objectFit="cover"
-              className="z-0"
+              fill
+              className="z-0 object-cover"
               data-ai-hint="desk wood"
             />
             <div className="relative z-10 flex h-full items-end justify-around">
