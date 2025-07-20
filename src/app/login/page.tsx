@@ -61,8 +61,8 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // On successful login, route to the splash screen.
-      router.push('/');
+      // On successful login, route to the home page.
+      router.push('/home');
     } catch (error: any) {
       console.error("Firebase Login Error:", error);
       toast({

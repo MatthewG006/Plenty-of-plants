@@ -30,81 +30,69 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+    let unsubscribeFirestore: Unsubscribe | undefined;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
-      if (!currentUser) {
+      if (currentUser) {
+        // User is logged in, start listening to their data
+        const docRef = doc(db, 'users', currentUser.uid);
+        unsubscribeFirestore = onSnapshot(docRef, (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setGameData({
+              gold: data.gold || 0,
+              plants: data.plants || {},
+              collectionPlantIds: data.collectionPlantIds || [],
+              deskPlantIds: data.deskPlantIds || [null, null, null],
+              draws: data.draws ?? MAX_DRAWS,
+              lastDrawRefill: data.lastDrawRefill || Date.now(),
+              lastFreeDrawClaimed: data.lastFreeDrawClaimed || 0,
+              waterRefills: data.waterRefills || 0,
+              showcasePlantIds: data.showcasePlantIds || [],
+            });
+          } else {
+            // This can happen on first signup.
+            createUserDocument(currentUser).then(setGameData);
+          }
+          setLoading(false);
+        }, (error) => {
+          console.error("Firestore snapshot error:", error);
+          setGameData(null);
+          setLoading(false);
+        });
+      } else {
+        // User is logged out
         setGameData(null);
         setLoading(false);
       }
     });
-    return () => unsubscribeAuth();
-  }, []);
-  
-  useEffect(() => {
-    let unsubscribeFirestore: Unsubscribe | undefined;
 
-    if (user) {
-      setLoading(true);
-      const docRef = doc(db, 'users', user.uid);
-      unsubscribeFirestore = onSnapshot(docRef, (docSnap) => {
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-           setGameData({
-            gold: data.gold || 0,
-            plants: data.plants || {},
-            collectionPlantIds: data.collectionPlantIds || [],
-            deskPlantIds: data.deskPlantIds || [null, null, null],
-            draws: data.draws ?? MAX_DRAWS,
-            lastDrawRefill: data.lastDrawRefill || Date.now(),
-            lastFreeDrawClaimed: data.lastFreeDrawClaimed || 0,
-            waterRefills: data.waterRefills || 0,
-            showcasePlantIds: data.showcasePlantIds || [],
-          });
-        } else {
-            // This case handles a user that is authenticated but doesn't have a document yet.
-            // This can happen on first signup. We create the document and the onSnapshot listener will pick it up.
-            createUserDocument(user).then((newGameData) => {
-                // Manually setting game data here can bridge the small gap before the listener fires.
-                setGameData(newGameData);
-            });
-        }
-        setLoading(false);
-      }, (error) => {
-        console.error("Firestore snapshot error:", error);
-        setGameData(null);
-        setLoading(false);
-      });
-    } else {
-      setLoading(false);
-    }
-    
     return () => {
+      unsubscribeAuth();
       if (unsubscribeFirestore) {
         unsubscribeFirestore();
       }
     };
-  }, [user]);
+  }, []);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading) return; // Don't do anything while loading
 
     const publicPages = ['/', '/login', '/signup'];
     const isPublicPage = publicPages.includes(pathname);
-    
-    // If the user is not logged in and is trying to access a protected page, redirect to login
+
     if (!user && !isPublicPage) {
+      // If not logged in and trying to access a protected page, redirect
       router.push('/login');
-    }
-    
-    // If the user IS logged in and lands on a public page (except the splash screen), redirect to home
-    if (user && isPublicPage && pathname !== '/') {
+    } else if (user && isPublicPage && pathname !== '/') {
+      // If logged in and on a page like /login or /signup, redirect to home
       router.push('/home');
     }
   }, [user, loading, pathname, router]);
-  
-  const isProtectedRoute = !['/', '/login', '/signup'].includes(pathname);
 
-  if (loading && isProtectedRoute) {
+
+  if (loading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
