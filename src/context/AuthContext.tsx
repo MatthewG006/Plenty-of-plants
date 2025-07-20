@@ -89,19 +89,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (loading) return;
 
     const publicPages = ['/', '/login', '/signup'];
-    const authPages = ['/login', '/signup'];
-    
     const isPublicPage = publicPages.includes(pathname);
-    const isAuthPage = authPages.includes(pathname);
 
-    if (user && isAuthPage) {
-      // If user is logged in, redirect from auth pages to home.
-      router.push('/home');
-    } else if (!user && !isPublicPage) {
+    if (!user && !isPublicPage) {
       // If user is not logged in and not on a public page, redirect to login.
       router.push('/login');
     }
-
   }, [user, loading, pathname, router]);
   
   const isProtectedRoute = !['/', '/login', '/signup'].includes(pathname);
