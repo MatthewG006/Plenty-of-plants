@@ -26,7 +26,7 @@ import { useAuth } from '@/context/AuthContext';
 import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
-import { updateShowcasePlants, deleteUserAccount } from '@/lib/firestore';
+import { updateShowcasePlants, deleteUserAccount, resetUserGameData } from '@/lib/firestore';
 
 const MAX_SHOWCASE_PLANTS = 5;
 
@@ -102,6 +102,7 @@ export default function ProfilePage() {
   const [selectedPlantIds, setSelectedPlantIds] = useState<number[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   useEffect(() => {
     if (gameData?.plants) {
@@ -162,17 +163,43 @@ export default function ProfilePage() {
     }
   };
 
+  const handleResetGame = async () => {
+    if (!user) return;
+    setIsResetting(true);
+    try {
+        await resetUserGameData(user.uid);
+        toast({
+          title: "Game Reset",
+          description: "Your collection and gold have been cleared.",
+        });
+
+    } catch (e) {
+        console.error("Failed to clear data from Firestore", e);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Could not reset your game data.",
+        });
+    } finally {
+        setIsResetting(false);
+    }
+  };
+
   const handleDeleteAccount = async () => {
     if (!user) return;
     setIsDeleting(true);
     try {
-      await deleteUserAccount();
-      await signOut(auth);
-      toast({
-        title: 'Account Deleted',
-        description: 'Your account has been successfully deleted.',
-      });
-      router.push('/login');
+      const result = await deleteUserAccount();
+      if (result.success) {
+        await signOut(auth);
+        toast({
+          title: 'Account Deleted',
+          description: 'Your account has been successfully deleted.',
+        });
+        router.push('/login');
+      } else {
+          throw new Error(result.message);
+      }
     } catch (error) {
       console.error("Failed to delete account", error);
       toast({
@@ -291,7 +318,7 @@ export default function ProfilePage() {
             </div>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" outline>
+                <Button variant="outline">
                   Reset Game
                 </Button>
               </AlertDialogTrigger>
@@ -303,9 +330,9 @@ export default function ProfilePage() {
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => {}} className="bg-destructive hover:bg-destructive/90">
-                    Yes, reset my game
+                  <AlertDialogCancel disabled={isResetting}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleResetGame} disabled={isResetting} className="bg-destructive hover:bg-destructive/90">
+                    {isResetting ? <Loader2 className="animate-spin" /> : "Yes, reset my game"}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
