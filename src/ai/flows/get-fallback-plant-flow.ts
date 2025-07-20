@@ -55,6 +55,13 @@ const fallbackPlantDetailsPrompt = ai.definePrompt({
     prompt: `You are a creative botanist for a game. For the plant type "{{plantType}}", generate a unique two-word name and a whimsical one-sentence description for it.`,
 });
 
+const getHardcodedFallback = () => {
+    return {
+        name: "Sturdy Sprout",
+        description: "A reliable little plant that shows up when you need it most.",
+        imageDataUri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAMAAABrrFhUAAAAA1BMVEUAAACnej3aAAAASElEQVR4nO3BMQEAAADCoPVPbQwfoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIC3AcUIAAFkqh/QAAAAAElFTkSuQmCC" // 1x1 transparent png
+    };
+};
 
 export const getFallbackPlantFlow = ai.defineFlow(
   {
@@ -72,7 +79,8 @@ export const getFallbackPlantFlow = ai.defineFlow(
         const imageFiles = files.filter(file => file.endsWith('.png') || file.endsWith('.jpg') || file.endsWith('.jpeg'));
 
         if (imageFiles.length === 0) {
-            throw new Error("No fallback images found in the directory.");
+            console.warn("No fallback images found. Returning hardcoded plant.");
+            return getHardcodedFallback();
         }
 
         const randomImageFile = imageFiles[Math.floor(Math.random() * imageFiles.length)];
@@ -96,11 +104,7 @@ export const getFallbackPlantFlow = ai.defineFlow(
     } catch (error) {
         console.error("Critical error in fallback flow, returning hardcoded plant.", error);
         // This is a final failsafe to prevent a crash, especially if the API key is invalid or files are missing.
-        return {
-            name: "Resilient Succulent",
-            description: "This little plant survived an error to be here!",
-            imageDataUri: "https://placehold.co/256x256.png"
-        };
+        return getHardcodedFallback();
     }
   }
 );
