@@ -2,7 +2,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Users, Leaf, Sparkles } from 'lucide-react';
+import { Loader2, Users, Leaf, Sparkles, ShieldAlert } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { getCommunityUsers, type CommunityUser } from '@/lib/firestore';
@@ -34,21 +34,27 @@ function ShowcasePlant({ plant }: { plant: Plant }) {
 export default function CommunityPage() {
   const [users, setUsers] = useState<CommunityUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [permissionError, setPermissionError] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     const fetchUsers = async () => {
       setIsLoading(true);
+      setPermissionError(false);
       try {
         const communityUsers = await getCommunityUsers();
         setUsers(communityUsers);
-      } catch (e) {
+      } catch (e: any) {
         console.error(e);
-        toast({
-          variant: 'destructive',
-          title: 'Failed to load community data',
-          description: 'Please try again later.',
-        });
+        if (e.code === 'permission-denied') {
+          setPermissionError(true);
+        } else {
+            toast({
+              variant: 'destructive',
+              title: 'Failed to load community data',
+              description: 'Please try again later.',
+            });
+        }
       } finally {
         setIsLoading(false);
       }
@@ -70,6 +76,22 @@ export default function CommunityPage() {
         <div className="flex justify-center pt-10">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
         </div>
+      ) : permissionError ? (
+        <Card className="text-center py-10 border-destructive">
+            <CardHeader>
+                <div className="mx-auto bg-destructive/10 rounded-full w-fit p-3 mb-2">
+                    <ShieldAlert className="h-10 w-10 text-destructive" />
+                </div>
+                <CardTitle className="text-destructive">Permissions Error</CardTitle>
+                <CardDescription>
+                    Your Firestore security rules are preventing you from viewing community data.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground space-y-2">
+                 <p>To fix this, update your Firestore rules to allow authenticated users to read the `users` collection.</p>
+                 <p>See the updated instructions in the `DOCUMENTATION.md` file.</p>
+            </CardContent>
+        </Card>
       ) : (
         <div className="space-y-4">
           {users.length > 0 ? (
