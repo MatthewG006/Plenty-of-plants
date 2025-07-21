@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { drawPlant, type DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
-import { Leaf, Loader2, Droplet, PlusCircle, Coins, Sparkles } from 'lucide-react';
+import { Leaf, Loader2, Droplet, Coins, Sparkles } from 'lucide-react';
 import Image from 'next/image';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import type { Plant } from '@/interfaces/plant';
 import { cn } from '@/lib/utils';
@@ -28,7 +28,6 @@ import { useDraw } from '@/lib/draw-manager';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { useRouter } from 'next/navigation';
 import { updatePlantArrangement, updateUserGold, savePlant, useWaterRefill, updatePlant, getPlantById } from '@/lib/firestore';
 import { evolvePlant } from '@/ai/flows/evolve-plant-flow';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -146,12 +145,6 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
                  updatedLastWatered = [...updatedLastWatered.filter(isToday), now];
             }
 
-            const updatedPlantData: Partial<Plant> = {
-                xp: newXp,
-                level: newLevel,
-                lastWatered: updatedLastWatered,
-            };
-            
             await updatePlant(userId, plant.id, {
                 xp: newXp,
                 level: newLevel,
@@ -248,15 +241,9 @@ function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlantOutput 
     );
 }
 
-function PlantPot() {
-    return (
-        <div className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-primary/30 pointer-events-none" />
-    )
-}
-
-function PlantImageUI({ plant }: { plant: Plant }) {
+function PlantImageUI({ plant, blend }: { plant: Plant, blend?: boolean }) {
   return (
-    <div className="flex flex-col items-center text-center pointer-events-none">
+    <div className="flex flex-col items-center text-center pointer-events-none w-full h-full">
       <div className="relative h-20 w-20 flex items-center justify-center">
         {plant.image !== 'placeholder' ? (
             <Image 
@@ -264,7 +251,7 @@ function PlantImageUI({ plant }: { plant: Plant }) {
                 alt={plant.name} 
                 fill 
                 sizes="80px" 
-                className="object-contain" 
+                className={cn("object-contain", blend && "mix-blend-darken")}
                 data-ai-hint={plant.hint} />
         ) : (
             <div className="w-full h-full flex items-center justify-center rounded-lg bg-muted/20">
@@ -283,7 +270,7 @@ function PlantCardUI({ plant }: { plant: Plant }) {
             <CardContent className="p-0">
                 <div className="aspect-square relative flex items-center justify-center bg-muted/30">
                     {plant.image !== 'placeholder' ? (
-                        <Image src={plant.image} alt={plant.name} fill className="object-cover" data-ai-hint={plant.hint} />
+                        <Image src={plant.image} alt={plant.name} fill sizes="100px" className="object-cover" data-ai-hint={plant.hint} />
                     ) : (
                         <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
                     )}
@@ -304,8 +291,8 @@ function PlantCardUI({ plant }: { plant: Plant }) {
 }
 
 
-function DraggablePlant({ plant, source, isDragging, ...props }: { plant: Plant; source: 'collection'; isDragging: boolean } & React.HTMLAttributes<HTMLDivElement>) {
-    const { attributes, listeners, setNodeRef } = useDraggable({
+function DraggablePlant({ plant, source, ...props }: { plant: Plant; source: 'collection'; } & React.HTMLAttributes<HTMLDivElement>) {
+    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: `${source}:${plant.id}`,
         data: { plant, source },
     });
@@ -322,8 +309,7 @@ function DraggablePlant({ plant, source, isDragging, ...props }: { plant: Plant;
     );
 }
 
-
-function DeskPot({ plant, index, activePlantData, onClickPlant }: { plant: Plant | null, index: number, activePlantData: { plant: Plant; source: string } | null, onClickPlant: (plant: Plant) => void }) {
+function DeskPot({ plant, index, onClickPlant }: { plant: Plant | null, index: number, onClickPlant: (plant: Plant) => void }) {
     const { setNodeRef: setDroppableRef, isOver } = useDroppable({ id: `pot:${index}` });
     const {
         attributes,
@@ -338,50 +324,34 @@ function DeskPot({ plant, index, activePlantData, onClickPlant }: { plant: Plant
     
     const setNodeRef = (node: HTMLElement | null) => {
         setDroppableRef(node);
-        setDraggableRef(node);
+        if (plant) {
+            setDraggableRef(node);
+        }
     };
+    
+    const combinedListeners = plant ? { ...listeners, onClick: () => onClickPlant(plant) } : {};
 
     return (
       <div
         ref={setNodeRef}
+        {...attributes}
+        {...combinedListeners}
         className={cn(
-          "relative flex h-24 w-24 items-center justify-center rounded-lg transition-colors cursor-pointer",
+          "relative flex h-24 w-24 items-end justify-center rounded-lg transition-colors cursor-pointer",
           isOver && "bg-primary/20",
           isDragging && "opacity-40"
         )}
-        onClick={plant ? () => onClickPlant(plant) : undefined}
-        {...(plant ? { ...attributes, ...listeners } : {})}
       >
         {plant ? (
-          <div className="relative h-20 w-20 flex items-center justify-center pointer-events-none">
-            <Image
-              src={plant.image}
-              alt={plant.name}
-              fill
-              sizes="80px"
-              className="object-contain mix-blend-darken"
-              data-ai-hint={plant.hint}
-            />
-            <p className="absolute -bottom-4 text-xs font-semibold text-primary truncate w-full text-center">{plant.name}</p>
+          <div className="pointer-events-none">
+            <PlantImageUI plant={plant} blend />
           </div>
         ) : (
-          <PlantPot />
-        )}
-        {activePlantData?.source === 'collection' && isOver && (
-           <div className="opacity-50 pointer-events-none relative h-20 w-20 flex items-center justify-center">
-              <Image
-                  src={activePlantData.plant.image}
-                  alt={activePlantData.plant.name}
-                  fill
-                  sizes="80px"
-                  className="object-contain mix-blend-darken"
-              />
-           </div>
+          <div className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-primary/30 pointer-events-none" />
         )}
       </div>
     );
 }
-
 
 export default function RoomPage() {
   const { user, gameData } = useAuth();
@@ -394,7 +364,7 @@ export default function RoomPage() {
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawnPlant, setDrawnPlant] = useState<DrawPlantOutput | null>(null);
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
 
   const [plantIdToEvolve, setPlantIdToEvolve] = useState<number | null>(null);
   const [isEvolving, setIsEvolving] = useState(false);
@@ -414,7 +384,7 @@ export default function RoomPage() {
 
   const allPlants = useMemo(() => gameData?.plants || {}, [gameData]);
   const deskPlants = useMemo(() => deskPlantIds.map(id => id ? allPlants[id] : null), [deskPlantIds, allPlants]);
-  const collectedPlants = useMemo(() => collectionPlantIds.map(id => allPlants[id]).filter(Boolean), [collectionPlantIds, allPlants]);
+  const collectionPlants = useMemo(() => collectionPlantIds.map(id => allPlants[id]).filter(Boolean), [collectionPlantIds, allPlants]);
   
   const evolutionPlantName = useMemo(() => {
     if (!plantIdToEvolve) return '';
@@ -422,13 +392,13 @@ export default function RoomPage() {
   }, [plantIdToEvolve, allPlants]);
 
 
-  const activePlantData = useMemo(() => {
-    if (!activeId) return null;
-    const [source, idStr] = activeId.split(":");
+  const activeDragData = useMemo(() => {
+    if (!activeDragId) return null;
+    const [source, idStr] = activeDragId.split(":");
     const id = parseInt(idStr, 10);
     const plant = allPlants[id];
     return plant ? { plant, source } : null;
-  }, [activeId, allPlants]);
+  }, [activeDragId, allPlants]);
 
   const handleDraw = async () => {
     if (!user || !gameData || gameData.draws <= 0) {
@@ -493,55 +463,65 @@ export default function RoomPage() {
   };
   
   const handleDragEnd = async (event: DragEndEvent) => {
-    setActiveId(null);
+    setActiveDragId(null);
     if (!user) return;
 
     const { active, over } = event;
   
-    if (!over || !active || active.id === over.id) {
+    if (!over || !active.data.current?.plant) {
       return;
     }
   
-    const activePlant = active.data.current?.plant as Plant;
-    if (!activePlant) return;
-  
+    const activePlant = active.data.current.plant as Plant;
     const [activeSource] = (active.id as string).split(':');
+    
     const [overType, overIdStr] = (over.id as string).split(':');
-  
-    let newDeskPlantIds = [...deskPlantIds];
-    let newCollectionPlantIds = [...collectionPlantIds];
-  
-    const sourcePotIndex = activeSource === 'desk' ? newDeskPlantIds.findIndex(id => id === activePlant.id) : -1;
-  
-    if (overType === 'pot') {
-      const targetPotIndex = parseInt(overIdStr, 10);
-      const plantIdAtTarget = newDeskPlantIds[targetPotIndex];
-  
-      if (activeSource === 'collection') {
-        newCollectionPlantIds = newCollectionPlantIds.filter(id => id !== activePlant.id);
-        if (plantIdAtTarget) {
-          newCollectionPlantIds.push(plantIdAtTarget);
+    
+    let newDeskIds = [...deskPlantIds];
+    let newCollectionIds = [...collectionPlantIds];
+
+    // Dragging from collection
+    if (activeSource === 'collection') {
+      if (overType === 'pot') {
+        const potIndex = parseInt(overIdStr, 10);
+        const plantInPotId = newDeskIds[potIndex];
+
+        // Add dragged plant to pot
+        newDeskIds[potIndex] = activePlant.id;
+        // Remove from collection
+        newCollectionIds = newCollectionIds.filter(id => id !== activePlant.id);
+        // If a plant was in the pot, move it to collection
+        if (plantInPotId) {
+          newCollectionIds.push(plantInPotId);
         }
-        newDeskPlantIds[targetPotIndex] = activePlant.id;
       }
-      else if (activeSource === 'desk' && sourcePotIndex !== -1) {
-        newDeskPlantIds[targetPotIndex] = activePlant.id;
-        newDeskPlantIds[sourcePotIndex] = plantIdAtTarget;
-      }
-    } 
-    else if (overType === 'collection') {
-      if (activeSource === 'desk' && sourcePotIndex !== -1) {
-        newDeskPlantIds[sourcePotIndex] = null;
-        if (!newCollectionPlantIds.includes(activePlant.id)) {
-            newCollectionPlantIds.push(activePlant.id);
+    }
+    // Dragging from desk
+    else if (activeSource === 'desk') {
+      const sourcePotIndex = newDeskIds.findIndex(id => id === activePlant.id);
+
+      if (sourcePotIndex === -1) return;
+
+      if (overType === 'pot') { // desk to desk
+        const targetPotIndex = parseInt(overIdStr, 10);
+        const plantInTargetPotId = newDeskIds[targetPotIndex];
+        
+        // Swap plants
+        newDeskIds[targetPotIndex] = activePlant.id;
+        newDeskIds[sourcePotIndex] = plantInTargetPotId;
+
+      } else if (overType === 'collection') { // desk to collection
+        newDeskIds[sourcePotIndex] = null;
+        if (!newCollectionIds.includes(activePlant.id)) {
+            newCollectionIds.push(activePlant.id);
         }
       }
     }
   
-    const finalCollectionIds = newCollectionPlantIds.sort((a,b) => a - b);
-    setDeskPlantIds(newDeskPlantIds);
+    const finalCollectionIds = newCollectionIds.sort((a,b) => a - b);
+    setDeskPlantIds(newDeskIds);
     setCollectionPlantIds(finalCollectionIds);
-    await updatePlantArrangement(user.uid, finalCollectionIds, newDeskPlantIds);
+    await updatePlantArrangement(user.uid, finalCollectionIds, newDeskIds);
   };
   
   const handleEvolutionStart = (plantId: number) => {
@@ -594,7 +574,7 @@ export default function RoomPage() {
   }
 
   return (
-    <DndContext sensors={sensors} onDragStart={(e) => setActiveId(e.active.id as string)} onDragEnd={handleDragEnd} onDragCancel={() => setActiveId(null)}>
+    <DndContext sensors={sensors} onDragStart={(e) => setActiveDragId(e.active.id as string)} onDragEnd={handleDragEnd} onDragCancel={() => setActiveDragId(null)}>
       <div className="space-y-4 bg-white min-h-screen">
         <header className="flex items-center justify-between p-4">
           <h1 className="text-3xl text-primary">My Room</h1>
@@ -624,6 +604,7 @@ export default function RoomPage() {
               className="z-0 object-cover"
               data-ai-hint="desk wood"
               sizes="100vw"
+              priority
             />
             <div className="relative z-10 flex h-full items-end justify-around">
               {deskPlants.map((plant, index) => (
@@ -631,7 +612,6 @@ export default function RoomPage() {
                     key={plant?.id || `pot-${index}`}
                     plant={plant}
                     index={index}
-                    activePlantData={activePlantData}
                     onClickPlant={(p) => setSelectedPlant(allPlants[p.id])}
                   />
               ))}
@@ -643,13 +623,12 @@ export default function RoomPage() {
             <h2 className="mb-4 text-xl text-primary">My Collection</h2>
             <DroppableCollectionArea>
               <div className="grid grid-cols-3 gap-4 md:grid-cols-4 lg:grid-cols-5">
-                  {collectedPlants.length > 0 ? (
-                    collectedPlants.map((plant) => (
+                  {collectionPlants.length > 0 ? (
+                    collectionPlants.map((plant) => (
                         <DraggablePlant 
                             key={plant.id} 
                             plant={plant} 
-                            source="collection" 
-                            isDragging={activeId === `collection:${plant.id}`}
+                            source="collection"
                             onClick={() => setSelectedPlant(allPlants[plant.id])} 
                         />
                     ))
@@ -705,12 +684,14 @@ export default function RoomPage() {
         </AlertDialog>
 
         <DragOverlay>
-            {activePlantData ? (
-                activePlantData.source === 'desk' ? (
-                    <PlantImageUI plant={activePlantData.plant} />
+            {activeDragData ? (
+                activeDragData.source === 'desk' ? (
+                  <div className="w-24 h-24">
+                    <PlantImageUI plant={activeDragData.plant} blend />
+                  </div>
                 ) : (
                     <div className="w-28">
-                        <PlantCardUI plant={activePlantData.plant} />
+                        <PlantCardUI plant={activeDragData.plant} />
                     </div>
                 )
             ) : null}
@@ -731,5 +712,3 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
-
-    
