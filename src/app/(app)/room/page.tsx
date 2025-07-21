@@ -322,45 +322,65 @@ function DraggablePlant({ plant, source, isDragging, ...props }: { plant: Plant;
     );
 }
 
-const DroppablePot = React.forwardRef<
-  HTMLDivElement,
-  {
-    plant: Plant | null;
-    isOver: boolean;
-    isDragging: boolean;
-    onClickPlant: (plant: Plant) => void;
-  } & React.HTMLAttributes<HTMLDivElement>
->(({ plant, isOver, isDragging, onClickPlant, ...props }, ref) => {
-  return (
-    <div
-      ref={ref}
-      className={cn(
-        "relative flex h-24 w-24 items-center justify-center rounded-lg transition-colors cursor-grab active:cursor-grabbing",
-        isOver && !isDragging && "bg-primary/20",
-        isDragging && "opacity-40"
-      )}
-      onClick={plant ? () => onClickPlant(plant) : undefined}
-      {...props}
-    >
-      {plant ? (
-        <div className="relative h-20 w-20 flex items-center justify-center pointer-events-none">
-          <Image
-            src={plant.image}
-            alt={plant.name}
-            fill
-            sizes="80px"
-            className="object-contain mix-blend-darken"
-            data-ai-hint={plant.hint}
-          />
-          <p className="absolute -bottom-4 text-xs font-semibold text-primary truncate w-full text-center">{plant.name}</p>
-        </div>
-      ) : (
-        <PlantPot />
-      )}
-    </div>
-  );
-});
-DroppablePot.displayName = "DroppablePot";
+
+function DeskPot({ plant, index, activePlantData, onClickPlant }: { plant: Plant | null, index: number, activePlantData: { plant: Plant; source: string } | null, onClickPlant: (plant: Plant) => void }) {
+    const { setNodeRef: setDroppableRef, isOver } = useDroppable({ id: `pot:${index}` });
+    const {
+        attributes,
+        listeners,
+        setNodeRef: setDraggableRef,
+        isDragging,
+    } = useDraggable({
+        id: `desk:${plant?.id}`,
+        data: { plant, source: 'desk' },
+        disabled: !plant,
+    });
+    
+    const setNodeRef = (node: HTMLElement | null) => {
+        setDroppableRef(node);
+        setDraggableRef(node);
+    };
+
+    return (
+      <div
+        ref={setNodeRef}
+        className={cn(
+          "relative flex h-24 w-24 items-center justify-center rounded-lg transition-colors cursor-pointer",
+          isOver && "bg-primary/20",
+          isDragging && "opacity-40"
+        )}
+        onClick={plant ? () => onClickPlant(plant) : undefined}
+        {...(plant ? { ...attributes, ...listeners } : {})}
+      >
+        {plant ? (
+          <div className="relative h-20 w-20 flex items-center justify-center pointer-events-none">
+            <Image
+              src={plant.image}
+              alt={plant.name}
+              fill
+              sizes="80px"
+              className="object-contain mix-blend-darken"
+              data-ai-hint={plant.hint}
+            />
+            <p className="absolute -bottom-4 text-xs font-semibold text-primary truncate w-full text-center">{plant.name}</p>
+          </div>
+        ) : (
+          <PlantPot />
+        )}
+        {activePlantData?.source === 'collection' && isOver && (
+           <div className="opacity-50 pointer-events-none relative h-20 w-20 flex items-center justify-center">
+              <Image
+                  src={activePlantData.plant.image}
+                  alt={activePlantData.plant.name}
+                  fill
+                  sizes="80px"
+                  className="object-contain mix-blend-darken"
+              />
+           </div>
+        )}
+      </div>
+    );
+}
 
 
 export default function RoomPage() {
@@ -700,48 +720,6 @@ export default function RoomPage() {
   );
 }
 
-function DeskPot({ plant, index, activePlantData, onClickPlant }: { plant: Plant | null, index: number, activePlantData: { plant: Plant; source: string } | null, onClickPlant: (plant: Plant) => void }) {
-    const { setNodeRef: setDroppableRef, isOver } = useDroppable({ id: `pot:${index}` });
-    const {
-        attributes,
-        listeners,
-        setNodeRef: setDraggableRef,
-        isDragging,
-    } = useDraggable({
-        id: `desk:${plant?.id}`,
-        data: { plant, source: 'desk' },
-        disabled: !plant,
-    });
-    
-    const setNodeRef = (node: HTMLElement | null) => {
-        setDroppableRef(node);
-        setDraggableRef(node);
-    };
-
-    return (
-        <DroppablePot
-            ref={setNodeRef}
-            plant={plant}
-            isOver={isOver}
-            isDragging={isDragging}
-            onClickPlant={onClickPlant}
-            {...(plant ? { ...attributes, ...listeners } : {})}
-        >
-          {activePlantData?.source === 'collection' && isOver && (
-             <div className="opacity-50 pointer-events-none relative h-20 w-20 flex items-center justify-center">
-                <Image
-                    src={activePlantData.plant.image}
-                    alt={activePlantData.plant.name}
-                    fill
-                    sizes="80px"
-                    className="object-contain mix-blend-darken"
-                />
-             </div>
-          )}
-        </DroppablePot>
-    );
-}
-
 function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
     const { isOver, setNodeRef } = useDroppable({ id: 'collection:area' });
     return (
@@ -753,3 +731,5 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
+
+    
