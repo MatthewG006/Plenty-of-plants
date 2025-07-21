@@ -18,9 +18,36 @@ The core gameplay loop involves users "drawing" new plants using a limited numbe
 
 ---
 
-## 3. File Structure Overview
+## 3. Firebase Setup & Security Rules
 
-The project is organized to separate different parts of the application. There are specific folders for AI-powered features, different pages of the app (like the home screen or shop), UI components (like buttons and cards), and core logic (like managing audio or game rules). This separation makes the project easier to maintain and understand.
+This application uses Firebase for authentication and Firestore for data storage. For all features to work correctly, you must configure your Firestore Security Rules.
+
+### 3.1. Firestore Security Rules Configuration
+
+The **Community Showcase** feature requires that authenticated users can read data from other users' documents. The default security rules are too restrictive for this.
+
+**Action Required:** Go to your Firebase project, navigate to **Firestore Database > Rules**, and replace the default rules with the following:
+
+```
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      // Allow users to read and write their own data.
+      allow read, write: if request.auth.uid == userId;
+
+      // Allow any authenticated user to read the `users` collection.
+      // This is necessary for the Community Showcase feature.
+      allow list: if request.auth != null;
+    }
+  }
+}
+```
+
+This rule allows:
+1.  A user to manage their own data.
+2.  Any logged-in user to view the list of users for the community page.
 
 ---
 
@@ -28,7 +55,7 @@ The project is organized to separate different parts of the application. There a
 
 ### 4.1. Authentication and User Data
 
-The app uses a simplified authentication system that relies entirely on the user's browser storage (`localStorage`). When a user logs in or signs up, their email and a generated username are saved on their device. The profile page reads this saved information to display it. Logging out simply removes this data from the browser's storage. This logic is primarily handled on the login, signup, and profile pages.
+The app uses Firebase Authentication for user signup and login. When a user creates an account, a corresponding document is created for them in the `users` collection in Firestore. This document stores all their game-related data, such as their plant collection, gold, and showcase selections. The `AuthContext` (`src/context/AuthContext.tsx`) manages the user's session and provides their data to the rest of the app.
 
 ### 4.2. Audio System
 
