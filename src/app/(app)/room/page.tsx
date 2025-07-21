@@ -310,7 +310,7 @@ function DraggablePlant({ plant, source, ...props }: { plant: Plant; source: 'co
 }
 
 function DeskPot({ plant, index, onClickPlant }: { plant: Plant | null, index: number, onClickPlant: (plant: Plant) => void }) {
-    const { setNodeRef, isOver } = useDroppable({ id: `pot:${index}` });
+    const { setNodeRef: setDroppableRef, isOver } = useDroppable({ id: `pot:${index}` });
     const {
         attributes,
         listeners,
