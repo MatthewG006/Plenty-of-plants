@@ -174,30 +174,6 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/room": {
-      "experimentalBypassFor": [
-        {
-          "type": "header",
-          "key": "Next-Action"
-        },
-        {
-          "type": "header",
-          "key": "content-type",
-          "value": "multipart/form-data;.*"
-        }
-      ],
-      "initialRevalidateSeconds": false,
-      "srcRoute": "/room",
-      "dataRoute": "/room.rsc",
-      "allowHeader": [
-        "host",
-        "x-matched-path",
-        "x-prerender-revalidate",
-        "x-prerender-revalidate-if-generated",
-        "x-next-revalidated-tags",
-        "x-next-revalidate-tag-token"
-      ]
-    },
     "/settings": {
       "experimentalBypassFor": [
         {
@@ -245,13 +221,37 @@
         "x-next-revalidated-tags",
         "x-next-revalidate-tag-token"
       ]
+    },
+    "/room": {
+      "experimentalBypassFor": [
+        {
+          "type": "header",
+          "key": "Next-Action"
+        },
+        {
+          "type": "header",
+          "key": "content-type",
+          "value": "multipart/form-data;.*"
+        }
+      ],
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/room",
+      "dataRoute": "/room.rsc",
+      "allowHeader": [
+        "host",
+        "x-matched-path",
+        "x-prerender-revalidate",
+        "x-prerender-revalidate-if-generated",
+        "x-next-revalidated-tags",
+        "x-next-revalidate-tag-token"
+      ]
     }
   },
   "dynamicRoutes": {},
   "notFoundRoutes": [],
   "preview": {
-    "previewModeId": "18517ebd76ef9c04757a0b1f1956549f",
-    "previewModeSigningKey": "23d68f5cfedd649925832dfb3bea96ba14005693408a8b3710eaabd92c23cb08",
-    "previewModeEncryptionKey": "e4510f3795809c1c3533006de145cfd5ca41ff5b79ad46356bcbd0d73fced3bb"
+    "previewModeId": "f3c5974efec3a6ddae7f4ce289646f03",
+    "previewModeSigningKey": "54b340c96d4215303e5161b8429dd22cfeffb02ebbaf9b80963cfd66ce3fe223",
+    "previewModeEncryptionKey": "0201ddba1127a977ee9e97ca86ac9759c1e61f8ad6cf5313673e4337bdc3697f"
   }
 }
