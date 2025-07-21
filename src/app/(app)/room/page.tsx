@@ -241,7 +241,7 @@ function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlantOutput 
     );
 }
 
-function PlantImageUI({ plant, blend }: { plant: Plant, blend?: boolean }) {
+function PlantImageUI({ plant }: { plant: Plant }) {
   return (
     <div className="flex flex-col items-center text-center pointer-events-none w-full h-full">
       <div className="relative h-20 w-20 flex items-center justify-center">
@@ -251,7 +251,7 @@ function PlantImageUI({ plant, blend }: { plant: Plant, blend?: boolean }) {
                 alt={plant.name} 
                 fill 
                 sizes="80px" 
-                className={cn("object-contain", blend && "mix-blend-darken")}
+                className="object-contain mix-blend-darken"
                 data-ai-hint={plant.hint} />
         ) : (
             <div className="w-full h-full flex items-center justify-center rounded-lg bg-muted/20">
@@ -310,7 +310,7 @@ function DraggablePlant({ plant, source, ...props }: { plant: Plant; source: 'co
 }
 
 function DeskPot({ plant, index, onClickPlant }: { plant: Plant | null, index: number, onClickPlant: (plant: Plant) => void }) {
-    const { setNodeRef: setDroppableRef, isOver } = useDroppable({ id: `pot:${index}` });
+    const { setNodeRef, isOver } = useDroppable({ id: `pot:${index}` });
     const {
         attributes,
         listeners,
@@ -322,7 +322,7 @@ function DeskPot({ plant, index, onClickPlant }: { plant: Plant | null, index: n
         disabled: !plant,
     });
     
-    const setNodeRef = (node: HTMLElement | null) => {
+    const ref = (node: HTMLElement | null) => {
         setDroppableRef(node);
         if (plant) {
             setDraggableRef(node);
@@ -333,7 +333,7 @@ function DeskPot({ plant, index, onClickPlant }: { plant: Plant | null, index: n
 
     return (
       <div
-        ref={setNodeRef}
+        ref={ref}
         {...attributes}
         {...combinedListeners}
         className={cn(
@@ -344,7 +344,7 @@ function DeskPot({ plant, index, onClickPlant }: { plant: Plant | null, index: n
       >
         {plant ? (
           <div className="pointer-events-none">
-            <PlantImageUI plant={plant} blend />
+            <PlantImageUI plant={plant} />
           </div>
         ) : (
           <div className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-primary/30 pointer-events-none" />
@@ -687,7 +687,7 @@ export default function RoomPage() {
             {activeDragData ? (
                 activeDragData.source === 'desk' ? (
                   <div className="w-24 h-24">
-                    <PlantImageUI plant={activeDragData.plant} blend />
+                    <PlantImageUI plant={activeDragData.plant} />
                   </div>
                 ) : (
                     <div className="w-28">
