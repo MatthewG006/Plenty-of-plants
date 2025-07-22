@@ -9,6 +9,7 @@ import { AuthProvider } from '@/context/AuthContext';
 export const metadata: Metadata = {
   title: 'Plenty of Plants',
   description: 'Collect and grow your own digital plant collection!',
+  manifest: '/manifest.webmanifest',
 };
 
 export default function RootLayout({
@@ -20,6 +21,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="apple-touch-icon" href="/logo.png" />
       </head>
       <body className="font-body antialiased">
         <AudioProvider>
