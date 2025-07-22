@@ -1,5 +1,5 @@
 
-import { doc, getDoc, setDoc, getFirestore, updateDoc, arrayUnion, DocumentData, writeBatch, increment, collection, getDocs, query, where, limit, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, getFirestore, updateDoc, arrayUnion, DocumentData, writeBatch, increment, collection, getDocs, query, where, limit, deleteDoc, arrayRemove } from 'firebase/firestore';
 import { app, db, auth } from './firebase';
 import type { Plant } from '@/interfaces/plant';
 import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
@@ -263,6 +263,29 @@ export async function resetUserGameData(userId: string) {
         showcasePlantIds: [],
     });
 }
+
+export async function deletePlant(userId: string, plantId: number) {
+    const userDocRef = doc(db, 'users', userId);
+    const gameData = await getUserGameData(userId);
+
+    if (!gameData || !gameData.plants[plantId]) {
+        throw new Error("Plant not found for deletion.");
+    }
+
+    const { [`${plantId}`]: deletedPlant, ...remainingPlants } = gameData.plants;
+
+    const newDeskPlantIds = gameData.deskPlantIds.map(id => (id === plantId ? null : id));
+    const newCollectionPlantIds = gameData.collectionPlantIds.filter(id => id !== plantId);
+    const newShowcasePlantIds = gameData.showcasePlantIds.filter(id => id !== plantId);
+
+    await updateDoc(userDocRef, {
+        plants: remainingPlants,
+        deskPlantIds: newDeskPlantIds,
+        collectionPlantIds: newCollectionPlantIds,
+        showcasePlantIds: newShowcasePlantIds,
+    });
+}
+
 
 export async function updateShowcasePlants(userId: string, plantIds: number[]) {
     const userDocRef = doc(db, 'users', userId);
