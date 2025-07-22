@@ -5,7 +5,7 @@ import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
-import { Leaf, Loader2, Droplet, Coins, Sparkles, Droplets, Trash2 } from 'lucide-react';
+import { Leaf, Loader2, Droplet, Coins, Sparkles, Droplets, Trash2, GripVertical } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -383,7 +383,7 @@ function PlantCardUI({ plant, onApplyGlitter, canApplyGlitter }: { plant: Plant,
     );
 }
 
-function DraggablePlant({ plant, source, ...props }: { plant: Plant; source: 'collection' | 'desk' } & React.HTMLAttributes<HTMLDivElement>) {
+function DraggablePlant({ plant, source, onApplyGlitter, canApplyGlitter, ...props }: { plant: Plant; source: 'collection' | 'desk', onApplyGlitter?: (plantId: number) => void; canApplyGlitter?: boolean; } & React.HTMLAttributes<HTMLDivElement>) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: `${source}:${plant.id}`,
         data: { plant, source },
@@ -396,11 +396,11 @@ function DraggablePlant({ plant, source, ...props }: { plant: Plant; source: 'co
 
     return (
         <div ref={setNodeRef} style={style} {...listeners} {...attributes} {...props}>
-            {source === 'collection' ? (
+            {source === 'collection' && onApplyGlitter && typeof canApplyGlitter !== 'undefined' ? (
                 <PlantCardUI 
                     plant={plant} 
-                    onApplyGlitter={(props as any).onApplyGlitter} 
-                    canApplyGlitter={(props as any).canApplyGlitter}
+                    onApplyGlitter={onApplyGlitter} 
+                    canApplyGlitter={canApplyGlitter}
                 />
             ) : (
                 <PlantImageUI plant={plant} image={(props as any).image}/>
@@ -411,10 +411,18 @@ function DraggablePlant({ plant, source, ...props }: { plant: Plant; source: 'co
 
 function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant | null, index: number, onClickPlant: (plant: Plant) => void, processedImage: string | null }) {
     const { setNodeRef, isOver } = useDroppable({ id: `pot:${index}` });
+    const isDragging = useDraggable({ id: `desk:${plant?.id}`, data: { plant, source: 'desk' } }).isDragging;
 
+    const handleClick = (e: React.MouseEvent) => {
+        if (!isDragging && plant) {
+             onClickPlant(plant);
+        }
+    };
+    
     return (
         <div
             ref={setNodeRef}
+            onClick={handleClick}
             className={cn(
                 "relative flex h-24 w-24 items-end justify-center rounded-lg transition-colors cursor-grab active:cursor-grabbing",
                 isOver && "bg-primary/20"
@@ -424,7 +432,6 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
                 <DraggablePlant 
                     plant={plant} 
                     source="desk"
-                    onClick={() => onClickPlant(plant)}
                     className="w-full h-full"
                     image={processedImage}
                 />
@@ -864,5 +871,3 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
-
-    
