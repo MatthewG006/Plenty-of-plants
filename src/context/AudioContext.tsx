@@ -28,7 +28,7 @@ const sfxFiles: Record<SfxType, string> = {
 };
 
 export const AudioProvider = ({ children }: { children: ReactNode }) => {
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.5);
   const [sfxVolume, setSfxVolume] = useState(0.75);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
