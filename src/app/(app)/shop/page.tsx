@@ -13,8 +13,8 @@ import { useAuth } from '@/context/AuthContext';
 import { purchaseWaterRefills } from '@/lib/firestore';
 import { useRouter } from 'next/navigation';
 
-const DRAW_COST_IN_GOLD = 10;
-const WATER_REFILL_COST_IN_GOLD = 20;
+const DRAW_COST_IN_GOLD = 20;
+const WATER_REFILL_COST_IN_GOLD = 30;
 
 function getNextDrawTimeString() {
     const now = new Date();
