@@ -49,7 +49,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               lastDrawRefill: data.lastDrawRefill || Date.now(),
               lastFreeDrawClaimed: data.lastFreeDrawClaimed || 0,
               waterRefills: data.waterRefills || 0,
-              glitterCount: data.glitterCount || 0,
               showcasePlantIds: data.showcasePlantIds || [],
               challenges: data.challenges || {},
               challengesStartDate: data.challengesStartDate || 0,
