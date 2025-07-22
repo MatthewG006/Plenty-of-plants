@@ -248,7 +248,7 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
                         )}
                     </div>
 
-                    <p className="text-muted-foreground text-center mt-2">{plant.description}</p>
+                    <p className="text-muted-foreground text-center mt-2 px-4">{plant.description}</p>
                     
                     <div className="w-full px-4 space-y-2">
                         <div className="flex justify-between items-baseline">
@@ -258,40 +258,36 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
                         <Progress value={((isWatering ? visualXp : plant.xp) / XP_PER_LEVEL) * 100} className="w-full" />
                     </div>
 
-                    <div className="w-full px-4 mt-2">
-                         <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="destructive" className="w-full">
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Delete Plant
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        This will permanently delete {plant.name} from your collection. This action cannot be undone.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleDeletePlant} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
-                                        {isDeleting ? <Loader2 className="animate-spin" /> : "Yes, delete it"}
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    </div>
-
                 </div>
-                <DialogFooter className="flex-row justify-end w-full gap-2 pt-0">
-                    <Button onClick={handleWaterPlant} disabled={!canWater || isWatering}>
+                 <div className="w-full px-6 flex justify-end">
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="outline" size="sm" className="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This will permanently delete {plant.name} from your collection. This action cannot be undone.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleDeletePlant} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+                                    {isDeleting ? <Loader2 className="animate-spin" /> : "Yes, delete it"}
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
+                <DialogFooter className="pt-2">
+                    <Button onClick={handleWaterPlant} disabled={!canWater || isWatering} className="w-full">
                         <Droplet className="mr-2 h-4 w-4" />
                         {waterButtonText()}
                     </Button>
-                    <DialogClose asChild>
-                        <Button variant="outline">Close</Button>
-                    </DialogClose>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
