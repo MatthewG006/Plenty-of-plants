@@ -5,7 +5,7 @@ import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
-import { Leaf, Loader2, Droplet, Coins, Sparkles, Droplets, Trash2, GripVertical } from 'lucide-react';
+import { Leaf, Loader2, Droplet, Coins, Sparkles, Droplets, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -383,7 +383,7 @@ function PlantCardUI({ plant, onApplyGlitter, canApplyGlitter }: { plant: Plant,
     );
 }
 
-function DraggablePlant({ plant, source, onApplyGlitter, canApplyGlitter, ...props }: { plant: Plant; source: 'collection'; onApplyGlitter: (plantId: number) => void; canApplyGlitter: boolean; } & React.HTMLAttributes<HTMLDivElement>) {
+function DraggablePlant({ plant, source, ...props }: { plant: Plant; source: 'collection' | 'desk' } & React.HTMLAttributes<HTMLDivElement>) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: `${source}:${plant.id}`,
         data: { plant, source },
@@ -395,57 +395,42 @@ function DraggablePlant({ plant, source, onApplyGlitter, canApplyGlitter, ...pro
     };
 
     return (
-        <div ref={setNodeRef} style={style} {...listeners} {...attributes} {...props} className="cursor-grab active:cursor-grabbing">
-            <PlantCardUI plant={plant} onApplyGlitter={onApplyGlitter} canApplyGlitter={canApplyGlitter} />
+        <div ref={setNodeRef} style={style} {...listeners} {...attributes} {...props}>
+            {source === 'collection' ? (
+                <PlantCardUI 
+                    plant={plant} 
+                    onApplyGlitter={(props as any).onApplyGlitter} 
+                    canApplyGlitter={(props as any).canApplyGlitter}
+                />
+            ) : (
+                <PlantImageUI plant={plant} />
+            )}
         </div>
     );
 }
 
 function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant | null, index: number, onClickPlant: (plant: Plant) => void, processedImage: string | null }) {
-    const { setNodeRef: setDroppableRef, isOver } = useDroppable({ id: `pot:${index}` });
-    const {
-        attributes,
-        listeners,
-        setNodeRef: setDraggableRef,
-        isDragging,
-    } = useDraggable({
-        id: `desk:${plant?.id}`,
-        data: { plant, source: 'desk' },
-        disabled: !plant,
-    });
-    
+    const { setNodeRef, isOver } = useDroppable({ id: `pot:${index}` });
+
     return (
-      <div
-        ref={setDroppableRef}
-        className={cn(
-          "relative flex h-24 w-24 items-end justify-center rounded-lg transition-colors",
-          !plant && "cursor-pointer",
-          isOver && "bg-primary/20",
-          isDragging && "opacity-40"
-        )}
-      >
-        {plant ? (
-          <div ref={setDraggableRef} className="pointer-events-none text-center flex flex-col items-center">
-             <div className="relative w-[80px] h-[80px]" onClick={() => onClickPlant(plant)}>
-                <Image 
-                    src={processedImage || plant.image} 
-                    alt={plant.name} 
-                    width={80}
-                    height={80}
-                    className="object-contain pointer-events-auto cursor-pointer"
-                    data-ai-hint={plant.hint} 
+        <div
+            ref={setNodeRef}
+            className={cn(
+                "relative flex h-24 w-24 items-end justify-center rounded-lg transition-colors cursor-grab active:cursor-grabbing",
+                isOver && "bg-primary/20"
+            )}
+        >
+            {plant ? (
+                <DraggablePlant 
+                    plant={plant} 
+                    source="desk"
+                    onClick={() => onClickPlant(plant)}
+                    className="w-full h-full"
                 />
-                 {plant.hasGlitter && <GlitterAnimation />}
-             </div>
-            <p className="mt-1 text-xs font-semibold text-primary truncate w-full">{plant.name}</p>
-             <div {...listeners} {...attributes} className="absolute -top-2 -right-2 p-1 touch-none cursor-grab active:cursor-grabbing">
-                <GripVertical className="w-5 h-5 text-muted-foreground/50" />
-            </div>
-          </div>
-        ) : (
-          <div className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-primary/30 pointer-events-none" />
-        )}
-      </div>
+            ) : (
+                <div className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-primary/30" />
+            )}
+        </div>
     );
 }
 
@@ -468,8 +453,17 @@ export default function RoomPage() {
   const [processedDeskImages, setProcessedDeskImages] = useState<Record<number, string>>({});
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 100,
+        tolerance: 5,
+      },
+    })
   );
   
   useEffect(() => {
@@ -774,13 +768,14 @@ export default function RoomPage() {
               <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5">
                   {collectionPlants.length > 0 ? (
                     collectionPlants.map((plant) => (
-                        <DraggablePlant 
+                         <DraggablePlant 
                             key={plant.id} 
                             plant={plant} 
                             source="collection"
                             onClick={() => setSelectedPlant(allPlants[plant.id])} 
                             onApplyGlitter={handleApplyGlitter}
                             canApplyGlitter={gameData.glitterCount > 0}
+                            className="cursor-grab active:cursor-grabbing"
                         />
                     ))
                   ) : (
@@ -836,24 +831,13 @@ export default function RoomPage() {
 
         <DragOverlay>
             {activeDragData ? (
-                activeDragData.source === 'desk' ? (
-                  <div className="w-24 h-24">
-                     <div className="pointer-events-none text-center flex flex-col items-center">
-                        <Image 
-                            src={activeDragData.plant.image} 
-                            alt={activeDragData.plant.name} 
-                            width={80}
-                            height={80}
-                            className="object-contain"
-                            data-ai-hint={activeDragData.plant.hint} />
-                        <p className="mt-1 text-xs font-semibold text-primary truncate w-full">{activeDragData.plant.name}</p>
-                    </div>
-                  </div>
-                ) : (
-                    <div className="w-28">
+                <div className="w-28">
+                    {activeDragData.source === 'desk' ? (
+                        <PlantImageUI plant={activeDragData.plant} />
+                    ) : (
                         <PlantCardUI plant={activeDragData.plant} onApplyGlitter={() => {}} canApplyGlitter={false} />
-                    </div>
-                )
+                    )}
+                </div>
             ) : null}
         </DragOverlay>
       </div>
@@ -872,3 +856,5 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
+
+    
