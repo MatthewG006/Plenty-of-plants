@@ -8,7 +8,6 @@ import Image from 'next/image';
 import { getCommunityUsers, type CommunityUser } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import type { Plant } from '@/interfaces/plant';
 
 function GlitterAnimation() {
@@ -81,7 +80,7 @@ export default function CommunityPage() {
 
   return (
     <div className="p-4 space-y-6">
-      <header className="flex flex-col items-start gap-1 pb-4">
+      <header className="flex flex-col items-center gap-1 pb-4">
         <h1 className="text-3xl text-primary flex items-center gap-2">
           <Users className="h-8 w-8" />
           Community Showcase
@@ -124,7 +123,7 @@ export default function CommunityPage() {
                 </CardHeader>
                 <CardContent>
                   {user.showcasePlants.length > 0 ? (
-                    <div className="grid grid-cols-5 gap-2">
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                       {user.showcasePlants.map(plant => (
                         <ShowcasePlant key={plant.id} plant={plant} />
                       ))}

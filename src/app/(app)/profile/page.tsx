@@ -226,8 +226,8 @@ export default function ProfilePage() {
 
   return (
     <div className="p-4 space-y-6 pb-24">
-      <header className="flex items-center justify-between pb-4">
-        <h1 className="text-3xl text-primary">My Profile</h1>
+      <header className="pb-4">
+        <h1 className="text-3xl text-primary text-center">My Profile</h1>
       </header>
 
       <Card>
