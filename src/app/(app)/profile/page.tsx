@@ -48,6 +48,22 @@ function InfoRow({ icon: Icon, label, value, valueClassName }: { icon?: React.El
   )
 }
 
+function GlitterAnimation() {
+    return (
+        <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden">
+            {Array.from({ length: 5 }).map((_, i) => (
+                <Sparkles key={i} className="absolute text-yellow-300 animate-sparkle" style={{
+                    top: `${Math.random() * 100}%`,
+                    left: `${Math.random() * 100}%`,
+                    animationDelay: `${Math.random() * 1.5}s`,
+                    width: `${5 + Math.random() * 5}px`,
+                    height: `${5 + Math.random() * 5}px`,
+                }} />
+            ))}
+        </div>
+    );
+}
+
 function ShowcasePlantCard({ plant, isSelected, onSelect }: { plant: Plant, isSelected: boolean, onSelect: () => void }) {
     return (
         <Card 
@@ -72,6 +88,7 @@ function ShowcasePlantCard({ plant, isSelected, onSelect }: { plant: Plant, isSe
                     ) : (
                         <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
                     )}
+                    {plant.hasGlitter && <GlitterAnimation />}
                     {plant.form === 'Evolved' && (
                         <div className="absolute top-1 right-1 bg-secondary/80 text-secondary-foreground p-1 rounded-full shadow-md">
                             <Sparkles className="w-3 h-3" />

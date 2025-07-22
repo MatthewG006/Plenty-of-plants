@@ -11,6 +11,22 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import type { Plant } from '@/interfaces/plant';
 
+function GlitterAnimation() {
+    return (
+        <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden">
+            {Array.from({ length: 7 }).map((_, i) => (
+                <Sparkles key={i} className="absolute text-yellow-300 animate-sparkle" style={{
+                    top: `${Math.random() * 100}%`,
+                    left: `${Math.random() * 100}%`,
+                    animationDelay: `${Math.random() * 1.5}s`,
+                    width: `${5 + Math.random() * 5}px`,
+                    height: `${5 + Math.random() * 5}px`,
+                }} />
+            ))}
+        </div>
+    );
+}
+
 function ShowcasePlant({ plant }: { plant: Plant }) {
   return (
     <div className="w-full aspect-square relative rounded-md overflow-hidden bg-muted/30 border border-primary/10">
@@ -21,6 +37,7 @@ function ShowcasePlant({ plant }: { plant: Plant }) {
           <Leaf className="w-8 h-8 text-muted-foreground/40" />
         </div>
       )}
+       {plant.hasGlitter && <GlitterAnimation />}
        {plant.form === 'Evolved' && (
           <div className="absolute top-1 right-1 bg-secondary/80 text-secondary-foreground p-1 rounded-full shadow-md backdrop-blur-sm">
               <Sparkles className="w-2 h-2" />
