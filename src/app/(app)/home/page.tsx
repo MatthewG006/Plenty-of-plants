@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings, User, Check, X, Loader2, Leaf, Award, Coins } from 'lucide-react';
+import { Settings, User, Check, X, Loader2, Leaf, Award, Coins, Info } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
@@ -27,6 +27,11 @@ import { compressImage } from '@/lib/image-compression';
 import { drawPlantAction } from '@/app/actions/draw-plant';
 import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 import { Challenge, challenges, claimChallengeReward, checkAndResetChallenges, updateCollectionProgress } from '@/lib/challenge-manager';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+} from "@/components/ui/carousel";
 
 
 function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlantOutput | null, open: boolean, onOpenChange: (open: boolean) => void }) {
@@ -78,6 +83,14 @@ function ChallengeCard({ challenge, onClaim, isClaiming }: { challenge: Challeng
         </div>
     )
 }
+
+const gameTips = [
+    "Drag plants from your collection onto the pots in your room to display them.",
+    "Water your plants to gain XP and level them up. Evolve them at level 10!",
+    "Complete weekly challenges to earn extra gold.",
+    "Visit the shop to get daily free draws or buy more with your gold.",
+    "Show off your favorite plants on the community page by selecting them in your profile."
+];
 
 export default function HomePage() {
   const { user, gameData } = useAuth();
@@ -318,6 +331,34 @@ export default function HomePage() {
             </Button>
           </CardContent>
         </Card>
+
+        <Card className="shadow-sm">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                    <Info className="text-primary" />
+                    Game Tips
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Carousel
+                  opts={{
+                    align: "start",
+                    loop: true,
+                  }}
+                  className="w-full"
+                >
+                  <CarouselContent>
+                    {gameTips.map((tip, index) => (
+                      <CarouselItem key={index}>
+                        <div className="p-1 h-12 flex items-center justify-center">
+                            <p className="text-sm text-muted-foreground text-center">{tip}</p>
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                </Carousel>
+            </CardContent>
+        </Card>
       </main>
       
       <NewPlantDialog
@@ -332,5 +373,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-    
