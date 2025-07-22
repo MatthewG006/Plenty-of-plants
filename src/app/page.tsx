@@ -38,7 +38,7 @@ export default function SplashPage() {
         <p className="text-lg text-white font-bold -mt-16" style={{ textShadow: '0 2px 4px rgba(0,0,0,1)' }}>
           Your Digital Conservatory Awaits.
         </p>
-        <Button onClick={handleEnter} className="mt-12 animate-pulse-subtle" size="lg" disableSfx>
+        <Button onClick={handleEnter} className="mt-12 animate-pulse-subtle bg-blue-500 hover:bg-blue-600" size="lg" disableSfx>
           <span className="text-xl px-8">Tap to Enter</span>
         </Button>
       </div>
