@@ -91,7 +91,14 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
     const { gameData } = useAuth();
     const [isWatering, setIsWatering] = useState(false);
     const [showGold, setShowGold] = useState(false);
+    const [visualXp, setVisualXp] = useState(plant?.xp || 0);
     
+    useEffect(() => {
+        if (plant) {
+            setVisualXp(plant.xp);
+        }
+    }, [plant]);
+
     if (!plant || !gameData) return null;
 
     const timesWateredToday = plant.lastWatered?.filter(isToday).length ?? 0;
@@ -111,13 +118,21 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
         setIsWatering(true);
         setShowGold(true);
 
-        let newXp = plant.xp + XP_PER_WATERING;
+        const xpGained = XP_PER_WATERING;
+        let newXp = plant.xp + xpGained;
         let newLevel = plant.level;
         let shouldEvolve = false;
 
-        if (newXp >= XP_PER_LEVEL) {
+        const willLevelUp = newXp >= XP_PER_LEVEL;
+
+        if (willLevelUp) {
+            setVisualXp(XP_PER_LEVEL); // Fill the bar to full visually
+            
+            await new Promise(resolve => setTimeout(resolve, 500)); // Wait for animation
+
             newLevel += 1;
             newXp -= XP_PER_LEVEL;
+            setVisualXp(newXp);
 
             if (newLevel >= EVOLUTION_LEVEL && plant.form === 'Base') {
                 shouldEvolve = true;
@@ -128,6 +143,8 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
                     description: `${plant.name} has reached level ${newLevel}!`,
                 });
             }
+        } else {
+            setVisualXp(newXp);
         }
         
         const now = Date.now();
@@ -155,7 +172,7 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
 
             if (shouldEvolve) {
                 onEvolutionStart(plant.id);
-                onOpenChange(false); // Close details to show evolution dialog
+                onOpenChange(false);
             }
 
         } catch(e) {
@@ -163,7 +180,7 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
             toast({ variant: 'destructive', title: "Error", description: "Could not save watering progress."})
         }
 
-        setTimeout(() => setIsWatering(false), 2000);
+        setTimeout(() => setIsWatering(false), 1200);
         setTimeout(() => setShowGold(false), 1000);
     };
 
@@ -197,9 +214,9 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
                     <div className="w-full px-4 space-y-2">
                         <div className="flex justify-between items-baseline">
                             <p className="text-lg font-semibold text-primary">Level {plant.level}</p>
-                             <p className="text-sm text-muted-foreground">{plant.xp} / {XP_PER_LEVEL} XP</p>
+                             <p className="text-sm text-muted-foreground">{isWatering ? visualXp : plant.xp} / {XP_PER_LEVEL} XP</p>
                         </div>
-                        <Progress value={(plant.xp / XP_PER_LEVEL) * 100} className="w-full" />
+                        <Progress value={((isWatering ? visualXp : plant.xp) / XP_PER_LEVEL) * 100} className="w-full" />
                     </div>
                 </div>
                 <DialogFooter className="flex-col gap-2">
