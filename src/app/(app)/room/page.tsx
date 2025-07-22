@@ -275,9 +275,31 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
                         <Progress value={((isWatering ? visualXp : plant.xp) / XP_PER_LEVEL) * 100} className="w-full" />
                     </div>
                 </div>
-                <DialogFooter className="flex-col gap-2">
+                <DialogFooter className="sm:justify-between">
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This will permanently delete {plant.name} from your collection. This action cannot be undone.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleDeletePlant} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+                                    {isDeleting ? <Loader2 className="animate-spin" /> : "Yes, delete it"}
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                     <div className="flex gap-2">
-                        <Button onClick={handleWaterPlant} disabled={!canWater || isWatering} className="w-full">
+                        <Button onClick={handleWaterPlant} disabled={!canWater || isWatering}>
                             <Droplet className="mr-2 h-4 w-4" />
                             {waterButtonText()}
                         </Button>
@@ -289,30 +311,6 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
                             <Sparkles className="mr-2 h-4 w-4" />
                             {plant.hasGlitter ? "Applied" : `Glitter (${gameData.glitterCount})`}
                         </Button>
-                    </div>
-                    <div className="flex gap-2">
-                         <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="destructive" className="w-full">
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Delete Plant
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        This will permanently delete {plant.name} from your collection. This action cannot be undone.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleDeletePlant} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
-                                        {isDeleting ? <Loader2 className="animate-spin" /> : "Yes, delete it"}
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
                         <DialogClose asChild>
                             <Button variant="outline">Close</Button>
                         </DialogClose>
