@@ -8,7 +8,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import type { Plant } from '@/interfaces/plant';
-import { drawPlant, type DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -25,6 +24,9 @@ import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/context/AuthContext';
 import { savePlant } from '@/lib/firestore';
 import { compressImage } from '@/lib/image-compression';
+import { drawPlantAction } from '@/app/actions/draw-plant';
+import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
+
 
 function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlantOutput | null, open: boolean, onOpenChange: (open: boolean) => void }) {
     if (!plant) return null;
@@ -95,7 +97,7 @@ export default function HomePage() {
         await useDraw(user.uid);
 
         const existingNames = gameData.plants ? Object.values(gameData.plants).map(p => p.name) : [];
-        const drawnPlantResult = await drawPlant(existingNames);
+        const drawnPlantResult = await drawPlantAction(existingNames);
         const compressedImageDataUri = await compressImage(drawnPlantResult.imageDataUri);
         
         playSfx('success');

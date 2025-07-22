@@ -5,7 +5,6 @@ import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
-import { drawPlant, type DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 import { Leaf, Loader2, Droplet, Coins, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo } from 'react';
@@ -29,10 +28,12 @@ import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { updatePlantArrangement, updateUserGold, savePlant, useWaterRefill, updatePlant, getPlantById } from '@/lib/firestore';
-import { evolvePlant } from '@/ai/flows/evolve-plant-flow';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { compressImage } from '@/lib/image-compression';
 import { Badge } from '@/components/ui/badge';
+import { evolvePlantAction } from '@/app/actions/evolve-plant';
+import { drawPlantAction } from '@/app/actions/draw-plant';
+import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 
 const NUM_POTS = 3;
 const MAX_WATERINGS_PER_DAY = 4;
@@ -309,7 +310,7 @@ function DraggablePlant({ plant, source, ...props }: { plant: Plant; source: 'co
 }
 
 function DeskPot({ plant, index, onClickPlant }: { plant: Plant | null, index: number, onClickPlant: (plant: Plant) => void }) {
-    const { setNodeRef: droppableRef, isOver } = useDroppable({ id: `pot:${index}` });
+    const { setNodeRef, isOver } = useDroppable({ id: `pot:${index}` });
     const {
         attributes,
         listeners,
@@ -321,8 +322,8 @@ function DeskPot({ plant, index, onClickPlant }: { plant: Plant | null, index: n
         disabled: !plant,
     });
     
-    const setNodeRef = (node: HTMLElement | null) => {
-        droppableRef(node);
+    const ref = (node: HTMLElement | null) => {
+        setNodeRef(node);
         if (plant) {
             draggableRef(node);
         }
@@ -332,7 +333,7 @@ function DeskPot({ plant, index, onClickPlant }: { plant: Plant | null, index: n
 
     return (
       <div
-        ref={setNodeRef}
+        ref={ref}
         {...attributes}
         {...combinedListeners}
         className={cn(
@@ -349,7 +350,7 @@ function DeskPot({ plant, index, onClickPlant }: { plant: Plant | null, index: n
                 alt={plant.name} 
                 width={80}
                 height={80}
-                className="object-contain"
+                className="object-contain mix-blend-darken"
                 data-ai-hint={plant.hint} />
             <p className="mt-1 text-xs font-semibold text-primary truncate w-full">{plant.name}</p>
           </div>
@@ -422,7 +423,7 @@ export default function RoomPage() {
         await useDraw(user.uid);
 
         const existingNames = gameData.plants ? Object.values(gameData.plants).map(p => p.name) : [];
-        const drawnPlantResult = await drawPlant(existingNames);
+        const drawnPlantResult = await drawPlantAction(existingNames);
         const compressedImageDataUri = await compressImage(drawnPlantResult.imageDataUri);
         
         playSfx('success');
@@ -548,7 +549,7 @@ export default function RoomPage() {
             throw new Error("Plant not found for evolution.");
         }
 
-        const { newImageDataUri } = await evolvePlant({
+        const { newImageDataUri } = await evolvePlantAction({
             name: plantToEvolve.name,
             imageDataUri: plantToEvolve.image,
         });
