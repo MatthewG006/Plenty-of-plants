@@ -349,7 +349,7 @@ function DeskPot({ plant, index, onClickPlant }: { plant: Plant | null, index: n
                 alt={plant.name} 
                 width={80}
                 height={80}
-                className="object-contain mix-blend-darken"
+                className="object-contain"
                 data-ai-hint={plant.hint} />
             <p className="mt-1 text-xs font-semibold text-primary truncate w-full">{plant.name}</p>
           </div>
@@ -700,7 +700,7 @@ export default function RoomPage() {
                             alt={activeDragData.plant.name} 
                             width={80}
                             height={80}
-                            className="object-contain mix-blend-darken"
+                            className="object-contain"
                             data-ai-hint={activeDragData.plant.hint} />
                         <p className="mt-1 text-xs font-semibold text-primary truncate w-full">{activeDragData.plant.name}</p>
                     </div>
@@ -728,5 +728,3 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
-
-    

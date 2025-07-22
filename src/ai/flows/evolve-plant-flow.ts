@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow for evolving an existing plant.
@@ -45,7 +46,7 @@ const evolvePlantFlow = ai.defineFlow(
         model: 'googleai/gemini-2.0-flash-preview-image-generation',
         prompt: [
           { media: { url: imageDataUri, contentType: 'image/png' } },
-          { text: `This is a plant character named ${name}. Generate a more grown-up, evolved, or mature version of this exact plant. It should clearly be the same character, but bigger, more detailed, or with added features like small flowers or glowing effects. Keep the same art style, the same pot, and the same happy face. The background must be a solid white color. Do NOT change the core character.` }
+          { text: `This is a plant character named ${name}. Generate a more grown-up, evolved, or mature version of this exact plant. It should clearly be the same character, but bigger, more detailed, or with added features like small flowers or glowing effects. Keep the same art style, the same pot, and the same happy face. The background MUST be transparent. Do NOT change the core character.` }
         ],
         config: {
           responseModalities: ['TEXT', 'IMAGE'],
