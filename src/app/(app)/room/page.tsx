@@ -40,7 +40,7 @@ const NUM_POTS = 3;
 const MAX_WATERINGS_PER_DAY = 4;
 const XP_PER_WATERING = 200;
 const XP_PER_LEVEL = 1000;
-const GOLD_PER_WATERING = 10;
+const GOLD_PER_WATERING = 5;
 const EVOLUTION_LEVEL = 10;
 
 // Helper to check if a timestamp is from the current day
@@ -226,7 +226,7 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
                         {showGold && (
                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-1 bg-yellow-400/80 text-white font-bold px-3 py-1 rounded-full shadow-lg animate-fade-out-fast pointer-events-none">
                                 <Coins className="w-5 h-5" />
-                                <span>+10</span>
+                                <span>+{GOLD_PER_WATERING}</span>
                             </div>
                         )}
                     </div>
@@ -823,4 +823,5 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
     );
 }
 
+    
     
