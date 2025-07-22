@@ -18,6 +18,8 @@ export interface GameData {
     lastFreeDrawClaimed: number;
     waterRefills: number;
     showcasePlantIds: number[];
+    challenges: Record<string, { progress: number, claimed: boolean }>;
+    challengesStartDate: number;
 }
 
 export interface CommunityUser {
@@ -44,6 +46,8 @@ export async function getUserGameData(userId: string): Promise<GameData | null> 
             lastFreeDrawClaimed: data.lastFreeDrawClaimed || 0,
             waterRefills: data.waterRefills || 0,
             showcasePlantIds: data.showcasePlantIds || [],
+            challenges: data.challenges || {},
+            challengesStartDate: data.challengesStartDate || 0,
         };
     } else {
         return null;
@@ -117,6 +121,8 @@ export async function createUserDocument(user: User): Promise<GameData> {
             lastFreeDrawClaimed: 0,
             waterRefills: 0,
             showcasePlantIds: [],
+            challenges: {},
+            challengesStartDate: Date.now(),
         };
 
         await setDoc(docRef, {
@@ -293,3 +299,5 @@ export async function updateShowcasePlants(userId: string, plantIds: number[]) {
         showcasePlantIds: plantIds,
     });
 }
+
+    
