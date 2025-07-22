@@ -5,7 +5,7 @@ import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
-import { Leaf, Loader2, Droplet, Coins, Sparkles } from 'lucide-react';
+import { Leaf, Loader2, Droplet, Coins, Sparkles, Droplets } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -607,19 +607,25 @@ export default function RoomPage() {
       <div className="space-y-4 bg-white min-h-screen">
         <header className="flex items-center justify-between p-4">
           <h1 className="text-3xl text-primary">My Room</h1>
-          <Button variant="secondary" className="font-semibold" onClick={handleDraw} disabled={isDrawing || gameData.draws <= 0}>
-            {isDrawing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Drawing...
-              </>
-            ) : (
-              <>
-                <Leaf className="mr-2 h-4 w-4" />
-                Draw Plant ({gameData.draws} left)
-              </>
-            )}
-          </Button>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 rounded-full bg-blue-100/80 px-3 py-1 border border-blue-300/80">
+              <Droplets className="h-5 w-5 text-blue-500" />
+              <span className="font-bold text-blue-700">{gameData.waterRefills}</span>
+            </div>
+            <Button variant="secondary" className="font-semibold" onClick={handleDraw} disabled={isDrawing || gameData.draws <= 0}>
+              {isDrawing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Drawing...
+                </>
+              ) : (
+                <>
+                  <Leaf className="mr-2 h-4 w-4" />
+                  Draw Plant ({gameData.draws} left)
+                </>
+              )}
+            </Button>
+          </div>
         </header>
 
         <section className="px-4">
