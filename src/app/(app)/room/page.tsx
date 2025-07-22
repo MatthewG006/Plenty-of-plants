@@ -29,7 +29,7 @@ import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { updatePlantArrangement, updateUserGold, savePlant, useWaterRefill, updatePlant, getPlantById } from '@/lib/firestore';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { compressImage } from '@/lib/image-compression';
+import { compressImage, makeBackgroundTransparent } from '@/lib/image-compression';
 import { Badge } from '@/components/ui/badge';
 import { evolvePlantAction } from '@/app/actions/evolve-plant';
 import { drawPlantAction } from '@/app/actions/draw-plant';
@@ -309,12 +309,12 @@ function DraggablePlant({ plant, source, ...props }: { plant: Plant; source: 'co
     );
 }
 
-function DeskPot({ plant, index, onClickPlant }: { plant: Plant | null, index: number, onClickPlant: (plant: Plant) => void }) {
-    const { setNodeRef, isOver } = useDroppable({ id: `pot:${index}` });
+function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant | null, index: number, onClickPlant: (plant: Plant) => void, processedImage: string | null }) {
+    const { setNodeRef: setDroppableRef, isOver } = useDroppable({ id: `pot:${index}` });
     const {
         attributes,
         listeners,
-        setNodeRef: draggableRef,
+        setNodeRef: setDraggableRef,
         isDragging,
     } = useDraggable({
         id: `desk:${plant?.id}`,
@@ -323,9 +323,9 @@ function DeskPot({ plant, index, onClickPlant }: { plant: Plant | null, index: n
     });
     
     const ref = (node: HTMLElement | null) => {
-        setNodeRef(node);
+        setDroppableRef(node);
         if (plant) {
-            draggableRef(node);
+            setDraggableRef(node);
         }
     };
     
@@ -346,11 +346,11 @@ function DeskPot({ plant, index, onClickPlant }: { plant: Plant | null, index: n
         {plant ? (
           <div className="pointer-events-none text-center flex flex-col items-center">
              <Image 
-                src={plant.image} 
+                src={processedImage || plant.image} 
                 alt={plant.name} 
                 width={80}
                 height={80}
-                className="object-contain mix-blend-darken"
+                className="object-contain"
                 data-ai-hint={plant.hint} />
             <p className="mt-1 text-xs font-semibold text-primary truncate w-full">{plant.name}</p>
           </div>
@@ -377,6 +377,7 @@ export default function RoomPage() {
   const [plantIdToEvolve, setPlantIdToEvolve] = useState<number | null>(null);
   const [isEvolving, setIsEvolving] = useState(false);
 
+  const [processedDeskImages, setProcessedDeskImages] = useState<Record<number, string>>({});
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -398,6 +399,26 @@ export default function RoomPage() {
     if (!plantIdToEvolve) return '';
     return allPlants[plantIdToEvolve]?.name || '';
   }, [plantIdToEvolve, allPlants]);
+
+  useEffect(() => {
+    const processImages = async () => {
+        const newImages: Record<number, string> = {};
+        for (const plant of deskPlants) {
+            if (plant && plant.image && !plant.image.startsWith('/')) {
+                try {
+                    const transparentImage = await makeBackgroundTransparent(plant.image);
+                    newImages[plant.id] = transparentImage;
+                } catch (e) {
+                    console.error("Failed to process image for plant:", plant.id, e);
+                    // Fallback to original image if processing fails
+                    newImages[plant.id] = plant.image; 
+                }
+            }
+        }
+        setProcessedDeskImages(newImages);
+    };
+    processImages();
+  }, [deskPlants]);
 
 
   const activeDragData = useMemo(() => {
@@ -621,6 +642,7 @@ export default function RoomPage() {
                     plant={plant}
                     index={index}
                     onClickPlant={(p) => setSelectedPlant(allPlants[p.id])}
+                    processedImage={plant ? processedDeskImages[plant.id] : null}
                   />
               ))}
             </div>
