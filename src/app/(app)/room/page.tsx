@@ -309,11 +309,11 @@ function DraggablePlant({ plant, source, ...props }: { plant: Plant; source: 'co
 }
 
 function DeskPot({ plant, index, onClickPlant }: { plant: Plant | null, index: number, onClickPlant: (plant: Plant) => void }) {
-    const { setNodeRef: setDroppableRef, isOver } = useDroppable({ id: `pot:${index}` });
+    const { setNodeRef: droppableRef, isOver } = useDroppable({ id: `pot:${index}` });
     const {
         attributes,
         listeners,
-        setNodeRef: setDraggableRef,
+        setNodeRef: draggableRef,
         isDragging,
     } = useDraggable({
         id: `desk:${plant?.id}`,
@@ -321,10 +321,10 @@ function DeskPot({ plant, index, onClickPlant }: { plant: Plant | null, index: n
         disabled: !plant,
     });
     
-    const ref = (node: HTMLElement | null) => {
-        setDroppableRef(node);
+    const setNodeRef = (node: HTMLElement | null) => {
+        droppableRef(node);
         if (plant) {
-            setDraggableRef(node);
+            draggableRef(node);
         }
     };
     
@@ -332,7 +332,7 @@ function DeskPot({ plant, index, onClickPlant }: { plant: Plant | null, index: n
 
     return (
       <div
-        ref={ref}
+        ref={setNodeRef}
         {...attributes}
         {...combinedListeners}
         className={cn(
@@ -343,13 +343,13 @@ function DeskPot({ plant, index, onClickPlant }: { plant: Plant | null, index: n
         )}
       >
         {plant ? (
-          <div className="pointer-events-none text-center">
+          <div className="pointer-events-none text-center flex flex-col items-center">
              <Image 
                 src={plant.image} 
                 alt={plant.name} 
                 width={80}
                 height={80}
-                className="object-contain"
+                className="object-contain mix-blend-darken"
                 data-ai-hint={plant.hint} />
             <p className="mt-1 text-xs font-semibold text-primary truncate w-full">{plant.name}</p>
           </div>
@@ -694,13 +694,13 @@ export default function RoomPage() {
             {activeDragData ? (
                 activeDragData.source === 'desk' ? (
                   <div className="w-24 h-24">
-                     <div className="pointer-events-none text-center">
+                     <div className="pointer-events-none text-center flex flex-col items-center">
                         <Image 
                             src={activeDragData.plant.image} 
                             alt={activeDragData.plant.name} 
                             width={80}
                             height={80}
-                            className="object-contain"
+                            className="object-contain mix-blend-darken"
                             data-ai-hint={activeDragData.plant.hint} />
                         <p className="mt-1 text-xs font-semibold text-primary truncate w-full">{activeDragData.plant.name}</p>
                     </div>
@@ -728,3 +728,5 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
+
+    
