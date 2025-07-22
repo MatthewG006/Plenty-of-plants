@@ -482,7 +482,7 @@ export default function RoomPage() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 5 } })
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
   );
   
   useEffect(() => {
@@ -724,7 +724,7 @@ export default function RoomPage() {
   return (
     <DndContext sensors={sensors} onDragStart={(e) => setActiveDragId(e.active.id as string)} onDragEnd={handleDragEnd} onDragCancel={() => setActiveDragId(null)}>
       <div className="space-y-4 bg-white min-h-screen">
-        <header className="flex flex-col items-center gap-2 p-4 text-center">
+        <header className="flex flex-col items-center gap-4 p-4 text-center">
           <h1 className="text-3xl text-primary text-center">My Room</h1>
           <div className="flex items-center justify-center gap-4">
             <div className="flex items-center gap-2 rounded-full bg-yellow-100/80 px-3 py-1 border border-yellow-300/80">
@@ -885,3 +885,5 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
+
+    
