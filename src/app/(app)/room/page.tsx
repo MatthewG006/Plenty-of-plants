@@ -27,7 +27,7 @@ import { useDraw } from '@/lib/draw-manager';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { updatePlantArrangement, updateUserGold, savePlant, useWaterRefill, updatePlant, getPlantById, deletePlant } from '@/lib/firestore';
+import { updatePlantArrangement, updateUserGold, savePlant, useWaterRefill, updatePlant, getPlantById, deletePlant, useGlitter } from '@/lib/firestore';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { compressImage, makeBackgroundTransparent } from '@/lib/image-compression';
 import { Badge } from '@/components/ui/badge';
@@ -228,7 +228,7 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
                 <DialogHeader>
                     <DialogTitle className="text-3xl text-center">{plant.name}</DialogTitle>
                 </DialogHeader>
-                <div className="flex flex-col items-center gap-4 py-4">
+                <div className="flex flex-col items-center gap-4 pt-4">
                     <div className="w-64 h-64 relative">
                         <div className="rounded-lg overflow-hidden border-4 border-primary/50 shadow-lg bg-green-100 flex items-center justify-center h-full">
                             {plant.image !== 'placeholder' ? (
@@ -257,39 +257,41 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
                         </div>
                         <Progress value={((isWatering ? visualXp : plant.xp) / XP_PER_LEVEL) * 100} className="w-full" />
                     </div>
-                </div>
-                <DialogFooter className="flex-row justify-between w-full">
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="destructive">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This will permanently delete {plant.name} from your collection. This action cannot be undone.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleDeletePlant} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
-                                    {isDeleting ? <Loader2 className="animate-spin" /> : "Yes, delete it"}
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                    <div className="flex gap-2">
-                        <Button onClick={handleWaterPlant} disabled={!canWater || isWatering}>
-                            <Droplet className="mr-2 h-4 w-4" />
-                            {waterButtonText()}
-                        </Button>
-                        <DialogClose asChild>
-                            <Button variant="outline">Close</Button>
-                        </DialogClose>
+
+                    <div className="w-full px-4 mt-2">
+                         <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" className="w-full">
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete Plant
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This will permanently delete {plant.name} from your collection. This action cannot be undone.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleDeletePlant} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+                                        {isDeleting ? <Loader2 className="animate-spin" /> : "Yes, delete it"}
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                     </div>
+
+                </div>
+                <DialogFooter className="flex-row justify-end w-full gap-2 pt-0">
+                    <Button onClick={handleWaterPlant} disabled={!canWater || isWatering}>
+                        <Droplet className="mr-2 h-4 w-4" />
+                        {waterButtonText()}
+                    </Button>
+                    <DialogClose asChild>
+                        <Button variant="outline">Close</Button>
+                    </DialogClose>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -346,9 +348,21 @@ function PlantImageUI({ plant }: { plant: Plant }) {
   );
 }
 
-function PlantCardUI({ plant }: { plant: Plant }) {
+function PlantCardUI({ plant, onApplyGlitter, canApplyGlitter }: { plant: Plant, onApplyGlitter: (plantId: number) => void; canApplyGlitter: boolean; }) {
     return (
-        <Card className="group overflow-hidden shadow-md w-full">
+        <Card className="group overflow-hidden shadow-md w-full relative">
+            {canApplyGlitter && !plant.hasGlitter && (
+                <Button
+                    size="icon"
+                    className="absolute top-1 left-1 z-10 h-7 w-7 bg-yellow-400/80 text-white hover:bg-yellow-500/90"
+                    onClick={(e) => {
+                        e.stopPropagation(); // Prevent opening the detail dialog
+                        onApplyGlitter(plant.id);
+                    }}
+                >
+                    <Sparkles className="h-4 w-4" />
+                </Button>
+            )}
             <CardContent className="p-0">
                 <div className="aspect-square relative flex items-center justify-center bg-muted/30">
                     {plant.image !== 'placeholder' ? (
@@ -373,7 +387,7 @@ function PlantCardUI({ plant }: { plant: Plant }) {
     );
 }
 
-function DraggablePlant({ plant, source, ...props }: { plant: Plant; source: 'collection'; } & React.HTMLAttributes<HTMLDivElement>) {
+function DraggablePlant({ plant, source, onApplyGlitter, canApplyGlitter, ...props }: { plant: Plant; source: 'collection'; onApplyGlitter: (plantId: number) => void; canApplyGlitter: boolean; } & React.HTMLAttributes<HTMLDivElement>) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: `${source}:${plant.id}`,
         data: { plant, source },
@@ -386,7 +400,7 @@ function DraggablePlant({ plant, source, ...props }: { plant: Plant; source: 'co
 
     return (
         <div ref={setNodeRef} style={style} {...listeners} {...attributes} {...props} className="cursor-grab active:cursor-grabbing">
-            <PlantCardUI plant={plant} />
+            <PlantCardUI plant={plant} onApplyGlitter={onApplyGlitter} canApplyGlitter={canApplyGlitter} />
         </div>
     );
 }
@@ -682,6 +696,22 @@ export default function RoomPage() {
     }
   };
   
+  const handleApplyGlitter = async (plantId: number) => {
+    if (!user) return;
+    try {
+        await useGlitter(user.uid);
+        await updatePlant(user.uid, plantId, { hasGlitter: true });
+        playSfx('chime');
+        toast({
+            title: "Sparkly!",
+            description: "Your plant is now shimmering.",
+        });
+    } catch (e: any) {
+        console.error("Failed to apply glitter", e);
+        toast({ variant: 'destructive', title: "Error", description: e.message || "Could not apply glitter." });
+    }
+  };
+  
   if (!user || !gameData) {
     return (
         <div className="flex h-screen w-full items-center justify-center bg-white">
@@ -696,6 +726,10 @@ export default function RoomPage() {
         <header className="flex items-center justify-between p-4">
           <h1 className="text-3xl text-primary">My Room</h1>
           <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 rounded-full bg-yellow-100/80 px-3 py-1 border border-yellow-300/80">
+              <Sparkles className="h-5 w-5 text-yellow-500" />
+              <span className="font-bold text-yellow-700">{gameData.glitterCount}</span>
+            </div>
             <div className="flex items-center gap-2 rounded-full bg-blue-100/80 px-3 py-1 border border-blue-300/80">
               <Droplets className="h-5 w-5 text-blue-500" />
               <span className="font-bold text-blue-700">{gameData.waterRefills}</span>
@@ -754,6 +788,8 @@ export default function RoomPage() {
                             plant={plant} 
                             source="collection"
                             onClick={() => setSelectedPlant(allPlants[plant.id])} 
+                            onApplyGlitter={handleApplyGlitter}
+                            canApplyGlitter={gameData.glitterCount > 0}
                         />
                     ))
                   ) : (
@@ -824,7 +860,7 @@ export default function RoomPage() {
                   </div>
                 ) : (
                     <div className="w-28">
-                        <PlantCardUI plant={activeDragData.plant} />
+                        <PlantCardUI plant={activeDragData.plant} onApplyGlitter={() => {}} canApplyGlitter={false} />
                     </div>
                 )
             ) : null}
