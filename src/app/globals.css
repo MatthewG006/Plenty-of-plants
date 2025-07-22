@@ -77,6 +77,20 @@
     background-repeat: no-repeat;
   }
 
+  @keyframes sparkle {
+    0%, 100% { 
+        opacity: 0;
+        transform: scale(0.5) rotate(0deg);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.2) rotate(180deg);
+    }
+    80% {
+        opacity: 0;
+    }
+  }
+
   @keyframes fade-in-up {
     from {
       opacity: 0;
@@ -130,6 +144,10 @@
     }
   }
 
+  .animate-sparkle {
+      animation: sparkle 1.5s ease-in-out infinite;
+  }
+  
   .animate-fade-in-up {
     animation: fade-in-up 0.8s ease-out forwards;
   }

@@ -9,6 +9,7 @@ export interface Plant {
   level: number;
   xp: number;
   lastWatered: number[];
+  hasGlitter?: boolean;
 }
 
     

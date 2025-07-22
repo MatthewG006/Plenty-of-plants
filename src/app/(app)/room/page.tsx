@@ -27,7 +27,7 @@ import { useDraw } from '@/lib/draw-manager';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { updatePlantArrangement, updateUserGold, savePlant, useWaterRefill, updatePlant, getPlantById, deletePlant } from '@/lib/firestore';
+import { updatePlantArrangement, updateUserGold, savePlant, useWaterRefill, updatePlant, getPlantById, deletePlant, useGlitter } from '@/lib/firestore';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { compressImage, makeBackgroundTransparent } from '@/lib/image-compression';
 import { Badge } from '@/components/ui/badge';
@@ -50,6 +50,22 @@ function isToday(timestamp: number): boolean {
     return someDate.getDate() === today.getDate() &&
            someDate.getMonth() === today.getMonth() &&
            someDate.getFullYear() === today.getFullYear();
+}
+
+function GlitterAnimation() {
+    return (
+        <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden">
+            {Array.from({ length: 7 }).map((_, i) => (
+                <Sparkles key={i} className="absolute text-yellow-300 animate-sparkle" style={{
+                    top: `${Math.random() * 100}%`,
+                    left: `${Math.random() * 100}%`,
+                    animationDelay: `${Math.random() * 1.5}s`,
+                    width: `${8 + Math.random() * 8}px`,
+                    height: `${8 + Math.random() * 8}px`,
+                }} />
+            ))}
+        </div>
+    );
 }
 
 function WaterDropletAnimation() {
@@ -111,6 +127,23 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
         if (hasWaterRefills) return `Use Refill (${gameData.waterRefills} left)`;
         return `Water Plant (${timesWateredToday}/${MAX_WATERINGS_PER_DAY})`;
     };
+
+    const handleApplyGlitter = async () => {
+        if (!plant || !gameData || gameData.glitterCount <= 0 || plant.hasGlitter) return;
+
+        try {
+            await useGlitter(userId, plant.id);
+            playSfx('success');
+            toast({
+                title: "Glitter Applied!",
+                description: `${plant.name} is now sparkling!`,
+            });
+        } catch(e) {
+            console.error("Failed to apply glitter", e);
+            toast({ variant: 'destructive', title: "Error", description: "Could not apply glitter."})
+        }
+    };
+
 
     const handleWaterPlant = async () => {
         if (!canWater || !plant) return;
@@ -221,6 +254,7 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
                                 <Leaf className="w-24 h-24 text-muted-foreground/50" />
                             )}
                         </div>
+                        {plant.hasGlitter && <GlitterAnimation />}
                         {isWatering && <WaterDropletAnimation />}
                         {isWatering && <GoldCoinAnimation />}
                         {showGold && (
@@ -242,10 +276,20 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
                     </div>
                 </div>
                 <DialogFooter className="flex-col gap-2">
-                    <Button onClick={handleWaterPlant} disabled={!canWater || isWatering}>
-                        <Droplet className="mr-2 h-4 w-4" />
-                        {waterButtonText()}
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button onClick={handleWaterPlant} disabled={!canWater || isWatering} className="w-full">
+                            <Droplet className="mr-2 h-4 w-4" />
+                            {waterButtonText()}
+                        </Button>
+                         <Button 
+                            onClick={handleApplyGlitter} 
+                            disabled={plant.hasGlitter || gameData.glitterCount <= 0}
+                            variant="outline"
+                        >
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            {plant.hasGlitter ? "Applied" : `Glitter (${gameData.glitterCount})`}
+                        </Button>
+                    </div>
                     <div className="flex gap-2">
                          <AlertDialog>
                             <AlertDialogTrigger asChild>
@@ -322,6 +366,7 @@ function PlantImageUI({ plant }: { plant: Plant }) {
               <Leaf className="w-12 h-12 text-muted-foreground/50" />
             </div>
         )}
+        {plant.hasGlitter && <GlitterAnimation />}
       </div>
       <p className="mt-1 text-xs font-semibold text-primary truncate w-full">{plant.name}</p>
     </div>
@@ -338,6 +383,7 @@ function PlantCardUI({ plant }: { plant: Plant }) {
                     ) : (
                         <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
                     )}
+                    {plant.hasGlitter && <GlitterAnimation />}
                     {plant.form === 'Evolved' && (
                         <Badge variant="secondary" className="absolute top-2 right-2 shadow-md">
                             <Sparkles className="w-3 h-3 mr-1" />
@@ -408,13 +454,17 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
       >
         {plant ? (
           <div className="pointer-events-none text-center flex flex-col items-center">
-             <Image 
-                src={processedImage || plant.image} 
-                alt={plant.name} 
-                width={80}
-                height={80}
-                className="object-contain"
-                data-ai-hint={plant.hint} />
+             <div className="relative w-[80px] h-[80px]">
+                <Image 
+                    src={processedImage || plant.image} 
+                    alt={plant.name} 
+                    width={80}
+                    height={80}
+                    className="object-contain"
+                    data-ai-hint={plant.hint} 
+                />
+                 {plant.hasGlitter && <GlitterAnimation />}
+             </div>
             <p className="mt-1 text-xs font-semibold text-primary truncate w-full">{plant.name}</p>
           </div>
         ) : (
@@ -673,6 +723,10 @@ export default function RoomPage() {
         <header className="flex items-center justify-between p-4">
           <h1 className="text-3xl text-primary">My Room</h1>
           <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 rounded-full bg-yellow-100/80 px-3 py-1 border border-yellow-300/80">
+              <Sparkles className="h-5 w-5 text-yellow-500" />
+              <span className="font-bold text-yellow-700">{gameData.glitterCount}</span>
+            </div>
             <div className="flex items-center gap-2 rounded-full bg-blue-100/80 px-3 py-1 border border-blue-300/80">
               <Droplets className="h-5 w-5 text-blue-500" />
               <span className="font-bold text-blue-700">{gameData.waterRefills}</span>
@@ -822,6 +876,3 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
-
-    
-    
