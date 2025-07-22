@@ -80,9 +80,8 @@ export default function CommunityPage() {
 
   return (
     <div className="p-4 space-y-6">
-      <header className="flex flex-col items-center gap-1 pb-4">
-        <h1 className="text-3xl text-primary flex items-center gap-2">
-          <Users className="h-8 w-8" />
+      <header className="flex flex-col items-center gap-1 pb-4 text-center">
+        <h1 className="text-2xl text-primary">
           Community Showcase
         </h1>
         <p className="text-muted-foreground">See what other players are growing!</p>
