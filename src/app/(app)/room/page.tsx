@@ -5,7 +5,7 @@ import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
-import { Leaf, Loader2, Droplet, Coins, Sparkles, Droplets, Trash2 } from 'lucide-react';
+import { Leaf, Loader2, Droplet, Coins, Sparkles, Droplets, Trash2, GripVertical } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -414,46 +414,33 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
         disabled: !plant,
     });
     
-    const ref = (node: HTMLElement | null) => {
-        setDroppableRef(node);
-        if (plant) {
-            setDraggableRef(node);
-        }
-    };
-    
-    const handlePotClick = () => {
-        if (plant && !isDragging) {
-            onClickPlant(plant);
-        }
-    };
-
     return (
       <div
-        ref={ref}
+        ref={setDroppableRef}
         className={cn(
           "relative flex h-24 w-24 items-end justify-center rounded-lg transition-colors",
-          plant ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
+          !plant && "cursor-pointer",
           isOver && "bg-primary/20",
           isDragging && "opacity-40"
         )}
-        {...attributes}
-        {...listeners}
-        onClick={handlePotClick}
       >
         {plant ? (
-          <div className="pointer-events-none text-center flex flex-col items-center">
-             <div className="relative w-[80px] h-[80px]">
+          <div ref={setDraggableRef} className="pointer-events-none text-center flex flex-col items-center">
+             <div className="relative w-[80px] h-[80px]" onClick={() => onClickPlant(plant)}>
                 <Image 
                     src={processedImage || plant.image} 
                     alt={plant.name} 
                     width={80}
                     height={80}
-                    className="object-contain"
+                    className="object-contain pointer-events-auto cursor-pointer"
                     data-ai-hint={plant.hint} 
                 />
                  {plant.hasGlitter && <GlitterAnimation />}
              </div>
             <p className="mt-1 text-xs font-semibold text-primary truncate w-full">{plant.name}</p>
+             <div {...listeners} {...attributes} className="absolute -top-2 -right-2 p-1 touch-none cursor-grab active:cursor-grabbing">
+                <GripVertical className="w-5 h-5 text-muted-foreground/50" />
+            </div>
           </div>
         ) : (
           <div className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-primary/30 pointer-events-none" />
@@ -885,5 +872,3 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
-
-    
