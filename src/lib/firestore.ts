@@ -17,7 +17,6 @@ export interface GameData {
     lastDrawRefill: number;
     lastFreeDrawClaimed: number;
     waterRefills: number;
-    glitterCount: number;
     showcasePlantIds: number[];
     challenges: Record<string, { progress: number, claimed: boolean }>;
     challengesStartDate: number;
@@ -46,7 +45,6 @@ export async function getUserGameData(userId: string): Promise<GameData | null> 
             lastDrawRefill: data.lastDrawRefill || Date.now(),
             lastFreeDrawClaimed: data.lastFreeDrawClaimed || 0,
             waterRefills: data.waterRefills || 0,
-            glitterCount: data.glitterCount || 0,
             showcasePlantIds: data.showcasePlantIds || [],
             challenges: data.challenges || {},
             challengesStartDate: data.challengesStartDate || 0,
@@ -123,7 +121,6 @@ export async function createUserDocument(user: User): Promise<GameData> {
             lastDrawRefill: Date.now(),
             lastFreeDrawClaimed: 0,
             waterRefills: 0,
-            glitterCount: 0,
             showcasePlantIds: [],
             challenges: {},
             challengesStartDate: Date.now(),
@@ -233,21 +230,6 @@ export async function purchaseWaterRefills(userId: string, quantity: number, cos
     });
 }
 
-export async function purchaseGlitter(userId: string, quantity: number, cost: number) {
-    const userDocRef = doc(db, 'users', userId);
-    const gameData = await getUserGameData(userId);
-
-    if (!gameData || gameData.gold < cost) {
-        throw new Error("Not enough gold to purchase.");
-    }
-
-    await updateDoc(userDocRef, {
-        gold: increment(-cost),
-        glitterCount: increment(quantity)
-    });
-}
-
-
 export async function useWaterRefill(userId: string) {
     const userDocRef = doc(db, 'users', userId);
     const gameData = await getUserGameData(userId);
@@ -258,20 +240,6 @@ export async function useWaterRefill(userId: string) {
 
     await updateDoc(userDocRef, {
         waterRefills: increment(-1)
-    });
-}
-
-export async function useGlitter(userId: string, plantId: number) {
-    const userDocRef = doc(db, 'users', userId);
-    const gameData = await getUserGameData(userId);
-
-    if (!gameData || gameData.glitterCount <= 0) {
-        throw new Error("No glitter to use.");
-    }
-
-    await updateDoc(userDocRef, {
-        glitterCount: increment(-1),
-        [`plants.${plantId}.hasGlitter`]: true
     });
 }
 
@@ -301,7 +269,6 @@ export async function resetUserGameData(userId: string) {
         lastDrawRefill: Date.now(),
         lastFreeDrawClaimed: 0,
         waterRefills: 0,
-        glitterCount: 0,
         showcasePlantIds: [],
     });
 }

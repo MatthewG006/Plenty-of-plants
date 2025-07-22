@@ -27,7 +27,7 @@ import { useDraw } from '@/lib/draw-manager';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { updatePlantArrangement, updateUserGold, savePlant, useWaterRefill, updatePlant, getPlantById, deletePlant, useGlitter } from '@/lib/firestore';
+import { updatePlantArrangement, updateUserGold, savePlant, useWaterRefill, updatePlant, getPlantById, deletePlant } from '@/lib/firestore';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { compressImage, makeBackgroundTransparent } from '@/lib/image-compression';
 import { Badge } from '@/components/ui/badge';
@@ -127,23 +127,6 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
         if (hasWaterRefills) return `Use Refill (${gameData.waterRefills} left)`;
         return `Water Plant (${timesWateredToday}/${MAX_WATERINGS_PER_DAY})`;
     };
-
-    const handleApplyGlitter = async () => {
-        if (!plant || !gameData || gameData.glitterCount <= 0 || plant.hasGlitter) return;
-
-        try {
-            await useGlitter(userId, plant.id);
-            playSfx('success');
-            toast({
-                title: "Glitter Applied!",
-                description: `${plant.name} is now sparkling!`,
-            });
-        } catch(e) {
-            console.error("Failed to apply glitter", e);
-            toast({ variant: 'destructive', title: "Error", description: "Could not apply glitter."})
-        }
-    };
-
 
     const handleWaterPlant = async () => {
         if (!canWater || !plant) return;
@@ -275,8 +258,8 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
                         <Progress value={((isWatering ? visualXp : plant.xp) / XP_PER_LEVEL) * 100} className="w-full" />
                     </div>
                 </div>
-                <DialogFooter className="sm:justify-between">
-                     <AlertDialog>
+                <DialogFooter className="flex-row justify-between w-full">
+                    <AlertDialog>
                         <AlertDialogTrigger asChild>
                             <Button variant="destructive">
                                 <Trash2 className="mr-2 h-4 w-4" />
@@ -302,14 +285,6 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
                         <Button onClick={handleWaterPlant} disabled={!canWater || isWatering}>
                             <Droplet className="mr-2 h-4 w-4" />
                             {waterButtonText()}
-                        </Button>
-                         <Button 
-                            onClick={handleApplyGlitter} 
-                            disabled={plant.hasGlitter || gameData.glitterCount <= 0}
-                            variant="outline"
-                        >
-                            <Sparkles className="mr-2 h-4 w-4" />
-                            {plant.hasGlitter ? "Applied" : `Glitter (${gameData.glitterCount})`}
                         </Button>
                         <DialogClose asChild>
                             <Button variant="outline">Close</Button>
@@ -721,10 +696,6 @@ export default function RoomPage() {
         <header className="flex items-center justify-between p-4">
           <h1 className="text-3xl text-primary">My Room</h1>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 rounded-full bg-yellow-100/80 px-3 py-1 border border-yellow-300/80">
-              <Sparkles className="h-5 w-5 text-yellow-500" />
-              <span className="font-bold text-yellow-700">{gameData.glitterCount}</span>
-            </div>
             <div className="flex items-center gap-2 rounded-full bg-blue-100/80 px-3 py-1 border border-blue-300/80">
               <Droplets className="h-5 w-5 text-blue-500" />
               <span className="font-bold text-blue-700">{gameData.waterRefills}</span>
