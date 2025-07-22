@@ -720,7 +720,7 @@ export default function RoomPage() {
     <DndContext sensors={sensors} onDragStart={(e) => setActiveDragId(e.active.id as string)} onDragEnd={handleDragEnd} onDragCancel={() => setActiveDragId(null)}>
       <div className="space-y-4 bg-white min-h-screen">
         <header className="flex flex-col items-center gap-2 p-4">
-          <h1 className="text-3xl text-primary">My Room</h1>
+          <h1 className="text-3xl text-primary text-center">My Room</h1>
           <div className="flex items-center justify-center gap-4">
             <div className="flex items-center gap-2 rounded-full bg-yellow-100/80 px-3 py-1 border border-yellow-300/80">
               <Sparkles className="h-5 w-5 text-yellow-500" />

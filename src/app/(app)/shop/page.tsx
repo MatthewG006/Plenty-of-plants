@@ -13,9 +13,9 @@ import { useAuth } from '@/context/AuthContext';
 import { purchaseWaterRefills, purchaseGlitter } from '@/lib/firestore';
 import { useRouter } from 'next/navigation';
 
-const DRAW_COST_IN_GOLD = 30;
-const WATER_REFILL_COST_IN_GOLD = 40;
-const GLITTER_COST_IN_GOLD = 50;
+const DRAW_COST_IN_GOLD = 50;
+const WATER_REFILL_COST_IN_GOLD = 50;
+const GLITTER_COST_IN_GOLD = 60;
 
 function getNextDrawTimeString() {
     const now = new Date();
@@ -153,7 +153,7 @@ export default function ShopPage() {
   return (
     <div className="p-4">
       <header className="flex items-center justify-between pb-4">
-        <h1 className="text-3xl text-primary">Shop</h1>
+        <h1 className="text-3xl text-primary text-center w-full">Shop</h1>
         <div className="flex items-center gap-2 rounded-full bg-yellow-100/80 px-3 py-1 border border-yellow-300/80">
             <Coins className="h-5 w-5 text-yellow-500" />
             <span className="font-bold text-yellow-700">{goldCount}</span>
@@ -187,78 +187,76 @@ export default function ShopPage() {
 
         <Separator />
 
-        <Card className="shadow-sm">
-          <CardHeader>
-            <div className="flex items-center gap-4">
-              <Leaf className="h-8 w-8 text-primary" />
-              <div>
-                <CardTitle className="text-xl">Buy a Draw</CardTitle>
-                <CardDescription>Use your gold to get another draw.</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="flex flex-col items-start gap-4">
-            <div className="flex items-center gap-2">
-                <Coins className="h-6 w-6 text-yellow-500" />
-                <p className="text-2xl font-bold text-yellow-600">{DRAW_COST_IN_GOLD}</p>
-            </div>
-            <Button onClick={handleBuyDrawWithGold} className="w-full font-semibold" disabled={goldCount < DRAW_COST_IN_GOLD || drawCount >= MAX_DRAWS}>
-              {drawCount >= MAX_DRAWS ? "Draws Full" : goldCount < DRAW_COST_IN_GOLD ? "Not Enough Gold" : "Buy Draw"}
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="grid md:grid-cols-2 gap-6">
+            <Card className="shadow-sm">
+              <CardHeader>
+                <div className="flex items-center gap-4">
+                  <Leaf className="h-8 w-8 text-primary" />
+                  <div>
+                    <CardTitle className="text-xl">Buy a Draw</CardTitle>
+                    <CardDescription>Use your gold to get another draw.</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="flex flex-col items-start gap-4">
+                <div className="flex items-center gap-2">
+                    <Coins className="h-6 w-6 text-yellow-500" />
+                    <p className="text-2xl font-bold text-yellow-600">{DRAW_COST_IN_GOLD}</p>
+                </div>
+                <Button onClick={handleBuyDrawWithGold} className="w-full font-semibold" disabled={goldCount < DRAW_COST_IN_GOLD || drawCount >= MAX_DRAWS}>
+                  {drawCount >= MAX_DRAWS ? "Draws Full" : goldCount < DRAW_COST_IN_GOLD ? "Not Enough Gold" : "Buy Draw"}
+                </Button>
+              </CardContent>
+            </Card>
+            
+            <Card className="shadow-sm">
+              <CardHeader>
+                <div className="flex items-center gap-4">
+                  <Droplets className="h-8 w-8 text-primary" />
+                  <div>
+                    <CardTitle className="text-xl">Watering Can</CardTitle>
+                    <CardDescription>Grants 2 extra waterings for any plant.</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="flex flex-col items-start gap-4">
+                <div className="flex items-center gap-2">
+                    <Coins className="h-6 w-6 text-yellow-500" />
+                    <p className="text-2xl font-bold text-yellow-600">{WATER_REFILL_COST_IN_GOLD}</p>
+                </div>
+                <Button onClick={handleBuyWaterRefills} className="w-full font-semibold" disabled={goldCount < WATER_REFILL_COST_IN_GOLD}>
+                    {goldCount < WATER_REFILL_COST_IN_GOLD ? "Not Enough Gold" : "Buy Refills (+2)"}
+                </Button>
+                 <p className="text-xs text-muted-foreground text-center w-full">
+                    You have {gameData.waterRefills} refill(s)
+                </p>
+              </CardContent>
+            </Card>
 
-        <Separator />
-        
-        <Card className="shadow-sm">
-          <CardHeader>
-            <div className="flex items-center gap-4">
-              <Droplets className="h-8 w-8 text-primary" />
-              <div>
-                <CardTitle className="text-xl">Watering Can</CardTitle>
-                <CardDescription>Grants 2 extra waterings for any plant.</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="flex flex-col items-start gap-4">
-            <div className="flex items-center gap-2">
-                <Coins className="h-6 w-6 text-yellow-500" />
-                <p className="text-2xl font-bold text-yellow-600">{WATER_REFILL_COST_IN_GOLD}</p>
-            </div>
-            <Button onClick={handleBuyWaterRefills} className="w-full font-semibold" disabled={goldCount < WATER_REFILL_COST_IN_GOLD}>
-                {goldCount < WATER_REFILL_COST_IN_GOLD ? "Not Enough Gold" : "Buy Refills (+2)"}
-            </Button>
-             <p className="text-xs text-muted-foreground text-center w-full">
-                You have {gameData.waterRefills} refill(s)
-            </p>
-          </CardContent>
-        </Card>
-
-        <Separator />
-        
-        <Card className="shadow-sm">
-          <CardHeader>
-            <div className="flex items-center gap-4">
-              <Sparkles className="h-8 w-8 text-primary" />
-              <div>
-                <CardTitle className="text-xl">Glitter Pack</CardTitle>
-                <CardDescription>Make one of your plants permanently sparkle!</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="flex flex-col items-start gap-4">
-            <div className="flex items-center gap-2">
-                <Coins className="h-6 w-6 text-yellow-500" />
-                <p className="text-2xl font-bold text-yellow-600">{GLITTER_COST_IN_GOLD}</p>
-            </div>
-            <Button onClick={handleBuyGlitter} className="w-full font-semibold" disabled={goldCount < GLITTER_COST_IN_GOLD}>
-                {goldCount < GLITTER_COST_IN_GOLD ? "Not Enough Gold" : "Buy Glitter (+1)"}
-            </Button>
-             <p className="text-xs text-muted-foreground text-center w-full">
-                You have {gameData.glitterCount} glitter pack(s)
-            </p>
-          </CardContent>
-        </Card>
+            <Card className="shadow-sm md:col-span-2">
+              <CardHeader>
+                <div className="flex items-center gap-4">
+                  <Sparkles className="h-8 w-8 text-primary" />
+                  <div>
+                    <CardTitle className="text-xl">Glitter Pack</CardTitle>
+                    <CardDescription>Make one of your plants permanently sparkle!</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="flex flex-col items-start gap-4">
+                <div className="flex items-center gap-2">
+                    <Coins className="h-6 w-6 text-yellow-500" />
+                    <p className="text-2xl font-bold text-yellow-600">{GLITTER_COST_IN_GOLD}</p>
+                </div>
+                <Button onClick={handleBuyGlitter} className="w-full font-semibold" disabled={goldCount < GLITTER_COST_IN_GOLD}>
+                    {goldCount < GLITTER_COST_IN_GOLD ? "Not Enough Gold" : "Buy Glitter (+1)"}
+                </Button>
+                 <p className="text-xs text-muted-foreground text-center w-full">
+                    You have {gameData.glitterCount} glitter pack(s)
+                </p>
+              </CardContent>
+            </Card>
+        </div>
       </div>
     </div>
   );

@@ -80,8 +80,8 @@ export default function SettingsPage() {
 
   return (
     <div className="p-4">
-      <header className="flex items-center justify-between pb-4">
-        <h1 className="text-3xl text-primary">Settings</h1>
+      <header className="pb-4">
+        <h1 className="text-3xl text-primary text-center">Settings</h1>
       </header>
 
       <Card>
