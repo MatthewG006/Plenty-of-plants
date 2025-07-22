@@ -420,23 +420,21 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
             setDraggableRef(node);
         }
     };
-    
-    const combinedListeners = plant ? { ...listeners, onClick: () => onClickPlant(plant) } : {};
 
     return (
       <div
         ref={ref}
-        {...attributes}
-        {...combinedListeners}
         className={cn(
           "relative flex h-24 w-24 items-end justify-center rounded-lg transition-colors",
           plant ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
           isOver && "bg-primary/20",
           isDragging && "opacity-40"
         )}
+        {...attributes}
+        {...listeners}
       >
         {plant ? (
-          <div className="pointer-events-none text-center flex flex-col items-center">
+          <div className="pointer-events-none text-center flex flex-col items-center" onClick={() => onClickPlant(plant)}>
              <div className="relative w-[80px] h-[80px]">
                 <Image 
                     src={processedImage || plant.image} 
@@ -477,7 +475,7 @@ export default function RoomPage() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 5 } })
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
   );
   
   useEffect(() => {
@@ -880,3 +878,5 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
+
+    
