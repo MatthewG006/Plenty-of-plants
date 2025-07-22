@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Settings, User, Check, X, Loader2, Leaf, Award, Coins, Info } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Plant } from '@/interfaces/plant';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -27,6 +27,7 @@ import { compressImage } from '@/lib/image-compression';
 import { drawPlantAction } from '@/app/actions/draw-plant';
 import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 import { Challenge, challenges, claimChallengeReward, checkAndResetChallenges, updateCollectionProgress } from '@/lib/challenge-manager';
+import Autoplay from "embla-carousel-autoplay"
 import {
   Carousel,
   CarouselContent,
@@ -101,6 +102,10 @@ export default function HomePage() {
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawnPlant, setDrawnPlant] = useState<DrawPlantOutput | null>(null);
   const [isClaimingChallenge, setIsClaimingChallenge] = useState(false);
+
+  const autoplayPlugin = useRef(
+    Autoplay({ delay: 2000, stopOnInteraction: true })
+  );
 
   useEffect(() => {
     if (user) {
@@ -341,11 +346,14 @@ export default function HomePage() {
             </CardHeader>
             <CardContent>
                 <Carousel
+                  plugins={[autoplayPlugin.current]}
                   opts={{
                     align: "start",
                     loop: true,
                   }}
                   className="w-full"
+                  onMouseEnter={() => autoplayPlugin.current.stop()}
+                  onMouseLeave={() => autoplayPlugin.current.reset()}
                 >
                   <CarouselContent>
                     {gameTips.map((tip, index) => (
