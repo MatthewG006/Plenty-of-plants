@@ -226,7 +226,7 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-sm">
                 <DialogHeader>
-                    <DialogTitle className="text-3xl text-center">{plant.name}</DialogTitle>
+                    <DialogTitle className="text-3xl text-center text-primary">{plant.name}</DialogTitle>
                      <div className="flex justify-center pt-2">
                          <AlertDialog>
                             <AlertDialogTrigger asChild>
@@ -301,7 +301,7 @@ function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlantOutput 
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-sm">
                 <DialogHeader>
-                    <DialogTitle className="text-3xl text-center">A new plant!</DialogTitle>
+                    <DialogTitle className="text-3xl text-center text-primary">A new plant!</DialogTitle>
                 </DialogHeader>
                 <div className="flex flex-col items-center gap-4 py-4">
                     <div className="w-64 h-64 rounded-lg overflow-hidden border-4 border-primary/50 shadow-lg bg-green-100">
@@ -719,8 +719,8 @@ export default function RoomPage() {
   return (
     <DndContext sensors={sensors} onDragStart={(e) => setActiveDragId(e.active.id as string)} onDragEnd={handleDragEnd} onDragCancel={() => setActiveDragId(null)}>
       <div className="space-y-4 bg-white min-h-screen">
-        <header className="flex flex-col items-center gap-2 p-4">
-          <h1 className="text-3xl text-primary text-center">My Room</h1>
+        <header className="flex flex-col items-center gap-2 p-4 text-center">
+          <h1 className="text-3xl text-primary">My Room</h1>
           <div className="flex items-center justify-center gap-4">
             <div className="flex items-center gap-2 rounded-full bg-yellow-100/80 px-3 py-1 border border-yellow-300/80">
               <Sparkles className="h-5 w-5 text-yellow-500" />
@@ -761,7 +761,7 @@ export default function RoomPage() {
         </section>
 
         <section className="px-4 flex justify-center">
-            <Button variant="secondary" className="font-semibold w-full max-w-xs" onClick={handleDraw} disabled={isDrawing || gameData.draws <= 0}>
+            <Button className="font-semibold w-full max-w-xs" onClick={handleDraw} disabled={isDrawing || gameData.draws <= 0}>
               {isDrawing ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -779,7 +779,7 @@ export default function RoomPage() {
         <section className="px-4 pb-4">
             <h2 className="mb-4 text-xl text-primary">My Collection</h2>
             <DroppableCollectionArea>
-              <div className="grid grid-cols-3 gap-4 md:grid-cols-4 lg:grid-cols-5">
+              <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5">
                   {collectionPlants.length > 0 ? (
                     collectionPlants.map((plant) => (
                         <DraggablePlant 
@@ -821,7 +821,7 @@ export default function RoomPage() {
         <AlertDialog open={!!plantIdToEvolve || isEvolving} onOpenChange={(isOpen) => !isOpen && setPlantIdToEvolve(null)}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>
+                    <AlertDialogTitle className="text-center text-primary">
                         {isEvolving ? "Evolving..." : "Your plant is growing!"}
                     </AlertDialogTitle>
                     <AlertDialogDescription>
