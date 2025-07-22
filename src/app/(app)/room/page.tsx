@@ -420,6 +420,12 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
             setDraggableRef(node);
         }
     };
+    
+    const handlePotClick = () => {
+        if (plant && !isDragging) {
+            onClickPlant(plant);
+        }
+    };
 
     return (
       <div
@@ -432,9 +438,10 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
         )}
         {...attributes}
         {...listeners}
+        onClick={handlePotClick}
       >
         {plant ? (
-          <div className="pointer-events-none text-center flex flex-col items-center" onClick={() => onClickPlant(plant)}>
+          <div className="pointer-events-none text-center flex flex-col items-center">
              <div className="relative w-[80px] h-[80px]">
                 <Image 
                     src={processedImage || plant.image} 
@@ -475,7 +482,7 @@ export default function RoomPage() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
+    useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 5 } })
   );
   
   useEffect(() => {
@@ -878,5 +885,3 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
-
-    
