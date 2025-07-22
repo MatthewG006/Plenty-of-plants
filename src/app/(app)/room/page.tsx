@@ -719,9 +719,9 @@ export default function RoomPage() {
   return (
     <DndContext sensors={sensors} onDragStart={(e) => setActiveDragId(e.active.id as string)} onDragEnd={handleDragEnd} onDragCancel={() => setActiveDragId(null)}>
       <div className="space-y-4 bg-white min-h-screen">
-        <header className="flex flex-col items-start gap-4 p-4">
+        <header className="flex flex-col items-center gap-2 p-4">
           <h1 className="text-3xl text-primary">My Room</h1>
-          <div className="flex w-full items-center justify-end gap-4">
+          <div className="flex items-center justify-center gap-4">
             <div className="flex items-center gap-2 rounded-full bg-yellow-100/80 px-3 py-1 border border-yellow-300/80">
               <Sparkles className="h-5 w-5 text-yellow-500" />
               <span className="font-bold text-yellow-700">{gameData.glitterCount}</span>
@@ -730,19 +730,6 @@ export default function RoomPage() {
               <Droplets className="h-5 w-5 text-blue-500" />
               <span className="font-bold text-blue-700">{gameData.waterRefills}</span>
             </div>
-            <Button variant="secondary" className="font-semibold" onClick={handleDraw} disabled={isDrawing || gameData.draws <= 0}>
-              {isDrawing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Drawing...
-                </>
-              ) : (
-                <>
-                  <Leaf className="mr-2 h-4 w-4" />
-                  Draw Plant ({gameData.draws} left)
-                </>
-              )}
-            </Button>
           </div>
         </header>
 
@@ -771,6 +758,22 @@ export default function RoomPage() {
               ))}
             </div>
           </div>
+        </section>
+
+        <section className="px-4 flex justify-center">
+            <Button variant="secondary" className="font-semibold w-full max-w-xs" onClick={handleDraw} disabled={isDrawing || gameData.draws <= 0}>
+              {isDrawing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Drawing...
+                </>
+              ) : (
+                <>
+                  <Leaf className="mr-2 h-4 w-4" />
+                  Draw Plant ({gameData.draws} left)
+                </>
+              )}
+            </Button>
         </section>
 
         <section className="px-4 pb-4">
