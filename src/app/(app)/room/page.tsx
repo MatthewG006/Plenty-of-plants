@@ -251,7 +251,7 @@ function PlantImageUI({ plant }: { plant: Plant }) {
                 alt={plant.name} 
                 fill 
                 sizes="80px" 
-                className="object-contain mix-blend-darken"
+                className="object-contain"
                 data-ai-hint={plant.hint} />
         ) : (
             <div className="w-full h-full flex items-center justify-center rounded-lg bg-muted/20">
@@ -343,8 +343,15 @@ function DeskPot({ plant, index, onClickPlant }: { plant: Plant | null, index: n
         )}
       >
         {plant ? (
-          <div className="pointer-events-none">
-            <PlantImageUI plant={plant} />
+          <div className="pointer-events-none text-center">
+             <Image 
+                src={plant.image} 
+                alt={plant.name} 
+                width={80}
+                height={80}
+                className="object-contain mix-blend-darken"
+                data-ai-hint={plant.hint} />
+            <p className="mt-1 text-xs font-semibold text-primary truncate w-full">{plant.name}</p>
           </div>
         ) : (
           <div className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-primary/30 pointer-events-none" />
@@ -687,7 +694,16 @@ export default function RoomPage() {
             {activeDragData ? (
                 activeDragData.source === 'desk' ? (
                   <div className="w-24 h-24">
-                    <PlantImageUI plant={activeDragData.plant} />
+                     <div className="pointer-events-none text-center">
+                        <Image 
+                            src={activeDragData.plant.image} 
+                            alt={activeDragData.plant.name} 
+                            width={80}
+                            height={80}
+                            className="object-contain mix-blend-darken"
+                            data-ai-hint={activeDragData.plant.hint} />
+                        <p className="mt-1 text-xs font-semibold text-primary truncate w-full">{activeDragData.plant.name}</p>
+                    </div>
                   </div>
                 ) : (
                     <div className="w-28">
