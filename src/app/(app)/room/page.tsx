@@ -290,7 +290,6 @@ function PlantCardUI({ plant }: { plant: Plant }) {
     );
 }
 
-
 function DraggablePlant({ plant, source, ...props }: { plant: Plant; source: 'collection'; } & React.HTMLAttributes<HTMLDivElement>) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: `${source}:${plant.id}`,
@@ -337,7 +336,8 @@ function DeskPot({ plant, index, onClickPlant }: { plant: Plant | null, index: n
         {...attributes}
         {...combinedListeners}
         className={cn(
-          "relative flex h-24 w-24 items-end justify-center rounded-lg transition-colors cursor-pointer",
+          "relative flex h-24 w-24 items-end justify-center rounded-lg transition-colors",
+          plant ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
           isOver && "bg-primary/20",
           isDragging && "opacity-40"
         )}
