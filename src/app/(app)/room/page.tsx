@@ -230,9 +230,9 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
                      <div className="flex justify-center pt-2">
                          <AlertDialog>
                             <AlertDialogTrigger asChild>
-                                <Button variant="outline" size="sm" className="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive">
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Delete
+                                <Button variant="outline" size="sm" className="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive text-xs h-7 px-2">
+                                    <Trash2 className="mr-1 h-3 w-3" />
+                                    Delete Plant
                                 </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
@@ -719,9 +719,9 @@ export default function RoomPage() {
   return (
     <DndContext sensors={sensors} onDragStart={(e) => setActiveDragId(e.active.id as string)} onDragEnd={handleDragEnd} onDragCancel={() => setActiveDragId(null)}>
       <div className="space-y-4 bg-white min-h-screen">
-        <header className="flex items-center justify-between p-4">
+        <header className="flex flex-col items-start gap-4 p-4">
           <h1 className="text-3xl text-primary">My Room</h1>
-          <div className="flex items-center gap-4">
+          <div className="flex w-full items-center justify-end gap-4">
             <div className="flex items-center gap-2 rounded-full bg-yellow-100/80 px-3 py-1 border border-yellow-300/80">
               <Sparkles className="h-5 w-5 text-yellow-500" />
               <span className="font-bold text-yellow-700">{gameData.glitterCount}</span>
