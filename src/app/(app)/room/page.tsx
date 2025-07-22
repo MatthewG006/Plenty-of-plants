@@ -477,7 +477,7 @@ export default function RoomPage() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
+    useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 5 } })
   );
   
   useEffect(() => {
@@ -720,7 +720,7 @@ export default function RoomPage() {
     <DndContext sensors={sensors} onDragStart={(e) => setActiveDragId(e.active.id as string)} onDragEnd={handleDragEnd} onDragCancel={() => setActiveDragId(null)}>
       <div className="space-y-4 bg-white min-h-screen">
         <header className="flex flex-col items-center gap-2 p-4 text-center">
-          <h1 className="text-3xl text-primary">My Room</h1>
+          <h1 className="text-3xl text-primary text-center">My Room</h1>
           <div className="flex items-center justify-center gap-4">
             <div className="flex items-center gap-2 rounded-full bg-yellow-100/80 px-3 py-1 border border-yellow-300/80">
               <Sparkles className="h-5 w-5 text-yellow-500" />
@@ -777,7 +777,7 @@ export default function RoomPage() {
         </section>
 
         <section className="px-4 pb-4">
-            <h2 className="mb-4 text-xl text-primary">My Collection</h2>
+            <h2 className="mb-4 text-xl text-primary text-center">My Collection</h2>
             <DroppableCollectionArea>
               <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5">
                   {collectionPlants.length > 0 ? (
