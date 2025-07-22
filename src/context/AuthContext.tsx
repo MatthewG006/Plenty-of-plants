@@ -50,6 +50,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               lastFreeDrawClaimed: data.lastFreeDrawClaimed || 0,
               waterRefills: data.waterRefills || 0,
               showcasePlantIds: data.showcasePlantIds || [],
+              challenges: data.challenges || {},
+              challengesStartDate: data.challengesStartDate || 0,
             });
           } else {
             // This can happen on first signup.
@@ -114,3 +116,5 @@ export const useAuth = () => {
   }
   return context;
 };
+
+    

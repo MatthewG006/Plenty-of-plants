@@ -34,6 +34,7 @@ import { Badge } from '@/components/ui/badge';
 import { evolvePlantAction } from '@/app/actions/evolve-plant';
 import { drawPlantAction } from '@/app/actions/draw-plant';
 import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
+import { updateWateringProgress, updateEvolutionProgress, updateCollectionProgress } from '@/lib/challenge-manager';
 
 const NUM_POTS = 3;
 const MAX_WATERINGS_PER_DAY = 4;
@@ -170,6 +171,7 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
                 lastWatered: updatedLastWatered,
             });
             await updateUserGold(userId, GOLD_PER_WATERING);
+            await updateWateringProgress(userId);
 
             if (shouldEvolve) {
                 onEvolutionStart(plant.id);
@@ -540,6 +542,7 @@ export default function RoomPage() {
     try {
         const plainDrawnPlant = JSON.parse(JSON.stringify(drawnPlant));
         await savePlant(user.uid, plainDrawnPlant);
+        await updateCollectionProgress(user.uid);
     } catch (e) {
         console.error("Failed to save plant to Firestore", e);
         toast({
@@ -639,6 +642,7 @@ export default function RoomPage() {
         const compressedImageDataUri = await compressImage(newImageDataUri);
         
         await updatePlant(user.uid, plantIdToEvolve, { image: compressedImageDataUri, form: 'Evolved' });
+        await updateEvolutionProgress(user.uid);
         
         playSfx('success');
         toast({
@@ -818,3 +822,5 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
+
+    

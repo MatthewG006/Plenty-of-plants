@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings, User, Check, X, Loader2, Leaf } from 'lucide-react';
+import { Settings, User, Check, X, Loader2, Leaf, Award, Coins } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
@@ -26,6 +26,7 @@ import { savePlant } from '@/lib/firestore';
 import { compressImage } from '@/lib/image-compression';
 import { drawPlantAction } from '@/app/actions/draw-plant';
 import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
+import { Challenge, challenges, claimChallengeReward, checkAndResetChallenges, updateCollectionProgress } from '@/lib/challenge-manager';
 
 
 function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlantOutput | null, open: boolean, onOpenChange: (open: boolean) => void }) {
@@ -54,6 +55,30 @@ function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlantOutput 
     );
 }
 
+function ChallengeCard({ challenge, onClaim, isClaiming }: { challenge: Challenge, onClaim: (challengeId: string) => void, isClaiming: boolean }) {
+    const isComplete = challenge.progress >= challenge.target;
+
+    return (
+        <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
+            <div className="flex-1 space-y-2">
+                <p className="font-semibold text-primary">{challenge.title}</p>
+                <p className="text-xs text-muted-foreground">{challenge.description}</p>
+                <div className="flex items-center gap-2">
+                    <Progress value={(challenge.progress / challenge.target) * 100} className="h-2 w-full" />
+                    <span className="text-xs font-mono text-muted-foreground">{challenge.progress}/{challenge.target}</span>
+                </div>
+            </div>
+            <Button 
+                onClick={() => onClaim(challenge.id)}
+                disabled={!isComplete || challenge.claimed || isClaiming} 
+                size="sm"
+            >
+                {isClaiming ? <Loader2 className="animate-spin" /> : challenge.claimed ? <Check /> : <><Coins className="mr-1 h-3 w-3" /> {challenge.reward}</>}
+            </Button>
+        </div>
+    )
+}
+
 export default function HomePage() {
   const { user, gameData } = useAuth();
   const { toast } = useToast();
@@ -62,10 +87,12 @@ export default function HomePage() {
   const [latestPlant, setLatestPlant] = useState<Plant | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawnPlant, setDrawnPlant] = useState<DrawPlantOutput | null>(null);
+  const [isClaimingChallenge, setIsClaimingChallenge] = useState(false);
 
   useEffect(() => {
     if (user) {
         refillDraws(user.uid);
+        checkAndResetChallenges(user.uid);
     }
   }, [user]);
 
@@ -133,6 +160,7 @@ export default function HomePage() {
         const plainDrawnPlant = JSON.parse(JSON.stringify(drawnPlant));
         const newPlant = await savePlant(user.uid, plainDrawnPlant);
         setLatestPlant(newPlant);
+        await updateCollectionProgress(user.uid);
     } catch (e) {
         console.error("Failed to save plant to Firestore", e);
         toast({
@@ -145,6 +173,28 @@ export default function HomePage() {
     setDrawnPlant(null);
   };
   
+  const handleClaimChallenge = async (challengeId: string) => {
+    if (!user) return;
+    setIsClaimingChallenge(true);
+    try {
+        await claimChallengeReward(user.uid, challengeId);
+        playSfx('reward');
+        toast({
+            title: "Reward Claimed!",
+            description: "You've earned some gold!",
+        });
+    } catch (e: any) {
+        console.error("Failed to claim challenge reward", e);
+        toast({
+            variant: "destructive",
+            title: "Claiming Error",
+            description: e.message || "Could not claim your reward.",
+        });
+    } finally {
+        setIsClaimingChallenge(false);
+    }
+  };
+  
   if (!user || !gameData) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
@@ -152,6 +202,8 @@ export default function HomePage() {
       </div>
     );
   }
+
+  const userChallenges = gameData.challenges;
 
   return (
     <div className="p-4 space-y-6 bg-white">
@@ -211,6 +263,24 @@ export default function HomePage() {
             )}
           </CardContent>
         </Card>
+        
+        {userChallenges && (
+            <Card className="shadow-sm">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Award className="text-yellow-500" />
+                        Weekly Challenges
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                   {Object.values(challenges).map(challengeDef => {
+                       const userChallengeData = userChallenges[challengeDef.id] || { progress: 0, claimed: false };
+                       const fullChallengeData = { ...challengeDef, ...userChallengeData };
+                       return <ChallengeCard key={challengeDef.id} challenge={fullChallengeData} onClaim={handleClaimChallenge} isClaiming={isClaimingChallenge} />
+                   })}
+                </CardContent>
+            </Card>
+        )}
 
         <Card className="shadow-sm">
           <CardContent className="flex flex-col items-center gap-4 pt-6">
@@ -262,3 +332,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
