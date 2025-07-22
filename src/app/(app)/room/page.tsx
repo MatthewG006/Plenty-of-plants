@@ -383,7 +383,7 @@ function PlantCardUI({ plant, onApplyGlitter, canApplyGlitter }: { plant: Plant,
     );
 }
 
-function DraggablePlant({ plant, source, onApplyGlitter, canApplyGlitter, ...props }: { plant: Plant; source: 'collection' | 'desk', onApplyGlitter?: (plantId: number) => void; canApplyGlitter?: boolean; } & React.HTMLAttributes<HTMLDivElement>) {
+function DraggablePlant({ plant, source, className, image, onApplyGlitter, canApplyGlitter, ...rest }: { plant: Plant; source: 'collection' | 'desk', className?: string, image?: string | null, onApplyGlitter?: (plantId: number) => void; canApplyGlitter?: boolean; } & React.HTMLAttributes<HTMLDivElement>) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: `${source}:${plant.id}`,
         data: { plant, source },
@@ -395,7 +395,7 @@ function DraggablePlant({ plant, source, onApplyGlitter, canApplyGlitter, ...pro
     };
 
     return (
-        <div ref={setNodeRef} style={style} {...listeners} {...attributes} {...props}>
+        <div ref={setNodeRef} style={style} {...listeners} {...attributes} className={className} {...rest}>
             {source === 'collection' && onApplyGlitter && typeof canApplyGlitter !== 'undefined' ? (
                 <PlantCardUI 
                     plant={plant} 
@@ -403,7 +403,7 @@ function DraggablePlant({ plant, source, onApplyGlitter, canApplyGlitter, ...pro
                     canApplyGlitter={canApplyGlitter}
                 />
             ) : (
-                <PlantImageUI plant={plant} image={(props as any).image}/>
+                <PlantImageUI plant={plant} image={image}/>
             )}
         </div>
     );
@@ -419,25 +419,31 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
         }
     };
     
+    const EmptyPot = () => (
+        <div ref={setNodeRef} className={cn(
+            "relative flex h-24 w-24 items-end justify-center rounded-lg transition-colors",
+            isOver ? "bg-primary/20" : "bg-transparent"
+        )}>
+            <div className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-primary/30" />
+        </div>
+    );
+
+    if (!plant) {
+        return <EmptyPot />;
+    }
+    
     return (
         <div
-            ref={setNodeRef}
             onClick={handleClick}
-            className={cn(
-                "relative flex h-24 w-24 items-end justify-center rounded-lg transition-colors cursor-grab active:cursor-grabbing",
-                isOver && "bg-primary/20"
-            )}
+            className="relative flex h-24 w-24 items-end justify-center rounded-lg cursor-grab active:cursor-grabbing"
         >
-            {plant ? (
-                <DraggablePlant 
-                    plant={plant} 
-                    source="desk"
-                    className="w-full h-full"
-                    image={processedImage}
-                />
-            ) : (
-                <div className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-primary/30" />
-            )}
+            <div ref={setNodeRef} className={cn("absolute inset-0 z-0", isOver && "bg-primary/20 rounded-lg")} />
+            <DraggablePlant 
+                plant={plant} 
+                source="desk"
+                className="w-full h-full z-10"
+                image={processedImage}
+            />
         </div>
     );
 }
@@ -871,3 +877,5 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
+
+    
