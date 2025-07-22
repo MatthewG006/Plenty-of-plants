@@ -104,7 +104,7 @@ export default function HomePage() {
   const [isClaimingChallenge, setIsClaimingChallenge] = useState(false);
 
   const autoplayPlugin = useRef(
-    Autoplay({ delay: 2000, stopOnInteraction: true })
+    Autoplay({ delay: 4000, stopOnInteraction: true })
   );
 
   useEffect(() => {
