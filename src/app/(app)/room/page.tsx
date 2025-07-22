@@ -320,13 +320,13 @@ function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlantOutput 
     );
 }
 
-function PlantImageUI({ plant }: { plant: Plant }) {
+function PlantImageUI({ plant, image }: { plant: Plant, image: string | null }) {
   return (
     <div className="flex flex-col items-center text-center pointer-events-none w-full h-full">
       <div className="relative h-20 w-20 flex items-center justify-center">
-        {plant.image !== 'placeholder' ? (
+        {image && image !== 'placeholder' ? (
             <Image 
-                src={plant.image} 
+                src={image} 
                 alt={plant.name} 
                 fill 
                 sizes="80px" 
@@ -403,7 +403,7 @@ function DraggablePlant({ plant, source, ...props }: { plant: Plant; source: 'co
                     canApplyGlitter={(props as any).canApplyGlitter}
                 />
             ) : (
-                <PlantImageUI plant={plant} />
+                <PlantImageUI plant={plant} image={(props as any).image}/>
             )}
         </div>
     );
@@ -426,6 +426,7 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
                     source="desk"
                     onClick={() => onClickPlant(plant)}
                     className="w-full h-full"
+                    image={processedImage}
                 />
             ) : (
                 <div className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-primary/30" />
@@ -450,7 +451,7 @@ export default function RoomPage() {
   const [plantIdToEvolve, setPlantIdToEvolve] = useState<number | null>(null);
   const [isEvolving, setIsEvolving] = useState(false);
 
-  const [processedDeskImages, setProcessedDeskImages] = useState<Record<number, string>>({});
+  const [processedDeskImages, setProcessedDeskImages] = useState<Record<number, string | null>>({});
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -484,16 +485,19 @@ export default function RoomPage() {
 
   useEffect(() => {
     const processImages = async () => {
-        const newImages: Record<number, string> = {};
+        const newImages: Record<number, string | null> = {};
         for (const plant of deskPlants) {
-            if (plant && plant.image && !plant.image.startsWith('/')) {
-                try {
-                    const transparentImage = await makeBackgroundTransparent(plant.image);
-                    newImages[plant.id] = transparentImage;
-                } catch (e) {
-                    console.error("Failed to process image for plant:", plant.id, e);
-                    // Fallback to original image if processing fails
-                    newImages[plant.id] = plant.image; 
+            if (plant && plant.image) {
+                if (!plant.image.startsWith('/')) { // Don't process local placeholder images
+                    try {
+                        const transparentImage = await makeBackgroundTransparent(plant.image);
+                        newImages[plant.id] = transparentImage;
+                    } catch (e) {
+                        console.error("Failed to process image for plant:", plant.id, e);
+                        newImages[plant.id] = plant.image; 
+                    }
+                } else {
+                    newImages[plant.id] = plant.image;
                 }
             }
         }
@@ -508,8 +512,12 @@ export default function RoomPage() {
     const [source, idStr] = activeDragId.split(":");
     const id = parseInt(idStr, 10);
     const plant = allPlants[id];
-    return plant ? { plant, source } : null;
-  }, [activeDragId, allPlants]);
+    let image = plant?.image;
+    if(source === 'desk' && plant && processedDeskImages[plant.id]) {
+        image = processedDeskImages[plant.id] ?? plant.image;
+    }
+    return plant ? { plant, source, image } : null;
+  }, [activeDragId, allPlants, processedDeskImages]);
 
   const handleDraw = async () => {
     if (!user || !gameData || gameData.draws <= 0) {
@@ -833,7 +841,7 @@ export default function RoomPage() {
             {activeDragData ? (
                 <div className="w-28">
                     {activeDragData.source === 'desk' ? (
-                        <PlantImageUI plant={activeDragData.plant} />
+                        <PlantImageUI plant={activeDragData.plant} image={activeDragData.image}/>
                     ) : (
                         <PlantCardUI plant={activeDragData.plant} onApplyGlitter={() => {}} canApplyGlitter={false} />
                     )}
