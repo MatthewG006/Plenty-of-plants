@@ -5,7 +5,7 @@ import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
-import { Leaf, Loader2, Droplet, Coins, Sparkles, Droplets } from 'lucide-react';
+import { Leaf, Loader2, Droplet, Coins, Sparkles, Droplets, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -27,8 +27,8 @@ import { useDraw } from '@/lib/draw-manager';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { updatePlantArrangement, updateUserGold, savePlant, useWaterRefill, updatePlant, getPlantById } from '@/lib/firestore';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { updatePlantArrangement, updateUserGold, savePlant, useWaterRefill, updatePlant, getPlantById, deletePlant } from '@/lib/firestore';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { compressImage, makeBackgroundTransparent } from '@/lib/image-compression';
 import { Badge } from '@/components/ui/badge';
 import { evolvePlantAction } from '@/app/actions/evolve-plant';
@@ -92,6 +92,7 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
     const [isWatering, setIsWatering] = useState(false);
     const [showGold, setShowGold] = useState(false);
     const [visualXp, setVisualXp] = useState(plant?.xp || 0);
+    const [isDeleting, setIsDeleting] = useState(false);
     
     useEffect(() => {
         if (plant) {
@@ -184,6 +185,25 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
         setTimeout(() => setShowGold(false), 1000);
     };
 
+    const handleDeletePlant = async () => {
+        if (!plant) return;
+        setIsDeleting(true);
+        try {
+            await deletePlant(userId, plant.id);
+            toast({
+                title: "Plant Deleted",
+                description: `${plant.name} has been removed from your collection.`,
+            });
+            onOpenChange(false);
+        } catch (e) {
+            console.error("Failed to delete plant", e);
+            toast({ variant: 'destructive', title: "Error", description: "Could not delete the plant." });
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-sm">
@@ -224,9 +244,33 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
                         <Droplet className="mr-2 h-4 w-4" />
                         {waterButtonText()}
                     </Button>
-                    <DialogClose asChild>
-                        <Button variant="outline" className="w-full">Close</Button>
-                    </DialogClose>
+                    <div className="flex gap-2">
+                         <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" className="w-full">
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete Plant
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This will permanently delete {plant.name} from your collection. This action cannot be undone.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleDeletePlant} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+                                        {isDeleting ? <Loader2 className="animate-spin" /> : "Yes, delete it"}
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                        <DialogClose asChild>
+                            <Button variant="outline">Close</Button>
+                        </DialogClose>
+                    </div>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
