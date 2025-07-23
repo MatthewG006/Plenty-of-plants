@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings, User, Check, X, Loader2, Leaf, Award, Coins, Info, Clock } from 'lucide-react';
+import { Settings, User, Check, X, Loader2, Leaf, Award, Coins, Info, Clock, Users } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
@@ -16,6 +16,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { useDraw, MAX_DRAWS, refillDraws, refundDraw } from '@/lib/draw-manager';
@@ -33,6 +34,7 @@ import {
   CarouselContent,
   CarouselItem,
 } from "@/components/ui/carousel";
+import { useRouter } from 'next/navigation';
 
 const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
 
@@ -75,6 +77,42 @@ function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlantOutput 
     );
 }
 
+function CommunityInfoDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
+  const router = useRouter();
+
+  const handleGoToProfile = () => {
+    router.push('/profile');
+    onOpenChange(false);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <div className="mx-auto bg-accent rounded-full p-3 mb-2">
+            <Users className="h-8 w-8 text-accent-foreground" />
+          </div>
+          <DialogTitle className="text-2xl text-center">New: The Community Page!</DialogTitle>
+          <DialogDescription className="text-center pt-2">
+            Check out the new Community page to see what other players are growing. You can like their showcases to give them 5 gold!
+            <br /><br />
+            Go to your Profile to select which of your own plants you want to show off.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button variant="outline" onClick={handleGoToProfile}>
+            Go to Profile
+          </Button>
+          <DialogClose asChild>
+            <Button>Got it!</Button>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 function ChallengeCard({ challenge, onClaim, isClaiming }: { challenge: Challenge, onClaim: (challengeId: string) => void, isClaiming: boolean }) {
     const isComplete = challenge.progress >= challenge.target;
 
@@ -111,12 +149,14 @@ export default function HomePage() {
   const { user, gameData } = useAuth();
   const { toast } = useToast();
   const { playSfx } = useAudio();
+  const router = useRouter();
 
   const [latestPlant, setLatestPlant] = useState<Plant | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawnPlant, setDrawnPlant] = useState<DrawPlantOutput | null>(null);
   const [isClaimingChallenge, setIsClaimingChallenge] = useState(false);
   const [nextDrawTime, setNextDrawTime] = useState('');
+  const [showCommunityInfo, setShowCommunityInfo] = useState(false);
 
   const autoplayPlugin = useRef(
     Autoplay({ delay: 4000, stopOnInteraction: true })
@@ -126,11 +166,22 @@ export default function HomePage() {
     if (user) {
         refillDraws(user.uid);
         checkAndResetChallenges(user.uid).then(() => {
-            // Once challenges are reset (or confirmed current), update the login progress.
             updateLoginProgress(user.uid);
         });
+
+        const hasSeenInfo = localStorage.getItem('hasSeenCommunityInfo');
+        if (!hasSeenInfo) {
+          setShowCommunityInfo(true);
+        }
     }
   }, [user]);
+
+  const handleCloseCommunityInfo = (isOpen: boolean) => {
+    if (!isOpen) {
+      localStorage.setItem('hasSeenCommunityInfo', 'true');
+      setShowCommunityInfo(false);
+    }
+  }
 
   useEffect(() => {
     if (gameData?.plants) {
@@ -418,8 +469,9 @@ export default function HomePage() {
           }
         }}
       />
+
+      <CommunityInfoDialog open={showCommunityInfo} onOpenChange={handleCloseCommunityInfo} />
+
     </div>
   );
 }
-
-    
