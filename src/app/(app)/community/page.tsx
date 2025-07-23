@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { useAudio } from '@/context/AudioContext';
 import { cn } from '@/lib/utils';
+import { updateLikePlayerProgress } from '@/lib/challenge-manager';
 
 
 function GlitterAnimation() {
@@ -89,6 +90,7 @@ export default function CommunityPage() {
     if (!user) return;
     try {
       await likeUser(user.uid, likedUser.uid);
+      await updateLikePlayerProgress(user.uid);
       playSfx('chime');
       toast({
         title: "Liked!",
