@@ -412,7 +412,6 @@ function DraggablePlant({ plant, source, onApplyGlitter, canApplyGlitter, ...res
 
 function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant | null, index: number, onClickPlant: (plant: Plant) => void, processedImage: string | null }) {
     const { setNodeRef, isOver } = useDroppable({ id: `pot:${index}` });
-
     const pos = useRef([0, 0]);
 
     const onPointerDown = (e: React.PointerEvent) => {
@@ -420,10 +419,11 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
     };
 
     const onPointerUp = (e: React.PointerEvent) => {
+        if (!plant) return;
         const [x, y] = pos.current;
         const dist = Math.sqrt(Math.pow(e.clientX - x, 2) + Math.pow(e.clientY - y, 2));
 
-        if (dist < DRAG_CLICK_TOLERANCE && plant) {
+        if (dist < DRAG_CLICK_TOLERANCE) {
              onClickPlant(plant);
         }
     };
@@ -448,10 +448,10 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
             onPointerUp={onPointerUp}
         >
             <DraggablePlant 
-                plant={plant} 
+                plant={{...plant, image: processedImage || plant.image}}
                 source="desk" 
-                onApplyGlitter={() => {}} // dummy function
-                canApplyGlitter={false} // dummy value
+                onApplyGlitter={() => {}}
+                canApplyGlitter={false}
                 className="cursor-grab active:cursor-grabbing w-full h-full z-10" 
             />
             <div ref={setNodeRef} className={cn("absolute inset-0 z-0", isOver && "bg-primary/20 rounded-lg")} />
@@ -889,3 +889,5 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
+
+    
