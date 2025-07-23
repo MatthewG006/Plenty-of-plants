@@ -18,7 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { useDraw, MAX_DRAWS, refillDraws } from '@/lib/draw-manager';
+import { useDraw, MAX_DRAWS, refillDraws, refundDraw } from '@/lib/draw-manager';
 import { useAudio } from '@/context/AudioContext';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/context/AuthContext';
@@ -153,17 +153,20 @@ export default function HomePage() {
 
     } catch (e: any) {
         console.error(e);
+        // If something goes wrong, give the user their draw back
+        await refundDraw(user.uid);
+
         if (e.message === 'Invalid API Key') {
             toast({
                 variant: "destructive",
                 title: "Invalid API Key",
-                description: "Please check your GOOGLE_API_KEY in the .env file.",
+                description: "Please check your GOOGLE_API_KEY. Your draw has been refunded.",
             });
         } else {
             toast({
                 variant: "destructive",
                 title: "Failed to draw a plant",
-                description: "There was an issue with the AI. Please try again.",
+                description: "There was an issue with the AI. Your draw has been refunded.",
             });
         }
     } finally {
