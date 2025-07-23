@@ -395,7 +395,7 @@ export default function HomePage() {
                   <CarouselContent>
                     {gameTips.map((tip, index) => (
                       <CarouselItem key={index}>
-                        <div className="p-1 h-12 flex items-center justify-center">
+                        <div className="p-1 h-16 flex items-center justify-center">
                             <p className="text-sm text-muted-foreground text-center">{tip}</p>
                         </div>
                       </CarouselItem>
