@@ -2,13 +2,18 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Users, Leaf, Sparkles, ShieldAlert } from 'lucide-react';
+import { Loader2, Users, Leaf, Sparkles, ShieldAlert, Heart } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { getCommunityUsers, type CommunityUser } from '@/lib/firestore';
+import { getCommunityUsers, likeUser, type CommunityUser } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import type { Plant } from '@/interfaces/plant';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext';
+import { useAudio } from '@/context/AudioContext';
+import { cn } from '@/lib/utils';
+
 
 function GlitterAnimation() {
     return (
@@ -48,6 +53,8 @@ function ShowcasePlant({ plant }: { plant: Plant }) {
 
 
 export default function CommunityPage() {
+  const { user, gameData } = useAuth();
+  const { playSfx } = useAudio();
   const [users, setUsers] = useState<CommunityUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [permissionError, setPermissionError] = useState(false);
@@ -78,13 +85,40 @@ export default function CommunityPage() {
     fetchUsers();
   }, [toast]);
 
+  const handleLike = async (likedUser: CommunityUser) => {
+    if (!user) return;
+    try {
+      await likeUser(user.uid, likedUser.uid);
+      playSfx('chime');
+      toast({
+        title: "Liked!",
+        description: `You gave ${likedUser.username} 5 gold!`,
+      });
+      // Optimistically update the UI
+      setUsers(prevUsers => 
+        prevUsers.map(u => 
+          u.uid === likedUser.uid ? { ...u, likes: u.likes + 1 } : u
+        ).sort((a,b) => b.likes - a.likes)
+      );
+    } catch (e: any) {
+        console.error("Failed to like user", e);
+        if (e.message !== 'User already liked.') {
+            toast({
+                variant: 'destructive',
+                title: 'Like Error',
+                description: 'Could not process your like. Please try again.',
+            });
+        }
+    }
+  }
+
   return (
     <div className="p-4 space-y-6">
       <header className="flex flex-col items-center gap-1 pb-4 text-center">
         <h1 className="text-2xl text-primary">
           Community Showcase
         </h1>
-        <p className="text-muted-foreground">See what other players are growing!</p>
+        <p className="text-muted-foreground">See what other players are growing! Like their showcase to give them 5 gold.</p>
       </header>
 
       {isLoading ? (
@@ -110,20 +144,39 @@ export default function CommunityPage() {
       ) : (
         <div className="space-y-4">
           {users.length > 0 ? (
-            users.map((user) => (
-              <Card key={user.uid} className="shadow-md">
-                <CardHeader className="flex flex-row items-center gap-3 space-y-0">
+            users.map((communityUser) => {
+              const hasLiked = user && gameData?.likedUsers?.includes(communityUser.uid);
+              const isSelf = user?.uid === communityUser.uid;
+
+              return (
+              <Card key={communityUser.uid} className="shadow-md">
+                <CardHeader className="flex flex-row items-start gap-3 space-y-0">
                   <Avatar className="h-12 w-12">
-                    <AvatarFallback style={{ backgroundColor: user.avatarColor }} className="text-xl font-bold text-primary/70">
-                      {user.username.charAt(0).toUpperCase()}
+                    <AvatarFallback style={{ backgroundColor: communityUser.avatarColor }} className="text-xl font-bold text-primary/70">
+                      {communityUser.username.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <CardTitle className="text-xl">{user.username}</CardTitle>
+                  <div className="flex-grow">
+                    <CardTitle className="text-xl">{communityUser.username}</CardTitle>
+                     <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <Heart className={cn("w-4 h-4", communityUser.likes > 0 ? "text-red-500 fill-current" : "")} />
+                        <span className="text-sm font-medium">{communityUser.likes}</span>
+                    </div>
+                  </div>
+                   <Button 
+                    size="icon" 
+                    variant="outline" 
+                    onClick={() => handleLike(communityUser)}
+                    disabled={!!hasLiked || isSelf}
+                    className={cn(hasLiked && "border-red-500 text-red-500")}
+                    >
+                    <Heart className={cn("w-5 h-5", hasLiked && "fill-current")} />
+                  </Button>
                 </CardHeader>
                 <CardContent>
-                  {user.showcasePlants.length > 0 ? (
+                  {communityUser.showcasePlants.length > 0 ? (
                     <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                      {user.showcasePlants.map(plant => (
+                      {communityUser.showcasePlants.map(plant => (
                         <ShowcasePlant key={plant.id} plant={plant} />
                       ))}
                     </div>
@@ -132,7 +185,7 @@ export default function CommunityPage() {
                   )}
                 </CardContent>
               </Card>
-            ))
+            )})
           ) : (
             <Card className="text-center py-10">
               <CardHeader>
