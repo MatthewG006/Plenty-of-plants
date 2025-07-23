@@ -51,7 +51,7 @@ function InfoRow({ icon: Icon, label, value, valueClassName }: { icon?: React.El
 function SheenAnimation() {
     return (
         <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden rounded-lg">
-            <div className="absolute -top-1/4 -left-1/2 w-1/12 h-full bg-white/30 animate-sheen" />
+            <div className="absolute -top-1/2 -left-1/2 w-1/12 h-[200%] bg-white/30 animate-sheen" />
         </div>
     )
 }
