@@ -6,8 +6,8 @@
   "/signup/page": "app/signup/page.js",
   "/(app)/community/page": "app/(app)/community/page.js",
   "/(app)/home/page": "app/(app)/home/page.js",
+  "/(app)/profile/page": "app/(app)/profile/page.js",
   "/(app)/room/page": "app/(app)/room/page.js",
   "/(app)/settings/page": "app/(app)/settings/page.js",
-  "/(app)/shop/page": "app/(app)/shop/page.js",
-  "/(app)/profile/page": "app/(app)/profile/page.js"
+  "/(app)/shop/page": "app/(app)/shop/page.js"
 }

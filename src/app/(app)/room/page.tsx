@@ -23,7 +23,7 @@ import {
   useSensors,
   TouchSensor
 } from '@dnd-kit/core';
-import { useDraw } from '@/lib/draw-manager';
+import { useDraw, refundDraw } from '@/lib/draw-manager';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
@@ -384,7 +384,7 @@ function PlantCardUI({ plant, onApplyGlitter, canApplyGlitter }: { plant: Plant,
     );
 }
 
-function DraggablePlant({ plant, source, onApplyGlitter, canApplyGlitter, ...rest }: { plant: Plant; source: 'collection' | 'desk', onApplyGlitter: (plantId: number) => void; canApplyGlitter: boolean; } & Omit<React.HTMLAttributes<HTMLDivElement>, 'onApplyGlitter' | 'canApplyGlitter'>) {
+function DraggablePlant({ plant, source, ...rest }: { plant: Plant; source: 'collection' | 'desk' } & Omit<React.HTMLAttributes<HTMLDivElement>, 'onApplyGlitter' | 'canApplyGlitter'>) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: `${source}:${plant.id}`,
         data: { plant, source },
@@ -398,10 +398,10 @@ function DraggablePlant({ plant, source, onApplyGlitter, canApplyGlitter, ...res
     return (
         <div ref={setNodeRef} style={style} {...listeners} {...attributes} {...rest}>
             {source === 'collection' ? (
-                <PlantCardUI 
+                 <PlantCardUI 
                     plant={plant} 
-                    onApplyGlitter={onApplyGlitter} 
-                    canApplyGlitter={canApplyGlitter}
+                    onApplyGlitter={(rest as any).onApplyGlitter} 
+                    canApplyGlitter={(rest as any).canApplyGlitter}
                 />
             ) : (
                 <PlantImageUI plant={plant} image={plant.image}/>
@@ -580,17 +580,18 @@ export default function RoomPage() {
 
     } catch (e: any) {
         console.error(e);
+        await refundDraw(user.uid);
         if (e.message === 'Invalid API Key') {
             toast({
                 variant: "destructive",
                 title: "Invalid API Key",
-                description: "Please check your GOOGLE_API_KEY in the .env file.",
+                description: "Please check your GOOGLE_API_KEY. Your draw has been refunded.",
             });
         } else {
             toast({
                 variant: "destructive",
                 title: "Failed to draw a plant",
-                description: "There was an issue with the AI. Please try again.",
+                description: "There was an issue with the AI. Your draw has been refunded.",
             });
         }
     } finally {
@@ -899,5 +900,3 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
-
-    

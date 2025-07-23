@@ -53,6 +53,18 @@ export async function useDraw(userId: string) {
     }
 }
 
+export async function refundDraw(userId: string) {
+    const gameData = await getUserGameData(userId);
+    if (!gameData) return;
+
+    if (gameData.draws < MAX_DRAWS) {
+        const userDocRef = doc(db, 'users', userId);
+        await updateDoc(userDocRef, {
+            draws: increment(1)
+        });
+    }
+}
+
 export async function hasClaimedDailyDraw(userId: string): Promise<boolean> {
     const gameData = await getUserGameData(userId);
     if (!gameData || !gameData.lastFreeDrawClaimed) {
