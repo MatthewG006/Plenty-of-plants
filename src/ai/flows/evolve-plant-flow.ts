@@ -45,7 +45,7 @@ const evolvePlantFlow = ai.defineFlow(
       const { media } = await ai.generate({
         model: 'googleai/gemini-2.0-flash-preview-image-generation',
         prompt: [
-          { media: { url: imageDataUri, contentType: 'image/png' } },
+          { media: { url: imageDataUri, contentType: 'image/jpeg' } },
           { text: `This is a plant character named ${name}. Your task is to generate an evolved, more mature version of this exact plant.
 
 **CRITICAL INSTRUCTIONS:**
