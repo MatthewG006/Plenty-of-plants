@@ -226,13 +226,19 @@ export async function updatePlantArrangement(userId: string, collectionPlantIds:
     });
 }
 
-export async function updatePlant(userId: string, plantId: number, plantUpdateData: Partial<Plant>) {
+export async function updatePlant(userId: string, plantId: number, plantUpdateData: Partial<Plant> | { [key: string]: any }) {
     const userDocRef = doc(db, 'users', userId);
     
-    const updates: { [key: string]: any } = {};
-    // Ensure we are only updating fields on the specific plant sub-document
-    for (const [key, value] of Object.entries(plantUpdateData)) {
-        updates[`plants.${plantId}.${key}`] = value;
+    let updates: { [key: string]: any } = {};
+    
+    // Handle the special case where plantId is 0 for bulk updates
+    if (plantId === 0) {
+        updates = { ...plantUpdateData };
+    } else {
+        // Ensure we are only updating fields on the specific plant sub-document
+        for (const [key, value] of Object.entries(plantUpdateData)) {
+            updates[`plants.${plantId}.${key}`] = value;
+        }
     }
 
     if (Object.keys(updates).length > 0) {
@@ -295,16 +301,16 @@ export async function purchaseAutoWater(userId: string, cost: number) {
 }
 
 
-export async function useWaterRefill(userId: string) {
+export async function useWaterRefill(userId: string, quantity: number = 1) {
     const userDocRef = doc(db, 'users', userId);
     const gameData = await getUserGameData(userId);
 
-    if (!gameData || gameData.waterRefills <= 0) {
+    if (!gameData || gameData.waterRefills < quantity) {
         throw new Error("No water refills to use.");
     }
 
     await updateDoc(userDocRef, {
-        waterRefills: increment(-1)
+        waterRefills: increment(-quantity)
     });
 }
 
