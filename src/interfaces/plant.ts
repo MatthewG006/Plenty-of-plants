@@ -11,4 +11,6 @@ export interface Plant {
   xp: number;
   lastWatered: number[];
   hasGlitter?: boolean;
+  hasSheen?: boolean;
+  hasRainbowGlitter?: boolean;
 }

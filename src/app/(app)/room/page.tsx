@@ -27,7 +27,7 @@ import { useDraw, refundDraw } from '@/lib/draw-manager';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { updatePlantArrangement, updateUserGold, savePlant, useWaterRefill, updatePlant, getPlantById, deletePlant, useGlitter, updateShowcasePlants } from '@/lib/firestore';
+import { updatePlantArrangement, updateUserGold, savePlant, useWaterRefill, updatePlant, getPlantById, deletePlant, useGlitter, updateShowcasePlants, useSheen, useRainbowGlitter } from '@/lib/firestore';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { compressImage, makeBackgroundTransparent } from '@/lib/image-compression';
 import { Badge } from '@/components/ui/badge';
@@ -53,6 +53,31 @@ function isToday(timestamp: number): boolean {
     return someDate.getDate() === today.getDate() &&
            someDate.getMonth() === today.getMonth() &&
            someDate.getFullYear() === today.getFullYear();
+}
+
+function SheenAnimation() {
+    return (
+        <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden rounded-lg">
+            <div className="absolute -top-1/4 -left-1/2 w-full h-full bg-white/30 animate-sheen" />
+        </div>
+    )
+}
+
+function RainbowGlitterAnimation() {
+    return (
+        <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden">
+            {Array.from({ length: 10 }).map((_, i) => (
+                <Sparkles key={i} className="absolute animate-sparkle" style={{
+                    top: `${Math.random() * 100}%`,
+                    left: `${Math.random() * 100}%`,
+                    animationDelay: `${Math.random() * 1.5}s`,
+                    color: `hsl(${Math.random() * 360}, 100%, 70%)`,
+                    width: `${5 + Math.random() * 5}px`,
+                    height: `${5 + Math.random() * 5}px`,
+                }} />
+            ))}
+        </div>
+    );
 }
 
 function GlitterAnimation() {
@@ -282,6 +307,8 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
                             )}
                         </div>
                         {plant.hasGlitter && !viewingBase && <GlitterAnimation />}
+                        {plant.hasSheen && !viewingBase && <SheenAnimation />}
+                        {plant.hasRainbowGlitter && !viewingBase && <RainbowGlitterAnimation />}
                         {isWatering && <WaterDropletAnimation />}
                         {isWatering && <GoldCoinAnimation />}
                         {showGold && (
@@ -358,27 +385,63 @@ function PlantImageUI({ plant, image }: { plant: Plant, image: string | null }) 
             </div>
         )}
         {plant.hasGlitter && <GlitterAnimation />}
+        {plant.hasSheen && <SheenAnimation />}
+        {plant.hasRainbowGlitter && <RainbowGlitterAnimation />}
       </div>
       <p className="mt-1 text-xs font-semibold text-primary truncate w-full">{plant.name}</p>
     </div>
   );
 }
 
-function PlantCardUI({ plant, onApplyGlitter, canApplyGlitter }: { plant: Plant, onApplyGlitter: (plantId: number) => void; canApplyGlitter: boolean; }) {
+function PlantCardUI({ 
+    plant, 
+    onApplyGlitter, 
+    canApplyGlitter,
+    onApplySheen,
+    canApplySheen,
+    onApplyRainbowGlitter,
+    canApplyRainbowGlitter
+}: { 
+    plant: Plant, 
+    onApplyGlitter: (plantId: number) => void;
+    canApplyGlitter: boolean;
+    onApplySheen: (plantId: number) => void;
+    canApplySheen: boolean;
+    onApplyRainbowGlitter: (plantId: number) => void;
+    canApplyRainbowGlitter: boolean;
+}) {
     return (
         <Card className="group overflow-hidden shadow-md w-full relative">
-            {canApplyGlitter && !plant.hasGlitter && (
-                <Button
-                    size="icon"
-                    className="absolute top-1 left-1 z-10 h-7 w-7 bg-yellow-400/80 text-white hover:bg-yellow-500/90"
-                    onClick={(e) => {
-                        e.stopPropagation(); // Prevent opening the detail dialog
-                        onApplyGlitter(plant.id);
-                    }}
-                >
-                    <Sparkles className="h-4 w-4" />
-                </Button>
-            )}
+            <div className="absolute top-1 left-1 z-10 flex flex-col gap-1">
+                {canApplyGlitter && !plant.hasGlitter && !plant.hasSheen && !plant.hasRainbowGlitter &&(
+                    <Button
+                        size="icon"
+                        className="h-7 w-7 bg-yellow-400/80 text-white hover:bg-yellow-500/90"
+                        onClick={(e) => { e.stopPropagation(); onApplyGlitter(plant.id); }}
+                    >
+                        <Sparkles className="h-4 w-4" />
+                    </Button>
+                )}
+                {canApplySheen && !plant.hasGlitter && !plant.hasSheen && !plant.hasRainbowGlitter &&(
+                    <Button
+                        size="icon"
+                        className="h-7 w-7 bg-blue-400/80 text-white hover:bg-blue-500/90"
+                        onClick={(e) => { e.stopPropagation(); onApplySheen(plant.id); }}
+                    >
+                        <Star className="h-4 w-4" />
+                    </Button>
+                )}
+                {canApplyRainbowGlitter && !plant.hasGlitter && !plant.hasSheen && !plant.hasRainbowGlitter && (
+                    <Button
+                        size="icon"
+                        className="h-7 w-7 bg-gradient-to-r from-pink-500 to-yellow-500 text-white"
+                        onClick={(e) => { e.stopPropagation(); onApplyRainbowGlitter(plant.id); }}
+                    >
+                        <Sparkles className="h-4 w-4" />
+                    </Button>
+                )}
+            </div>
+
             <CardContent className="p-0">
                 <div className="aspect-square relative flex items-center justify-center bg-muted/30">
                     {plant.image !== 'placeholder' ? (
@@ -387,6 +450,8 @@ function PlantCardUI({ plant, onApplyGlitter, canApplyGlitter }: { plant: Plant,
                         <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
                     )}
                     {plant.hasGlitter && <GlitterAnimation />}
+                    {plant.hasSheen && <SheenAnimation />}
+                    {plant.hasRainbowGlitter && <RainbowGlitterAnimation />}
                     {plant.form === 'Evolved' && (
                         <Badge variant="secondary" className="absolute top-2 right-2 shadow-md">
                             <Sparkles className="w-3 h-3 mr-1" />
@@ -403,7 +468,7 @@ function PlantCardUI({ plant, onApplyGlitter, canApplyGlitter }: { plant: Plant,
     );
 }
 
-function DraggablePlant({ plant, source, onApplyGlitter, canApplyGlitter, ...rest }: { plant: Plant; source: 'collection' | 'desk'; onApplyGlitter: (plantId: number) => void; canApplyGlitter: boolean } & React.HTMLAttributes<HTMLDivElement>) {
+function DraggablePlant({ plant, source, onApplyGlitter, canApplyGlitter, onApplySheen, canApplySheen, onApplyRainbowGlitter, canApplyRainbowGlitter, ...rest }: { plant: Plant; source: 'collection' | 'desk'; onApplyGlitter: (plantId: number) => void; canApplyGlitter: boolean; onApplySheen: (plantId: number) => void; canApplySheen: boolean; onApplyRainbowGlitter: (plantId: number) => void; canApplyRainbowGlitter: boolean; } & React.HTMLAttributes<HTMLDivElement>) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: `${source}:${plant.id}`,
         data: { plant, source },
@@ -421,6 +486,10 @@ function DraggablePlant({ plant, source, onApplyGlitter, canApplyGlitter, ...res
                     plant={plant} 
                     onApplyGlitter={onApplyGlitter} 
                     canApplyGlitter={canApplyGlitter}
+                    onApplySheen={onApplySheen}
+                    canApplySheen={canApplySheen}
+                    onApplyRainbowGlitter={onApplyRainbowGlitter}
+                    canApplyRainbowGlitter={canApplyRainbowGlitter}
                 />
             ) : (
                 <PlantImageUI plant={plant} image={plant.image}/>
@@ -471,6 +540,10 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
                 source="desk" 
                 onApplyGlitter={() => {}}
                 canApplyGlitter={false}
+                onApplySheen={() => {}}
+                canApplySheen={false}
+                onApplyRainbowGlitter={() => {}}
+                canApplyRainbowGlitter={false}
                 className="cursor-grab active:cursor-grabbing w-full h-full z-10" 
             />
             <div ref={setNodeRef} className={cn("absolute inset-0 z-0", isOver && "bg-primary/20 rounded-lg")} />
@@ -874,6 +947,38 @@ export default function RoomPage() {
     }
   };
 
+  const handleApplySheen = async (plantId: number) => {
+    if (!user) return;
+    try {
+        await useSheen(user.uid);
+        await updatePlant(user.uid, plantId, { hasSheen: true });
+        playSfx('chime');
+        toast({
+            title: "Sheen applied!",
+            description: "Your plant is now shimmering beautifully.",
+        });
+    } catch (e: any) {
+        console.error("Failed to apply sheen", e);
+        toast({ variant: 'destructive', title: "Error", description: e.message || "Could not apply sheen." });
+    }
+  };
+  
+  const handleApplyRainbowGlitter = async (plantId: number) => {
+    if (!user) return;
+    try {
+        await useRainbowGlitter(user.uid);
+        await updatePlant(user.uid, plantId, { hasRainbowGlitter: true });
+        playSfx('chime');
+        toast({
+            title: "Rainbow Glitter applied!",
+            description: "Your plant is sparkling with all colors.",
+        });
+    } catch (e: any) {
+        console.error("Failed to apply rainbow glitter", e);
+        toast({ variant: 'destructive', title: "Error", description: e.message || "Could not apply rainbow glitter." });
+    }
+  };
+
   const handlePointerDown = (plant: Plant) => {
     longPressTimerRef.current = setTimeout(() => {
       setLongPressPlant(plant);
@@ -964,9 +1069,17 @@ export default function RoomPage() {
         <header className="flex flex-col items-center gap-4 p-4 text-center">
           <h1 className="text-3xl text-primary text-center">My Room</h1>
           <div className="flex items-center justify-center gap-4">
-            <div className="flex items-center gap-2 rounded-full bg-yellow-100/80 px-3 py-1 border border-yellow-300/80">
+             <div className="flex items-center gap-2 rounded-full bg-yellow-100/80 px-3 py-1 border border-yellow-300/80">
               <Sparkles className="h-5 w-5 text-yellow-500" />
               <span className="font-bold text-yellow-700">{gameData.glitterCount}</span>
+            </div>
+            <div className="flex items-center gap-2 rounded-full bg-blue-100/80 px-3 py-1 border border-blue-300/80">
+              <Star className="h-5 w-5 text-blue-500" />
+              <span className="font-bold text-blue-700">{gameData.sheenCount}</span>
+            </div>
+            <div className="flex items-center gap-2 rounded-full bg-pink-100/80 px-3 py-1 border border-pink-300/80">
+              <Sparkles className="h-5 w-5 text-pink-500" />
+              <span className="font-bold text-pink-700">{gameData.rainbowGlitterCount}</span>
             </div>
             <div className="flex items-center gap-2 rounded-full bg-blue-100/80 px-3 py-1 border border-blue-300/80">
               <Droplets className="h-5 w-5 text-blue-500" />
@@ -1035,6 +1148,10 @@ export default function RoomPage() {
                              source="collection"
                              onApplyGlitter={handleApplyGlitter}
                              canApplyGlitter={gameData.glitterCount > 0}
+                             onApplySheen={handleApplySheen}
+                             canApplySheen={gameData.sheenCount > 0}
+                             onApplyRainbowGlitter={handleApplyRainbowGlitter}
+                             canApplyRainbowGlitter={gameData.rainbowGlitterCount > 0}
                              className="cursor-grab active:cursor-grabbing"
                            />
                          </div>
@@ -1110,7 +1227,12 @@ export default function RoomPage() {
                     {activeDragData.source === 'desk' ? (
                         <PlantImageUI plant={activeDragData.plant} image={activeDragData.image}/>
                     ) : (
-                        <PlantCardUI plant={activeDragData.plant} onApplyGlitter={() => {}} canApplyGlitter={false} />
+                        <PlantCardUI 
+                            plant={activeDragData.plant} 
+                            onApplyGlitter={() => {}} canApplyGlitter={false} 
+                            onApplySheen={() => {}} canApplySheen={false}
+                            onApplyRainbowGlitter={() => {}} canApplyRainbowGlitter={false}
+                        />
                     )}
                 </div>
             ) : null}

@@ -19,6 +19,8 @@ export interface GameData {
     lastLoginBonusClaimed: number;
     waterRefills: number;
     glitterCount: number;
+    sheenCount: number;
+    rainbowGlitterCount: number;
     showcasePlantIds: number[];
     challenges: Record<string, { progress: number, claimed: boolean }>;
     challengesStartDate: number;
@@ -52,6 +54,8 @@ export async function getUserGameData(userId: string): Promise<GameData | null> 
             lastLoginBonusClaimed: data.lastLoginBonusClaimed || 0,
             waterRefills: data.waterRefills || 0,
             glitterCount: data.glitterCount || 0,
+            sheenCount: data.sheenCount || 0,
+            rainbowGlitterCount: data.rainbowGlitterCount || 0,
             showcasePlantIds: data.showcasePlantIds || [],
             challenges: data.challenges || {},
             challengesStartDate: data.challengesStartDate || 0,
@@ -121,6 +125,8 @@ export async function createUserDocument(user: User): Promise<GameData> {
             xp: 0,
             lastWatered: [],
             hasGlitter: false,
+            hasSheen: false,
+            hasRainbowGlitter: false,
         };
         
         const newGameData: GameData = {
@@ -134,6 +140,8 @@ export async function createUserDocument(user: User): Promise<GameData> {
             lastLoginBonusClaimed: Date.now(),
             waterRefills: 0,
             glitterCount: 0,
+            sheenCount: 0,
+            rainbowGlitterCount: 0,
             showcasePlantIds: [],
             challenges: {},
             challengesStartDate: Date.now(),
@@ -181,6 +189,8 @@ export async function savePlant(userId: string, plantData: DrawPlantOutput): Pro
         xp: 0,
         lastWatered: [],
         hasGlitter: false,
+        hasSheen: false,
+        hasRainbowGlitter: false,
     };
 
     const firstEmptyPotIndex = gameData.deskPlantIds.findIndex(id => id === null);
@@ -246,7 +256,7 @@ export async function purchaseWaterRefills(userId: string, quantity: number, cos
     });
 }
 
-export async function purchaseGlitter(userId: string, quantity: number, cost: number) {
+export async function purchaseCosmetic(userId: string, cosmetic: 'glitterCount' | 'sheenCount' | 'rainbowGlitterCount', quantity: number, cost: number) {
     const userDocRef = doc(db, 'users', userId);
     const gameData = await getUserGameData(userId);
 
@@ -256,7 +266,7 @@ export async function purchaseGlitter(userId: string, quantity: number, cost: nu
 
     await updateDoc(userDocRef, {
         gold: increment(-cost),
-        glitterCount: increment(quantity)
+        [cosmetic]: increment(quantity)
     });
 }
 
@@ -286,6 +296,33 @@ export async function useGlitter(userId: string) {
     });
 }
 
+export async function useSheen(userId: string) {
+    const userDocRef = doc(db, 'users', userId);
+    const gameData = await getUserGameData(userId);
+
+    if (!gameData || gameData.sheenCount <= 0) {
+        throw new Error("No sheen packs to use.");
+    }
+
+    await updateDoc(userDocRef, {
+        sheenCount: increment(-1)
+    });
+}
+
+export async function useRainbowGlitter(userId: string) {
+    const userDocRef = doc(db, 'users', userId);
+    const gameData = await getUserGameData(userId);
+
+    if (!gameData || gameData.rainbowGlitterCount <= 0) {
+        throw new Error("No rainbow glitter packs to use.");
+    }
+
+    await updateDoc(userDocRef, {
+        rainbowGlitterCount: increment(-1)
+    });
+}
+
+
 export async function resetUserGameData(userId: string) {
     const userDocRef = doc(db, 'users', userId);
     
@@ -302,6 +339,8 @@ export async function resetUserGameData(userId: string) {
         xp: 0,
         lastWatered: [],
         hasGlitter: false,
+        hasSheen: false,
+        hasRainbowGlitter: false,
     };
 
     await updateDoc(userDocRef, {
@@ -314,6 +353,8 @@ export async function resetUserGameData(userId: string) {
         lastFreeDrawClaimed: 0,
         waterRefills: 0,
         glitterCount: 0,
+        sheenCount: 0,
+        rainbowGlitterCount: 0,
         showcasePlantIds: [],
     });
 }

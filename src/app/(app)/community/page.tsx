@@ -2,7 +2,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Users, Leaf, Sparkles, ShieldAlert, Heart } from 'lucide-react';
+import { Loader2, Users, Leaf, Sparkles, ShieldAlert, Heart, Star } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { getCommunityUsers, likeUser, type CommunityUser } from '@/lib/firestore';
@@ -15,6 +15,31 @@ import { useAudio } from '@/context/AudioContext';
 import { cn } from '@/lib/utils';
 import { updateLikePlayerProgress } from '@/lib/challenge-manager';
 
+
+function SheenAnimation() {
+    return (
+        <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden rounded-lg">
+            <div className="absolute -top-1/4 -left-1/2 w-full h-full bg-white/30 animate-sheen" />
+        </div>
+    )
+}
+
+function RainbowGlitterAnimation() {
+    return (
+        <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden">
+            {Array.from({ length: 10 }).map((_, i) => (
+                <Sparkles key={i} className="absolute animate-sparkle" style={{
+                    top: `${Math.random() * 100}%`,
+                    left: `${Math.random() * 100}%`,
+                    animationDelay: `${Math.random() * 1.5}s`,
+                    color: `hsl(${Math.random() * 360}, 100%, 70%)`,
+                    width: `${5 + Math.random() * 5}px`,
+                    height: `${5 + Math.random() * 5}px`,
+                }} />
+            ))}
+        </div>
+    );
+}
 
 function GlitterAnimation() {
     return (
@@ -43,6 +68,8 @@ function ShowcasePlant({ plant }: { plant: Plant }) {
         </div>
       )}
        {plant.hasGlitter && <GlitterAnimation />}
+       {plant.hasSheen && <SheenAnimation />}
+       {plant.hasRainbowGlitter && <RainbowGlitterAnimation />}
        {plant.form === 'Evolved' && (
           <div className="absolute top-1 right-1 bg-secondary/80 text-secondary-foreground p-1 rounded-full shadow-md backdrop-blur-sm">
               <Sparkles className="w-2 h-2" />
