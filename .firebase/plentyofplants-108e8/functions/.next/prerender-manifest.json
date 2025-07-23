@@ -126,30 +126,6 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/home": {
-      "experimentalBypassFor": [
-        {
-          "type": "header",
-          "key": "Next-Action"
-        },
-        {
-          "type": "header",
-          "key": "content-type",
-          "value": "multipart/form-data;.*"
-        }
-      ],
-      "initialRevalidateSeconds": false,
-      "srcRoute": "/home",
-      "dataRoute": "/home.rsc",
-      "allowHeader": [
-        "host",
-        "x-matched-path",
-        "x-prerender-revalidate",
-        "x-prerender-revalidate-if-generated",
-        "x-next-revalidated-tags",
-        "x-next-revalidate-tag-token"
-      ]
-    },
     "/profile": {
       "experimentalBypassFor": [
         {
@@ -245,13 +221,37 @@
         "x-next-revalidated-tags",
         "x-next-revalidate-tag-token"
       ]
+    },
+    "/home": {
+      "experimentalBypassFor": [
+        {
+          "type": "header",
+          "key": "Next-Action"
+        },
+        {
+          "type": "header",
+          "key": "content-type",
+          "value": "multipart/form-data;.*"
+        }
+      ],
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/home",
+      "dataRoute": "/home.rsc",
+      "allowHeader": [
+        "host",
+        "x-matched-path",
+        "x-prerender-revalidate",
+        "x-prerender-revalidate-if-generated",
+        "x-next-revalidated-tags",
+        "x-next-revalidate-tag-token"
+      ]
     }
   },
   "dynamicRoutes": {},
   "notFoundRoutes": [],
   "preview": {
-    "previewModeId": "9d16badef330653d99ef7d9840ac0581",
-    "previewModeSigningKey": "255ad1d1c5b6d15cc9ba99ac4e0adfa77b2f02825b03cc49158230d24707afe2",
-    "previewModeEncryptionKey": "5dad10992c8d64d9e8d3509cf1dfe98f623f114fd63f4f5f45dd0ac0e57cbdc8"
+    "previewModeId": "569d80ca972e9e871f29ead20b7bac65",
+    "previewModeSigningKey": "e43a2e73954cde6a9a740d9506e2f4f680d2b7a732cce877bb376bf3bddfb664",
+    "previewModeEncryptionKey": "018026ca063a40481b4ef2eb894af39329cd2ca70244b2fa0fdd2406dc7a9bae"
   }
 }
