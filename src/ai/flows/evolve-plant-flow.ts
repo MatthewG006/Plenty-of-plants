@@ -52,7 +52,7 @@ const evolvePlantFlow = ai.defineFlow(
 1.  **Evolve the Plant ONLY:** The changes should apply *only* to the plant itself. Make it bigger, more detailed, or add features like small flowers, glowing effects, or extra leaves.
 2.  **The Pot MUST NOT Change:** The pot it is in must remain absolutely identical to the original image. Do not change its color, shape, size, or the happy face on it.
 3.  **Maintain Art Style:** The overall art style and character design must be consistent with the original.
-4.  **Transparent Background:** The background of the image MUST be transparent.
+4.  **The Background:** The background of the image MUST be a solid white color.
 
 The final image should clearly be the same character, just a more advanced version. Do NOT change the core character, pot, or face.` }
         ],
