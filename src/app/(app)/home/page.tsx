@@ -22,30 +22,19 @@ import { useDraw, MAX_DRAWS, refillDraws, refundDraw } from '@/lib/draw-manager'
 import { useAudio } from '@/context/AudioContext';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/context/AuthContext';
-import { savePlant, updateUserGold } from '@/lib/firestore';
+import { savePlant } from '@/lib/firestore';
 import { compressImage } from '@/lib/image-compression';
 import { drawPlantAction } from '@/app/actions/draw-plant';
 import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
-import { Challenge, challenges, claimChallengeReward, checkAndResetChallenges, updateCollectionProgress } from '@/lib/challenge-manager';
+import { Challenge, challenges, claimChallengeReward, checkAndResetChallenges, updateCollectionProgress, updateLoginProgress } from '@/lib/challenge-manager';
 import Autoplay from "embla-carousel-autoplay"
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
 } from "@/components/ui/carousel";
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 
 const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
-const DAILY_BONUS_GOLD = 20;
-
-function isToday(timestamp: number): boolean {
-    const today = new Date();
-    const someDate = new Date(timestamp);
-    return someDate.getDate() === today.getDate() &&
-           someDate.getMonth() === today.getMonth() &&
-           someDate.getFullYear() === today.getFullYear();
-}
 
 function getNextDrawTimeString(lastRefill: number) {
     const now = Date.now();
@@ -134,26 +123,14 @@ export default function HomePage() {
   );
 
   useEffect(() => {
-    if (user && gameData) {
+    if (user) {
         refillDraws(user.uid);
-        checkAndResetChallenges(user.uid);
-        
-        const claimBonus = async () => {
-            if (!isToday(gameData.lastLoginBonusClaimed)) {
-                await updateUserGold(user.uid, DAILY_BONUS_GOLD);
-                await updateDoc(doc(db, 'users', user.uid), {
-                    lastLoginBonusClaimed: Date.now()
-                });
-                playSfx('reward');
-                toast({
-                    title: "Daily Login Bonus!",
-                    description: `You've received ${DAILY_BONUS_GOLD} coins!`,
-                });
-            }
-        };
-        claimBonus();
+        checkAndResetChallenges(user.uid).then(() => {
+            // Once challenges are reset (or confirmed current), update the login progress.
+            updateLoginProgress(user.uid);
+        });
     }
-  }, [user, gameData, toast, playSfx]);
+  }, [user]);
 
   useEffect(() => {
     if (gameData?.plants) {

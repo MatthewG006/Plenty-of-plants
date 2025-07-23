@@ -1,7 +1,7 @@
 
 'use client';
 
-import { doc, updateDoc, increment } from 'firebase/firestore';
+import { doc, updateDoc, increment, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { getUserGameData, type GameData } from './firestore';
 
@@ -18,6 +18,13 @@ export interface Challenge {
 }
 
 export const challenges: Record<string, Omit<Challenge, 'progress' | 'claimed'>> = {
+    dailyLogin: {
+        id: 'dailyLogin',
+        title: 'Daily Login',
+        description: 'Log in each day to claim a bonus!',
+        target: 1,
+        reward: 20,
+    },
     collectPlants: {
         id: 'collectPlants',
         title: 'Plant Collector',
@@ -59,7 +66,7 @@ export async function checkAndResetChallenges(userId: string) {
 }
 
 // Update challenge progress
-export async function updateChallengeProgress(userId: string, challengeId: keyof typeof challenges) {
+export async function updateChallengeProgress(userId: string, challengeId: keyof typeof challenges, value: number = 1) {
     const userDocRef = doc(db, 'users', userId);
     const gameData = await getUserGameData(userId);
     if (!gameData) return;
@@ -74,13 +81,26 @@ export async function updateChallengeProgress(userId: string, challengeId: keyof
     }
 
     await updateDoc(userDocRef, {
-        [`challenges.${challengeId}.progress`]: increment(1)
+        [`challenges.${challengeId}.progress`]: increment(value)
     });
 }
 
 export const updateWateringProgress = (userId: string) => updateChallengeProgress(userId, 'waterPlants');
 export const updateCollectionProgress = (userId: string) => updateChallengeProgress(userId, 'collectPlants');
 export const updateEvolutionProgress = (userId: string) => updateChallengeProgress(userId, 'evolvePlant');
+export const updateLoginProgress = async (userId: string) => {
+    const gameData = await getUserGameData(userId);
+    if (!gameData) return;
+    
+    // Only set progress to 1 if it's not already set for the day.
+    const challengeState = gameData.challenges?.['dailyLogin'];
+    if (!challengeState || challengeState.progress < 1) {
+        const userDocRef = doc(db, 'users', userId);
+         await updateDoc(userDocRef, {
+            [`challenges.dailyLogin.progress`]: 1
+        });
+    }
+}
 
 // Claim reward
 export async function claimChallengeReward(userId: string, challengeId: string) {
@@ -100,3 +120,5 @@ export async function claimChallengeReward(userId: string, challengeId: string) 
         [`challenges.${challengeId}.claimed`]: true
     });
 }
+
+    
