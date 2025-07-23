@@ -96,12 +96,12 @@
       transform: translateX(-100%) skewX(-20deg);
     }
     100% {
-      transform: translateX(200%) skewX(-20deg);
+      transform: translateX(1000%) skewX(-20deg);
     }
   }
 
   .animate-sheen {
-    animation: sheen 0.5s ease-in-out 3s infinite;
+    animation: sheen 1s ease-in-out 3s infinite;
   }
 
   @keyframes fade-in-up {
