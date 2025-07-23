@@ -58,6 +58,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               challengesStartDate: data.challengesStartDate || 0,
               likes: data.likes || 0,
               likedUsers: data.likedUsers || [],
+              autoWaterUnlocked: data.autoWaterUnlocked || false,
+              autoWaterEnabled: data.autoWaterEnabled || false,
             });
           } else {
             // This can happen on first signup.
