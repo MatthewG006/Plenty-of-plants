@@ -54,6 +54,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               showcasePlantIds: data.showcasePlantIds || [],
               challenges: data.challenges || {},
               challengesStartDate: data.challengesStartDate || 0,
+              likes: data.likes || 0,
+              likedUsers: data.likedUsers || [],
             });
           } else {
             // This can happen on first signup.

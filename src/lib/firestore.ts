@@ -22,6 +22,8 @@ export interface GameData {
     showcasePlantIds: number[];
     challenges: Record<string, { progress: number, claimed: boolean }>;
     challengesStartDate: number;
+    likes: number;
+    likedUsers: string[];
 }
 
 export interface CommunityUser {
@@ -29,6 +31,7 @@ export interface CommunityUser {
     username: string;
     avatarColor: string;
     showcasePlants: Plant[];
+    likes: number;
 }
 
 export async function getUserGameData(userId: string): Promise<GameData | null> {
@@ -52,6 +55,8 @@ export async function getUserGameData(userId: string): Promise<GameData | null> 
             showcasePlantIds: data.showcasePlantIds || [],
             challenges: data.challenges || {},
             challengesStartDate: data.challengesStartDate || 0,
+            likes: data.likes || 0,
+            likedUsers: data.likedUsers || [],
         };
     } else {
         return null;
@@ -80,11 +85,12 @@ export async function getCommunityUsers(): Promise<CommunityUser[]> {
                 username: data.username || 'Anonymous',
                 avatarColor: data.avatarColor || 'hsl(120, 70%, 85%)',
                 showcasePlants: showcasePlants,
+                likes: data.likes || 0,
             });
         }
     });
 
-    return communityUsers;
+    return communityUsers.sort((a, b) => b.likes - a.likes);
 }
 
 
@@ -130,6 +136,8 @@ export async function createUserDocument(user: User): Promise<GameData> {
             showcasePlantIds: [],
             challenges: {},
             challengesStartDate: Date.now(),
+            likes: 0,
+            likedUsers: [],
         };
 
         await setDoc(docRef, {
@@ -335,4 +343,29 @@ export async function updateShowcasePlants(userId: string, plantIds: number[]) {
     await updateDoc(userDocRef, {
         showcasePlantIds: plantIds,
     });
+}
+
+export async function likeUser(likerUid: string, likedUid: string) {
+    const likerDocRef = doc(db, 'users', likerUid);
+    const likedDocRef = doc(db, 'users', likedUid);
+
+    const likerData = await getUserGameData(likerUid);
+
+    if (!likerData) throw new Error("Liker data not found.");
+    if (likerData.likedUsers.includes(likedUid)) throw new Error("User already liked.");
+
+    const batch = writeBatch(db);
+
+    // Add user to liker's likedUsers list
+    batch.update(likerDocRef, {
+        likedUsers: arrayUnion(likedUid)
+    });
+
+    // Increment likes and gold for the liked user
+    batch.update(likedDocRef, {
+        likes: increment(1),
+        gold: increment(5)
+    });
+
+    await batch.commit();
 }
