@@ -160,6 +160,10 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
 
             newLevel += 1;
             newXp -= XP_PER_LEVEL;
+            
+            // This sequence ensures the bar visually resets and animates to the new value.
+            setVisualXp(0);
+            await new Promise(resolve => setTimeout(resolve, 50));
             setVisualXp(newXp);
 
             if (newLevel >= EVOLUTION_LEVEL && plant.form === 'Base') {
@@ -289,9 +293,9 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
                     <div className="w-full px-4 space-y-2">
                         <div className="flex justify-between items-baseline">
                             <p className="text-lg font-semibold text-primary">Level {plant.level}</p>
-                             <p className="text-sm text-muted-foreground">{isWatering ? visualXp : plant.xp} / {XP_PER_LEVEL} XP</p>
+                             <p className="text-sm text-muted-foreground">{visualXp} / {XP_PER_LEVEL} XP</p>
                         </div>
-                        <Progress value={((isWatering ? visualXp : plant.xp) / XP_PER_LEVEL) * 100} className="w-full" />
+                        <Progress value={(visualXp / XP_PER_LEVEL) * 100} className="w-full" />
                     </div>
 
                 </div>
@@ -1122,3 +1126,5 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
+
+    
