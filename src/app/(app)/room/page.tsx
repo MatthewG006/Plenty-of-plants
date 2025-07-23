@@ -132,7 +132,7 @@ function GoldCoinAnimation() {
 }
 
 
-function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, onEvolutionStart: (plantId: number) => void, userId: string }) {
+function PlantDetailDialog({ plant, open, onOpenChange, onAddToEvolutionQueue, userId }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, onAddToEvolutionQueue: (plantId: number) => void, userId: string }) {
     const { playSfx } = useAudio();
     const { toast } = useToast();
     const { gameData } = useAuth();
@@ -231,7 +231,7 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
             }
 
             if (shouldEvolve) {
-                onEvolutionStart(plant.id);
+                onAddToEvolutionQueue(plant.id);
                 onOpenChange(false);
             }
 
@@ -663,7 +663,8 @@ export default function RoomPage() {
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
 
-  const [plantIdToEvolve, setPlantIdToEvolve] = useState<number | null>(null);
+  const [plantsToEvolveQueue, setPlantsToEvolveQueue] = useState<number[]>([]);
+  const [currentEvolvingPlantId, setCurrentEvolvingPlantId] = useState<number | null>(null);
   const [isEvolving, setIsEvolving] = useState(false);
 
   const [processedDeskImages, setProcessedDeskImages] = useState<Record<number, string | null>>({});
@@ -715,9 +716,9 @@ export default function RoomPage() {
   const collectionPlants = useMemo(() => collectionPlantIds.map(id => allPlants[id]).filter(Boolean), [collectionPlantIds, allPlants]);
   
   const evolutionPlantName = useMemo(() => {
-    if (!plantIdToEvolve) return '';
-    return allPlants[plantIdToEvolve]?.name || '';
-  }, [plantIdToEvolve, allPlants]);
+    if (!currentEvolvingPlantId) return '';
+    return allPlants[currentEvolvingPlantId]?.name || '';
+  }, [currentEvolvingPlantId, allPlants]);
 
   // Auto-watering logic
   useEffect(() => {
@@ -735,6 +736,7 @@ export default function RoomPage() {
       let goldGained = 0;
       let waterProgress = 0;
       let waterEvolvedProgressCount = 0;
+      const evolutionCandidates: number[] = [];
 
       const updates: { [key: string]: any } = {};
 
@@ -751,6 +753,9 @@ export default function RoomPage() {
         if (newXp >= XP_PER_LEVEL) {
             newLevel += 1;
             newXp -= XP_PER_LEVEL;
+            if(newLevel >= EVOLUTION_LEVEL && plant.form === 'Base') {
+                evolutionCandidates.push(plant.id);
+            }
         }
 
         updates[`plants.${plant.id}.xp`] = newXp;
@@ -771,6 +776,10 @@ export default function RoomPage() {
           if (waterProgress > 0) await updateWateringProgress(user.uid, waterProgress);
           if (waterEvolvedProgressCount > 0) await updateWaterEvolvedProgress(user.uid, waterEvolvedProgressCount);
           
+          if(evolutionCandidates.length > 0) {
+              setPlantsToEvolveQueue(prev => [...prev, ...evolutionCandidates]);
+          }
+
           toast({
             title: "Auto-Watered!",
             description: `Watered ${refillsUsed} plants and gained ${goldGained} gold.`
@@ -782,6 +791,7 @@ export default function RoomPage() {
     };
 
     autoWaterPlants();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameData?.autoWaterEnabled, gameData?.waterRefills, user]); // Dependency array is key
 
 
@@ -955,19 +965,24 @@ export default function RoomPage() {
     await updatePlantArrangement(user.uid, finalCollectionIds, newDeskIds);
   };
   
-  const handleEvolutionStart = (plantId: number) => {
-    const plant = allPlants[plantId];
-    if (plant) {
-        setPlantIdToEvolve(plantId);
+  useEffect(() => {
+    if (plantsToEvolveQueue.length > 0 && !currentEvolvingPlantId) {
+        setCurrentEvolvingPlantId(plantsToEvolveQueue[0]);
     }
-  };
+  }, [plantsToEvolveQueue, currentEvolvingPlantId]);
 
+  const handleFinishEvolution = () => {
+    setIsEvolving(false);
+    setCurrentEvolvingPlantId(null);
+    setPlantsToEvolveQueue(prev => prev.slice(1));
+  };
+  
   const handleEvolve = async () => {
-    if (!plantIdToEvolve || !user) return;
+    if (!currentEvolvingPlantId || !user) return;
 
     setIsEvolving(true);
     try {
-        const plantToEvolve = await getPlantById(user.uid, plantIdToEvolve);
+        const plantToEvolve = await getPlantById(user.uid, currentEvolvingPlantId);
         if (!plantToEvolve) {
             throw new Error("Plant not found for evolution.");
         }
@@ -979,7 +994,7 @@ export default function RoomPage() {
 
         const compressedImageDataUri = await compressImage(newImageDataUri);
         
-        await updatePlant(user.uid, plantIdToEvolve, { 
+        await updatePlant(user.uid, currentEvolvingPlantId, { 
             image: compressedImageDataUri, 
             baseImage: plantToEvolve.image, // Save the old image as the base image
             form: 'Evolved' 
@@ -996,8 +1011,7 @@ export default function RoomPage() {
         console.error("Evolution failed", e);
         toast({ variant: 'destructive', title: "Evolution Failed", description: "Could not evolve your plant. Please try again." });
     } finally {
-        setIsEvolving(false);
-        setPlantIdToEvolve(null);
+        handleFinishEvolution();
     }
   };
   
@@ -1261,7 +1275,7 @@ export default function RoomPage() {
           plant={selectedPlant ? allPlants[selectedPlant.id] : null}
           open={!!selectedPlant}
           onOpenChange={(isOpen) => !isOpen && setSelectedPlant(null)}
-          onEvolutionStart={handleEvolutionStart}
+          onAddToEvolutionQueue={(plantId) => setPlantsToEvolveQueue(prev => [...prev, plantId])}
           userId={user.uid}
         />
         
@@ -1289,7 +1303,7 @@ export default function RoomPage() {
 
         <LongPressInfoDialog open={showLongPressInfo} onOpenChange={handleCloseLongPressInfo} />
 
-        <AlertDialog open={!!plantIdToEvolve || isEvolving} onOpenChange={(isOpen) => !isOpen && setPlantIdToEvolve(null)}>
+        <AlertDialog open={!!currentEvolvingPlantId || isEvolving} onOpenChange={(isOpen) => !isOpen && !isEvolving && handleFinishEvolution()}>
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle className="text-center text-primary">
@@ -1305,7 +1319,7 @@ export default function RoomPage() {
                     </div>
                 )}
                 <AlertDialogFooter>
-                    <AlertDialogCancel disabled={isEvolving}>Later</AlertDialogCancel>
+                    <AlertDialogCancel onClick={handleFinishEvolution} disabled={isEvolving}>Later</AlertDialogCancel>
                     <AlertDialogAction onClick={handleEvolve} disabled={isEvolving}>
                         {isEvolving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Evolving...</> : "Evolve"}
                     </AlertDialogAction>
