@@ -4,8 +4,8 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
-import { Leaf, Loader2, Droplet, Coins, Sparkles, Droplets, Trash2, GripVertical } from 'lucide-react';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose, DialogDescription } from '@/components/ui/dialog';
+import { Leaf, Loader2, Droplet, Coins, Sparkles, Droplets, Trash2, GripVertical, Star } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -27,7 +27,7 @@ import { useDraw, refundDraw } from '@/lib/draw-manager';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { updatePlantArrangement, updateUserGold, savePlant, useWaterRefill, updatePlant, getPlantById, deletePlant, useGlitter } from '@/lib/firestore';
+import { updatePlantArrangement, updateUserGold, savePlant, useWaterRefill, updatePlant, getPlantById, deletePlant, useGlitter, updateShowcasePlants } from '@/lib/firestore';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { compressImage, makeBackgroundTransparent } from '@/lib/image-compression';
 import { Badge } from '@/components/ui/badge';
@@ -43,6 +43,8 @@ const XP_PER_LEVEL = 1000;
 const GOLD_PER_WATERING = 5;
 const EVOLUTION_LEVEL = 10;
 const DRAG_CLICK_TOLERANCE = 5; // pixels
+const MAX_SHOWCASE_PLANTS = 5;
+const LONG_PRESS_DURATION = 500; // ms
 
 // Helper to check if a timestamp is from the current day
 function isToday(timestamp: number): boolean {
@@ -459,6 +461,77 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
     );
 }
 
+function PlantActionDialog({
+  plant,
+  open,
+  onOpenChange,
+  onDelete,
+  onToggleShowcase,
+  isPlantInShowcase,
+  canAddToShowcase,
+}: {
+  plant: Plant | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onDelete: (plantId: number) => void;
+  onToggleShowcase: (plantId: number) => void;
+  isPlantInShowcase: boolean;
+  canAddToShowcase: boolean;
+}) {
+  if (!plant) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="text-2xl text-center">{plant.name}</DialogTitle>
+          <DialogDescription className="text-center">Select an action for your plant.</DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-3 py-4">
+          <Button
+            onClick={() => {
+              onToggleShowcase(plant.id);
+              onOpenChange(false);
+            }}
+            disabled={!isPlantInShowcase && !canAddToShowcase}
+          >
+            <Star className="mr-2 h-4 w-4" />
+            {isPlantInShowcase ? 'Remove from Showcase' : 'Add to Showcase'}
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete Plant
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete {plant.name} from your collection. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    onDelete(plant.id);
+                    onOpenChange(false);
+                  }}
+                  className="bg-destructive hover:bg-destructive/90"
+                >
+                  Yes, delete it
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function RoomPage() {
   const { user, gameData } = useAuth();
   const { toast } = useToast();
@@ -476,6 +549,10 @@ export default function RoomPage() {
   const [isEvolving, setIsEvolving] = useState(false);
 
   const [processedDeskImages, setProcessedDeskImages] = useState<Record<number, string | null>>({});
+
+  // For long press
+  const [longPressPlant, setLongPressPlant] = useState<Plant | null>(null);
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -607,6 +684,13 @@ export default function RoomPage() {
     setDrawnPlant(null);
   };
   
+  const handleDragStart = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
   const handleDragEnd = async (event: DragEndEvent) => {
     setActiveDragId(null);
     if (!user) return;
@@ -726,6 +810,73 @@ export default function RoomPage() {
         toast({ variant: 'destructive', title: "Error", description: e.message || "Could not apply glitter." });
     }
   };
+
+  const handlePointerDown = (plant: Plant) => {
+    longPressTimerRef.current = setTimeout(() => {
+      setLongPressPlant(plant);
+    }, LONG_PRESS_DURATION);
+  };
+
+  const handlePointerUp = (plant: Plant) => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+      // If it wasn't a long press, treat as click
+      if (!longPressPlant) {
+        setSelectedPlant(allPlants[plant.id]);
+      }
+    }
+  };
+
+  const handlePointerLeave = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const handleDeletePlantAction = async (plantId: number) => {
+    if (!user) return;
+    try {
+      await deletePlant(user.uid, plantId);
+      toast({
+        title: 'Plant Deleted',
+        description: `The plant has been removed from your collection.`,
+      });
+    } catch (e) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not delete the plant.' });
+    }
+  };
+
+  const handleToggleShowcaseAction = async (plantId: number) => {
+    if (!user || !gameData) return;
+    const currentShowcase = gameData.showcasePlantIds || [];
+    let newShowcase: number[];
+    let message = '';
+
+    if (currentShowcase.includes(plantId)) {
+      newShowcase = currentShowcase.filter((id) => id !== plantId);
+      message = 'Plant removed from your showcase.';
+    } else {
+      if (currentShowcase.length >= MAX_SHOWCASE_PLANTS) {
+        toast({
+          variant: 'destructive',
+          title: 'Showcase Full',
+          description: `You can only select up to ${MAX_SHOWCASE_PLANTS} plants.`,
+        });
+        return;
+      }
+      newShowcase = [...currentShowcase, plantId];
+      message = 'Plant added to your showcase!';
+    }
+
+    try {
+      await updateShowcasePlants(user.uid, newShowcase);
+      toast({ title: 'Showcase Updated', description: message });
+    } catch (e) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not update your showcase.' });
+    }
+  };
   
   if (!user || !gameData) {
     return (
@@ -735,8 +886,20 @@ export default function RoomPage() {
     );
   }
 
+  const showcaseIds = gameData.showcasePlantIds || [];
+  const isPlantInShowcase = !!(longPressPlant && showcaseIds.includes(longPressPlant.id));
+  const canAddToShowcase = showcaseIds.length < MAX_SHOWCASE_PLANTS;
+
   return (
-    <DndContext sensors={sensors} onDragStart={(e) => setActiveDragId(e.active.id as string)} onDragEnd={handleDragEnd} onDragCancel={() => setActiveDragId(null)}>
+    <DndContext 
+        sensors={sensors} 
+        onDragStart={(e) => {
+            handleDragStart();
+            setActiveDragId(e.active.id as string);
+        }} 
+        onDragEnd={handleDragEnd} 
+        onDragCancel={() => setActiveDragId(null)}
+    >
       <div className="space-y-4 bg-white min-h-screen">
         <header className="flex flex-col items-center gap-4 p-4 text-center">
           <h1 className="text-3xl text-primary text-center">My Room</h1>
@@ -801,15 +964,20 @@ export default function RoomPage() {
               <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5">
                   {collectionPlants.length > 0 ? (
                     collectionPlants.map((plant) => (
-                         <DraggablePlant 
-                            key={plant.id} 
-                            plant={plant} 
-                            source="collection"
-                            onClick={() => setSelectedPlant(allPlants[plant.id])} 
-                            onApplyGlitter={handleApplyGlitter}
-                            canApplyGlitter={gameData.glitterCount > 0}
-                            className="cursor-grab active:cursor-grabbing"
-                        />
+                         <div
+                            key={plant.id}
+                            onPointerDown={() => handlePointerDown(plant)}
+                            onPointerUp={() => handlePointerUp(plant)}
+                            onPointerLeave={handlePointerLeave}
+                          >
+                           <DraggablePlant
+                             plant={plant}
+                             source="collection"
+                             onApplyGlitter={handleApplyGlitter}
+                             canApplyGlitter={gameData.glitterCount > 0}
+                             className="cursor-grab active:cursor-grabbing"
+                           />
+                         </div>
                     ))
                   ) : (
                     <div className="col-span-3 text-center text-muted-foreground py-8">
@@ -826,6 +994,18 @@ export default function RoomPage() {
           onOpenChange={(isOpen) => !isOpen && setSelectedPlant(null)}
           onEvolutionStart={handleEvolutionStart}
           userId={user.uid}
+        />
+        
+        <PlantActionDialog
+          plant={longPressPlant}
+          open={!!longPressPlant}
+          onOpenChange={(isOpen) => {
+            if (!isOpen) setLongPressPlant(null);
+          }}
+          onDelete={handleDeletePlantAction}
+          onToggleShowcase={handleToggleShowcaseAction}
+          isPlantInShowcase={isPlantInShowcase}
+          canAddToShowcase={canAddToShowcase}
         />
 
         <NewPlantDialog
@@ -889,5 +1069,3 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
-
-    
