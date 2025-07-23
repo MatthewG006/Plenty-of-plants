@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings, User, Check, X, Loader2, Leaf, Award, Coins, Info } from 'lucide-react';
+import { Settings, User, Check, X, Loader2, Leaf, Award, Coins, Info, Clock } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
@@ -34,6 +34,20 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 
+const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
+
+function getNextDrawTimeString(lastRefill: number) {
+    const now = Date.now();
+    const nextRefillTime = lastRefill + REFILL_INTERVAL;
+    const diff = Math.max(0, nextRefillTime - now);
+    
+    if (diff === 0) return 'Next draw available now!';
+
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+    return `${hours}h ${minutes}m until next draw`;
+}
 
 function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlantOutput | null, open: boolean, onOpenChange: (open: boolean) => void }) {
     if (!plant) return null;
@@ -102,6 +116,7 @@ export default function HomePage() {
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawnPlant, setDrawnPlant] = useState<DrawPlantOutput | null>(null);
   const [isClaimingChallenge, setIsClaimingChallenge] = useState(false);
+  const [nextDrawTime, setNextDrawTime] = useState('');
 
   const autoplayPlugin = useRef(
     Autoplay({ delay: 4000, stopOnInteraction: true })
@@ -125,6 +140,19 @@ export default function HomePage() {
         }
     }
   }, [gameData]);
+
+  useEffect(() => {
+    if (gameData?.lastDrawRefill) {
+      const updateTimer = () => {
+        setNextDrawTime(getNextDrawTimeString(gameData.lastDrawRefill));
+      };
+
+      updateTimer();
+      const timer = setInterval(updateTimer, 60000); 
+
+      return () => clearInterval(timer);
+    }
+  }, [gameData?.lastDrawRefill]);
 
   const handleDraw = async () => {
     if (!gameData || gameData.draws <= 0) {
@@ -325,6 +353,12 @@ export default function HomePage() {
                 </div>
                 <div className="text-sm text-muted-foreground text-center">
                     <span>Draws Available</span>
+                     {gameData.draws < MAX_DRAWS && nextDrawTime && (
+                        <div className="text-xs text-muted-foreground flex items-center justify-center gap-1.5 pt-1">
+                            <Clock className="w-3 h-3" />
+                            <span>{nextDrawTime}</span>
+                        </div>
+                    )}
                 </div>
             </div>
             <Button onClick={handleDraw} disabled={isDrawing || gameData.draws <= 0} size="lg" className="w-full rounded-full mt-2">
@@ -384,3 +418,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
