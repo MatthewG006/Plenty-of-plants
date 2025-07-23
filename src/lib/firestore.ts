@@ -26,6 +26,8 @@ export interface GameData {
     challengesStartDate: number;
     likes: number;
     likedUsers: string[];
+    autoWaterUnlocked: boolean;
+    autoWaterEnabled: boolean;
 }
 
 export interface CommunityUser {
@@ -61,6 +63,8 @@ export async function getUserGameData(userId: string): Promise<GameData | null> 
             challengesStartDate: data.challengesStartDate || 0,
             likes: data.likes || 0,
             likedUsers: data.likedUsers || [],
+            autoWaterUnlocked: data.autoWaterUnlocked || false,
+            autoWaterEnabled: data.autoWaterEnabled || false,
         };
     } else {
         return null;
@@ -147,6 +151,8 @@ export async function createUserDocument(user: User): Promise<GameData> {
             challengesStartDate: Date.now(),
             likes: 0,
             likedUsers: [],
+            autoWaterUnlocked: false,
+            autoWaterEnabled: false,
         };
 
         await setDoc(docRef, {
@@ -270,6 +276,25 @@ export async function purchaseCosmetic(userId: string, cosmetic: 'glitterCount' 
     });
 }
 
+export async function purchaseAutoWater(userId: string, cost: number) {
+    const userDocRef = doc(db, 'users', userId);
+    const gameData = await getUserGameData(userId);
+
+    if (!gameData || gameData.gold < cost) {
+        throw new Error("Not enough gold to purchase.");
+    }
+    if (gameData.autoWaterUnlocked) {
+        throw new Error("Auto-Waterer already purchased.");
+    }
+
+    await updateDoc(userDocRef, {
+        gold: increment(-cost),
+        autoWaterUnlocked: true,
+        autoWaterEnabled: true,
+    });
+}
+
+
 export async function useWaterRefill(userId: string) {
     const userDocRef = doc(db, 'users', userId);
     const gameData = await getUserGameData(userId);
@@ -319,6 +344,13 @@ export async function useRainbowGlitter(userId: string) {
 
     await updateDoc(userDocRef, {
         rainbowGlitterCount: increment(-1)
+    });
+}
+
+export async function toggleAutoWater(userId: string, isEnabled: boolean) {
+    const userDocRef = doc(db, 'users', userId);
+    await updateDoc(userDocRef, {
+        autoWaterEnabled: isEnabled
     });
 }
 

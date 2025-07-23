@@ -5,7 +5,7 @@ import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose, DialogDescription } from '@/components/ui/dialog';
-import { Leaf, Loader2, Droplet, Coins, Sparkles, Droplets, Trash2, GripVertical, Star, ArrowLeftRight } from 'lucide-react';
+import { Leaf, Loader2, Droplet, Coins, Sparkles, Droplets, Trash2, GripVertical, Star, ArrowLeftRight, Zap } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -27,7 +27,7 @@ import { useDraw, refundDraw } from '@/lib/draw-manager';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { updatePlantArrangement, updateUserGold, savePlant, useWaterRefill, updatePlant, getPlantById, deletePlant, useGlitter, updateShowcasePlants, useSheen, useRainbowGlitter } from '@/lib/firestore';
+import { updatePlantArrangement, updateUserGold, savePlant, useWaterRefill, updatePlant, getPlantById, deletePlant, useGlitter, updateShowcasePlants, useSheen, useRainbowGlitter, toggleAutoWater, GameData } from '@/lib/firestore';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { compressImage, makeBackgroundTransparent } from '@/lib/image-compression';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +35,8 @@ import { evolvePlantAction } from '@/app/actions/evolve-plant';
 import { drawPlantAction } from '@/app/actions/draw-plant';
 import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 import { updateWateringProgress, updateEvolutionProgress, updateCollectionProgress, updateWaterEvolvedProgress, updateApplyGlitterProgress } from '@/lib/challenge-manager';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 const NUM_POTS = 3;
 const MAX_WATERINGS_PER_DAY = 4;
@@ -717,6 +719,72 @@ export default function RoomPage() {
     return allPlants[plantIdToEvolve]?.name || '';
   }, [plantIdToEvolve, allPlants]);
 
+  // Auto-watering logic
+  useEffect(() => {
+    const autoWaterPlants = async () => {
+      if (!user || !gameData || !gameData.autoWaterEnabled || gameData.waterRefills <= 0) return;
+
+      const plantsToWater: Plant[] = Object.values(allPlants).filter(plant => {
+        const timesWateredToday = plant.lastWatered?.filter(isToday).length ?? 0;
+        return timesWateredToday < MAX_WATERINGS_PER_DAY;
+      });
+
+      if (plantsToWater.length === 0) return;
+
+      let refillsUsed = 0;
+      let goldGained = 0;
+      let waterProgress = 0;
+      let waterEvolvedProgressCount = 0;
+
+      const updates: { [key: string]: any } = {};
+
+      for (const plant of plantsToWater) {
+        if (gameData.waterRefills - refillsUsed <= 0) break;
+
+        refillsUsed++;
+        goldGained += GOLD_PER_WATERING;
+
+        const xpGained = XP_PER_WATERING;
+        let newXp = plant.xp + xpGained;
+        let newLevel = plant.level;
+
+        if (newXp >= XP_PER_LEVEL) {
+            newLevel += 1;
+            newXp -= XP_PER_LEVEL;
+        }
+
+        updates[`plants.${plant.id}.xp`] = newXp;
+        updates[`plants.${plant.id}.level`] = newLevel;
+
+        if (plant.form === 'Evolved') {
+          waterEvolvedProgressCount++;
+        } else {
+          waterProgress++;
+        }
+      }
+      
+      if(refillsUsed > 0) {
+        try {
+          await updatePlant(user.uid, 0, updates); // plantId 0 is a dummy, actual updates are in the object
+          await updateUserGold(user.uid, goldGained);
+          await useWaterRefill(user.uid, refillsUsed);
+          if (waterProgress > 0) await updateWateringProgress(user.uid, waterProgress);
+          if (waterEvolvedProgressCount > 0) await updateWaterEvolvedProgress(user.uid, waterEvolvedProgressCount);
+          
+          toast({
+            title: "Auto-Watered!",
+            description: `Watered ${refillsUsed} plants and gained ${goldGained} gold.`
+          });
+        } catch(e) {
+          console.error("Auto-watering failed", e);
+        }
+      }
+    };
+
+    autoWaterPlants();
+  }, [gameData?.autoWaterEnabled, gameData?.waterRefills, user]); // Dependency array is key
+
+
   useEffect(() => {
     const processImages = async () => {
         const newImages: Record<number, string | null> = {};
@@ -982,6 +1050,16 @@ export default function RoomPage() {
     }
   };
 
+  const handleToggleAutoWater = async (isEnabled: boolean) => {
+    if (!user) return;
+    try {
+        await toggleAutoWater(user.uid, isEnabled);
+    } catch (e) {
+        console.error("Failed to toggle auto-water", e);
+        toast({ variant: 'destructive', title: "Error", description: "Could not save your setting." });
+    }
+  }
+
   const handlePointerDown = (plant: Plant) => {
     longPressTimerRef.current = setTimeout(() => {
       setLongPressPlant(plant);
@@ -1071,7 +1149,7 @@ export default function RoomPage() {
       <div className="space-y-4 bg-white min-h-screen">
         <header className="flex flex-col items-center gap-4 p-4 text-center">
           <h1 className="text-3xl text-primary text-center">My Room</h1>
-          <div className="flex items-center justify-center gap-4">
+          <div className="flex flex-wrap items-center justify-center gap-4">
              <div className="flex items-center gap-2 rounded-full bg-yellow-100/80 px-3 py-1 border border-yellow-300/80">
               <Sparkles className="h-5 w-5 text-yellow-500" />
               <span className="font-bold text-yellow-700">{gameData.glitterCount}</span>
@@ -1088,6 +1166,17 @@ export default function RoomPage() {
               <Droplets className="h-5 w-5 text-blue-500" />
               <span className="font-bold text-blue-700">{gameData.waterRefills}</span>
             </div>
+             {gameData.autoWaterUnlocked && (
+              <div className="flex items-center space-x-2">
+                <Zap className="h-5 w-5 text-primary" />
+                <Label htmlFor="auto-water-toggle" className="font-semibold text-primary">Auto-Water</Label>
+                <Switch
+                  id="auto-water-toggle"
+                  checked={gameData.autoWaterEnabled}
+                  onCheckedChange={handleToggleAutoWater}
+                />
+              </div>
+            )}
           </div>
         </header>
 
