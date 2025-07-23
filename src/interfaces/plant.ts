@@ -4,6 +4,7 @@ export interface Plant {
   name: string;
   form: string;
   image: string;
+  baseImage?: string;
   hint: string;
   description: string;
   level: number;
@@ -11,5 +12,3 @@ export interface Plant {
   lastWatered: number[];
   hasGlitter?: boolean;
 }
-
-    

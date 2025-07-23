@@ -5,7 +5,7 @@ import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose, DialogDescription } from '@/components/ui/dialog';
-import { Leaf, Loader2, Droplet, Coins, Sparkles, Droplets, Trash2, GripVertical, Star } from 'lucide-react';
+import { Leaf, Loader2, Droplet, Coins, Sparkles, Droplets, Trash2, GripVertical, Star, ArrowLeftRight } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -113,12 +113,15 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
     const [showGold, setShowGold] = useState(false);
     const [visualXp, setVisualXp] = useState(plant?.xp || 0);
     const [isDeleting, setIsDeleting] = useState(false);
-    
+    const [viewingBase, setViewingBase] = useState(false);
+
     useEffect(() => {
         if (plant) {
             setVisualXp(plant.xp);
         }
-    }, [plant]);
+        // Reset view when dialog opens or plant changes
+        setViewingBase(false);
+    }, [plant, open]);
 
     if (!plant || !gameData) return null;
 
@@ -130,6 +133,10 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
         if (hasWaterRefills) return `Use Refill (${gameData.waterRefills} left)`;
         return `Water Plant (${timesWateredToday}/${MAX_WATERINGS_PER_DAY})`;
     };
+    
+    const displayName = viewingBase ? `Base: ${plant.name}` : plant.name;
+    const displayImage = viewingBase ? plant.baseImage : plant.image;
+
 
     const handleWaterPlant = async () => {
         if (!canWater || !plant) return;
@@ -225,8 +232,14 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-sm">
                 <DialogHeader>
-                    <DialogTitle className="text-3xl text-center text-primary">{plant.name}</DialogTitle>
-                     <div className="flex justify-center pt-2">
+                    <DialogTitle className="text-3xl text-center text-primary">{displayName}</DialogTitle>
+                     <div className="flex justify-center pt-2 space-x-2">
+                         {plant.baseImage && (
+                            <Button variant="outline" size="sm" className="text-xs h-7 px-2" onClick={() => setViewingBase(v => !v)}>
+                                <ArrowLeftRight className="mr-1 h-3 w-3" />
+                                {viewingBase ? 'View Evolved' : 'View Base Form'}
+                            </Button>
+                         )}
                          <AlertDialog>
                             <AlertDialogTrigger asChild>
                                 <Button variant="outline" size="sm" className="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive text-xs h-7 px-2">
@@ -254,13 +267,13 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
                 <div className="flex flex-col items-center gap-4 pt-4">
                     <div className="w-64 h-64 relative">
                         <div className="rounded-lg overflow-hidden border-4 border-primary/50 shadow-lg bg-green-100 flex items-center justify-center h-full">
-                            {plant.image !== 'placeholder' ? (
-                                <Image src={plant.image} alt={plant.name} width={256} height={256} className="object-cover w-full h-full" data-ai-hint={plant.hint} />
+                            {displayImage && displayImage !== 'placeholder' ? (
+                                <Image src={displayImage} alt={plant.name} width={256} height={256} className="object-cover w-full h-full" data-ai-hint={plant.hint} />
                             ) : (
                                 <Leaf className="w-24 h-24 text-muted-foreground/50" />
                             )}
                         </div>
-                        {plant.hasGlitter && <GlitterAnimation />}
+                        {plant.hasGlitter && !viewingBase && <GlitterAnimation />}
                         {isWatering && <WaterDropletAnimation />}
                         {isWatering && <GoldCoinAnimation />}
                         {showGold && (
@@ -283,7 +296,7 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
 
                 </div>
                 <DialogFooter className="pt-2">
-                    <Button onClick={handleWaterPlant} disabled={!canWater || isWatering} className="w-full bg-blue-500 hover:bg-blue-600">
+                    <Button onClick={handleWaterPlant} disabled={!canWater || isWatering || viewingBase} className="w-full bg-blue-500 hover:bg-blue-600">
                         <Droplet className="mr-2 h-4 w-4" />
                         {waterButtonText()}
                     </Button>
@@ -382,7 +395,7 @@ function PlantCardUI({ plant, onApplyGlitter, canApplyGlitter }: { plant: Plant,
     );
 }
 
-function DraggablePlant({ plant, source, onApplyGlitter, canApplyGlitter, ...rest }: { plant: Plant; source: 'collection' | 'desk', onApplyGlitter: (plantId: number) => void; canApplyGlitter: boolean; } & React.HTMLAttributes<HTMLDivElement>) {
+function DraggablePlant({ plant, source, onApplyGlitter, canApplyGlitter, ...rest }: { plant: Plant; source: 'collection' | 'desk'; onApplyGlitter: (plantId: number) => void; canApplyGlitter: boolean } & React.HTMLAttributes<HTMLDivElement>) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: `${source}:${plant.id}`,
         data: { plant, source },
@@ -774,7 +787,11 @@ export default function RoomPage() {
 
         const compressedImageDataUri = await compressImage(newImageDataUri);
         
-        await updatePlant(user.uid, plantIdToEvolve, { image: compressedImageDataUri, form: 'Evolved' });
+        await updatePlant(user.uid, plantIdToEvolve, { 
+            image: compressedImageDataUri, 
+            baseImage: plantToEvolve.image, // Save the old image as the base image
+            form: 'Evolved' 
+        });
         await updateEvolutionProgress(user.uid);
         
         playSfx('success');
