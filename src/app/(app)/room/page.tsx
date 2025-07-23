@@ -58,7 +58,7 @@ function isToday(timestamp: number): boolean {
 function SheenAnimation() {
     return (
         <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden rounded-lg">
-            <div className="absolute -top-1/2 -left-1/2 w-1/12 h-[200%] bg-white/30 animate-sheen" />
+            <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-white/30 animate-sheen" />
         </div>
     )
 }
