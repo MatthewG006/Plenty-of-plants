@@ -33,7 +33,23 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
     NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
     NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  }
+  },
+  webpack: (config) => {
+    config.module.rules.push({
+      test: /\.mjs$/,
+      include: /node_modules/,
+      type: 'javascript/auto',
+    });
+    config.module.rules.push({
+      test: /node_modules\/handlebars\/lib\/index\.js$/,
+      loader: 'string-replace-loader',
+      options: {
+        search: 'require.extensions',
+        replace: '((() => {})())', // Replace with a no-op
+      },
+    });
+    return config;
+  },
 };
 
 export default nextConfig;
