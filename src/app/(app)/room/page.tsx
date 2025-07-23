@@ -130,7 +130,7 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
     const canWater = hasWaterRefills || (timesWateredToday < MAX_WATERINGS_PER_DAY);
     const waterButtonText = () => {
         if (isWatering) return 'Watering...';
-        if (hasWaterRefills) return `Use Refill (${gameData.waterRefills} left)`;
+        if (hasWaterRefills) return `Use Refill`;
         return `Water Plant (${timesWateredToday}/${MAX_WATERINGS_PER_DAY})`;
     };
     
@@ -233,7 +233,7 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
             <DialogContent className="max-w-sm">
                 <DialogHeader>
                     <DialogTitle className="text-3xl text-center text-primary">{displayName}</DialogTitle>
-                     <div className="flex justify-center pt-2 space-x-2">
+                     <div className="flex flex-col sm:flex-row items-center justify-center pt-2 gap-2">
                          {plant.baseImage && (
                             <Button variant="outline" size="sm" className="text-xs h-7 px-2" onClick={() => setViewingBase(v => !v)}>
                                 <ArrowLeftRight className="mr-1 h-3 w-3" />
@@ -541,6 +541,29 @@ function PlantActionDialog({
   );
 }
 
+function LongPressInfoDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <div className="mx-auto bg-accent rounded-full p-3 mb-2">
+            <GripVertical className="h-8 w-8 text-accent-foreground" />
+          </div>
+          <DialogTitle className="text-2xl text-center">New Feature: Quick Actions</DialogTitle>
+          <DialogDescription className="text-center pt-2">
+            Long-press on a plant in your collection to quickly add it to your showcase or delete it.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button>Got it!</Button>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function RoomPage() {
   const { user, gameData } = useAuth();
   const { toast } = useToast();
@@ -562,6 +585,7 @@ export default function RoomPage() {
   // For long press
   const [longPressPlant, setLongPressPlant] = useState<Plant | null>(null);
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [showLongPressInfo, setShowLongPressInfo] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -583,6 +607,22 @@ export default function RoomPage() {
         setCollectionPlantIds(gameData.collectionPlantIds || []);
     }
   }, [gameData]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+        const hasSeenInfo = localStorage.getItem('hasSeenLongPressInfo');
+        if (!hasSeenInfo) {
+          setShowLongPressInfo(true);
+        }
+    }
+  }, []);
+
+  const handleCloseLongPressInfo = (isOpen: boolean) => {
+    if (!isOpen) {
+      localStorage.setItem('hasSeenLongPressInfo', 'true');
+      setShowLongPressInfo(false);
+    }
+  }
 
   const allPlants = useMemo(() => gameData?.plants || {}, [gameData]);
   const deskPlants = useMemo(() => deskPlantIds.map(id => id ? allPlants[id] : null), [deskPlantIds, allPlants]);
@@ -1028,6 +1068,8 @@ export default function RoomPage() {
             }
           }}
         />
+
+        <LongPressInfoDialog open={showLongPressInfo} onOpenChange={handleCloseLongPressInfo} />
 
         <AlertDialog open={!!plantIdToEvolve || isEvolving} onOpenChange={(isOpen) => !isOpen && setPlantIdToEvolve(null)}>
             <AlertDialogContent>
