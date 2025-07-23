@@ -88,7 +88,7 @@ function ChallengeCard({ challenge, onClaim, isClaiming }: { challenge: Challeng
 const gameTips = [
     "Drag plants from your collection onto the pots in your room to display them.",
     "Water your plants to gain XP and level them up. Evolve them at level 10!",
-    "Complete weekly challenges to earn extra gold.",
+    "Complete daily challenges to earn extra gold.",
     "Visit the shop to get daily free draws or buy more with your gold.",
     "Show off your favorite plants on the community page by selecting them in your profile."
 ];
@@ -287,7 +287,7 @@ export default function HomePage() {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Award className="text-yellow-500" />
-                        Weekly Challenges
+                        Daily Challenges
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">

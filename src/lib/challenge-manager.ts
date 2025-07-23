@@ -5,7 +5,7 @@ import { doc, updateDoc, increment } from 'firebase/firestore';
 import { db } from './firebase';
 import { getUserGameData, type GameData } from './firestore';
 
-const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 export interface Challenge {
     id: string;
@@ -21,23 +21,23 @@ export const challenges: Record<string, Omit<Challenge, 'progress' | 'claimed'>>
     collectPlants: {
         id: 'collectPlants',
         title: 'Plant Collector',
-        description: 'Collect 15 new plants.',
-        target: 15,
-        reward: 20,
+        description: 'Collect 3 new plants.',
+        target: 3,
+        reward: 5,
     },
     waterPlants: {
         id: 'waterPlants',
         title: 'Green Thumb',
-        description: 'Water any of your plants 20 times.',
-        target: 20,
-        reward: 20,
+        description: 'Water your plants 5 times.',
+        target: 5,
+        reward: 5,
     },
-    evolvePlants: {
-        id: 'evolvePlants',
+    evolvePlant: {
+        id: 'evolvePlant',
         title: 'Evolutionist',
-        description: 'Evolve 10 of your plants.',
-        target: 10,
-        reward: 20,
+        description: 'Evolve 1 of your plants.',
+        target: 1,
+        reward: 10,
     },
 };
 
@@ -49,7 +49,7 @@ export async function checkAndResetChallenges(userId: string) {
     const now = Date.now();
     const challengesStartDate = gameData.challengesStartDate || 0;
 
-    if (now - challengesStartDate > ONE_WEEK_MS) {
+    if (now - challengesStartDate > ONE_DAY_MS) {
         const userDocRef = doc(db, 'users', userId);
         await updateDoc(userDocRef, {
             challenges: {}, // Reset all challenge progress
@@ -66,11 +66,11 @@ export async function updateChallengeProgress(userId: string, challengeId: keyof
 
     // Don't update if challenges are expired (they will be reset on next load)
     const now = Date.now();
-    if (now - (gameData.challengesStartDate || 0) > ONE_WEEK_MS) return;
+    if (now - (gameData.challengesStartDate || 0) > ONE_DAY_MS) return;
 
     const challengeState = gameData.challenges?.[challengeId];
-    if (challengeState && challengeState.claimed) {
-        return; // Don't update if already claimed
+    if (challengeState && (challengeState.claimed || challengeState.progress >= challenges[challengeId].target)) {
+        return; // Don't update if already claimed or complete
     }
 
     await updateDoc(userDocRef, {
@@ -80,7 +80,7 @@ export async function updateChallengeProgress(userId: string, challengeId: keyof
 
 export const updateWateringProgress = (userId: string) => updateChallengeProgress(userId, 'waterPlants');
 export const updateCollectionProgress = (userId: string) => updateChallengeProgress(userId, 'collectPlants');
-export const updateEvolutionProgress = (userId: string) => updateChallengeProgress(userId, 'evolvePlants');
+export const updateEvolutionProgress = (userId: string) => updateChallengeProgress(userId, 'evolvePlant');
 
 // Claim reward
 export async function claimChallengeReward(userId: string, challengeId: string) {
@@ -100,5 +100,3 @@ export async function claimChallengeReward(userId: string, challengeId: string) 
         [`challenges.${challengeId}.claimed`]: true
     });
 }
-
-    
