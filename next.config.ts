@@ -36,7 +36,7 @@ const nextConfig: NextConfig = {
   webpack: (config) => {
     config.module.rules.push({
       test: /\.mjs$/,
-      include: /node_modules/,
+      include: /node_modules\/(genkit|@genkit-ai)/,
       type: 'javascript/auto',
     });
     config.module.rules.push({

@@ -48,6 +48,31 @@ function InfoRow({ icon: Icon, label, value, valueClassName }: { icon?: React.El
   )
 }
 
+function SheenAnimation() {
+    return (
+        <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden rounded-lg">
+            <div className="absolute -top-1/4 -left-1/2 w-full h-full bg-white/30 animate-sheen" />
+        </div>
+    )
+}
+
+function RainbowGlitterAnimation() {
+    return (
+        <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden">
+            {Array.from({ length: 10 }).map((_, i) => (
+                <Sparkles key={i} className="absolute animate-sparkle" style={{
+                    top: `${Math.random() * 100}%`,
+                    left: `${Math.random() * 100}%`,
+                    animationDelay: `${Math.random() * 1.5}s`,
+                    color: `hsl(${Math.random() * 360}, 100%, 70%)`,
+                    width: `${5 + Math.random() * 5}px`,
+                    height: `${5 + Math.random() * 5}px`,
+                }} />
+            ))}
+        </div>
+    );
+}
+
 function GlitterAnimation() {
     return (
         <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden">
@@ -89,6 +114,8 @@ function ShowcasePlantCard({ plant, isSelected, onSelect }: { plant: Plant, isSe
                         <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
                     )}
                     {plant.hasGlitter && <GlitterAnimation />}
+                    {plant.hasSheen && <SheenAnimation />}
+                    {plant.hasRainbowGlitter && <RainbowGlitterAnimation />}
                     {plant.form === 'Evolved' && (
                         <div className="absolute top-1 right-1 bg-secondary/80 text-secondary-foreground p-1 rounded-full shadow-md">
                             <Sparkles className="w-3 h-3" />
