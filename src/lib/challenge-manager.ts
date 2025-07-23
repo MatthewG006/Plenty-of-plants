@@ -48,6 +48,38 @@ export const challenges: Record<string, Omit<Challenge, 'progress' | 'claimed'>>
     },
 };
 
+export const secondaryChallenges: Record<string, Omit<Challenge, 'progress' | 'claimed'>> = {
+    waterEvolved: {
+        id: 'waterEvolved',
+        title: 'Advanced Care',
+        description: 'Water 10 evolved plants.',
+        target: 10,
+        reward: 30,
+    },
+    collectMorePlants: {
+        id: 'collectMorePlants',
+        title: 'Master Collector',
+        description: 'Add 5 more plants to your collection.',
+        target: 5,
+        reward: 35,
+    },
+    likePlayer: {
+        id: 'likePlayer',
+        title: 'Community Spirit',
+        description: 'Like another player\'s collection.',
+        target: 1,
+        reward: 40,
+    },
+    applyGlitter: {
+        id: 'applyGlitter',
+        title: 'Sparkle Specialist',
+        description: 'Apply a glitter pack to a plant.',
+        target: 1,
+        reward: 45,
+    },
+};
+
+
 // Check if challenges need to be reset
 export async function checkAndResetChallenges(userId: string) {
     const gameData = await getUserGameData(userId);
@@ -66,7 +98,7 @@ export async function checkAndResetChallenges(userId: string) {
 }
 
 // Update challenge progress
-export async function updateChallengeProgress(userId: string, challengeId: keyof typeof challenges, value: number = 1) {
+export async function updateChallengeProgress(userId: string, challengeId: string, value: number = 1) {
     const userDocRef = doc(db, 'users', userId);
     const gameData = await getUserGameData(userId);
     if (!gameData) return;
@@ -75,8 +107,12 @@ export async function updateChallengeProgress(userId: string, challengeId: keyof
     const now = Date.now();
     if (now - (gameData.challengesStartDate || 0) > ONE_DAY_MS) return;
 
+    const allChallenges = {...challenges, ...secondaryChallenges};
+    const challengeDef = allChallenges[challengeId];
+    if (!challengeDef) return;
+
     const challengeState = gameData.challenges?.[challengeId];
-    if (challengeState && (challengeState.claimed || challengeState.progress >= challenges[challengeId].target)) {
+    if (challengeState && (challengeState.claimed || challengeState.progress >= challengeDef.target)) {
         return; // Don't update if already claimed or complete
     }
 
@@ -86,8 +122,15 @@ export async function updateChallengeProgress(userId: string, challengeId: keyof
 }
 
 export const updateWateringProgress = (userId: string) => updateChallengeProgress(userId, 'waterPlants');
-export const updateCollectionProgress = (userId: string) => updateChallengeProgress(userId, 'collectPlants');
+export const updateCollectionProgress = (userId: string) => {
+    updateChallengeProgress(userId, 'collectPlants');
+    updateChallengeProgress(userId, 'collectMorePlants');
+}
 export const updateEvolutionProgress = (userId: string) => updateChallengeProgress(userId, 'evolvePlant');
+export const updateWaterEvolvedProgress = (userId: string) => updateChallengeProgress(userId, 'waterEvolved');
+export const updateLikePlayerProgress = (userId: string) => updateChallengeProgress(userId, 'likePlayer');
+export const updateApplyGlitterProgress = (userId: string) => updateChallengeProgress(userId, 'applyGlitter');
+
 export const updateLoginProgress = async (userId: string) => {
     const gameData = await getUserGameData(userId);
     if (!gameData) return;
@@ -108,7 +151,8 @@ export async function claimChallengeReward(userId: string, challengeId: string) 
     const gameData = await getUserGameData(userId);
     if (!gameData) throw new Error("User data not found.");
 
-    const challengeDef = challenges[challengeId];
+    const allChallenges = {...challenges, ...secondaryChallenges};
+    const challengeDef = allChallenges[challengeId];
     const challengeState = gameData.challenges?.[challengeId];
 
     if (!challengeDef || !challengeState) throw new Error("Challenge not found.");

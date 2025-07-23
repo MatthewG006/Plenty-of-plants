@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Settings, User, Check, X, Loader2, Leaf, Award, Coins, Info, Clock, Users } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import type { Plant } from '@/interfaces/plant';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -27,7 +27,7 @@ import { savePlant } from '@/lib/firestore';
 import { compressImage } from '@/lib/image-compression';
 import { drawPlantAction } from '@/app/actions/draw-plant';
 import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
-import { Challenge, challenges, claimChallengeReward, checkAndResetChallenges, updateCollectionProgress, updateLoginProgress } from '@/lib/challenge-manager';
+import { Challenge, challenges, secondaryChallenges, claimChallengeReward, checkAndResetChallenges, updateCollectionProgress, updateLoginProgress } from '@/lib/challenge-manager';
 import Autoplay from "embla-carousel-autoplay"
 import {
   Carousel,
@@ -298,6 +298,16 @@ export default function HomePage() {
     }
   };
   
+  const arePrimaryChallengesComplete = useMemo(() => {
+      if (!gameData?.challenges) return false;
+      return Object.values(challenges).every(challengeDef => {
+          const userChallenge = gameData.challenges[challengeDef.id];
+          return userChallenge?.claimed || (userChallenge?.progress || 0) >= challengeDef.target;
+      });
+  }, [gameData?.challenges]);
+
+  const currentChallenges = arePrimaryChallengesComplete ? secondaryChallenges : challenges;
+
   if (!user || !gameData) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
@@ -372,11 +382,11 @@ export default function HomePage() {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Award className="text-yellow-500" />
-                        Daily Challenges
+                        {arePrimaryChallengesComplete ? "Bonus Challenges" : "Daily Challenges"}
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                   {Object.values(challenges).map(challengeDef => {
+                   {Object.values(currentChallenges).map(challengeDef => {
                        const userChallengeData = userChallenges[challengeDef.id] || { progress: 0, claimed: false };
                        const fullChallengeData = { ...challengeDef, ...userChallengeData };
                        return <ChallengeCard key={challengeDef.id} challenge={fullChallengeData} onClaim={handleClaimChallenge} isClaiming={isClaimingChallenge} />
