@@ -233,7 +233,7 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
             <DialogContent className="max-w-sm">
                 <DialogHeader>
                     <DialogTitle className="text-3xl text-center text-primary">{displayName}</DialogTitle>
-                     <div className="flex flex-col sm:flex-row items-center justify-center pt-2 gap-2">
+                     <div className="flex flex-row items-center justify-center pt-2 gap-2">
                          {plant.baseImage && (
                             <Button variant="outline" size="sm" className="text-xs h-7 px-2" onClick={() => setViewingBase(v => !v)}>
                                 <ArrowLeftRight className="mr-1 h-3 w-3" />
