@@ -384,7 +384,7 @@ function PlantCardUI({ plant, onApplyGlitter, canApplyGlitter }: { plant: Plant,
     );
 }
 
-function DraggablePlant({ plant, source, ...rest }: { plant: Plant; source: 'collection' | 'desk' } & Omit<React.HTMLAttributes<HTMLDivElement>, 'onApplyGlitter' | 'canApplyGlitter'>) {
+function DraggablePlant({ plant, source, onApplyGlitter, canApplyGlitter, ...rest }: { plant: Plant; source: 'collection' | 'desk', onApplyGlitter: (plantId: number) => void; canApplyGlitter: boolean; } & React.HTMLAttributes<HTMLDivElement>) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: `${source}:${plant.id}`,
         data: { plant, source },
@@ -400,8 +400,8 @@ function DraggablePlant({ plant, source, ...rest }: { plant: Plant; source: 'col
             {source === 'collection' ? (
                  <PlantCardUI 
                     plant={plant} 
-                    onApplyGlitter={(rest as any).onApplyGlitter} 
-                    canApplyGlitter={(rest as any).canApplyGlitter}
+                    onApplyGlitter={onApplyGlitter} 
+                    canApplyGlitter={canApplyGlitter}
                 />
             ) : (
                 <PlantImageUI plant={plant} image={plant.image}/>
@@ -412,30 +412,19 @@ function DraggablePlant({ plant, source, ...rest }: { plant: Plant; source: 'col
 
 function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant | null, index: number, onClickPlant: (plant: Plant) => void, processedImage: string | null }) {
     const { setNodeRef, isOver } = useDroppable({ id: `pot:${index}` });
-    const { attributes, listeners, setNodeRef: setDraggableNodeRef, isDragging } = useDraggable({
-        id: `desk:${plant?.id}`,
-        data: { plant, source: 'desk' },
-        disabled: !plant,
-    });
 
-    // Logic to distinguish click from drag
     const pos = useRef([0, 0]);
+
     const onPointerDown = (e: React.PointerEvent) => {
         pos.current = [e.clientX, e.clientY];
-        if (listeners && listeners.onPointerDown) {
-            listeners.onPointerDown(e);
-        }
     };
 
     const onPointerUp = (e: React.PointerEvent) => {
         const [x, y] = pos.current;
         const dist = Math.sqrt(Math.pow(e.clientX - x, 2) + Math.pow(e.clientY - y, 2));
 
-        if (dist < DRAG_CLICK_TOLERANCE && plant && !isDragging) {
-            onClickPlant(plant);
-        }
-        if (listeners && listeners.onPointerUp) {
-            listeners.onPointerUp(e);
+        if (dist < DRAG_CLICK_TOLERANCE && plant) {
+             onClickPlant(plant);
         }
     };
     
@@ -453,19 +442,19 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
     }
     
     return (
-        <div
-            ref={setDraggableNodeRef}
-            style={{ opacity: isDragging ? 0.4 : 1, touchAction: 'none' }}
-            {...attributes}
+        <div 
+            className="relative flex h-24 w-24 items-end justify-center"
             onPointerDown={onPointerDown}
             onPointerUp={onPointerUp}
-            {...listeners}
-            className="relative flex h-24 w-24 items-end justify-center rounded-lg cursor-grab active:cursor-grabbing"
         >
+            <DraggablePlant 
+                plant={plant} 
+                source="desk" 
+                onApplyGlitter={() => {}} // dummy function
+                canApplyGlitter={false} // dummy value
+                className="cursor-grab active:cursor-grabbing w-full h-full z-10" 
+            />
             <div ref={setNodeRef} className={cn("absolute inset-0 z-0", isOver && "bg-primary/20 rounded-lg")} />
-            <div className="w-full h-full z-10 pointer-events-none">
-                 <PlantImageUI plant={plant} image={processedImage}/>
-            </div>
         </div>
     );
 }
