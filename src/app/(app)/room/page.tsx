@@ -1180,17 +1180,6 @@ export default function RoomPage() {
               <Droplets className="h-5 w-5 text-blue-500" />
               <span className="font-bold text-blue-700">{gameData.waterRefills}</span>
             </div>
-             {gameData.autoWaterUnlocked && (
-              <div className="flex items-center space-x-2">
-                <Zap className="h-5 w-5 text-primary" />
-                <Label htmlFor="auto-water-toggle" className="font-semibold text-primary">Auto-Water</Label>
-                <Switch
-                  id="auto-water-toggle"
-                  checked={gameData.autoWaterEnabled}
-                  onCheckedChange={handleToggleAutoWater}
-                />
-              </div>
-            )}
           </div>
         </header>
 
@@ -1238,7 +1227,20 @@ export default function RoomPage() {
         </section>
 
         <section className="px-4 pb-4">
-            <h2 className="mb-4 text-xl text-primary text-center">My Collection</h2>
+            <div className="flex justify-center items-center gap-4 mb-4">
+                <h2 className="text-xl text-primary">My Collection</h2>
+                {gameData.autoWaterUnlocked && (
+                <div className="flex items-center space-x-2">
+                    <Zap className="h-5 w-5 text-primary" />
+                    <Label htmlFor="auto-water-toggle" className="font-semibold text-primary">Auto-Water</Label>
+                    <Switch
+                    id="auto-water-toggle"
+                    checked={gameData.autoWaterEnabled}
+                    onCheckedChange={handleToggleAutoWater}
+                    />
+                </div>
+                )}
+            </div>
             <DroppableCollectionArea>
               <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5">
                   {collectionPlants.length > 0 ? (
@@ -1359,3 +1361,5 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
+
+    
