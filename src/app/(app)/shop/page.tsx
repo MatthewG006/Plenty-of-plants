@@ -14,7 +14,7 @@ import { purchaseWaterRefills, purchaseGlitter } from '@/lib/firestore';
 import { useRouter } from 'next/navigation';
 
 const DRAW_COST_IN_GOLD = 50;
-const WATER_REFILL_COST_IN_GOLD = 50;
+const WATER_REFILL_COST_IN_GOLD = 5;
 const GLITTER_COST_IN_GOLD = 60;
 
 function getNextDrawTimeString() {
