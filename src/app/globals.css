@@ -93,15 +93,15 @@
 
   @keyframes sheen {
     0% {
-      transform: translateX(-150%) skewX(-20deg);
+      transform: translateX(-100%) skewX(-20deg);
     }
     100% {
-      transform: translateX(150%) skewX(-20deg);
+      transform: translateX(200%) skewX(-20deg);
     }
   }
 
   .animate-sheen {
-    animation: sheen 2s ease-in-out infinite;
+    animation: sheen 0.5s ease-in-out 3s infinite;
   }
 
   @keyframes fade-in-up {
