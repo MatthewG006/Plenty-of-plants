@@ -403,11 +403,11 @@ function PlantCardUI({
     canApplyRainbowGlitter
 }: { 
     plant: Plant, 
-    onApplyGlitter: (e: React.MouseEvent, plantId: number) => void;
+    onApplyGlitter: (plantId: number) => void;
     canApplyGlitter: boolean;
-    onApplySheen: (e: React.MouseEvent, plantId: number) => void;
+    onApplySheen: (plantId: number) => void;
     canApplySheen: boolean;
-    onApplyRainbowGlitter: (e: React.MouseEvent, plantId: number) => void;
+    onApplyRainbowGlitter: (plantId: number) => void;
     canApplyRainbowGlitter: boolean;
 }) {
     return (
@@ -417,7 +417,8 @@ function PlantCardUI({
                     <Button
                         size="icon"
                         className="h-7 w-7 bg-yellow-400/80 text-white hover:bg-yellow-500/90"
-                        onClick={(e) => onApplyGlitter(e, plant.id)}
+                        onClick={() => onApplyGlitter(plant.id)}
+                        onPointerDown={(e) => e.stopPropagation()}
                     >
                         <Sparkles className="h-4 w-4" />
                     </Button>
@@ -426,7 +427,8 @@ function PlantCardUI({
                     <Button
                         size="icon"
                         className="h-7 w-7 bg-blue-400/80 text-white hover:bg-blue-500/90"
-                        onClick={(e) => onApplySheen(e, plant.id)}
+                        onClick={() => onApplySheen(plant.id)}
+                        onPointerDown={(e) => e.stopPropagation()}
                     >
                         <Star className="h-4 w-4" />
                     </Button>
@@ -435,7 +437,8 @@ function PlantCardUI({
                     <Button
                         size="icon"
                         className="h-7 w-7 bg-gradient-to-r from-pink-500 to-yellow-500 text-white"
-                        onClick={(e) => onApplyRainbowGlitter(e, plant.id)}
+                        onClick={() => onApplyRainbowGlitter(plant.id)}
+                        onPointerDown={(e) => e.stopPropagation()}
                     >
                         <Sparkles className="h-4 w-4" />
                     </Button>
@@ -468,7 +471,7 @@ function PlantCardUI({
     );
 }
 
-function DraggablePlant({ plant, source, onApplyGlitter, canApplyGlitter, onApplySheen, canApplySheen, onApplyRainbowGlitter, canApplyRainbowGlitter, ...rest }: { plant: Plant; source: 'collection' | 'desk'; onApplyGlitter: (e: React.MouseEvent, plantId: number) => void; canApplyGlitter: boolean; onApplySheen: (e: React.MouseEvent, plantId: number) => void; canApplySheen: boolean; onApplyRainbowGlitter: (e: React.MouseEvent, plantId: number) => void; canApplyRainbowGlitter: boolean; } & React.HTMLAttributes<HTMLDivElement>) {
+function DraggablePlant({ plant, source, onApplyGlitter, canApplyGlitter, onApplySheen, canApplySheen, onApplyRainbowGlitter, canApplyRainbowGlitter, ...rest }: { plant: Plant; source: 'collection' | 'desk'; onApplyGlitter: (plantId: number) => void; canApplyGlitter: boolean; onApplySheen: (plantId: number) => void; canApplySheen: boolean; onApplyRainbowGlitter: (plantId: number) => void; canApplyRainbowGlitter: boolean; } & React.HTMLAttributes<HTMLDivElement>) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: `${source}:${plant.id}`,
         data: { plant, source },
@@ -930,8 +933,7 @@ export default function RoomPage() {
     }
   };
   
-  const handleApplyGlitter = async (e: React.MouseEvent, plantId: number) => {
-    e.stopPropagation();
+  const handleApplyGlitter = async (plantId: number) => {
     if (!user) return;
     try {
         await useGlitter(user.uid);
@@ -948,8 +950,7 @@ export default function RoomPage() {
     }
   };
 
-  const handleApplySheen = async (e: React.MouseEvent, plantId: number) => {
-    e.stopPropagation();
+  const handleApplySheen = async (plantId: number) => {
     if (!user) return;
     try {
         await useSheen(user.uid);
@@ -965,8 +966,7 @@ export default function RoomPage() {
     }
   };
   
-  const handleApplyRainbowGlitter = async (e: React.MouseEvent, plantId: number) => {
-    e.stopPropagation();
+  const handleApplyRainbowGlitter = async (plantId: number) => {
     if (!user) return;
     try {
         await useRainbowGlitter(user.uid);
