@@ -369,9 +369,9 @@ function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlantOutput 
     );
 }
 
-function PlantImageUI({ plant, image }: { plant: Plant, image: string | null }) {
+function PlantImageUI({ plant, image, canWater }: { plant: Plant, image: string | null, canWater: boolean }) {
   return (
-    <div className="flex flex-col items-center text-center pointer-events-none w-full h-full">
+    <div className={cn("flex flex-col items-center text-center pointer-events-none w-full h-full rounded-lg", canWater && "animate-glow")}>
       <div className="relative h-20 w-20 flex items-center justify-center">
         {image && image !== 'placeholder' ? (
             <Image 
@@ -396,7 +396,8 @@ function PlantImageUI({ plant, image }: { plant: Plant, image: string | null }) 
 }
 
 function PlantCardUI({ 
-    plant, 
+    plant,
+    canWater,
     onApplyGlitter, 
     canApplyGlitter,
     onApplySheen,
@@ -404,7 +405,8 @@ function PlantCardUI({
     onApplyRainbowGlitter,
     canApplyRainbowGlitter
 }: { 
-    plant: Plant, 
+    plant: Plant,
+    canWater: boolean,
     onApplyGlitter: (plantId: number) => void;
     canApplyGlitter: boolean;
     onApplySheen: (plantId: number) => void;
@@ -413,7 +415,10 @@ function PlantCardUI({
     canApplyRainbowGlitter: boolean;
 }) {
     return (
-        <Card className="group overflow-hidden shadow-md w-full relative">
+        <Card className={cn(
+            "group overflow-hidden shadow-md w-full relative",
+            canWater && "animate-glow"
+        )}>
             <div className="absolute top-1 left-1 z-10 flex flex-col gap-1">
                 {canApplyGlitter && !plant.hasGlitter && !plant.hasSheen && !plant.hasRainbowGlitter &&(
                     <Button
@@ -473,7 +478,7 @@ function PlantCardUI({
     );
 }
 
-function DraggablePlant({ plant, source, onApplyGlitter, canApplyGlitter, onApplySheen, canApplySheen, onApplyRainbowGlitter, canApplyRainbowGlitter, ...rest }: { plant: Plant; source: 'collection' | 'desk'; onApplyGlitter: (plantId: number) => void; canApplyGlitter: boolean; onApplySheen: (plantId: number) => void; canApplySheen: boolean; onApplyRainbowGlitter: (plantId: number) => void; canApplyRainbowGlitter: boolean; } & React.HTMLAttributes<HTMLDivElement>) {
+function DraggablePlant({ plant, source, canWater, onApplyGlitter, canApplyGlitter, onApplySheen, canApplySheen, onApplyRainbowGlitter, canApplyRainbowGlitter, ...rest }: { plant: Plant; source: 'collection' | 'desk'; canWater: boolean; onApplyGlitter: (plantId: number) => void; canApplyGlitter: boolean; onApplySheen: (plantId: number) => void; canApplySheen: boolean; onApplyRainbowGlitter: (plantId: number) => void; canApplyRainbowGlitter: boolean; } & React.HTMLAttributes<HTMLDivElement>) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: `${source}:${plant.id}`,
         data: { plant, source },
@@ -489,6 +494,7 @@ function DraggablePlant({ plant, source, onApplyGlitter, canApplyGlitter, onAppl
             {source === 'collection' ? (
                  <PlantCardUI 
                     plant={plant} 
+                    canWater={canWater}
                     onApplyGlitter={onApplyGlitter} 
                     canApplyGlitter={canApplyGlitter}
                     onApplySheen={onApplySheen}
@@ -497,13 +503,13 @@ function DraggablePlant({ plant, source, onApplyGlitter, canApplyGlitter, onAppl
                     canApplyRainbowGlitter={canApplyRainbowGlitter}
                 />
             ) : (
-                <PlantImageUI plant={plant} image={plant.image}/>
+                <PlantImageUI plant={plant} image={plant.image} canWater={canWater} />
             )}
         </div>
     );
 }
 
-function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant | null, index: number, onClickPlant: (plant: Plant) => void, processedImage: string | null }) {
+function DeskPot({ plant, index, onClickPlant, processedImage, canWater }: { plant: Plant | null, index: number, onClickPlant: (plant: Plant) => void, processedImage: string | null, canWater: boolean }) {
     const { setNodeRef, isOver } = useDroppable({ id: `pot:${index}` });
     const pos = useRef([0, 0]);
 
@@ -543,6 +549,7 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
             <DraggablePlant 
                 plant={{...plant, image: processedImage || plant.image}}
                 source="desk" 
+                canWater={canWater}
                 onApplyGlitter={() => {}}
                 canApplyGlitter={false}
                 onApplySheen={() => {}}
@@ -1197,15 +1204,19 @@ export default function RoomPage() {
               priority
             />
             <div className="relative z-10 flex h-full items-end justify-around">
-              {deskPlants.map((plant, index) => (
-                  <DeskPot
-                    key={plant?.id || `pot-${index}`}
-                    plant={plant}
-                    index={index}
-                    onClickPlant={(p) => setSelectedPlant(allPlants[p.id])}
-                    processedImage={plant ? processedDeskImages[plant.id] : null}
-                  />
-              ))}
+              {deskPlants.map((plant, index) => {
+                   const canWater = plant ? (gameData.waterRefills > 0 || (plant.lastWatered?.filter(isToday).length ?? 0) < MAX_WATERINGS_PER_DAY) : false;
+                   return (
+                      <DeskPot
+                        key={plant?.id || `pot-${index}`}
+                        plant={plant}
+                        index={index}
+                        onClickPlant={(p) => setSelectedPlant(allPlants[p.id])}
+                        processedImage={plant ? processedDeskImages[plant.id] : null}
+                        canWater={canWater}
+                      />
+                  )
+              })}
             </div>
           </div>
         </section>
@@ -1244,7 +1255,9 @@ export default function RoomPage() {
             <DroppableCollectionArea>
               <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5">
                   {collectionPlants.length > 0 ? (
-                    collectionPlants.map((plant) => (
+                    collectionPlants.map((plant) => {
+                        const canWater = gameData.waterRefills > 0 || (plant.lastWatered?.filter(isToday).length ?? 0) < MAX_WATERINGS_PER_DAY;
+                        return (
                          <div
                             key={plant.id}
                             onPointerDown={() => handlePointerDown(plant)}
@@ -1254,6 +1267,7 @@ export default function RoomPage() {
                            <DraggablePlant
                              plant={plant}
                              source="collection"
+                             canWater={canWater}
                              onApplyGlitter={handleApplyGlitter}
                              canApplyGlitter={gameData.glitterCount > 0}
                              onApplySheen={handleApplySheen}
@@ -1263,7 +1277,8 @@ export default function RoomPage() {
                              className="cursor-grab active:cursor-grabbing"
                            />
                          </div>
-                    ))
+                        )
+                    })
                   ) : (
                     <div className="col-span-3 text-center text-muted-foreground py-8">
                         Your collection is empty. Go to the Home screen to draw a new plant!
@@ -1333,10 +1348,11 @@ export default function RoomPage() {
             {activeDragData ? (
                 <div className="w-28">
                     {activeDragData.source === 'desk' ? (
-                        <PlantImageUI plant={activeDragData.plant} image={activeDragData.image}/>
+                        <PlantImageUI plant={activeDragData.plant} image={activeDragData.image} canWater={false} />
                     ) : (
                         <PlantCardUI 
                             plant={activeDragData.plant} 
+                            canWater={false}
                             onApplyGlitter={() => {}} canApplyGlitter={false} 
                             onApplySheen={() => {}} canApplySheen={false}
                             onApplyRainbowGlitter={() => {}} canApplyRainbowGlitter={false}
