@@ -174,6 +174,30 @@
         "x-next-revalidate-tag-token"
       ]
     },
+    "/room": {
+      "experimentalBypassFor": [
+        {
+          "type": "header",
+          "key": "Next-Action"
+        },
+        {
+          "type": "header",
+          "key": "content-type",
+          "value": "multipart/form-data;.*"
+        }
+      ],
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/room",
+      "dataRoute": "/room.rsc",
+      "allowHeader": [
+        "host",
+        "x-matched-path",
+        "x-prerender-revalidate",
+        "x-prerender-revalidate-if-generated",
+        "x-next-revalidated-tags",
+        "x-next-revalidate-tag-token"
+      ]
+    },
     "/settings": {
       "experimentalBypassFor": [
         {
@@ -221,37 +245,13 @@
         "x-next-revalidated-tags",
         "x-next-revalidate-tag-token"
       ]
-    },
-    "/room": {
-      "experimentalBypassFor": [
-        {
-          "type": "header",
-          "key": "Next-Action"
-        },
-        {
-          "type": "header",
-          "key": "content-type",
-          "value": "multipart/form-data;.*"
-        }
-      ],
-      "initialRevalidateSeconds": false,
-      "srcRoute": "/room",
-      "dataRoute": "/room.rsc",
-      "allowHeader": [
-        "host",
-        "x-matched-path",
-        "x-prerender-revalidate",
-        "x-prerender-revalidate-if-generated",
-        "x-next-revalidated-tags",
-        "x-next-revalidate-tag-token"
-      ]
     }
   },
   "dynamicRoutes": {},
   "notFoundRoutes": [],
   "preview": {
-    "previewModeId": "0be0932fc8bdfc49e7e0997e01f6f3fd",
-    "previewModeSigningKey": "f475ec404f71a9d3b86687d38dc236eaca8ffdedbe1b895e0c24bd3991d38ddd",
-    "previewModeEncryptionKey": "9ce1539d7964206a979d49b0383ae268ea703add5f837805bb9a546bfedd79c8"
+    "previewModeId": "2f15f9c6d19b2e99afbb79692f4c3b51",
+    "previewModeSigningKey": "224203bacc6e3b7e16bf781005d1440996db539ba5d63c340e07ec9d7bb26e8f",
+    "previewModeEncryptionKey": "4744e225da3657061c7fb633fa48b5d9c9e7c893ec0653cfedc3687281c1f82c"
   }
 }
