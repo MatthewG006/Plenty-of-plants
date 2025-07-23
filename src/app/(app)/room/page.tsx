@@ -142,7 +142,6 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
         if (!canWater || !plant) return;
         
         playSfx('watering');
-        setTimeout(() => playSfx('watering'), 200);
         setIsWatering(true);
         setShowGold(true);
 
@@ -1126,5 +1125,3 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
-
-    
