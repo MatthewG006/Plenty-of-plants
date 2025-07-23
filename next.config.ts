@@ -36,7 +36,7 @@ const nextConfig: NextConfig = {
   webpack: (config) => {
     config.module.rules.push({
       test: /\.mjs$/,
-      include: /node_modules\/(genkit|@genkit-ai)/,
+      include: /node_modules/,
       type: 'javascript/auto',
     });
     config.module.rules.push({
@@ -46,6 +46,15 @@ const nextConfig: NextConfig = {
         search: 'require.extensions',
         replace: '((() => {})())', // Replace with a no-op
       },
+    });
+    config.module.rules.push({
+        test: /node_modules\/(@genkit-ai|genkit)\/.*\.js$/,
+        loader: 'string-replace-loader',
+        options: {
+            search: '(import\\.meta\\.url)',
+            replace: 'import.meta.url',
+            flags: 'g'
+        },
     });
     return config;
   },
