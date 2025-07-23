@@ -285,7 +285,7 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
 
                 </div>
                 <DialogFooter className="pt-2">
-                    <Button onClick={handleWaterPlant} disabled={!canWater || isWatering} className="w-full">
+                    <Button onClick={handleWaterPlant} disabled={!canWater || isWatering} className="w-full bg-blue-500 hover:bg-blue-600">
                         <Droplet className="mr-2 h-4 w-4" />
                         {waterButtonText()}
                     </Button>
@@ -457,9 +457,9 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
             ref={setDraggableNodeRef}
             style={{ opacity: isDragging ? 0.4 : 1, touchAction: 'none' }}
             {...attributes}
-            {...listeners}
             onPointerDown={onPointerDown}
             onPointerUp={onPointerUp}
+            {...listeners}
             className="relative flex h-24 w-24 items-end justify-center rounded-lg cursor-grab active:cursor-grabbing"
         >
             <div ref={setNodeRef} className={cn("absolute inset-0 z-0", isOver && "bg-primary/20 rounded-lg")} />
