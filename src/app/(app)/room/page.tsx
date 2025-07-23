@@ -176,10 +176,6 @@ function PlantDetailDialog({ plant, open, onOpenChange, onEvolutionStart, userId
             
             if (usedRefill) {
                  await useWaterRefill(userId);
-                 toast({
-                    title: "Water Refill Used",
-                    description: `You have ${gameData.waterRefills - 1} refills remaining.`,
-                });
             } else {
                  updatedLastWatered = [...updatedLastWatered.filter(isToday), now];
             }
@@ -684,11 +680,12 @@ export default function RoomPage() {
     setDrawnPlant(null);
   };
   
-  const handleDragStart = () => {
+  const handleDragStart = (event: DragStartEvent) => {
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
     }
+    setActiveDragId(event.active.id as string);
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -893,10 +890,7 @@ export default function RoomPage() {
   return (
     <DndContext 
         sensors={sensors} 
-        onDragStart={(e) => {
-            handleDragStart();
-            setActiveDragId(e.active.id as string);
-        }} 
+        onDragStart={handleDragStart} 
         onDragEnd={handleDragEnd} 
         onDragCancel={() => setActiveDragId(null)}
     >
