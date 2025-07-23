@@ -16,6 +16,7 @@ export interface GameData {
     draws: number;
     lastDrawRefill: number;
     lastFreeDrawClaimed: number;
+    lastLoginBonusClaimed: number;
     waterRefills: number;
     glitterCount: number;
     showcasePlantIds: number[];
@@ -45,6 +46,7 @@ export async function getUserGameData(userId: string): Promise<GameData | null> 
             draws: data.draws ?? MAX_DRAWS,
             lastDrawRefill: data.lastDrawRefill || Date.now(),
             lastFreeDrawClaimed: data.lastFreeDrawClaimed || 0,
+            lastLoginBonusClaimed: data.lastLoginBonusClaimed || 0,
             waterRefills: data.waterRefills || 0,
             glitterCount: data.glitterCount || 0,
             showcasePlantIds: data.showcasePlantIds || [],
@@ -115,13 +117,14 @@ export async function createUserDocument(user: User): Promise<GameData> {
         };
         
         const newGameData: GameData = {
-            gold: 0,
+            gold: 20, // Start with bonus
             plants: { '1': startingPlant },
             collectionPlantIds: [],
             deskPlantIds: [1, null, null],
             draws: MAX_DRAWS,
             lastDrawRefill: Date.now(),
             lastFreeDrawClaimed: 0,
+            lastLoginBonusClaimed: Date.now(),
             waterRefills: 0,
             glitterCount: 0,
             showcasePlantIds: [],
