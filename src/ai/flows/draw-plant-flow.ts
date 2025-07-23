@@ -99,7 +99,7 @@ const drawPlantFlow = ai.defineFlow(
         1. **Art Style:** The final image must have a clean, 2D, illustrated style.
         2. **The Pot:** The plant MUST be in a simple, smiling terracotta pot. The pot's style should be consistent.
         3. **The Plant:** The new plant character must be cute and simple. It absolutely MUST NOT have arms, legs, or a human-like body.
-        4. **The Background:** The background MUST be transparent. This is not optional.
+        4. **The Background:** The background MUST be a solid white color. This is not optional.
         5. **Composition:** The image must contain ONLY the single plant character in its pot. NO other objects, text, people, hands, or background elements are allowed.
       `;
       
