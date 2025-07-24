@@ -730,7 +730,10 @@ export default function RoomPage() {
   // Auto-watering logic
   useEffect(() => {
     const runAutoWater = async () => {
-      if (!user || !gameData || !gameData.autoWaterEnabled || gameData.waterRefills <= 0) {
+      if (!user || !gameData) return;
+      
+      // Only run if the feature is enabled and user has refills.
+      if (!gameData.autoWaterEnabled || gameData.waterRefills <= 0) {
         return;
       }
 
@@ -750,7 +753,12 @@ export default function RoomPage() {
         
       } catch (e) {
         console.error("Auto-watering failed", e);
-        // Optional: show a toast to the user
+        // Optionally, show a toast to the user if it fails
+        toast({
+          variant: "destructive",
+          title: "Auto-Watering Failed",
+          description: "There was an issue with auto-watering."
+        });
       }
     };
 
