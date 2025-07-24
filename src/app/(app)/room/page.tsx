@@ -871,7 +871,7 @@ export default function RoomPage() {
     };
   
   const handleDragStart = (event: DragStartEvent) => {
-    playSfx('whoosh');
+    playSfx('pickup');
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
