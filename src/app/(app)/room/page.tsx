@@ -871,6 +871,7 @@ export default function RoomPage() {
     };
   
   const handleDragStart = (event: DragStartEvent) => {
+    playSfx('whoosh');
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
@@ -880,6 +881,7 @@ export default function RoomPage() {
 
   const handleDragEnd = async (event: DragEndEvent) => {
     setActiveDragId(null);
+    playSfx('tap');
     if (!user) return;
 
     const { active, over } = event;
@@ -1197,7 +1199,7 @@ export default function RoomPage() {
 
         <section className="px-4 pb-4">
             <Card className="p-4">
-              <div className="flex flex-col items-center gap-4 pb-4">
+              <div className="flex flex-col items-center gap-4">
                   <h2 className="text-xl text-primary">My Collection</h2>
                     {gameData.sprinklerUnlocked && (
                       <div className="pb-4">
@@ -1334,3 +1336,5 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
+
+    
