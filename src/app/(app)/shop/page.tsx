@@ -5,12 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { claimFreeDraw, loadDraws, MAX_DRAWS, hasClaimedDailyDraw } from '@/lib/draw-manager';
-import { Gift, Coins, Leaf, Clock, Loader2, Droplets, Sparkles, Zap, Pipette } from 'lucide-react';
+import { Gift, Coins, Leaf, Clock, Loader2, Droplets, Sparkles, Zap, Pipette, RefreshCw } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { useAudio } from '@/context/AudioContext';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/context/AuthContext';
-import { purchaseCosmetic, purchaseSprinkler, purchaseWaterRefills } from '@/lib/firestore';
+import { purchaseCosmetic, purchaseSprinkler, purchaseWaterRefill } from '@/lib/firestore';
 import { useRouter } from 'next/navigation';
 
 const DRAW_COST_IN_GOLD = 50;
@@ -78,7 +78,7 @@ export default function ShopPage() {
     }
   };
 
-    const handleBuyWaterRefills = async () => {
+    const handleBuyWaterRefill = async () => {
         if (!user || !gameData) return;
 
         if (gameData.gold < WATER_REFILL_COST_IN_GOLD) {
@@ -87,11 +87,11 @@ export default function ShopPage() {
         }
 
         try {
-            await purchaseWaterRefills(user.uid, WATER_REFILL_COST_IN_GOLD);
+            await purchaseWaterRefill(user.uid, WATER_REFILL_COST_IN_GOLD);
             playSfx('reward');
-            toast({ title: "Purchase Successful!", description: `Your plants' daily waterings have been refreshed!` });
+            toast({ title: "Purchase Successful!", description: `You bought 1 Water Refill.` });
         } catch (e: any) {
-            console.error("Failed to purchase water refills", e);
+            console.error("Failed to purchase water refill", e);
             toast({ variant: "destructive", title: "Error", description: e.message || "Could not complete the purchase." });
         }
     };
@@ -293,10 +293,10 @@ export default function ShopPage() {
              <Card className="shadow-sm">
               <CardHeader>
                 <div className="flex items-center gap-4">
-                  <Pipette className="h-8 w-8 text-primary" />
+                  <RefreshCw className="h-8 w-8 text-primary" />
                   <div>
-                    <CardTitle className="text-xl">Watering Bucket</CardTitle>
-                    <CardDescription>Refreshes the daily waterings for all your plants.</CardDescription>
+                    <CardTitle className="text-xl">Water Refill</CardTitle>
+                    <CardDescription>Buy a refill to reset a single plant's daily watering limit.</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -305,9 +305,12 @@ export default function ShopPage() {
                     <Coins className="h-6 w-6 text-yellow-500" />
                     <p className="text-2xl font-bold text-yellow-600">{WATER_REFILL_COST_IN_GOLD}</p>
                 </div>
-                <Button onClick={handleBuyWaterRefills} className="w-full font-semibold" disabled={goldCount < WATER_REFILL_COST_IN_GOLD}>
-                    {goldCount < WATER_REFILL_COST_IN_GOLD ? "Not Enough Gold" : "Buy"}
+                <Button onClick={handleBuyWaterRefill} className="w-full font-semibold" disabled={goldCount < WATER_REFILL_COST_IN_GOLD}>
+                    {goldCount < WATER_REFILL_COST_IN_GOLD ? "Not Enough Gold" : "Buy (+1)"}
                 </Button>
+                <p className="text-xs text-muted-foreground text-center w-full">
+                    You have {gameData.waterRefillCount} refill(s)
+                </p>
               </CardContent>
             </Card>
 
