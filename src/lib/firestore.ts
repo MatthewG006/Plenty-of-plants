@@ -459,11 +459,21 @@ export async function likeUser(likerUid: string, likedUid: string) {
     await batch.commit();
 }
 
-export async function autoWaterPlants(userId: string, plantsToWater: Plant[]) {
+export async function autoWaterPlants(userId: string) {
     const userDocRef = doc(db, 'users', userId);
     const gameData = await getUserGameData(userId);
     
-    if (!gameData || gameData.waterRefills <= 0) {
+    if (!gameData || !gameData.autoWaterEnabled || gameData.waterRefills <= 0) {
+        return { evolutionCandidates: [], refillsUsed: 0, goldGained: 0 };
+    }
+    
+    const allPlants = Object.values(gameData.plants);
+    const plantsToWater = allPlants.filter(plant => {
+        const timesWateredToday = plant.lastWatered?.filter(isToday).length ?? 0;
+        return timesWateredToday < MAX_WATERINGS_PER_DAY;
+    });
+
+    if (plantsToWater.length === 0) {
         return { evolutionCandidates: [], refillsUsed: 0, goldGained: 0 };
     }
 
@@ -505,3 +515,5 @@ export async function autoWaterPlants(userId: string, plantsToWater: Plant[]) {
     
     return { evolutionCandidates, refillsUsed, goldGained };
 }
+
+    

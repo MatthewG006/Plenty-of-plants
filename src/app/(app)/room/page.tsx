@@ -400,7 +400,7 @@ function PlantCardUI({
     canWater,
     onApplyGlitter, 
     canApplyGlitter,
-    onApplySheen,
+    onApplySheen, 
     canApplySheen,
     onApplyRainbowGlitter,
     canApplyRainbowGlitter
@@ -734,17 +734,8 @@ export default function RoomPage() {
         return;
       }
 
-      const plantsToWater: Plant[] = Object.values(allPlants).filter(plant => {
-        const timesWateredToday = plant.lastWatered?.filter(isToday).length ?? 0;
-        return timesWateredToday < MAX_WATERINGS_PER_DAY;
-      });
-
-      if (plantsToWater.length === 0) {
-        return;
-      }
-
       try {
-        const { evolutionCandidates, refillsUsed, goldGained } = await autoWaterPlantsInDb(user.uid, plantsToWater);
+        const { evolutionCandidates, refillsUsed, goldGained } = await autoWaterPlantsInDb(user.uid);
         
         if (refillsUsed > 0) {
             toast({
@@ -1342,3 +1333,5 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
+
+    
