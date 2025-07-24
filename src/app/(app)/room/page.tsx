@@ -27,7 +27,7 @@ import { useDraw, refundDraw } from '@/lib/draw-manager';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { updatePlantArrangement, updateUserGold, savePlant, useWaterRefill, updatePlant, getPlantById, deletePlant, useGlitter, updateShowcasePlants, useSheen, useRainbowGlitter, toggleAutoWater, GameData } from '@/lib/firestore';
+import { updatePlantArrangement, updateUserGold, savePlant, updatePlant, getPlantById, deletePlant, updateShowcasePlants, useSheen, useRainbowGlitter, GameData, useGlitter, useAllWaterRefills } from '@/lib/firestore';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { compressImage, makeBackgroundTransparent } from '@/lib/image-compression';
 import { Badge } from '@/components/ui/badge';
@@ -153,11 +153,9 @@ function PlantDetailDialog({ plant, open, onOpenChange, onAddToEvolutionQueue, u
     if (!plant || !gameData) return null;
 
     const timesWateredToday = plant.lastWatered?.filter(isToday).length ?? 0;
-    const hasWaterRefills = gameData.waterRefills > 0;
-    const canWater = hasWaterRefills || (timesWateredToday < MAX_WATERINGS_PER_DAY);
+    const canWater = timesWateredToday < MAX_WATERINGS_PER_DAY;
     const waterButtonText = () => {
         if (isWatering) return 'Watering...';
-        if (hasWaterRefills) return `Use Refill`;
         return `Water Plant (${timesWateredToday}/${MAX_WATERINGS_PER_DAY})`;
     };
     
@@ -206,17 +204,9 @@ function PlantDetailDialog({ plant, open, onOpenChange, onAddToEvolutionQueue, u
         }
         
         const now = Date.now();
-        let updatedLastWatered = plant.lastWatered || [];
+        let updatedLastWatered = [...(plant.lastWatered || []), now];
 
         try {
-            const usedRefill = hasWaterRefills && timesWateredToday >= MAX_WATERINGS_PER_DAY;
-            
-            if (usedRefill) {
-                 await useWaterRefill(userId);
-            }
-            
-            updatedLastWatered = [...updatedLastWatered.filter(isToday), now];
-
             await updatePlant(userId, plant.id, {
                 xp: newXp,
                 level: newLevel,
@@ -666,6 +656,7 @@ export default function RoomPage() {
   const [collectionPlantIds, setCollectionPlantIds] = useState<number[]>([]);
 
   const [isDrawing, setIsDrawing] = useState(false);
+  const [isWatering, setIsWatering] = useState(false);
   const [drawnPlant, setDrawnPlant] = useState<DrawPlantOutput | null>(null);
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
@@ -995,26 +986,41 @@ export default function RoomPage() {
     }
   };
 
-  const handleToggleAutoWater = async (isEnabled: boolean) => {
-    if (!user) return;
+ const handleUseAllRefills = async () => {
+    if (!user || !gameData || gameData.waterRefills <= 0) return;
+    setIsWatering(true);
     try {
-      const result = await toggleAutoWater(user.uid, isEnabled);
-      if (result && result.refillsUsed > 0) {
+      const result = await useAllWaterRefills(user.uid);
+      playSfx('success');
+
+      if (result.refillsUsed > 0) {
         toast({
-          title: 'Auto-Watered!',
-          description: `Watered ${result.refillsUsed} plants and gained ${result.goldGained} gold.`,
+          title: 'Plants Watered!',
+          description: `Used ${result.refillsUsed} refills and gained ${result.goldGained} gold.`,
+        });
+      } else {
+        toast({
+          title: 'All Set!',
+          description: 'All your plants are already watered for the day.',
         });
       }
-      if (result && result.evolutionCandidates.length > 0) {
+
+      if (result.evolutionCandidates.length > 0) {
         setPlantsToEvolveQueue((prev) => [...new Set([...prev, ...result.evolutionCandidates])]);
+        toast({
+          title: 'Ready to Evolve!',
+          description: `${result.evolutionCandidates.length} plant(s) are now ready to evolve.`,
+        });
       }
     } catch (e: any) {
-      console.error('Failed to toggle auto-water', e);
+      console.error('Failed to use water refills', e);
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: e.message || 'Could not save your setting.',
+        description: e.message || 'Could not water your plants.',
       });
+    } finally {
+      setIsWatering(false);
     }
   };
 
@@ -1142,7 +1148,7 @@ export default function RoomPage() {
             />
             <div className="relative z-10 flex h-full items-end justify-around">
               {deskPlants.map((plant, index) => {
-                   const canWater = plant ? (gameData.waterRefills > 0 || (plant.lastWatered?.filter(isToday).length ?? 0) < MAX_WATERINGS_PER_DAY) : false;
+                   const canWater = plant ? (plant.lastWatered?.filter(isToday).length ?? 0) < MAX_WATERINGS_PER_DAY : false;
                    return (
                       <DeskPot
                         key={plant?.id || `pot-${index}`}
@@ -1175,54 +1181,59 @@ export default function RoomPage() {
         </section>
 
         <section className="px-4 pb-4">
-            <div className="flex justify-center items-center gap-4 mb-4">
-                <h2 className="text-xl text-primary">My Collection</h2>
-                {gameData.autoWaterUnlocked && (
-                <div className="flex items-center space-x-2">
-                    <Zap className="h-5 w-5 text-primary" />
-                    <Label htmlFor="auto-water-toggle" className="font-semibold text-primary">Auto-Water</Label>
-                    <Switch
-                    id="auto-water-toggle"
-                    checked={gameData.autoWaterEnabled}
-                    onCheckedChange={handleToggleAutoWater}
-                    />
-                </div>
-                )}
-            </div>
-            <DroppableCollectionArea>
-              <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5">
-                  {collectionPlants.length > 0 ? (
-                    collectionPlants.map((plant) => {
-                        const canWater = gameData.waterRefills > 0 || (plant.lastWatered?.filter(isToday).length ?? 0) < MAX_WATERINGS_PER_DAY;
-                        return (
-                         <div
-                            key={plant.id}
-                            onPointerDown={() => handlePointerDown(plant)}
-                            onPointerUp={() => handlePointerUp(plant)}
-                            onPointerLeave={handlePointerLeave}
-                          >
-                           <DraggablePlant
-                             plant={plant}
-                             source="collection"
-                             canWater={canWater}
-                             onApplyGlitter={handleApplyGlitter}
-                             canApplyGlitter={gameData.glitterCount > 0}
-                             onApplySheen={handleApplySheen}
-                             canApplySheen={gameData.sheenCount > 0}
-                             onApplyRainbowGlitter={handleApplyRainbowGlitter}
-                             canApplyRainbowGlitter={gameData.rainbowGlitterCount > 0}
-                             className="cursor-grab active:cursor-grabbing"
-                           />
-                         </div>
-                        )
-                    })
-                  ) : (
-                    <div className="col-span-3 text-center text-muted-foreground py-8">
-                        Your collection is empty. Go to the Home screen to draw a new plant!
-                    </div>
-                  )}
+            <Card className="p-4">
+              <div className="flex flex-col items-center gap-4">
+                  <h2 className="text-xl text-primary">My Collection</h2>
+                  <Button
+                    onClick={handleUseAllRefills}
+                    disabled={isWatering || gameData.waterRefills <= 0}
+                    className="w-full max-w-sm"
+                  >
+                    {isWatering ? (
+                      <Loader2 className="animate-spin" />
+                    ) : (
+                      <>
+                        <Droplets className="mr-2 h-4 w-4" />
+                        Use All Refills ({gameData.waterRefills})
+                      </>
+                    )}
+                  </Button>
               </div>
-          </DroppableCollectionArea>
+              <DroppableCollectionArea>
+                <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 mt-4">
+                    {collectionPlants.length > 0 ? (
+                      collectionPlants.map((plant) => {
+                          const canWater = (plant.lastWatered?.filter(isToday).length ?? 0) < MAX_WATERINGS_PER_DAY;
+                          return (
+                           <div
+                              key={plant.id}
+                              onPointerDown={() => handlePointerDown(plant)}
+                              onPointerUp={() => handlePointerUp(plant)}
+                              onPointerLeave={handlePointerLeave}
+                            >
+                             <DraggablePlant
+                               plant={plant}
+                               source="collection"
+                               canWater={canWater}
+                               onApplyGlitter={handleApplyGlitter}
+                               canApplyGlitter={gameData.glitterCount > 0}
+                               onApplySheen={handleApplySheen}
+                               canApplySheen={gameData.sheenCount > 0}
+                               onApplyRainbowGlitter={handleApplyRainbowGlitter}
+                               canApplyRainbowGlitter={gameData.rainbowGlitterCount > 0}
+                               className="cursor-grab active:cursor-grabbing"
+                             />
+                           </div>
+                          )
+                      })
+                    ) : (
+                      <div className="col-span-3 text-center text-muted-foreground py-8">
+                          Your collection is empty. Go to the Home screen to draw a new plant!
+                      </div>
+                    )}
+                </div>
+            </DroppableCollectionArea>
+            </Card>
         </section>
 
         <PlantDetailDialog
@@ -1314,3 +1325,5 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
+
+    
