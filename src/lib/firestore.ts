@@ -7,6 +7,11 @@ import { User } from 'firebase/auth';
 import { MAX_DRAWS } from './draw-manager';
 
 const NUM_POTS = 3;
+const MAX_WATERINGS_PER_DAY = 4;
+const XP_PER_WATERING = 200;
+const XP_PER_LEVEL = 1000;
+const GOLD_PER_WATERING = 5;
+const EVOLUTION_LEVEL = 10;
 
 export interface GameData {
     gold: number;
@@ -36,6 +41,15 @@ export interface CommunityUser {
     avatarColor: string;
     showcasePlants: Plant[];
     likes: number;
+}
+
+// Helper to check if a timestamp is from the current day
+function isToday(timestamp: number): boolean {
+    const today = new Date();
+    const someDate = new Date(timestamp);
+    return someDate.getDate() === today.getDate() &&
+           someDate.getMonth() === today.getMonth() &&
+           someDate.getFullYear() === today.getFullYear();
 }
 
 export async function getUserGameData(userId: string): Promise<GameData | null> {
@@ -266,6 +280,76 @@ export async function purchaseWaterRefills(userId: string, quantity: number, cos
         gold: increment(-cost),
         waterRefills: increment(quantity)
     });
+}
+
+export async function useAllWaterRefills(userId: string): Promise<{ refillsUsed: number; goldGained: number; newlyEvolvablePlants: number[] }> {
+    const userDocRef = doc(db, 'users', userId);
+    const gameData = await getUserGameData(userId);
+
+    if (!gameData) {
+        throw new Error("User data not found.");
+    }
+    
+    const allPlants = Object.values(gameData.plants || {});
+    if (allPlants.length === 0) {
+        return { refillsUsed: 0, goldGained: 0, newlyEvolvablePlants: [] };
+    }
+
+    let refillsLeft = gameData.waterRefills;
+    let totalGoldGained = 0;
+    const newlyEvolvablePlants: number[] = [];
+    const updates: { [key: string]: any } = {};
+
+    if (refillsLeft <= 0) {
+        return { refillsUsed: 0, goldGained: 0, newlyEvolvablePlants: [] };
+    }
+    
+    for (const plant of allPlants) {
+        if (refillsLeft <= 0) break;
+
+        const timesWateredToday = plant.lastWatered.filter(isToday).length;
+        const wateringsNeeded = MAX_WATERINGS_PER_DAY - timesWateredToday;
+
+        if (wateringsNeeded <= 0) continue;
+
+        const wateringsToApply = Math.min(wateringsNeeded, refillsLeft);
+        
+        let currentXp = plant.xp;
+        let currentLevel = plant.level;
+        const wasEvolvable = currentLevel >= EVOLUTION_LEVEL && plant.form === 'Base';
+        
+        const newTimestamps = [...plant.lastWatered];
+        for (let i = 0; i < wateringsToApply; i++) {
+            newTimestamps.push(Date.now() + i); // Add small offset to ensure unique timestamps
+            currentXp += XP_PER_WATERING;
+            while(currentXp >= XP_PER_LEVEL) {
+                currentXp -= XP_PER_LEVEL;
+                currentLevel += 1;
+            }
+        }
+        
+        updates[`plants.${plant.id}.xp`] = currentXp;
+        updates[`plants.${plant.id}.level`] = currentLevel;
+        updates[`plants.${plant.id}.lastWatered`] = newTimestamps;
+
+        const isNowEvolvable = currentLevel >= EVOLUTION_LEVEL && plant.form === 'Base';
+        if (isNowEvolvable && !wasEvolvable) {
+            newlyEvolvablePlants.push(plant.id);
+        }
+
+        refillsLeft -= wateringsToApply;
+        totalGoldGained += wateringsToApply * GOLD_PER_WATERING;
+    }
+
+    const refillsUsed = gameData.waterRefills - refillsLeft;
+
+    if (refillsUsed > 0) {
+        updates['waterRefills'] = increment(-refillsUsed);
+        updates['gold'] = increment(totalGoldGained);
+        await updateDoc(userDocRef, updates);
+    }
+    
+    return { refillsUsed, goldGained: totalGoldGained, newlyEvolvablePlants };
 }
 
 

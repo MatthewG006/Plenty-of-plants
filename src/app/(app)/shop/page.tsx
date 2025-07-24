@@ -106,7 +106,7 @@ export default function ShopPage() {
           await purchaseCosmetic(user.uid, 'sheenCount', 1, SHEEN_COST_IN_GOLD);
           playSfx('reward');
           toast({ title: "Purchase Successful!", description: `You bought 1 Sheen Pack!` });
-      } catch (e) {
+      } catch (e: any) {
           console.error("Failed to purchase sheen", e);
           toast({ variant: "destructive", title: "Error", description: "Could not complete the purchase." });
       }
@@ -124,7 +124,7 @@ export default function ShopPage() {
           await purchaseCosmetic(user.uid, 'rainbowGlitterCount', 1, RAINBOW_GLITTER_COST_IN_GOLD);
           playSfx('reward');
           toast({ title: "Purchase Successful!", description: `You bought 1 Rainbow Glitter Pack!` });
-      } catch (e) {
+      } catch (e: any) {
           console.error("Failed to purchase rainbow glitter", e);
           toast({ variant: "destructive", title: "Error", description: "Could not complete the purchase." });
       }
