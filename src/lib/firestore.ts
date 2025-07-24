@@ -471,35 +471,36 @@ export async function useAllWaterRefills(userId: string): Promise<AutoWaterResul
     if (availableRefills <= 0) break;
 
     const timesWateredToday = plant.lastWatered?.filter(isToday).length ?? 0;
-    const wateringsPossible = MAX_WATERINGS_PER_DAY - timesWateredToday;
+    const wateringsPossibleForThisPlant = MAX_WATERINGS_PER_DAY - timesWateredToday;
 
-    if (wateringsPossible <= 0) continue;
+    if (wateringsPossibleForThisPlant <= 0) continue;
 
-    const wateringsToApply = Math.min(wateringsPossible, availableRefills);
+    const wateringsToApply = Math.min(wateringsPossibleForThisPlant, availableRefills);
     
     if (wateringsToApply > 0) {
       let currentXp = plant.xp;
       let currentLevel = plant.level;
-      let newLastWatered = plant.lastWatered || [];
+      let newLastWatered = [...(plant.lastWatered || [])];
       const now = Date.now();
 
       for (let i = 0; i < wateringsToApply; i++) {
         currentXp += XP_PER_WATERING;
-        newLastWatered.push(now + i);
+        newLastWatered.push(now + i); // Use a slightly different timestamp for each watering
       }
 
       if (currentXp >= XP_PER_LEVEL) {
         const levelsGained = Math.floor(currentXp / XP_PER_LEVEL);
+        const oldLevel = plant.level;
         currentLevel += levelsGained;
         currentXp %= XP_PER_LEVEL;
 
-        if (currentLevel >= EVOLUTION_LEVEL && plant.form === 'Base') {
+        if (oldLevel < EVOLUTION_LEVEL && currentLevel >= EVOLUTION_LEVEL && plant.form === 'Base') {
           if (!evolutionCandidates.includes(plant.id)) {
             evolutionCandidates.push(plant.id);
           }
         }
       }
-
+      
       updates[`plants.${plant.id}.xp`] = currentXp;
       updates[`plants.${plant.id}.level`] = currentLevel;
       updates[`plants.${plant.id}.lastWatered`] = newLastWatered;
@@ -513,7 +514,9 @@ export async function useAllWaterRefills(userId: string): Promise<AutoWaterResul
     const totalGoldGained = totalRefillsUsed * GOLD_PER_WATERING;
     updates.waterRefills = increment(-totalRefillsUsed);
     updates.gold = increment(totalGoldGained);
+
     await updateDoc(userDocRef, updates);
+
     return { evolutionCandidates, refillsUsed: totalRefillsUsed, goldGained: totalGoldGained };
   }
 
