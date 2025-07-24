@@ -40,8 +40,6 @@ export interface GameData {
     challengesStartDate: number;
     likes: number;
     likedUsers: string[];
-    autoWaterUnlocked: boolean;
-    autoWaterEnabled: boolean;
 }
 
 export interface AutoWaterResult {
@@ -83,8 +81,6 @@ export async function getUserGameData(userId: string): Promise<GameData | null> 
             challengesStartDate: data.challengesStartDate || 0,
             likes: data.likes || 0,
             likedUsers: data.likedUsers || [],
-            autoWaterUnlocked: data.autoWaterUnlocked || false,
-            autoWaterEnabled: data.autoWaterEnabled || false,
         };
     } else {
         return null;
@@ -171,8 +167,6 @@ export async function createUserDocument(user: User): Promise<GameData> {
             challengesStartDate: Date.now(),
             likes: 0,
             likedUsers: [],
-            autoWaterUnlocked: false,
-            autoWaterEnabled: false,
         };
 
         await setDoc(docRef, {
@@ -302,37 +296,6 @@ export async function purchaseCosmetic(userId: string, cosmetic: 'glitterCount' 
     });
 }
 
-export async function purchaseAutoWater(userId: string, cost: number) {
-    const userDocRef = doc(db, 'users', userId);
-    const gameData = await getUserGameData(userId);
-
-    if (!gameData || gameData.gold < cost) {
-        throw new Error("Not enough gold to purchase.");
-    }
-    if (gameData.autoWaterUnlocked) {
-        throw new Error("Auto-Waterer already purchased.");
-    }
-
-    await updateDoc(userDocRef, {
-        gold: increment(-cost),
-        autoWaterUnlocked: true,
-        autoWaterEnabled: true,
-    });
-}
-
-
-export async function useWaterRefill(userId: string, quantity: number = 1) {
-    const userDocRef = doc(db, 'users', userId);
-    const gameData = await getUserGameData(userId);
-
-    if (!gameData || gameData.waterRefills < quantity) {
-        throw new Error("No water refills to use.");
-    }
-
-    await updateDoc(userDocRef, {
-        waterRefills: increment(-quantity)
-    });
-}
 
 export async function useGlitter(userId: string) {
     const userDocRef = doc(db, 'users', userId);
@@ -372,20 +335,6 @@ export async function useRainbowGlitter(userId: string) {
         rainbowGlitterCount: increment(-1)
     });
 }
-
-export async function toggleAutoWater(userId: string, isEnabled: boolean): Promise<AutoWaterResult> {
-  const userDocRef = doc(db, 'users', userId);
-  await updateDoc(userDocRef, {
-    autoWaterEnabled: isEnabled,
-  });
-
-  if (isEnabled) {
-    return await autoWaterPlants(userId);
-  }
-
-  return { evolutionCandidates: [], refillsUsed: 0, goldGained: 0 };
-}
-
 
 export async function resetUserGameData(userId: string) {
     const userDocRef = doc(db, 'users', userId);
@@ -470,62 +419,64 @@ export async function likeUser(likerUid: string, likedUid: string) {
     await batch.commit();
 }
 
-export async function autoWaterPlants(userId: string): Promise<AutoWaterResult> {
+
+export async function useAllWaterRefills(userId: string): Promise<AutoWaterResult> {
   const userDocRef = doc(db, 'users', userId);
   const gameData = await getUserGameData(userId);
 
-  if (!gameData || !gameData.autoWaterEnabled || gameData.waterRefills <= 0) {
+  if (!gameData || gameData.waterRefills <= 0) {
     return { evolutionCandidates: [], refillsUsed: 0, goldGained: 0 };
   }
 
   const allPlants = Object.values(gameData.plants);
-  const plantsToWater = allPlants.filter((plant) => {
-    const timesWateredToday = plant.lastWatered?.filter(isToday).length ?? 0;
-    return timesWateredToday < MAX_WATERINGS_PER_DAY;
-  });
-
-  if (plantsToWater.length === 0) {
-    return { evolutionCandidates: [], refillsUsed: 0, goldGained: 0 };
-  }
-
-  let refillsUsed = 0;
-  const evolutionCandidates: number[] = [];
+  let availableRefills = gameData.waterRefills;
+  
   const updates: { [key: string]: any } = {};
+  const evolutionCandidates: number[] = [];
+  let refillsUsed = 0;
+  let goldGained = 0;
   const now = Date.now();
 
-  for (const plant of plantsToWater) {
-    if (refillsUsed >= gameData.waterRefills) {
-      break; // Stop if we've run out of refills
-    }
+  for (const plant of allPlants) {
+    if (availableRefills <= 0) break; // No more refills to use
 
-    refillsUsed++;
+    const timesWateredToday = plant.lastWatered?.filter(isToday).length ?? 0;
+    const canWaterMore = timesWateredToday < MAX_WATERINGS_PER_DAY;
 
-    const xpGained = XP_PER_WATERING;
-    let newXp = plant.xp + xpGained;
-    let newLevel = plant.level;
+    if (canWaterMore) {
+      availableRefills--;
+      refillsUsed++;
 
-    if (newXp >= XP_PER_LEVEL) {
-      newLevel += Math.floor(newXp / XP_PER_LEVEL);
-      newXp %= XP_PER_LEVEL;
-      if (newLevel >= EVOLUTION_LEVEL && plant.form === 'Base') {
-        evolutionCandidates.push(plant.id);
+      const xpGained = XP_PER_WATERING;
+      let newXp = plant.xp + xpGained;
+      let newLevel = plant.level;
+
+      if (newXp >= XP_PER_LEVEL) {
+        const levelsGained = Math.floor(newXp / XP_PER_LEVEL);
+        newLevel += levelsGained;
+        newXp %= XP_PER_LEVEL;
+
+        if (newLevel >= EVOLUTION_LEVEL && plant.form === 'Base') {
+          evolutionCandidates.push(plant.id);
+        }
       }
+      
+      const updatedLastWatered = [...(plant.lastWatered || []).filter(isToday), now];
+      
+      updates[`plants.${plant.id}.xp`] = newXp;
+      updates[`plants.${plant.id}.level`] = newLevel;
+      updates[`plants.${plant.id}.lastWatered`] = updatedLastWatered;
     }
-
-    updates[`plants.${plant.id}.xp`] = newXp;
-    updates[`plants.${plant.id}.level`] = newLevel;
-
-    const updatedLastWatered = [...(plant.lastWatered || []).filter(isToday), now];
-    updates[`plants.${plant.id}.lastWatered`] = updatedLastWatered;
   }
 
   if (refillsUsed > 0) {
-    const goldGained = refillsUsed * GOLD_PER_WATERING;
+    goldGained = refillsUsed * GOLD_PER_WATERING;
     updates.waterRefills = increment(-refillsUsed);
     updates.gold = increment(goldGained);
     await updateDoc(userDocRef, updates);
-    return { evolutionCandidates, refillsUsed, goldGained };
   }
 
-  return { evolutionCandidates: [], refillsUsed: 0, goldGained: 0 };
+  return { evolutionCandidates, refillsUsed, goldGained };
 }
+
+    
