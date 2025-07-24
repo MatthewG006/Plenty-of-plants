@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { Music, Zap, Trash2, Loader2 } from 'lucide-react';
+import { Music, Zap, Trash2, Loader2, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -47,10 +47,54 @@ export default function SettingsPage() {
   const { isPlaying, togglePlay, volume, setVolume, sfxVolume, setSfxVolume, playSfx } = useAudio();
   const [isClient, setIsClient] = useState(false);
   const [isResettingSprinkler, setIsResettingSprinkler] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
+    if ('Notification' in window) {
+        setNotificationsEnabled(Notification.permission === 'granted');
+    }
   }, []);
+
+  const handleNotificationsToggle = async (enabled: boolean) => {
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+      toast({
+        variant: 'destructive',
+        title: 'Unsupported Browser',
+        description: 'Your browser does not support push notifications.',
+      });
+      return;
+    }
+
+    if (enabled) {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        setNotificationsEnabled(true);
+        navigator.serviceWorker.ready.then(registration => {
+          registration.active?.postMessage('schedule-notifications');
+        });
+        toast({
+          title: 'Notifications Enabled',
+          description: 'You will be reminded to play every 6 hours.',
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Permissions Denied',
+          description: 'You need to grant permission to enable notifications.',
+        });
+      }
+    } else {
+      setNotificationsEnabled(false);
+      navigator.serviceWorker.ready.then(registration => {
+        registration.active?.postMessage('cancel-notifications');
+      });
+      toast({
+        title: 'Notifications Disabled',
+        description: 'You will no longer receive reminders.',
+      });
+    }
+  };
 
   const handleUnequipSprinkler = async () => {
     if (!user) return;
@@ -98,6 +142,9 @@ export default function SettingsPage() {
           </SettingRow>
           <SettingRow icon={Zap} label="FX">
             <Switch id="fx" checked={sfxVolume > 0} onCheckedChange={(checked) => setSfxVolume(checked ? 0.75 : 0)} />
+          </SettingRow>
+          <SettingRow icon={Bell} label="Reminders">
+            <Switch id="reminders" checked={notificationsEnabled} onCheckedChange={handleNotificationsToggle} aria-label="Toggle notifications" />
           </SettingRow>
         </CardContent>
       </Card>
