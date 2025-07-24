@@ -23,7 +23,7 @@ import { useRouter } from 'next/navigation';
 import { useAudio } from '@/context/AudioContext';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { resetUserGameData, unequipSprinkler } from '@/lib/firestore';
+import { unequipSprinkler } from '@/lib/firestore';
 
 
 function SettingRow({ icon: Icon, label, children }: { icon: React.ElementType, label: string, children: React.ReactNode }) {
@@ -46,7 +46,6 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const { isPlaying, togglePlay, volume, setVolume, sfxVolume, setSfxVolume, playSfx } = useAudio();
   const [isClient, setIsClient] = useState(false);
-  const [isResettingSprinkler, setIsResettingSprinkler] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   useEffect(() => {
@@ -95,28 +94,6 @@ export default function SettingsPage() {
       });
     }
   };
-
-  const handleUnequipSprinkler = async () => {
-    if (!user) return;
-    setIsResettingSprinkler(true);
-    try {
-      await unequipSprinkler(user.uid);
-      toast({
-        title: "Sprinkler Unequipped",
-        description: "You no longer own the sprinkler. You can purchase it again in the shop.",
-      });
-    } catch (e) {
-      console.error("Failed to unequip sprinkler", e);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Could not unequip the sprinkler.",
-      });
-    } finally {
-      setIsResettingSprinkler(false);
-    }
-  };
-
 
   if (!isClient || !user || !gameData) {
     return (
@@ -177,24 +154,6 @@ export default function SettingsPage() {
           </SettingRow>
         </CardContent>
       </Card>
-
-      <Card className="mt-6 border-destructive">
-        <CardHeader>
-          <CardTitle className="text-destructive">Developer Tools</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col">
-              <p className="font-semibold text-primary">Unequip Sprinkler</p>
-              <p className="text-sm text-muted-foreground">This will set your account to not own the sprinkler.</p>
-            </div>
-            <Button variant="outline" onClick={handleUnequipSprinkler} disabled={isResettingSprinkler}>
-                {isResettingSprinkler ? <Loader2 className="animate-spin" /> : "Unequip Sprinkler"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-      
     </div>
   );
 }
