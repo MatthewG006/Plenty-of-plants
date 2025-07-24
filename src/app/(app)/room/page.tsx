@@ -27,7 +27,7 @@ import { useDraw, refundDraw } from '@/lib/draw-manager';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { updatePlantArrangement, updateUserGold, savePlant, updatePlant, getPlantById, deletePlant, updateShowcasePlants, useSheen, useRainbowGlitter, GameData, useGlitter } from '@/lib/firestore';
+import { updatePlantArrangement, updateUserGold, savePlant, updatePlant, getPlantById, deletePlant, updateShowcasePlants, useSheen, useRainbowGlitter, GameData, useGlitter, useAllWaterRefills } from '@/lib/firestore';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { compressImage, makeBackgroundTransparent } from '@/lib/image-compression';
 import { Badge } from '@/components/ui/badge';
@@ -654,6 +654,7 @@ export default function RoomPage() {
   const [collectionPlantIds, setCollectionPlantIds] = useState<number[]>([]);
 
   const [isDrawing, setIsDrawing] = useState(false);
+  const [isWatering, setIsWatering] = useState(false);
   const [drawnPlant, setDrawnPlant] = useState<DrawPlantOutput | null>(null);
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
@@ -813,6 +814,34 @@ export default function RoomPage() {
     
     setDrawnPlant(null);
   };
+
+    const handleUseAllRefills = async () => {
+        if (!user || !gameData || gameData.waterRefills <= 0) return;
+        setIsWatering(true);
+        try {
+            const result = await useAllWaterRefills(user.uid);
+            if (result.refillsUsed > 0) {
+                playSfx('reward');
+                toast({
+                    title: "Plants Watered!",
+                    description: `Used ${result.refillsUsed} refills and gained ${result.goldGained} gold.`,
+                });
+                if (result.newlyEvolvablePlants.length > 0) {
+                    setPlantsToEvolveQueue(prev => [...prev, ...result.newlyEvolvablePlants]);
+                }
+            } else {
+                 toast({
+                    title: "All Set!",
+                    description: "All your plants are already watered for the day.",
+                });
+            }
+        } catch (e: any) {
+            console.error("Failed to use water refills", e);
+            toast({ variant: 'destructive', title: "Error", description: "Could not use water refills." });
+        } finally {
+            setIsWatering(false);
+        }
+    };
   
   const handleDragStart = (event: DragStartEvent) => {
     if (longPressTimerRef.current) {
@@ -1143,6 +1172,10 @@ export default function RoomPage() {
             <Card className="p-4">
               <div className="flex flex-col items-center gap-4">
                   <h2 className="text-xl text-primary">My Collection</h2>
+                    <Button onClick={handleUseAllRefills} disabled={isWatering || gameData.waterRefills <= 0}>
+                        <Droplets className="mr-2 h-4 w-4" />
+                        {isWatering ? 'Watering...' : `Use All Refills (${gameData.waterRefills})`}
+                    </Button>
               </div>
               <DroppableCollectionArea>
                 <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 mt-4">
