@@ -13,4 +13,5 @@ export interface Plant {
   hasGlitter?: boolean;
   hasSheen?: boolean;
   hasRainbowGlitter?: boolean;
+  hasRedGlitter?: boolean;
 }

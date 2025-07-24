@@ -27,6 +27,7 @@ export interface GameData {
     glitterCount: number;
     sheenCount: number;
     rainbowGlitterCount: number;
+    redGlitterCount: number;
     showcasePlantIds: number[];
     challenges: Record<string, { progress: number, claimed: boolean }>;
     challengesStartDate: number;
@@ -84,6 +85,7 @@ export async function getUserGameData(userId: string): Promise<GameData | null> 
             glitterCount: data.glitterCount || 0,
             sheenCount: data.sheenCount || 0,
             rainbowGlitterCount: data.rainbowGlitterCount || 0,
+            redGlitterCount: data.redGlitterCount || 0,
             showcasePlantIds: data.showcasePlantIds || [],
             challenges: data.challenges || {},
             challengesStartDate: data.challengesStartDate || 0,
@@ -158,6 +160,7 @@ export async function createUserDocument(user: User): Promise<GameData> {
             hasGlitter: false,
             hasSheen: false,
             hasRainbowGlitter: false,
+            hasRedGlitter: false,
         };
         
         const newGameData: GameData = {
@@ -173,6 +176,7 @@ export async function createUserDocument(user: User): Promise<GameData> {
             glitterCount: 0,
             sheenCount: 0,
             rainbowGlitterCount: 0,
+            redGlitterCount: 0,
             showcasePlantIds: [],
             challenges: {},
             challengesStartDate: Date.now(),
@@ -225,6 +229,7 @@ export async function savePlant(userId: string, plantData: DrawPlantOutput): Pro
         hasGlitter: false,
         hasSheen: false,
         hasRainbowGlitter: false,
+        hasRedGlitter: false,
     };
 
     const firstEmptyPotIndex = gameData.deskPlantIds.findIndex(id => id === null);
@@ -363,7 +368,7 @@ export async function useSprinkler(userId: string): Promise<{ plantsWatered: num
 }
 
 
-export async function purchaseCosmetic(userId: string, cosmetic: 'glitterCount' | 'sheenCount' | 'rainbowGlitterCount', quantity: number, cost: number) {
+export async function purchaseCosmetic(userId: string, cosmetic: 'glitterCount' | 'sheenCount' | 'rainbowGlitterCount' | 'redGlitterCount', quantity: number, cost: number) {
     const userDocRef = doc(db, 'users', userId);
     const gameData = await getUserGameData(userId);
 
@@ -374,6 +379,24 @@ export async function purchaseCosmetic(userId: string, cosmetic: 'glitterCount' 
     await updateDoc(userDocRef, {
         gold: increment(-cost),
         [cosmetic]: increment(quantity)
+    });
+}
+
+export async function purchaseBundle(userId: string, cost: number): Promise<void> {
+    const userDocRef = doc(db, 'users', userId);
+    const gameData = await getUserGameData(userId);
+
+    if (!gameData || gameData.gold < cost) {
+        throw new Error("Not enough gold to purchase the bundle.");
+    }
+
+    await updateDoc(userDocRef, {
+        gold: increment(-cost),
+        glitterCount: increment(1),
+        sheenCount: increment(1),
+        rainbowGlitterCount: increment(1),
+        redGlitterCount: increment(1),
+        waterRefillCount: increment(1),
     });
 }
 
@@ -416,6 +439,19 @@ export async function useRainbowGlitter(userId: string) {
     });
 }
 
+export async function useRedGlitter(userId: string) {
+    const userDocRef = doc(db, 'users', userId);
+    const gameData = await getUserGameData(userId);
+
+    if (!gameData || gameData.redGlitterCount <= 0) {
+        throw new Error("No red glitter packs to use.");
+    }
+
+    await updateDoc(userDocRef, {
+        redGlitterCount: increment(-1)
+    });
+}
+
 export async function resetUserGameData(userId: string) {
     const userDocRef = doc(db, 'users', userId);
     
@@ -433,6 +469,7 @@ export async function resetUserGameData(userId: string) {
         hasGlitter: false,
         hasSheen: false,
         hasRainbowGlitter: false,
+        hasRedGlitter: false,
     };
 
     await updateDoc(userDocRef, {
@@ -447,6 +484,7 @@ export async function resetUserGameData(userId: string) {
         glitterCount: 0,
         sheenCount: 0,
         rainbowGlitterCount: 0,
+        redGlitterCount: 0,
         showcasePlantIds: [],
         waterRefillCount: 0,
     });

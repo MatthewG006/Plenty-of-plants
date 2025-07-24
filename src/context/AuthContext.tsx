@@ -71,6 +71,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               glitterCount: data.glitterCount || 0,
               sheenCount: data.sheenCount || 0,
               rainbowGlitterCount: data.rainbowGlitterCount || 0,
+              redGlitterCount: data.redGlitterCount || 0,
               showcasePlantIds: data.showcasePlantIds || [],
               challenges: data.challenges || {},
               challengesStartDate: data.challengesStartDate || 0,

@@ -5,20 +5,22 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { claimFreeDraw, loadDraws, MAX_DRAWS, hasClaimedDailyDraw } from '@/lib/draw-manager';
-import { Gift, Coins, Leaf, Clock, Loader2, Droplets, Sparkles, Zap, Pipette, RefreshCw } from 'lucide-react';
+import { Gift, Coins, Leaf, Clock, Loader2, Droplets, Sparkles, Zap, Pipette, RefreshCw, Star, Package } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { useAudio } from '@/context/AudioContext';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/context/AuthContext';
-import { purchaseCosmetic, purchaseSprinkler, purchaseWaterRefill } from '@/lib/firestore';
+import { purchaseCosmetic, purchaseSprinkler, purchaseWaterRefill, purchaseBundle } from '@/lib/firestore';
 import { useRouter } from 'next/navigation';
 
 const DRAW_COST_IN_GOLD = 50;
 const SPRINKLER_COST_IN_GOLD = 100;
 const SHEEN_COST_IN_GOLD = 50;
 const RAINBOW_GLITTER_COST_IN_GOLD = 60;
+const RED_GLITTER_COST_IN_GOLD = 50;
 const GLITTER_COST_IN_GOLD = 50;
 const WATER_REFILL_COST_IN_GOLD = 15;
+const BUNDLE_COST_IN_GOLD = 215;
 
 
 function getNextDrawTimeString() {
@@ -198,6 +200,24 @@ export default function ShopPage() {
     }
   };
 
+  const handleBuyBundle = async () => {
+    if (!user || !gameData) return;
+
+    if (gameData.gold < BUNDLE_COST_IN_GOLD) {
+        toast({ variant: "destructive", title: "Not Enough Gold", description: `You need ${BUNDLE_COST_IN_GOLD} gold.` });
+        return;
+    }
+
+    try {
+        await purchaseBundle(user.uid, BUNDLE_COST_IN_GOLD);
+        playSfx('reward');
+        toast({ title: "Bundle Purchased!", description: "You received all items from the Sparkle Bundle." });
+    } catch (e: any) {
+        console.error("Failed to purchase bundle", e);
+        toast({ variant: "destructive", title: "Error", description: e.message || "Could not complete the purchase." });
+    }
+  };
+
   
   if (!user || !gameData) {
       return (
@@ -248,6 +268,26 @@ export default function ShopPage() {
         <Separator />
 
         <div className="grid md:grid-cols-2 gap-6">
+            <Card className="shadow-sm">
+              <CardHeader>
+                <div className="flex items-center gap-4">
+                  <Package className="h-8 w-8 text-primary" />
+                  <div>
+                    <CardTitle className="text-xl">Sparkle Bundle</CardTitle>
+                    <CardDescription>A pack of all cosmetics plus a refill! 10 gold off!</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="flex flex-col items-start gap-4">
+                <div className="flex items-center gap-2">
+                    <Coins className="h-6 w-6 text-yellow-500" />
+                    <p className="text-2xl font-bold text-yellow-600">{BUNDLE_COST_IN_GOLD}</p>
+                </div>
+                <Button onClick={handleBuyBundle} className="w-full font-semibold" disabled={goldCount < BUNDLE_COST_IN_GOLD}>
+                    {goldCount < BUNDLE_COST_IN_GOLD ? "Not Enough Gold" : "Buy Bundle"}
+                </Button>
+              </CardContent>
+            </Card>
             <Card className="shadow-sm">
               <CardHeader>
                 <div className="flex items-center gap-4">
@@ -341,7 +381,7 @@ export default function ShopPage() {
             <Card className="shadow-sm">
               <CardHeader>
                 <div className="flex items-center gap-4">
-                  <Sparkles className="h-8 w-8 text-primary" />
+                  <Star className="h-8 w-8 text-primary" />
                   <div>
                     <CardTitle className="text-xl">Sheen Pack</CardTitle>
                     <CardDescription>Make one of your plants permanently shimmer with a beautiful sheen.</CardDescription>
