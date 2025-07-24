@@ -799,7 +799,7 @@ export default function RoomPage() {
 
     autoWaterPlants();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameData?.autoWaterEnabled, gameData?.waterRefills, user]); // Dependency array is key
+  }, [gameData, user]); // Dependency array is key
 
 
   useEffect(() => {
@@ -1377,5 +1377,3 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
-
-    
