@@ -12,6 +12,7 @@ const XP_PER_WATERING = 200;
 const XP_PER_LEVEL = 1000;
 const GOLD_PER_WATERING = 5;
 const EVOLUTION_LEVEL = 10;
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 export interface GameData {
     gold: number;
@@ -30,7 +31,7 @@ export interface GameData {
     challenges: Record<string, { progress: number, claimed: boolean }>;
     challengesStartDate: number;
     likes: number;
-    likedUsers: string[];
+    likedUsers: Record<string, number>; // UID -> timestamp
     autoWaterUnlocked?: boolean;
     autoWaterEnabled?: boolean;
     waterRefillCount: number;
@@ -59,6 +60,16 @@ export async function getUserGameData(userId: string): Promise<GameData | null> 
 
     if (docSnap.exists()) {
         const data = docSnap.data();
+        
+        let likedUsersData = data.likedUsers || {};
+        // Backwards compatibility for old array format
+        if (Array.isArray(data.likedUsers)) {
+            likedUsersData = data.likedUsers.reduce((acc: Record<string, number>, uid: string) => {
+                acc[uid] = 1; // Give old likes a timestamp of 1 to make them permanent but identifiable
+                return acc;
+            }, {});
+        }
+
         // Ensure default values if fields are missing
         return {
             gold: data.gold || 0,
@@ -77,7 +88,7 @@ export async function getUserGameData(userId: string): Promise<GameData | null> 
             challenges: data.challenges || {},
             challengesStartDate: data.challengesStartDate || 0,
             likes: data.likes || 0,
-            likedUsers: data.likedUsers || [],
+            likedUsers: likedUsersData,
             autoWaterUnlocked: data.autoWaterUnlocked || false,
             autoWaterEnabled: data.autoWaterEnabled || false,
             waterRefillCount: data.waterRefillCount || 0,
@@ -166,7 +177,7 @@ export async function createUserDocument(user: User): Promise<GameData> {
             challenges: {},
             challengesStartDate: Date.now(),
             likes: 0,
-            likedUsers: [],
+            likedUsers: {},
             autoWaterUnlocked: false,
             autoWaterEnabled: false,
             waterRefillCount: 0,
@@ -477,11 +488,17 @@ export async function likeUser(likerUid: string, likedUid: string) {
     const likerData = await getUserGameData(likerUid);
 
     if (!likerData) throw new Error("Liker data not found.");
-    if (likerData.likedUsers.includes(likedUid)) throw new Error("User already liked.");
     if (likerUid === likedUid) throw new Error("You cannot like yourself.");
+    
+    const now = Date.now();
+    const lastLikedTimestamp = likerData.likedUsers[likedUid];
+
+    if (lastLikedTimestamp && (now - lastLikedTimestamp < ONE_DAY_MS)) {
+        throw new Error("You have already liked this user today.");
+    }
 
     const batch = writeBatch(db);
-    batch.update(likerDocRef, { likedUsers: arrayUnion(likedUid) });
+    batch.update(likerDocRef, { [`likedUsers.${likedUid}`]: now });
     batch.update(likedDocRef, {
         likes: increment(1),
         gold: increment(5)

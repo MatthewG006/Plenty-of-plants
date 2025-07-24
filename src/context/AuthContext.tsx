@@ -48,6 +48,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         unsubscribeFirestore = onSnapshot(docRef, (docSnap) => {
           if (docSnap.exists()) {
             const data = docSnap.data();
+            
+            let likedUsersData = data.likedUsers || {};
+            // Backwards compatibility for old array format
+            if (Array.isArray(data.likedUsers)) {
+                likedUsersData = data.likedUsers.reduce((acc: Record<string, number>, uid: string) => {
+                    acc[uid] = 1; // Give old likes a timestamp of 1 to make them permanent but identifiable
+                    return acc;
+                }, {});
+            }
+
             const loadedGameData: GameData = {
               gold: data.gold || 0,
               plants: data.plants || {},
@@ -65,7 +75,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               challenges: data.challenges || {},
               challengesStartDate: data.challengesStartDate || 0,
               likes: data.likes || 0,
-              likedUsers: data.likedUsers || [],
+              likedUsers: likedUsersData,
               autoWaterUnlocked: data.autoWaterUnlocked || false,
               autoWaterEnabled: data.autoWaterEnabled || false,
               waterRefillCount: data.waterRefillCount || 0,

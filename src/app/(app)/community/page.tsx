@@ -131,11 +131,11 @@ export default function CommunityPage() {
       );
     } catch (e: any) {
         console.error("Failed to like user", e);
-        if (e.message !== 'User already liked.') {
+        if (e.message) {
             toast({
                 variant: 'destructive',
                 title: 'Like Error',
-                description: 'Could not process your like. Please try again.',
+                description: e.message,
             });
         }
     }
@@ -174,7 +174,9 @@ export default function CommunityPage() {
         <div className="space-y-4">
           {users.length > 0 ? (
             users.map((communityUser) => {
-              const hasLiked = user && gameData?.likedUsers?.includes(communityUser.uid);
+              const likedTimestamp = gameData?.likedUsers?.[communityUser.uid];
+              const canLikeAgain = !likedTimestamp || (Date.now() - likedTimestamp > 24 * 60 * 60 * 1000);
+              const hasLiked = !!likedTimestamp;
               const isSelf = user?.uid === communityUser.uid;
 
               return (
@@ -196,10 +198,10 @@ export default function CommunityPage() {
                     size="icon" 
                     variant="outline" 
                     onClick={() => handleLike(communityUser)}
-                    disabled={!!hasLiked || isSelf}
-                    className={cn(hasLiked && "border-red-500 text-red-500")}
+                    disabled={!canLikeAgain || isSelf}
+                    className={cn(hasLiked && !canLikeAgain && "border-red-500 text-red-500")}
                     >
-                    <Heart className={cn("w-5 h-5", hasLiked && "fill-current")} />
+                    <Heart className={cn("w-5 h-5", hasLiked && !canLikeAgain && "fill-current")} />
                   </Button>
                 </CardHeader>
                 <CardContent>
