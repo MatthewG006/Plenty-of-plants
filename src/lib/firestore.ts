@@ -40,6 +40,8 @@ export interface GameData {
     challengesStartDate: number;
     likes: number;
     likedUsers: string[];
+    autoWaterUnlocked?: boolean;
+    autoWaterEnabled?: boolean;
 }
 
 export interface AutoWaterResult {
@@ -81,6 +83,8 @@ export async function getUserGameData(userId: string): Promise<GameData | null> 
             challengesStartDate: data.challengesStartDate || 0,
             likes: data.likes || 0,
             likedUsers: data.likedUsers || [],
+            autoWaterUnlocked: data.autoWaterUnlocked || false,
+            autoWaterEnabled: data.autoWaterEnabled || false,
         };
     } else {
         return null;
@@ -167,6 +171,8 @@ export async function createUserDocument(user: User): Promise<GameData> {
             challengesStartDate: Date.now(),
             likes: 0,
             likedUsers: [],
+            autoWaterUnlocked: false,
+            autoWaterEnabled: false,
         };
 
         await setDoc(docRef, {
@@ -268,7 +274,7 @@ export async function updateUserGold(userId: string, amount: number) {
     });
 }
 
-export async function purchaseWaterRefills(userId: string, quantity: number, cost: number) {
+export async function purchaseWaterRefills(userId: string, quantity: number, cost: number): Promise<AutoWaterResult> {
     const userDocRef = doc(db, 'users', userId);
     const gameData = await getUserGameData(userId);
 
@@ -280,6 +286,14 @@ export async function purchaseWaterRefills(userId: string, quantity: number, cos
         gold: increment(-cost),
         waterRefills: increment(quantity)
     });
+
+    // After purchase, if auto-water is on, try to use them
+    const updatedGameData = await getUserGameData(userId);
+    if (updatedGameData?.autoWaterEnabled) {
+        return useAllWaterRefills(userId);
+    }
+
+    return { refillsUsed: 0, goldGained: 0, evolutionCandidates: [] };
 }
 
 export async function purchaseCosmetic(userId: string, cosmetic: 'glitterCount' | 'sheenCount' | 'rainbowGlitterCount', quantity: number, cost: number) {
@@ -293,6 +307,24 @@ export async function purchaseCosmetic(userId: string, cosmetic: 'glitterCount' 
     await updateDoc(userDocRef, {
         gold: increment(-cost),
         [cosmetic]: increment(quantity)
+    });
+}
+
+export async function purchaseAutoWater(userId: string, cost: number) {
+    const userDocRef = doc(db, 'users', userId);
+    const gameData = await getUserGameData(userId);
+
+    if (!gameData || gameData.gold < cost) {
+        throw new Error("Not enough gold to purchase.");
+    }
+    if (gameData.autoWaterUnlocked) {
+        throw new Error("Auto-Waterer already unlocked.");
+    }
+
+    await updateDoc(userDocRef, {
+        gold: increment(-cost),
+        autoWaterUnlocked: true,
+        autoWaterEnabled: true,
     });
 }
 
@@ -433,50 +465,57 @@ export async function useAllWaterRefills(userId: string): Promise<AutoWaterResul
   
   const updates: { [key: string]: any } = {};
   const evolutionCandidates: number[] = [];
-  let refillsUsed = 0;
-  let goldGained = 0;
-  const now = Date.now();
-
+  let totalRefillsUsed = 0;
+  let totalGoldGained = 0;
+  
   for (const plant of allPlants) {
-    if (availableRefills <= 0) break; // No more refills to use
+    if (availableRefills <= 0) break; 
 
     const timesWateredToday = plant.lastWatered?.filter(isToday).length ?? 0;
-    const canWaterMore = timesWateredToday < MAX_WATERINGS_PER_DAY;
+    const wateringsPossible = MAX_WATERINGS_PER_DAY - timesWateredToday;
 
-    if (canWaterMore) {
-      availableRefills--;
-      refillsUsed++;
+    if (wateringsPossible <= 0) continue;
 
-      const xpGained = XP_PER_WATERING;
-      let newXp = plant.xp + xpGained;
-      let newLevel = plant.level;
+    const wateringsToApply = Math.min(wateringsPossible, availableRefills);
+    
+    if (wateringsToApply > 0) {
+        let currentXp = plant.xp;
+        let currentLevel = plant.level;
+        let newLastWatered = plant.lastWatered || [];
+        const now = Date.now();
 
-      if (newXp >= XP_PER_LEVEL) {
-        const levelsGained = Math.floor(newXp / XP_PER_LEVEL);
-        newLevel += levelsGained;
-        newXp %= XP_PER_LEVEL;
-
-        if (newLevel >= EVOLUTION_LEVEL && plant.form === 'Base') {
-          evolutionCandidates.push(plant.id);
+        for (let i = 0; i < wateringsToApply; i++) {
+            currentXp += XP_PER_WATERING;
+            newLastWatered.push(now + i); // Add small offset to ensure unique timestamps if needed
         }
-      }
-      
-      const updatedLastWatered = [...(plant.lastWatered || []).filter(isToday), now];
-      
-      updates[`plants.${plant.id}.xp`] = newXp;
-      updates[`plants.${plant.id}.level`] = newLevel;
-      updates[`plants.${plant.id}.lastWatered`] = updatedLastWatered;
+
+        if (currentXp >= XP_PER_LEVEL) {
+            const levelsGained = Math.floor(currentXp / XP_PER_LEVEL);
+            currentLevel += levelsGained;
+            currentXp %= XP_PER_LEVEL;
+
+            if (currentLevel >= EVOLUTION_LEVEL && plant.form === 'Base') {
+                if (!evolutionCandidates.includes(plant.id)) {
+                    evolutionCandidates.push(plant.id);
+                }
+            }
+        }
+
+        updates[`plants.${plant.id}.xp`] = currentXp;
+        updates[`plants.${plant.id}.level`] = currentLevel;
+        updates[`plants.${plant.id}.lastWatered`] = newLastWatered;
+        
+        availableRefills -= wateringsToApply;
+        totalRefillsUsed += wateringsToApply;
     }
   }
 
-  if (refillsUsed > 0) {
-    goldGained = refillsUsed * GOLD_PER_WATERING;
-    updates.waterRefills = increment(-refillsUsed);
-    updates.gold = increment(goldGained);
+  if (totalRefillsUsed > 0) {
+    totalGoldGained = totalRefillsUsed * GOLD_PER_WATERING;
+    updates.waterRefills = increment(-totalRefillsUsed);
+    updates.gold = increment(totalGoldGained);
     await updateDoc(userDocRef, updates);
   }
 
-  return { evolutionCandidates, refillsUsed, goldGained };
+  return { evolutionCandidates, refillsUsed: totalRefillsUsed, goldGained: totalGoldGained };
 }
-
-    
