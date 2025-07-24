@@ -7,6 +7,20 @@ import { User } from 'firebase/auth';
 import { MAX_DRAWS } from './draw-manager';
 
 const NUM_POTS = 3;
+const MAX_WATERINGS_PER_DAY = 4;
+const XP_PER_WATERING = 200;
+const XP_PER_LEVEL = 1000;
+const GOLD_PER_WATERING = 5;
+const EVOLUTION_LEVEL = 10;
+
+// Helper to check if a timestamp is from the current day
+function isToday(timestamp: number): boolean {
+    const today = new Date();
+    const someDate = new Date(timestamp);
+    return someDate.getDate() === today.getDate() &&
+           someDate.getMonth() === today.getMonth() &&
+           someDate.getFullYear() === today.getFullYear();
+}
 
 export interface GameData {
     gold: number;
@@ -430,24 +444,64 @@ export async function updateShowcasePlants(userId: string, plantIds: number[]) {
 export async function likeUser(likerUid: string, likedUid: string) {
     const likerDocRef = doc(db, 'users', likerUid);
     const likedDocRef = doc(db, 'users', likedUid);
-
     const likerData = await getUserGameData(likerUid);
 
     if (!likerData) throw new Error("Liker data not found.");
     if (likerData.likedUsers.includes(likedUid)) throw new Error("User already liked.");
+    if (likerUid === likedUid) throw new Error("You cannot like yourself.");
 
     const batch = writeBatch(db);
-
-    // Add user to liker's likedUsers list
-    batch.update(likerDocRef, {
-        likedUsers: arrayUnion(likedUid)
-    });
-
-    // Increment likes and gold for the liked user
+    batch.update(likerDocRef, { likedUsers: arrayUnion(likedUid) });
     batch.update(likedDocRef, {
         likes: increment(1),
         gold: increment(5)
     });
-
     await batch.commit();
+}
+
+export async function autoWaterPlants(userId: string, plantsToWater: Plant[]) {
+    const userDocRef = doc(db, 'users', userId);
+    const gameData = await getUserGameData(userId);
+    
+    if (!gameData || gameData.waterRefills <= 0) {
+        return { evolutionCandidates: [], refillsUsed: 0, goldGained: 0 };
+    }
+
+    let refillsUsed = 0;
+    let goldGained = 0;
+    const evolutionCandidates: number[] = [];
+    const updates: { [key: string]: any } = {};
+    const now = Date.now();
+
+    for (const plant of plantsToWater) {
+        if (gameData.waterRefills - refillsUsed <= 0) break;
+
+        refillsUsed++;
+        goldGained += GOLD_PER_WATERING;
+
+        const xpGained = XP_PER_WATERING;
+        let newXp = plant.xp + xpGained;
+        let newLevel = plant.level;
+
+        if (newXp >= XP_PER_LEVEL) {
+            newLevel += 1;
+            newXp -= XP_PER_LEVEL;
+            if(newLevel >= EVOLUTION_LEVEL && plant.form === 'Base') {
+                evolutionCandidates.push(plant.id);
+            }
+        }
+        updates[`plants.${plant.id}.xp`] = newXp;
+        updates[`plants.${plant.id}.level`] = newLevel;
+        
+        const updatedLastWatered = [...(plant.lastWatered || []).filter(isToday), now];
+        updates[`plants.${plant.id}.lastWatered`] = updatedLastWatered;
+    }
+    
+    if (refillsUsed > 0) {
+        updates.waterRefills = increment(-refillsUsed);
+        updates.gold = increment(goldGained);
+        await updateDoc(userDocRef, updates);
+    }
+    
+    return { evolutionCandidates, refillsUsed, goldGained };
 }
