@@ -480,3 +480,10 @@ export async function likeUser(likerUid: string, likedUid: string) {
     });
     await batch.commit();
 }
+
+export async function unequipSprinkler(userId: string) {
+    const userDocRef = doc(db, 'users', userId);
+    await updateDoc(userDocRef, {
+        sprinklerUnlocked: false
+    });
+}
