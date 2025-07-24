@@ -287,13 +287,7 @@ export async function purchaseWaterRefills(userId: string, quantity: number, cos
         waterRefills: increment(quantity)
     });
 
-    // After purchase, if auto-water is on, try to use them
-    const updatedGameData = await getUserGameData(userId);
-    if (updatedGameData?.autoWaterEnabled) {
-        return useAllWaterRefills(userId);
-    }
-
-    return { refillsUsed: 0, goldGained: 0, evolutionCandidates: [] };
+    return useAllWaterRefills(userId);
 }
 
 export async function purchaseCosmetic(userId: string, cosmetic: 'glitterCount' | 'sheenCount' | 'rainbowGlitterCount', quantity: number, cost: number) {
@@ -459,50 +453,52 @@ export async function useAllWaterRefills(userId: string): Promise<AutoWaterResul
   if (!gameData || gameData.waterRefills <= 0) {
     return { evolutionCandidates: [], refillsUsed: 0, goldGained: 0 };
   }
-
+  
   const allPlants = Object.values(gameData.plants);
   let availableRefills = gameData.waterRefills;
-  
-  const updates: { [key: string]: any } = {};
-  const evolutionCandidates: number[] = [];
   let totalRefillsUsed = 0;
-  
+  const evolutionCandidates: number[] = [];
+  const updates: { [key: string]: any } = {};
+
   for (const plant of allPlants) {
-    if (availableRefills <= 0) break;
+    if (availableRefills <= 0) {
+      break; 
+    }
 
     const timesWateredToday = plant.lastWatered?.filter(isToday).length ?? 0;
-    const wateringsPossibleForThisPlant = MAX_WATERINGS_PER_DAY - timesWateredToday;
+    const wateringsPossible = MAX_WATERINGS_PER_DAY - timesWateredToday;
+    
+    if (wateringsPossible <= 0) {
+      continue;
+    }
 
-    if (wateringsPossibleForThisPlant <= 0) continue;
-
-    const wateringsToApply = Math.min(wateringsPossibleForThisPlant, availableRefills);
+    const wateringsToApply = Math.min(wateringsPossible, availableRefills);
     
     if (wateringsToApply > 0) {
-      let currentXp = plant.xp;
-      let currentLevel = plant.level;
-      let newLastWatered = [...(plant.lastWatered || [])];
+      let newXp = plant.xp + (wateringsToApply * XP_PER_WATERING);
+      let newLevel = plant.level;
+      
+      const newLastWatered = [...(plant.lastWatered || [])];
       const now = Date.now();
-
-      for (let i = 0; i < wateringsToApply; i++) {
-        currentXp += XP_PER_WATERING;
-        newLastWatered.push(now + i); // Use a slightly different timestamp for each watering
-      }
-
-      if (currentXp >= XP_PER_LEVEL) {
-        const levelsGained = Math.floor(currentXp / XP_PER_LEVEL);
-        const oldLevel = plant.level;
-        currentLevel += levelsGained;
-        currentXp %= XP_PER_LEVEL;
-
-        if (oldLevel < EVOLUTION_LEVEL && currentLevel >= EVOLUTION_LEVEL && plant.form === 'Base') {
-          if (!evolutionCandidates.includes(plant.id)) {
-            evolutionCandidates.push(plant.id);
-          }
-        }
+      for(let i = 0; i < wateringsToApply; i++) {
+        newLastWatered.push(now + i);
       }
       
-      updates[`plants.${plant.id}.xp`] = currentXp;
-      updates[`plants.${plant.id}.level`] = currentLevel;
+      const oldLevel = plant.level;
+      if (newXp >= XP_PER_LEVEL) {
+          const levelsGained = Math.floor(newXp / XP_PER_LEVEL);
+          newLevel += levelsGained;
+          newXp %= XP_PER_LEVEL;
+
+          if (oldLevel < EVOLUTION_LEVEL && newLevel >= EVOLUTION_LEVEL && plant.form === 'Base') {
+            if (!evolutionCandidates.includes(plant.id)) {
+              evolutionCandidates.push(plant.id);
+            }
+          }
+      }
+
+      updates[`plants.${plant.id}.xp`] = newXp;
+      updates[`plants.${plant.id}.level`] = newLevel;
       updates[`plants.${plant.id}.lastWatered`] = newLastWatered;
       
       availableRefills -= wateringsToApply;
@@ -514,9 +510,9 @@ export async function useAllWaterRefills(userId: string): Promise<AutoWaterResul
     const totalGoldGained = totalRefillsUsed * GOLD_PER_WATERING;
     updates.waterRefills = increment(-totalRefillsUsed);
     updates.gold = increment(totalGoldGained);
-
+    
     await updateDoc(userDocRef, updates);
-
+    
     return { evolutionCandidates, refillsUsed: totalRefillsUsed, goldGained: totalGoldGained };
   }
 
