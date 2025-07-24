@@ -496,7 +496,7 @@ export async function unequipSprinkler(userId: string) {
     });
 }
 
-export async function purchaseWaterRefills(userId: string, quantity: number, cost: number): Promise<void> {
+export async function purchaseWaterRefills(userId: string, cost: number): Promise<void> {
     const userDocRef = doc(db, 'users', userId);
     const gameData = await getUserGameData(userId);
 
@@ -504,8 +504,16 @@ export async function purchaseWaterRefills(userId: string, quantity: number, cos
         throw new Error("Not enough gold to purchase.");
     }
 
-    await updateDoc(userDocRef, {
-        gold: increment(-cost),
-        waterRefills: increment(quantity)
-    });
+    const updates: { [key: string]: any } = {
+        gold: increment(-cost)
+    };
+
+    const allPlants = Object.values(gameData.plants || {});
+    for (const plant of allPlants) {
+        // Filter out timestamps from today, keeping only older ones.
+        const previousWaterings = plant.lastWatered.filter(ts => !isToday(ts));
+        updates[`plants.${plant.id}.lastWatered`] = previousWaterings;
+    }
+
+    await updateDoc(userDocRef, updates);
 }
