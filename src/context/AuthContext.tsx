@@ -1,33 +1,61 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
-import { GameData, createUserDocument } from '@/lib/firestore';
+import { GameData, createUserDocument, autoWaterPlants as autoWaterPlantsInDb } from '@/lib/firestore';
 import { MAX_DRAWS } from '@/lib/draw-manager';
 import { usePathname, useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 interface AuthContextType {
   user: User | null;
   gameData: GameData | null;
   loading: boolean;
+  plantsToEvolveQueue: number[];
+  setPlantsToEvolveQueue: React.Dispatch<React.SetStateAction<number[]>>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   gameData: null,
   loading: true,
+  plantsToEvolveQueue: [],
+  setPlantsToEvolveQueue: () => {},
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [gameData, setGameData] = useState<GameData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [plantsToEvolveQueue, setPlantsToEvolveQueue] = useState<number[]>([]);
   const router = useRouter();
   const pathname = usePathname();
+  const { toast } = useToast();
+  
+  const handleAutoWater = useCallback(async (uid: string) => {
+      try {
+        const { evolutionCandidates, refillsUsed, goldGained } = await autoWaterPlantsInDb(uid);
+        
+        if (refillsUsed > 0) {
+            toast({
+              title: "Auto-Watered!",
+              description: `Watered ${refillsUsed} plants and gained ${goldGained} gold.`
+            });
+        }
+        
+        if (evolutionCandidates.length > 0) {
+            setPlantsToEvolveQueue(prev => [...new Set([...prev, ...evolutionCandidates])]);
+        }
+        
+      } catch (e) {
+        console.error("Auto-watering failed in AuthContext", e);
+      }
+  }, [toast]);
+
 
   useEffect(() => {
     let unsubscribeFirestore: Unsubscribe | undefined;
@@ -37,10 +65,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (currentUser) {
         // User is logged in, start listening to their data
         const docRef = doc(db, 'users', currentUser.uid);
+        let isFirstLoad = true;
+        
         unsubscribeFirestore = onSnapshot(docRef, (docSnap) => {
           if (docSnap.exists()) {
             const data = docSnap.data();
-            setGameData({
+            const loadedGameData: GameData = {
               gold: data.gold || 0,
               plants: data.plants || {},
               collectionPlantIds: data.collectionPlantIds || [],
@@ -60,7 +90,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               likedUsers: data.likedUsers || [],
               autoWaterUnlocked: data.autoWaterUnlocked || false,
               autoWaterEnabled: data.autoWaterEnabled || false,
-            });
+            };
+            setGameData(loadedGameData);
+
+            if (isFirstLoad && loadedGameData.autoWaterEnabled && loadedGameData.waterRefills > 0) {
+                handleAutoWater(currentUser.uid);
+                isFirstLoad = false;
+            }
+
           } else {
             // This can happen on first signup.
             createUserDocument(currentUser).then(setGameData);
@@ -84,7 +121,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         unsubscribeFirestore();
       }
     };
-  }, []);
+  }, [handleAutoWater]);
 
   useEffect(() => {
     if (loading) return; // Don't do anything while loading
@@ -111,7 +148,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, gameData, loading }}>
+    <AuthContext.Provider value={{ user, gameData, loading, plantsToEvolveQueue, setPlantsToEvolveQueue }}>
       {children}
     </AuthContext.Provider>
   );

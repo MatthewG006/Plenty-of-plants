@@ -27,7 +27,7 @@ import { useDraw, refundDraw } from '@/lib/draw-manager';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { updatePlantArrangement, updateUserGold, savePlant, useWaterRefill, updatePlant, getPlantById, deletePlant, useGlitter, updateShowcasePlants, useSheen, useRainbowGlitter, toggleAutoWater, GameData, autoWaterPlants as autoWaterPlantsInDb } from '@/lib/firestore';
+import { updatePlantArrangement, updateUserGold, savePlant, useWaterRefill, updatePlant, getPlantById, deletePlant, useGlitter, updateShowcasePlants, useSheen, useRainbowGlitter, toggleAutoWater, GameData } from '@/lib/firestore';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { compressImage, makeBackgroundTransparent } from '@/lib/image-compression';
 import { Badge } from '@/components/ui/badge';
@@ -658,7 +658,7 @@ function LongPressInfoDialog({ open, onOpenChange }: { open: boolean, onOpenChan
 }
 
 export default function RoomPage() {
-  const { user, gameData } = useAuth();
+  const { user, gameData, plantsToEvolveQueue, setPlantsToEvolveQueue } = useAuth();
   const { toast } = useToast();
   const { playSfx } = useAudio();
   
@@ -670,7 +670,6 @@ export default function RoomPage() {
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
 
-  const [plantsToEvolveQueue, setPlantsToEvolveQueue] = useState<number[]>([]);
   const [currentEvolvingPlantId, setCurrentEvolvingPlantId] = useState<number | null>(null);
   const [isEvolving, setIsEvolving] = useState(false);
 
@@ -726,45 +725,6 @@ export default function RoomPage() {
     if (!currentEvolvingPlantId) return '';
     return allPlants[currentEvolvingPlantId]?.name || '';
   }, [currentEvolvingPlantId, allPlants]);
-
-  // Auto-watering logic
-  useEffect(() => {
-    const runAutoWater = async () => {
-      if (!user || !gameData) return;
-      
-      // Only run if the feature is enabled and user has refills.
-      if (!gameData.autoWaterEnabled || gameData.waterRefills <= 0) {
-        return;
-      }
-
-      try {
-        const { evolutionCandidates, refillsUsed, goldGained } = await autoWaterPlantsInDb(user.uid);
-        
-        if (refillsUsed > 0) {
-            toast({
-              title: "Auto-Watered!",
-              description: `Watered ${refillsUsed} plants and gained ${goldGained} gold.`
-            });
-        }
-        
-        if (evolutionCandidates.length > 0) {
-            setPlantsToEvolveQueue(prev => [...prev, ...evolutionCandidates]);
-        }
-        
-      } catch (e) {
-        console.error("Auto-watering failed", e);
-        // Optionally, show a toast to the user if it fails
-        toast({
-          variant: "destructive",
-          title: "Auto-Watering Failed",
-          description: "There was an issue with auto-watering."
-        });
-      }
-    };
-
-    runAutoWater();
-  }, [user, gameData]);
-
 
   useEffect(() => {
     const processImages = async () => {
