@@ -274,7 +274,7 @@ export async function updateUserGold(userId: string, amount: number) {
     });
 }
 
-export async function purchaseWaterRefills(userId: string, quantity: number, cost: number): Promise<AutoWaterResult> {
+export async function purchaseWaterRefills(userId: string, quantity: number, cost: number) {
     const userDocRef = doc(db, 'users', userId);
     const gameData = await getUserGameData(userId);
 
@@ -286,9 +286,6 @@ export async function purchaseWaterRefills(userId: string, quantity: number, cos
         gold: increment(-cost),
         waterRefills: increment(quantity)
     });
-
-    // After purchasing, immediately try to auto-water if enabled
-    return await autoWaterPlants(userId);
 }
 
 export async function purchaseCosmetic(userId: string, cosmetic: 'glitterCount' | 'sheenCount' | 'rainbowGlitterCount', quantity: number, cost: number) {
@@ -377,16 +374,16 @@ export async function useRainbowGlitter(userId: string) {
 }
 
 export async function toggleAutoWater(userId: string, isEnabled: boolean): Promise<AutoWaterResult> {
-    const userDocRef = doc(db, 'users', userId);
-    await updateDoc(userDocRef, {
-        autoWaterEnabled: isEnabled
-    });
+  const userDocRef = doc(db, 'users', userId);
+  await updateDoc(userDocRef, {
+    autoWaterEnabled: isEnabled,
+  });
 
-    if (isEnabled) {
-        return await autoWaterPlants(userId);
-    }
-    
-    return { evolutionCandidates: [], refillsUsed: 0, goldGained: 0 };
+  if (isEnabled) {
+    return await autoWaterPlants(userId);
+  }
+
+  return { evolutionCandidates: [], refillsUsed: 0, goldGained: 0 };
 }
 
 
@@ -474,61 +471,61 @@ export async function likeUser(likerUid: string, likedUid: string) {
 }
 
 export async function autoWaterPlants(userId: string): Promise<AutoWaterResult> {
-    const userDocRef = doc(db, 'users', userId);
-    const gameData = await getUserGameData(userId);
-    
-    if (!gameData || !gameData.autoWaterEnabled || gameData.waterRefills <= 0) {
-        return { evolutionCandidates: [], refillsUsed: 0, goldGained: 0 };
+  const userDocRef = doc(db, 'users', userId);
+  const gameData = await getUserGameData(userId);
+
+  if (!gameData || !gameData.autoWaterEnabled || gameData.waterRefills <= 0) {
+    return { evolutionCandidates: [], refillsUsed: 0, goldGained: 0 };
+  }
+
+  const allPlants = Object.values(gameData.plants);
+  const plantsToWater = allPlants.filter((plant) => {
+    const timesWateredToday = plant.lastWatered?.filter(isToday).length ?? 0;
+    return timesWateredToday < MAX_WATERINGS_PER_DAY;
+  });
+
+  if (plantsToWater.length === 0) {
+    return { evolutionCandidates: [], refillsUsed: 0, goldGained: 0 };
+  }
+
+  let refillsUsed = 0;
+  const evolutionCandidates: number[] = [];
+  const updates: { [key: string]: any } = {};
+  const now = Date.now();
+
+  for (const plant of plantsToWater) {
+    if (refillsUsed >= gameData.waterRefills) {
+      break; // Stop if we've run out of refills
     }
-    
-    const allPlants = Object.values(gameData.plants);
-    const plantsToWater = allPlants.filter(plant => {
-        const timesWateredToday = plant.lastWatered?.filter(isToday).length ?? 0;
-        return timesWateredToday < MAX_WATERINGS_PER_DAY;
-    });
 
-    if (plantsToWater.length === 0) {
-        return { evolutionCandidates: [], refillsUsed: 0, goldGained: 0 };
+    refillsUsed++;
+
+    const xpGained = XP_PER_WATERING;
+    let newXp = plant.xp + xpGained;
+    let newLevel = plant.level;
+
+    if (newXp >= XP_PER_LEVEL) {
+      newLevel += Math.floor(newXp / XP_PER_LEVEL);
+      newXp %= XP_PER_LEVEL;
+      if (newLevel >= EVOLUTION_LEVEL && plant.form === 'Base') {
+        evolutionCandidates.push(plant.id);
+      }
     }
 
-    let refillsUsed = 0;
-    let goldGained = 0;
-    const evolutionCandidates: number[] = [];
-    const updates: { [key: string]: any } = {};
-    const now = Date.now();
+    updates[`plants.${plant.id}.xp`] = newXp;
+    updates[`plants.${plant.id}.level`] = newLevel;
 
-    for (const plant of plantsToWater) {
-        if (refillsUsed >= gameData.waterRefills) {
-            break; // Stop if we've run out of refills
-        }
+    const updatedLastWatered = [...(plant.lastWatered || []).filter(isToday), now];
+    updates[`plants.${plant.id}.lastWatered`] = updatedLastWatered;
+  }
 
-        refillsUsed++;
-        goldGained += GOLD_PER_WATERING;
-
-        const xpGained = XP_PER_WATERING;
-        let newXp = plant.xp + xpGained;
-        let newLevel = plant.level;
-
-        if (newXp >= XP_PER_LEVEL) {
-            newLevel += 1;
-            newXp -= XP_PER_LEVEL;
-            if(newLevel >= EVOLUTION_LEVEL && plant.form === 'Base') {
-                evolutionCandidates.push(plant.id);
-            }
-        }
-        
-        updates[`plants.${plant.id}.xp`] = newXp;
-        updates[`plants.${plant.id}.level`] = newLevel;
-        
-        const updatedLastWatered = [...(plant.lastWatered || []).filter(isToday), now];
-        updates[`plants.${plant.id}.lastWatered`] = updatedLastWatered;
-    }
-    
-    if (refillsUsed > 0) {
-        updates.waterRefills = increment(-refillsUsed);
-        updates.gold = increment(goldGained);
-        await updateDoc(userDocRef, updates);
-    }
-    
+  if (refillsUsed > 0) {
+    const goldGained = refillsUsed * GOLD_PER_WATERING;
+    updates.waterRefills = increment(-refillsUsed);
+    updates.gold = increment(goldGained);
+    await updateDoc(userDocRef, updates);
     return { evolutionCandidates, refillsUsed, goldGained };
+  }
+
+  return { evolutionCandidates: [], refillsUsed: 0, goldGained: 0 };
 }
