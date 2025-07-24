@@ -213,9 +213,9 @@ function PlantDetailDialog({ plant, open, onOpenChange, onAddToEvolutionQueue, u
             
             if (usedRefill) {
                  await useWaterRefill(userId);
-            } else {
-                 updatedLastWatered = [...updatedLastWatered.filter(isToday), now];
             }
+            
+            updatedLastWatered = [...updatedLastWatered.filter(isToday), now];
 
             await updatePlant(userId, plant.id, {
                 xp: newXp,
@@ -746,6 +746,7 @@ export default function RoomPage() {
       const evolutionCandidates: number[] = [];
 
       const updates: { [key: string]: any } = {};
+      const now = Date.now();
 
       for (const plant of plantsToWater) {
         if (gameData.waterRefills - refillsUsed <= 0) break;
@@ -767,6 +768,10 @@ export default function RoomPage() {
 
         updates[`plants.${plant.id}.xp`] = newXp;
         updates[`plants.${plant.id}.level`] = newLevel;
+        
+        // Add the timestamp for the watering event
+        const updatedLastWatered = [...(plant.lastWatered || []).filter(isToday), now];
+        updates[`plants.${plant.id}.lastWatered`] = updatedLastWatered;
 
         if (plant.form === 'Evolved') {
           waterEvolvedProgressCount++;
@@ -798,8 +803,7 @@ export default function RoomPage() {
     };
 
     autoWaterPlants();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameData, user]); // Dependency array is key
+  }, [user, gameData]);
 
 
   useEffect(() => {
@@ -1377,3 +1381,5 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
+
+    
