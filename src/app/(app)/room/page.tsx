@@ -1102,10 +1102,6 @@ export default function RoomPage() {
         <header className="flex flex-col items-center gap-4 p-4 text-center">
           <h1 className="text-3xl text-primary text-center">My Room</h1>
           <div className="flex flex-wrap items-center justify-center gap-4">
-            <div className="flex items-center gap-2 rounded-full bg-blue-100/80 px-3 py-1 border border-blue-300/80">
-              <Pipette className="h-5 w-5 text-blue-500" />
-              <span className="font-bold text-blue-700">{gameData.waterRefills || 0}</span>
-            </div>
             <div className="flex items-center gap-2 rounded-full bg-yellow-100/80 px-3 py-1 border border-yellow-300/80">
               <Sparkles className="h-5 w-5 text-yellow-500" />
               <span className="font-bold text-yellow-700">{gameData.glitterCount}</span>

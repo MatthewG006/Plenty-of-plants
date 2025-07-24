@@ -87,9 +87,9 @@ export default function ShopPage() {
         }
 
         try {
-            await purchaseWaterRefills(user.uid, 1, WATER_REFILL_COST_IN_GOLD);
+            await purchaseWaterRefills(user.uid, WATER_REFILL_COST_IN_GOLD);
             playSfx('reward');
-            toast({ title: "Purchase Successful!", description: `You bought 1 Water Refill!` });
+            toast({ title: "Purchase Successful!", description: `Your plants' daily waterings have been refreshed!` });
         } catch (e: any) {
             console.error("Failed to purchase water refills", e);
             toast({ variant: "destructive", title: "Error", description: e.message || "Could not complete the purchase." });
@@ -295,8 +295,8 @@ export default function ShopPage() {
                 <div className="flex items-center gap-4">
                   <Pipette className="h-8 w-8 text-primary" />
                   <div>
-                    <CardTitle className="text-xl">Watering Can</CardTitle>
-                    <CardDescription>A single water refill for one of your plants.</CardDescription>
+                    <CardTitle className="text-xl">Watering Bucket</CardTitle>
+                    <CardDescription>Refreshes the daily waterings for all your plants.</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -306,11 +306,8 @@ export default function ShopPage() {
                     <p className="text-2xl font-bold text-yellow-600">{WATER_REFILL_COST_IN_GOLD}</p>
                 </div>
                 <Button onClick={handleBuyWaterRefills} className="w-full font-semibold" disabled={goldCount < WATER_REFILL_COST_IN_GOLD}>
-                    {goldCount < WATER_REFILL_COST_IN_GOLD ? "Not Enough Gold" : "Buy (+1)"}
+                    {goldCount < WATER_REFILL_COST_IN_GOLD ? "Not Enough Gold" : "Buy"}
                 </Button>
-                 <p className="text-xs text-muted-foreground text-center w-full">
-                    You have {gameData.waterRefills || 0} refill(s)
-                </p>
               </CardContent>
             </Card>
 
