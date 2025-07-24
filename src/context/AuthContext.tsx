@@ -32,6 +32,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [gameData, setGameData] = useState<GameData | null>(null);
   const [loading, setLoading] = useState(true);
   const [plantsToEvolveQueue, setPlantsToEvolveQueue] = useState<number[]>([]);
+  const [hasCheckedAutoWater, setHasCheckedAutoWater] = useState(false);
+
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
@@ -54,7 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } catch (e) {
         console.error("Auto-watering failed in AuthContext", e);
       }
-  }, [toast]);
+  }, [toast, setPlantsToEvolveQueue]);
 
 
   useEffect(() => {
@@ -62,10 +64,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
+      setHasCheckedAutoWater(false); // Reset check on user change
+
       if (currentUser) {
         // User is logged in, start listening to their data
         const docRef = doc(db, 'users', currentUser.uid);
-        let isFirstLoad = true;
         
         unsubscribeFirestore = onSnapshot(docRef, (docSnap) => {
           if (docSnap.exists()) {
@@ -92,12 +95,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               autoWaterEnabled: data.autoWaterEnabled || false,
             };
             setGameData(loadedGameData);
-
-            if (isFirstLoad && loadedGameData.autoWaterEnabled && loadedGameData.waterRefills > 0) {
-                handleAutoWater(currentUser.uid);
-                isFirstLoad = false;
-            }
-
+            setHasCheckedAutoWater(false); // New data arrived, allow a re-check
           } else {
             // This can happen on first signup.
             createUserDocument(currentUser).then(setGameData);
@@ -121,7 +119,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         unsubscribeFirestore();
       }
     };
-  }, [handleAutoWater]);
+  }, []); // Only runs on mount
+
+  useEffect(() => {
+    if (user && gameData && gameData.autoWaterEnabled && gameData.waterRefills > 0 && !hasCheckedAutoWater) {
+      handleAutoWater(user.uid);
+      setHasCheckedAutoWater(true); // Mark as checked for this data state
+    }
+  }, [user, gameData, handleAutoWater, hasCheckedAutoWater]);
+
 
   useEffect(() => {
     if (loading) return; // Don't do anything while loading
