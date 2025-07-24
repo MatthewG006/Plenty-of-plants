@@ -6,10 +6,9 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
-import { GameData, createUserDocument, autoWaterPlants as autoWaterPlantsInDb } from '@/lib/firestore';
+import { GameData, createUserDocument } from '@/lib/firestore';
 import { MAX_DRAWS } from '@/lib/draw-manager';
 import { usePathname, useRouter } from 'next/navigation';
-import { useToast } from '@/hooks/use-toast';
 
 interface AuthContextType {
   user: User | null;
@@ -32,39 +31,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [gameData, setGameData] = useState<GameData | null>(null);
   const [loading, setLoading] = useState(true);
   const [plantsToEvolveQueue, setPlantsToEvolveQueue] = useState<number[]>([]);
-  const [hasCheckedAutoWater, setHasCheckedAutoWater] = useState(false);
 
   const router = useRouter();
   const pathname = usePathname();
-  const { toast } = useToast();
   
-  const handleAutoWater = useCallback(async (uid: string) => {
-      try {
-        const { evolutionCandidates, refillsUsed, goldGained } = await autoWaterPlantsInDb(uid);
-        
-        if (refillsUsed > 0) {
-            toast({
-              title: "Auto-Watered!",
-              description: `Watered ${refillsUsed} plants and gained ${goldGained} gold.`
-            });
-        }
-        
-        if (evolutionCandidates.length > 0) {
-            setPlantsToEvolveQueue(prev => [...new Set([...prev, ...evolutionCandidates])]);
-        }
-        
-      } catch (e) {
-        console.error("Auto-watering failed in AuthContext", e);
-      }
-  }, [toast, setPlantsToEvolveQueue]);
-
-
   useEffect(() => {
     let unsubscribeFirestore: Unsubscribe | undefined;
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
-      setHasCheckedAutoWater(false); // Reset check on user change
 
       if (currentUser) {
         // User is logged in, start listening to their data
@@ -95,7 +70,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               autoWaterEnabled: data.autoWaterEnabled || false,
             };
             setGameData(loadedGameData);
-            setHasCheckedAutoWater(false); // New data arrived, allow a re-check
           } else {
             // This can happen on first signup.
             createUserDocument(currentUser).then(setGameData);
@@ -120,14 +94,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     };
   }, []); // Only runs on mount
-
-  useEffect(() => {
-    if (user && gameData && gameData.autoWaterEnabled && gameData.waterRefills > 0 && !hasCheckedAutoWater) {
-      handleAutoWater(user.uid);
-      setHasCheckedAutoWater(true); // Mark as checked for this data state
-    }
-  }, [user, gameData, handleAutoWater, hasCheckedAutoWater]);
-
 
   useEffect(() => {
     if (loading) return; // Don't do anything while loading

@@ -44,6 +44,12 @@ export interface GameData {
     autoWaterEnabled: boolean;
 }
 
+export interface AutoWaterResult {
+    evolutionCandidates: number[];
+    refillsUsed: number;
+    goldGained: number;
+}
+
 export interface CommunityUser {
     uid: string;
     username: string;
@@ -268,7 +274,7 @@ export async function updateUserGold(userId: string, amount: number) {
     });
 }
 
-export async function purchaseWaterRefills(userId: string, quantity: number, cost: number) {
+export async function purchaseWaterRefills(userId: string, quantity: number, cost: number): Promise<AutoWaterResult> {
     const userDocRef = doc(db, 'users', userId);
     const gameData = await getUserGameData(userId);
 
@@ -280,6 +286,9 @@ export async function purchaseWaterRefills(userId: string, quantity: number, cos
         gold: increment(-cost),
         waterRefills: increment(quantity)
     });
+
+    // After purchasing, immediately try to auto-water if enabled
+    return await autoWaterPlants(userId);
 }
 
 export async function purchaseCosmetic(userId: string, cosmetic: 'glitterCount' | 'sheenCount' | 'rainbowGlitterCount', quantity: number, cost: number) {
@@ -367,11 +376,18 @@ export async function useRainbowGlitter(userId: string) {
     });
 }
 
-export async function toggleAutoWater(userId: string, isEnabled: boolean) {
+export async function toggleAutoWater(userId: string, isEnabled: boolean): Promise<AutoWaterResult> {
     const userDocRef = doc(db, 'users', userId);
     await updateDoc(userDocRef, {
         autoWaterEnabled: isEnabled
     });
+
+    // If we just enabled it, try to water plants now
+    if (isEnabled) {
+        return await autoWaterPlants(userId);
+    }
+    
+    return { evolutionCandidates: [], refillsUsed: 0, goldGained: 0 };
 }
 
 
@@ -459,8 +475,9 @@ export async function likeUser(likerUid: string, likedUid: string) {
     await batch.commit();
 }
 
-export async function autoWaterPlants(userId: string) {
+export async function autoWaterPlants(userId: string): Promise<AutoWaterResult> {
     const userDocRef = doc(db, 'users', userId);
+    // Get the most up-to-date data right before we act on it
     const gameData = await getUserGameData(userId);
     
     if (!gameData || !gameData.autoWaterEnabled || gameData.waterRefills <= 0) {
@@ -477,16 +494,14 @@ export async function autoWaterPlants(userId: string) {
         return { evolutionCandidates: [], refillsUsed: 0, goldGained: 0 };
     }
 
-    let refillsUsed = 0;
+    let refillsToUse = Math.min(gameData.waterRefills, plantsToWater.length);
     let goldGained = 0;
     const evolutionCandidates: number[] = [];
     const updates: { [key: string]: any } = {};
     const now = Date.now();
 
-    for (const plant of plantsToWater) {
-        if (gameData.waterRefills - refillsUsed <= 0) break;
-
-        refillsUsed++;
+    for (let i = 0; i < refillsToUse; i++) {
+        const plant = plantsToWater[i];
         goldGained += GOLD_PER_WATERING;
 
         const xpGained = XP_PER_WATERING;
@@ -507,13 +522,11 @@ export async function autoWaterPlants(userId: string) {
         updates[`plants.${plant.id}.lastWatered`] = updatedLastWatered;
     }
     
-    if (refillsUsed > 0) {
-        updates.waterRefills = increment(-refillsUsed);
+    if (refillsToUse > 0) {
+        updates.waterRefills = increment(-refillsToUse);
         updates.gold = increment(goldGained);
         await updateDoc(userDocRef, updates);
     }
     
-    return { evolutionCandidates, refillsUsed, goldGained };
+    return { evolutionCandidates, refillsUsed: refillsToUse, goldGained };
 }
-
-    
