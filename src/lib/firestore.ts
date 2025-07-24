@@ -287,7 +287,9 @@ export async function purchaseWaterRefills(userId: string, quantity: number, cos
         waterRefills: increment(quantity)
     });
 
-    return useAllWaterRefills(userId);
+    // We don't need to auto-water from here anymore as per the new design.
+    // The user will explicitly click the button on the room page.
+    return { evolutionCandidates: [], refillsUsed: 0, goldGained: 0 };
 }
 
 export async function purchaseCosmetic(userId: string, cosmetic: 'glitterCount' | 'sheenCount' | 'rainbowGlitterCount', quantity: number, cost: number) {
@@ -450,7 +452,7 @@ export async function useAllWaterRefills(userId: string): Promise<AutoWaterResul
   const userDocRef = doc(db, 'users', userId);
   const gameData = await getUserGameData(userId);
 
-  if (!gameData || gameData.waterRefills <= 0) {
+  if (!gameData || !gameData.waterRefills || gameData.waterRefills <= 0) {
     return { evolutionCandidates: [], refillsUsed: 0, goldGained: 0 };
   }
   
