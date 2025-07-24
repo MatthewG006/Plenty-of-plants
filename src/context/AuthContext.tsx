@@ -68,6 +68,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               likedUsers: data.likedUsers || [],
               autoWaterUnlocked: data.autoWaterUnlocked || false,
               autoWaterEnabled: data.autoWaterEnabled || false,
+              waterRefills: data.waterRefills || 0,
             };
             setGameData(loadedGameData);
           } else {
@@ -133,5 +134,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
-    

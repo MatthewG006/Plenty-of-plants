@@ -33,6 +33,7 @@ export interface GameData {
     likedUsers: string[];
     autoWaterUnlocked?: boolean;
     autoWaterEnabled?: boolean;
+    waterRefills: number;
 }
 
 export interface CommunityUser {
@@ -79,6 +80,7 @@ export async function getUserGameData(userId: string): Promise<GameData | null> 
             likedUsers: data.likedUsers || [],
             autoWaterUnlocked: data.autoWaterUnlocked || false,
             autoWaterEnabled: data.autoWaterEnabled || false,
+            waterRefills: data.waterRefills || 0,
         };
     } else {
         return null;
@@ -167,6 +169,7 @@ export async function createUserDocument(user: User): Promise<GameData> {
             likedUsers: [],
             autoWaterUnlocked: false,
             autoWaterEnabled: false,
+            waterRefills: 0,
         };
 
         await setDoc(docRef, {
@@ -434,6 +437,7 @@ export async function resetUserGameData(userId: string) {
         sheenCount: 0,
         rainbowGlitterCount: 0,
         showcasePlantIds: [],
+        waterRefills: 0,
     });
 }
 
@@ -492,5 +496,16 @@ export async function unequipSprinkler(userId: string) {
     });
 }
 
+export async function purchaseWaterRefills(userId: string, quantity: number, cost: number): Promise<void> {
+    const userDocRef = doc(db, 'users', userId);
+    const gameData = await getUserGameData(userId);
 
-    
+    if (!gameData || gameData.gold < cost) {
+        throw new Error("Not enough gold to purchase.");
+    }
+
+    await updateDoc(userDocRef, {
+        gold: increment(-cost),
+        waterRefills: increment(quantity)
+    });
+}
