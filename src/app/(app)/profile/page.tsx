@@ -26,7 +26,7 @@ import { useAuth } from '@/context/AuthContext';
 import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
-import { updateShowcasePlants, resetUserGameData } from '@/lib/firestore';
+import { updateShowcasePlants } from '@/lib/firestore';
 
 const MAX_SHOWCASE_PLANTS = 5;
 
@@ -152,7 +152,6 @@ export default function ProfilePage() {
 
   const [selectedPlantIds, setSelectedPlantIds] = useState<number[]>([]);
   const [isSaving, setIsSaving] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
 
   useEffect(() => {
     if (gameData?.plants) {
@@ -210,28 +209,6 @@ export default function ProfilePage() {
         });
     } finally {
         setIsSaving(false);
-    }
-  };
-
-  const handleResetGame = async () => {
-    if (!user) return;
-    setIsResetting(true);
-    try {
-        await resetUserGameData(user.uid);
-        toast({
-          title: "Game Reset",
-          description: "Your collection and gold have been cleared.",
-        });
-
-    } catch (e) {
-        console.error("Failed to clear data from Firestore", e);
-        toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Could not reset your game data.",
-        });
-    } finally {
-        setIsResetting(false);
     }
   };
 
@@ -329,41 +306,6 @@ export default function ProfilePage() {
             </AlertDialogContent>
         </AlertDialog>
       </div>
-
-       <Card className="mt-6 border-destructive">
-        <CardHeader>
-          <CardTitle className="text-destructive">Danger Zone</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col">
-              <p className="font-semibold text-primary">Reset Game</p>
-              <p className="text-sm text-muted-foreground">This will permanently delete your plant collection and gold.</p>
-            </div>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline">
-                  Reset Game
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete your entire plant collection and reset your gold to 0.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel disabled={isResetting}>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleResetGame} disabled={isResetting} className="bg-destructive hover:bg-destructive/90">
-                    {isResetting ? <Loader2 className="animate-spin" /> : "Yes, reset my game"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
