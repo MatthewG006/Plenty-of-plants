@@ -10,14 +10,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAudio } from '@/context/AudioContext';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/context/AuthContext';
-import { purchaseCosmetic, purchaseWaterRefills, purchaseAutoWater } from '@/lib/firestore';
+import { purchaseCosmetic, purchaseWaterRefills } from '@/lib/firestore';
 import { useRouter } from 'next/navigation';
 
 const DRAW_COST_IN_GOLD = 50;
 const WATER_REFILL_COST_IN_GOLD = 15;
 const SHEEN_COST_IN_GOLD = 50;
 const RAINBOW_GLITTER_COST_IN_GOLD = 60;
-const AUTO_WATER_COST = 100;
 
 
 function getNextDrawTimeString() {
@@ -131,24 +130,6 @@ export default function ShopPage() {
       }
   };
 
-  const handleBuyAutoWater = async () => {
-    if (!user || !gameData) return;
-
-    if (gameData.gold < AUTO_WATER_COST) {
-        toast({ variant: "destructive", title: "Not Enough Gold", description: `You need ${AUTO_WATER_COST} gold.` });
-        return;
-    }
-
-    try {
-        await purchaseAutoWater(user.uid, AUTO_WATER_COST);
-        playSfx('reward');
-        toast({ title: "Purchase Successful!", description: `Auto-Waterer unlocked!` });
-    } catch (e) {
-        console.error("Failed to purchase auto-waterer", e);
-        toast({ variant: "destructive", title: "Error", description: "Could not complete the purchase." });
-    }
-};
-
 
   const handleBuyDrawWithGold = async () => {
     if (!user || !gameData) return;
@@ -224,30 +205,6 @@ export default function ShopPage() {
             )}
           </CardContent>
         </Card>
-
-        {!gameData.autoWaterUnlocked && (
-          <Card className="shadow-sm border-primary/50">
-            <CardHeader>
-              <div className="flex items-center gap-4">
-                <Zap className="h-8 w-8 text-primary" />
-                <div>
-                  <CardTitle className="text-xl">Auto-Waterer</CardTitle>
-                  <CardDescription>One-time purchase to automatically water your plants!</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="flex flex-col items-start gap-4">
-              <div className="flex items-center gap-2">
-                  <Coins className="h-6 w-6 text-yellow-500" />
-                  <p className="text-2xl font-bold text-yellow-600">{AUTO_WATER_COST}</p>
-              </div>
-              <Button onClick={handleBuyAutoWater} className="w-full font-semibold" disabled={goldCount < AUTO_WATER_COST || gameData.autoWaterUnlocked}>
-                  {gameData.autoWaterUnlocked ? "Purchased" : goldCount < AUTO_WATER_COST ? "Not Enough Gold" : "Buy Upgrade"}
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
 
         <Separator />
 
@@ -349,3 +306,5 @@ export default function ShopPage() {
     </div>
   );
 }
+
+    
