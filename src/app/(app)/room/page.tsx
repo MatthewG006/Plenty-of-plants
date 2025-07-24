@@ -1166,7 +1166,7 @@ export default function RoomPage() {
 
         <section className="px-4 pb-4">
             <Card className="p-4">
-              <div className="flex flex-col items-center gap-4">
+              <div className="flex flex-col items-center gap-4 pb-4">
                   <h2 className="text-xl text-primary">My Collection</h2>
                     {gameData.sprinklerUnlocked && (
                       <Button onClick={handleUseSprinkler} disabled={isWatering}>
@@ -1176,7 +1176,7 @@ export default function RoomPage() {
                     )}
               </div>
               <DroppableCollectionArea>
-                <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 mt-4">
+                <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5">
                     {collectionPlants.length > 0 ? (
                       collectionPlants.map((plant) => {
                           const canWater = (plant.lastWatered?.filter(isToday).length ?? 0) < MAX_WATERINGS_PER_DAY;
