@@ -27,7 +27,7 @@ import { useDraw, refundDraw } from '@/lib/draw-manager';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { updatePlantArrangement, updateUserGold, savePlant, useWaterRefill, updatePlant, getPlantById, deletePlant, useGlitter, updateShowcasePlants, useSheen, useRainbowGlitter, toggleAutoWater, GameData } from '@/lib/firestore';
+import { updatePlantArrangement, updateUserGold, savePlant, useWaterRefill, updatePlant, getPlantById, deletePlant, useGlitter, updateShowcasePlants, useSheen, useRainbowGlitter, toggleAutoWater, GameData, autoWaterPlants as autoWaterPlantsInDb } from '@/lib/firestore';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { compressImage, makeBackgroundTransparent } from '@/lib/image-compression';
 import { Badge } from '@/components/ui/badge';
@@ -729,80 +729,41 @@ export default function RoomPage() {
 
   // Auto-watering logic
   useEffect(() => {
-    const autoWaterPlants = async () => {
-      if (!user || !gameData || !gameData.autoWaterEnabled || gameData.waterRefills <= 0) return;
+    const runAutoWater = async () => {
+      if (!user || !gameData || !gameData.autoWaterEnabled || gameData.waterRefills <= 0) {
+        return;
+      }
 
       const plantsToWater: Plant[] = Object.values(allPlants).filter(plant => {
         const timesWateredToday = plant.lastWatered?.filter(isToday).length ?? 0;
         return timesWateredToday < MAX_WATERINGS_PER_DAY;
       });
 
-      if (plantsToWater.length === 0) return;
-
-      let refillsUsed = 0;
-      let goldGained = 0;
-      let waterProgress = 0;
-      let waterEvolvedProgressCount = 0;
-      const evolutionCandidates: number[] = [];
-
-      const updates: { [key: string]: any } = {};
-      const now = Date.now();
-
-      for (const plant of plantsToWater) {
-        if (gameData.waterRefills - refillsUsed <= 0) break;
-
-        refillsUsed++;
-        goldGained += GOLD_PER_WATERING;
-
-        const xpGained = XP_PER_WATERING;
-        let newXp = plant.xp + xpGained;
-        let newLevel = plant.level;
-
-        if (newXp >= XP_PER_LEVEL) {
-            newLevel += 1;
-            newXp -= XP_PER_LEVEL;
-            if(newLevel >= EVOLUTION_LEVEL && plant.form === 'Base') {
-                evolutionCandidates.push(plant.id);
-            }
-        }
-
-        updates[`plants.${plant.id}.xp`] = newXp;
-        updates[`plants.${plant.id}.level`] = newLevel;
-        
-        // Add the timestamp for the watering event
-        const updatedLastWatered = [...(plant.lastWatered || []).filter(isToday), now];
-        updates[`plants.${plant.id}.lastWatered`] = updatedLastWatered;
-
-        if (plant.form === 'Evolved') {
-          waterEvolvedProgressCount++;
-        } else {
-          waterProgress++;
-        }
+      if (plantsToWater.length === 0) {
+        return;
       }
-      
-      if(refillsUsed > 0) {
-        try {
-          await updatePlant(user.uid, 0, updates); // plantId 0 is a dummy, actual updates are in the object
-          await updateUserGold(user.uid, goldGained);
-          await useWaterRefill(user.uid, refillsUsed);
-          if (waterProgress > 0) await updateWateringProgress(user.uid, waterProgress);
-          if (waterEvolvedProgressCount > 0) await updateWaterEvolvedProgress(user.uid, waterEvolvedProgressCount);
-          
-          if(evolutionCandidates.length > 0) {
-              setPlantsToEvolveQueue(prev => [...prev, ...evolutionCandidates]);
-          }
 
-          toast({
-            title: "Auto-Watered!",
-            description: `Watered ${refillsUsed} plants and gained ${goldGained} gold.`
-          });
-        } catch(e) {
-          console.error("Auto-watering failed", e);
+      try {
+        const { evolutionCandidates, refillsUsed, goldGained } = await autoWaterPlantsInDb(user.uid, plantsToWater);
+        
+        if (refillsUsed > 0) {
+            toast({
+              title: "Auto-Watered!",
+              description: `Watered ${refillsUsed} plants and gained ${goldGained} gold.`
+            });
         }
+        
+        if (evolutionCandidates.length > 0) {
+            setPlantsToEvolveQueue(prev => [...prev, ...evolutionCandidates]);
+        }
+        
+      } catch (e) {
+        console.error("Auto-watering failed", e);
+        // Optional: show a toast to the user
       }
     };
 
-    autoWaterPlants();
+    runAutoWater();
   }, [user, gameData]);
 
 
@@ -1067,7 +1028,7 @@ export default function RoomPage() {
         playSfx('chime');
         toast({
             title: "Rainbow Glitter applied!",
-            description: "Your plant is sparkling with all colors.",
+            description: "Your plant is sparkling with all the colors.",
         });
     } catch (e: any) {
         console.error("Failed to apply rainbow glitter", e);
@@ -1381,5 +1342,3 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
-
-    
