@@ -5,7 +5,7 @@ import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose, DialogDescription } from '@/components/ui/dialog';
-import { Leaf, Loader2, Droplet, Coins, Sparkles, Droplets, Trash2, GripVertical, Star, ArrowLeftRight, Zap } from 'lucide-react';
+import { Leaf, Loader2, Droplet, Coins, Sparkles, Droplets, Trash2, GripVertical, Star } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -27,7 +27,7 @@ import { useDraw, refundDraw } from '@/lib/draw-manager';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { updatePlantArrangement, updateUserGold, savePlant, updatePlant, getPlantById, deletePlant, updateShowcasePlants, useSheen, useRainbowGlitter, GameData, useGlitter, useAllWaterRefills } from '@/lib/firestore';
+import { updatePlantArrangement, updateUserGold, savePlant, updatePlant, getPlantById, deletePlant, updateShowcasePlants, useSheen, useRainbowGlitter, GameData, useGlitter } from '@/lib/firestore';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { compressImage, makeBackgroundTransparent } from '@/lib/image-compression';
 import { Badge } from '@/components/ui/badge';
@@ -35,8 +35,6 @@ import { evolvePlantAction } from '@/app/actions/evolve-plant';
 import { drawPlantAction } from '@/app/actions/draw-plant';
 import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 import { updateWateringProgress, updateEvolutionProgress, updateCollectionProgress, updateWaterEvolvedProgress, updateApplyGlitterProgress } from '@/lib/challenge-manager';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 
 const NUM_POTS = 3;
 const MAX_WATERINGS_PER_DAY = 4;
@@ -261,7 +259,7 @@ function PlantDetailDialog({ plant, open, onOpenChange, onAddToEvolutionQueue, u
                      <div className="flex flex-row items-center justify-center pt-2 gap-2">
                          {plant.baseImage && (
                             <Button variant="outline" size="sm" className="text-xs h-7 px-2" onClick={() => setViewingBase(v => !v)}>
-                                <ArrowLeftRight className="mr-1 h-3 w-3" />
+                                <Sparkles className="mr-1 h-3 w-3" />
                                 {viewingBase ? 'View Evolved' : 'View Base Form'}
                             </Button>
                          )}
@@ -656,7 +654,6 @@ export default function RoomPage() {
   const [collectionPlantIds, setCollectionPlantIds] = useState<number[]>([]);
 
   const [isDrawing, setIsDrawing] = useState(false);
-  const [isWatering, setIsWatering] = useState(false);
   const [drawnPlant, setDrawnPlant] = useState<DrawPlantOutput | null>(null);
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
@@ -986,44 +983,6 @@ export default function RoomPage() {
     }
   };
 
- const handleUseAllRefills = async () => {
-    if (!user || !gameData || gameData.waterRefills <= 0) return;
-    setIsWatering(true);
-    try {
-      const result = await useAllWaterRefills(user.uid);
-      playSfx('success');
-
-      if (result.refillsUsed > 0) {
-        toast({
-          title: 'Plants Watered!',
-          description: `Used ${result.refillsUsed} refills and gained ${result.goldGained} gold.`,
-        });
-      } else {
-        toast({
-          title: 'All Set!',
-          description: 'All your plants are already watered for the day or you have no refills.',
-        });
-      }
-
-      if (result.evolutionCandidates.length > 0) {
-        setPlantsToEvolveQueue((prev) => [...new Set([...prev, ...result.evolutionCandidates])]);
-        toast({
-          title: 'Ready to Evolve!',
-          description: `${result.evolutionCandidates.length} plant(s) are now ready to evolve.`,
-        });
-      }
-    } catch (e: any) {
-      console.error('Failed to use water refills', e);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: e.message || 'Could not water your plants.',
-      });
-    } finally {
-      setIsWatering(false);
-    }
-  };
-
   const handlePointerDown = (plant: Plant) => {
     longPressTimerRef.current = setTimeout(() => {
       setLongPressPlant(plant);
@@ -1184,20 +1143,6 @@ export default function RoomPage() {
             <Card className="p-4">
               <div className="flex flex-col items-center gap-4">
                   <h2 className="text-xl text-primary">My Collection</h2>
-                  <Button
-                    onClick={handleUseAllRefills}
-                    disabled={isWatering || gameData.waterRefills <= 0}
-                    className="w-full max-w-sm"
-                  >
-                    {isWatering ? (
-                      <Loader2 className="animate-spin" />
-                    ) : (
-                      <>
-                        <Droplets className="mr-2 h-4 w-4" />
-                        Use All Refills ({gameData.waterRefills})
-                      </>
-                    )}
-                  </Button>
               </div>
               <DroppableCollectionArea>
                 <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 mt-4">
@@ -1325,3 +1270,5 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
+
+    

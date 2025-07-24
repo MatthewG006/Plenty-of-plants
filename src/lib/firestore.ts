@@ -7,20 +7,6 @@ import { User } from 'firebase/auth';
 import { MAX_DRAWS } from './draw-manager';
 
 const NUM_POTS = 3;
-const MAX_WATERINGS_PER_DAY = 4;
-const XP_PER_WATERING = 200;
-const XP_PER_LEVEL = 1000;
-const GOLD_PER_WATERING = 5;
-const EVOLUTION_LEVEL = 10;
-
-// Helper to check if a timestamp is from the current day
-function isToday(timestamp: number): boolean {
-    const today = new Date();
-    const someDate = new Date(timestamp);
-    return someDate.getDate() === today.getDate() &&
-           someDate.getMonth() === today.getMonth() &&
-           someDate.getFullYear() === today.getFullYear();
-}
 
 export interface GameData {
     gold: number;
@@ -42,12 +28,6 @@ export interface GameData {
     likedUsers: string[];
     autoWaterUnlocked?: boolean;
     autoWaterEnabled?: boolean;
-}
-
-export interface AutoWaterResult {
-    evolutionCandidates: number[];
-    refillsUsed: number;
-    goldGained: number;
 }
 
 export interface CommunityUser {
@@ -303,25 +283,6 @@ export async function purchaseCosmetic(userId: string, cosmetic: 'glitterCount' 
     });
 }
 
-export async function purchaseAutoWater(userId: string, cost: number) {
-    const userDocRef = doc(db, 'users', userId);
-    const gameData = await getUserGameData(userId);
-
-    if (!gameData || gameData.gold < cost) {
-        throw new Error("Not enough gold to purchase.");
-    }
-    if (gameData.autoWaterUnlocked) {
-        throw new Error("Auto-Waterer already unlocked.");
-    }
-
-    await updateDoc(userDocRef, {
-        gold: increment(-cost),
-        autoWaterUnlocked: true,
-        autoWaterEnabled: true,
-    });
-}
-
-
 export async function useGlitter(userId: string) {
     const userDocRef = doc(db, 'users', userId);
     const gameData = await getUserGameData(userId);
@@ -444,83 +405,4 @@ export async function likeUser(likerUid: string, likedUid: string) {
     await batch.commit();
 }
 
-
-export async function useAllWaterRefills(userId: string): Promise<AutoWaterResult> {
-  const userDocRef = doc(db, 'users', userId);
-  const gameData = await getUserGameData(userId);
-
-  if (!gameData) {
-    throw new Error('User data not found.');
-  }
-
-  if (Object.keys(gameData.plants).length === 0) {
-    return { evolutionCandidates: [], refillsUsed: 0, goldGained: 0 };
-  }
-
-  let availableRefills = gameData.waterRefills || 0;
-  if (availableRefills <= 0) {
-    return { evolutionCandidates: [], refillsUsed: 0, goldGained: 0 };
-  }
-  
-  const allPlants = Object.values(gameData.plants);
-  const evolutionCandidates: number[] = [];
-  const updates: { [key: string]: any } = {};
-  let totalRefillsUsed = 0;
-  let totalGoldGained = 0;
-
-  for (const plant of allPlants) {
-    if (availableRefills <= 0) {
-      break; 
-    }
-
-    const timesWateredToday = plant.lastWatered?.filter(isToday).length ?? 0;
-    const wateringsPossible = MAX_WATERINGS_PER_DAY - timesWateredToday;
     
-    if (wateringsPossible <= 0) {
-      continue;
-    }
-
-    const wateringsToApply = Math.min(wateringsPossible, availableRefills);
-    
-    if (wateringsToApply > 0) {
-      let newXp = plant.xp + (wateringsToApply * XP_PER_WATERING);
-      let newLevel = plant.level;
-      
-      const newLastWatered = [...(plant.lastWatered || [])];
-      const now = Date.now();
-      for(let i = 0; i < wateringsToApply; i++) {
-        newLastWatered.push(now + i);
-      }
-      
-      const oldLevel = plant.level;
-      if (newXp >= XP_PER_LEVEL) {
-          const levelsGained = Math.floor(newXp / XP_PER_LEVEL);
-          newLevel += levelsGained;
-          newXp %= XP_PER_LEVEL;
-
-          if (oldLevel < EVOLUTION_LEVEL && newLevel >= EVOLUTION_LEVEL && plant.form === 'Base') {
-            if (!evolutionCandidates.includes(plant.id)) {
-              evolutionCandidates.push(plant.id);
-            }
-          }
-      }
-
-      updates[`plants.${plant.id}.xp`] = newXp;
-      updates[`plants.${plant.id}.level`] = newLevel;
-      updates[`plants.${plant.id}.lastWatered`] = newLastWatered;
-      
-      availableRefills -= wateringsToApply;
-      totalRefillsUsed += wateringsToApply;
-      totalGoldGained += (wateringsToApply * GOLD_PER_WATERING);
-    }
-  }
-
-  if (totalRefillsUsed > 0) {
-    updates.waterRefills = increment(-totalRefillsUsed);
-    updates.gold = increment(totalGoldGained);
-    
-    await updateDoc(userDocRef, updates);
-  }
-
-  return { evolutionCandidates, refillsUsed: totalRefillsUsed, goldGained: totalGoldGained };
-}
