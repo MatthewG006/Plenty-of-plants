@@ -1001,7 +1001,7 @@ export default function RoomPage() {
       } else {
         toast({
           title: 'All Set!',
-          description: 'All your plants are already watered for the day.',
+          description: 'All your plants are already watered for the day or you have no refills.',
         });
       }
 

@@ -281,12 +281,13 @@ export async function purchaseWaterRefills(userId: string, quantity: number, cos
     if (!gameData || gameData.gold < cost) {
         throw new Error("Not enough gold to purchase.");
     }
-
+    
     await updateDoc(userDocRef, {
         gold: increment(-cost),
         waterRefills: increment(quantity)
     });
 }
+
 
 export async function purchaseCosmetic(userId: string, cosmetic: 'glitterCount' | 'sheenCount' | 'rainbowGlitterCount', quantity: number, cost: number) {
     const userDocRef = doc(db, 'users', userId);
@@ -448,20 +449,24 @@ export async function useAllWaterRefills(userId: string): Promise<AutoWaterResul
   const userDocRef = doc(db, 'users', userId);
   const gameData = await getUserGameData(userId);
 
-  if (!gameData || !gameData.waterRefills || gameData.waterRefills <= 0) {
+  if (!gameData) {
+    throw new Error('User data not found.');
+  }
+
+  if (Object.keys(gameData.plants).length === 0) {
+    return { evolutionCandidates: [], refillsUsed: 0, goldGained: 0 };
+  }
+
+  let availableRefills = gameData.waterRefills || 0;
+  if (availableRefills <= 0) {
     return { evolutionCandidates: [], refillsUsed: 0, goldGained: 0 };
   }
   
   const allPlants = Object.values(gameData.plants);
-  if (allPlants.length === 0) {
-      return { evolutionCandidates: [], refillsUsed: 0, goldGained: 0 };
-  }
-
-  let availableRefills = gameData.waterRefills;
-  let totalRefillsUsed = 0;
-  let totalGoldGained = 0;
   const evolutionCandidates: number[] = [];
   const updates: { [key: string]: any } = {};
+  let totalRefillsUsed = 0;
+  let totalGoldGained = 0;
 
   for (const plant of allPlants) {
     if (availableRefills <= 0) {
@@ -515,9 +520,7 @@ export async function useAllWaterRefills(userId: string): Promise<AutoWaterResul
     updates.gold = increment(totalGoldGained);
     
     await updateDoc(userDocRef, updates);
-    
-    return { evolutionCandidates, refillsUsed: totalRefillsUsed, goldGained: totalGoldGained };
   }
 
-  return { evolutionCandidates: [], refillsUsed: 0, goldGained: 0 };
+  return { evolutionCandidates, refillsUsed: totalRefillsUsed, goldGained: totalGoldGained };
 }
