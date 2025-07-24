@@ -22,7 +22,7 @@ export interface GameData {
     lastDrawRefill: number;
     lastFreeDrawClaimed: number;
     lastLoginBonusClaimed: number;
-    waterRefills: number;
+    sprinklerUnlocked: boolean;
     glitterCount: number;
     sheenCount: number;
     rainbowGlitterCount: number;
@@ -68,7 +68,7 @@ export async function getUserGameData(userId: string): Promise<GameData | null> 
             lastDrawRefill: data.lastDrawRefill || Date.now(),
             lastFreeDrawClaimed: data.lastFreeDrawClaimed || 0,
             lastLoginBonusClaimed: data.lastLoginBonusClaimed || 0,
-            waterRefills: data.waterRefills || 0,
+            sprinklerUnlocked: data.sprinklerUnlocked || false,
             glitterCount: data.glitterCount || 0,
             sheenCount: data.sheenCount || 0,
             rainbowGlitterCount: data.rainbowGlitterCount || 0,
@@ -156,7 +156,7 @@ export async function createUserDocument(user: User): Promise<GameData> {
             lastDrawRefill: Date.now(),
             lastFreeDrawClaimed: 0,
             lastLoginBonusClaimed: Date.now(),
-            waterRefills: 0,
+            sprinklerUnlocked: false,
             glitterCount: 0,
             sheenCount: 0,
             rainbowGlitterCount: 0,
@@ -268,21 +268,24 @@ export async function updateUserGold(userId: string, amount: number) {
     });
 }
 
-export async function purchaseWaterRefills(userId: string, quantity: number, cost: number): Promise<void> {
+export async function purchaseSprinkler(userId: string, cost: number): Promise<void> {
     const userDocRef = doc(db, 'users', userId);
     const gameData = await getUserGameData(userId);
 
     if (!gameData || gameData.gold < cost) {
         throw new Error("Not enough gold to purchase.");
     }
+     if (gameData.sprinklerUnlocked) {
+        throw new Error("Sprinkler already owned.");
+    }
     
     await updateDoc(userDocRef, {
         gold: increment(-cost),
-        waterRefills: increment(quantity)
+        sprinklerUnlocked: true
     });
 }
 
-export async function useAllWaterRefills(userId: string): Promise<{ refillsUsed: number; goldGained: number; newlyEvolvablePlants: number[] }> {
+export async function useSprinkler(userId: string): Promise<{ plantsWatered: number; goldGained: number; newlyEvolvablePlants: number[] }> {
     const userDocRef = doc(db, 'users', userId);
     const gameData = await getUserGameData(userId);
 
@@ -292,35 +295,27 @@ export async function useAllWaterRefills(userId: string): Promise<{ refillsUsed:
     
     const allPlants = Object.values(gameData.plants || {});
     if (allPlants.length === 0) {
-        return { refillsUsed: 0, goldGained: 0, newlyEvolvablePlants: [] };
+        return { plantsWatered: 0, goldGained: 0, newlyEvolvablePlants: [] };
     }
 
-    let refillsLeft = gameData.waterRefills;
     let totalGoldGained = 0;
+    let totalPlantsWatered = 0;
     const newlyEvolvablePlants: number[] = [];
     const updates: { [key: string]: any } = {};
-
-    if (refillsLeft <= 0) {
-        return { refillsUsed: 0, goldGained: 0, newlyEvolvablePlants: [] };
-    }
     
     for (const plant of allPlants) {
-        if (refillsLeft <= 0) break;
-
         const timesWateredToday = plant.lastWatered.filter(isToday).length;
         const wateringsNeeded = MAX_WATERINGS_PER_DAY - timesWateredToday;
 
         if (wateringsNeeded <= 0) continue;
 
-        const wateringsToApply = Math.min(wateringsNeeded, refillsLeft);
-        
         let currentXp = plant.xp;
         let currentLevel = plant.level;
         const wasEvolvable = currentLevel >= EVOLUTION_LEVEL && plant.form === 'Base';
-        
         const newTimestamps = [...plant.lastWatered];
-        for (let i = 0; i < wateringsToApply; i++) {
-            newTimestamps.push(Date.now() + i); // Add small offset to ensure unique timestamps
+        
+        for (let i = 0; i < wateringsNeeded; i++) {
+            newTimestamps.push(Date.now() + i);
             currentXp += XP_PER_WATERING;
             while(currentXp >= XP_PER_LEVEL) {
                 currentXp -= XP_PER_LEVEL;
@@ -336,20 +331,17 @@ export async function useAllWaterRefills(userId: string): Promise<{ refillsUsed:
         if (isNowEvolvable && !wasEvolvable) {
             newlyEvolvablePlants.push(plant.id);
         }
-
-        refillsLeft -= wateringsToApply;
-        totalGoldGained += wateringsToApply * GOLD_PER_WATERING;
+        
+        totalGoldGained += wateringsNeeded * GOLD_PER_WATERING;
+        totalPlantsWatered++;
     }
 
-    const refillsUsed = gameData.waterRefills - refillsLeft;
-
-    if (refillsUsed > 0) {
-        updates['waterRefills'] = increment(-refillsUsed);
+    if (totalPlantsWatered > 0) {
         updates['gold'] = increment(totalGoldGained);
         await updateDoc(userDocRef, updates);
     }
     
-    return { refillsUsed, goldGained: totalGoldGained, newlyEvolvablePlants };
+    return { plantsWatered: totalPlantsWatered, goldGained: totalGoldGained, newlyEvolvablePlants };
 }
 
 
@@ -433,7 +425,7 @@ export async function resetUserGameData(userId: string) {
         draws: MAX_DRAWS,
         lastDrawRefill: Date.now(),
         lastFreeDrawClaimed: 0,
-        waterRefills: 0,
+        sprinklerUnlocked: false,
         glitterCount: 0,
         sheenCount: 0,
         rainbowGlitterCount: 0,
