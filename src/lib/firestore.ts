@@ -457,8 +457,13 @@ export async function useAllWaterRefills(userId: string): Promise<AutoWaterResul
   }
   
   const allPlants = Object.values(gameData.plants);
+  if (allPlants.length === 0) {
+      return { evolutionCandidates: [], refillsUsed: 0, goldGained: 0 };
+  }
+
   let availableRefills = gameData.waterRefills;
   let totalRefillsUsed = 0;
+  let totalGoldGained = 0;
   const evolutionCandidates: number[] = [];
   const updates: { [key: string]: any } = {};
 
@@ -505,11 +510,11 @@ export async function useAllWaterRefills(userId: string): Promise<AutoWaterResul
       
       availableRefills -= wateringsToApply;
       totalRefillsUsed += wateringsToApply;
+      totalGoldGained += (wateringsToApply * GOLD_PER_WATERING);
     }
   }
 
   if (totalRefillsUsed > 0) {
-    const totalGoldGained = totalRefillsUsed * GOLD_PER_WATERING;
     updates.waterRefills = increment(-totalRefillsUsed);
     updates.gold = increment(totalGoldGained);
     
