@@ -5,18 +5,20 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { claimFreeDraw, loadDraws, MAX_DRAWS, hasClaimedDailyDraw } from '@/lib/draw-manager';
-import { Gift, Coins, Leaf, Clock, Loader2, Droplets, Sparkles, Zap } from 'lucide-react';
+import { Gift, Coins, Leaf, Clock, Loader2, Droplets, Sparkles, Zap, Pipette } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { useAudio } from '@/context/AudioContext';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/context/AuthContext';
-import { purchaseCosmetic, purchaseSprinkler } from '@/lib/firestore';
+import { purchaseCosmetic, purchaseSprinkler, purchaseWaterRefills } from '@/lib/firestore';
 import { useRouter } from 'next/navigation';
 
 const DRAW_COST_IN_GOLD = 50;
 const SPRINKLER_COST_IN_GOLD = 100;
 const SHEEN_COST_IN_GOLD = 50;
 const RAINBOW_GLITTER_COST_IN_GOLD = 60;
+const GLITTER_COST_IN_GOLD = 50;
+const WATER_REFILL_COST_IN_GOLD = 15;
 
 
 function getNextDrawTimeString() {
@@ -75,6 +77,43 @@ export default function ShopPage() {
       });
     }
   };
+
+    const handleBuyWaterRefills = async () => {
+        if (!user || !gameData) return;
+
+        if (gameData.gold < WATER_REFILL_COST_IN_GOLD) {
+            toast({ variant: "destructive", title: "Not Enough Gold", description: `You need ${WATER_REFILL_COST_IN_GOLD} gold.` });
+            return;
+        }
+
+        try {
+            await purchaseWaterRefills(user.uid, 1, WATER_REFILL_COST_IN_GOLD);
+            playSfx('reward');
+            toast({ title: "Purchase Successful!", description: `You bought 1 Water Refill!` });
+        } catch (e: any) {
+            console.error("Failed to purchase water refills", e);
+            toast({ variant: "destructive", title: "Error", description: e.message || "Could not complete the purchase." });
+        }
+    };
+
+    const handleBuyGlitter = async () => {
+      if (!user || !gameData) return;
+
+      if (gameData.gold < GLITTER_COST_IN_GOLD) {
+          toast({ variant: "destructive", title: "Not Enough Gold", description: `You need ${GLITTER_COST_IN_GOLD} gold.` });
+          return;
+      }
+
+      try {
+          await purchaseCosmetic(user.uid, 'glitterCount', 1, GLITTER_COST_IN_GOLD);
+          playSfx('reward');
+          toast({ title: "Purchase Successful!", description: `You bought 1 Glitter Pack!` });
+      } catch (e: any) {
+          console.error("Failed to purchase glitter", e);
+          toast({ variant: "destructive", title: "Error", description: "Could not complete the purchase." });
+      }
+  };
+
 
   const handleBuySprinkler = async () => {
       if (!user || !gameData) return;
@@ -248,6 +287,54 @@ export default function ShopPage() {
                 <Button onClick={handleBuySprinkler} className="w-full font-semibold" disabled={gameData.sprinklerUnlocked || goldCount < SPRINKLER_COST_IN_GOLD}>
                     {gameData.sprinklerUnlocked ? "Owned" : goldCount < SPRINKLER_COST_IN_GOLD ? "Not Enough Gold" : "Buy"}
                 </Button>
+              </CardContent>
+            </Card>
+
+             <Card className="shadow-sm">
+              <CardHeader>
+                <div className="flex items-center gap-4">
+                  <Pipette className="h-8 w-8 text-primary" />
+                  <div>
+                    <CardTitle className="text-xl">Watering Can</CardTitle>
+                    <CardDescription>A single water refill for one of your plants.</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="flex flex-col items-start gap-4">
+                <div className="flex items-center gap-2">
+                    <Coins className="h-6 w-6 text-yellow-500" />
+                    <p className="text-2xl font-bold text-yellow-600">{WATER_REFILL_COST_IN_GOLD}</p>
+                </div>
+                <Button onClick={handleBuyWaterRefills} className="w-full font-semibold" disabled={goldCount < WATER_REFILL_COST_IN_GOLD}>
+                    {goldCount < WATER_REFILL_COST_IN_GOLD ? "Not Enough Gold" : "Buy (+1)"}
+                </Button>
+                 <p className="text-xs text-muted-foreground text-center w-full">
+                    You have {gameData.waterRefills || 0} refill(s)
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-sm">
+              <CardHeader>
+                <div className="flex items-center gap-4">
+                  <Sparkles className="h-8 w-8 text-primary" />
+                  <div>
+                    <CardTitle className="text-xl">Glitter Pack</CardTitle>
+                    <CardDescription>Make one of your plants permanently sparkle with glitter.</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="flex flex-col items-start gap-4">
+                <div className="flex items-center gap-2">
+                    <Coins className="h-6 w-6 text-yellow-500" />
+                    <p className="text-2xl font-bold text-yellow-600">{GLITTER_COST_IN_GOLD}</p>
+                </div>
+                <Button onClick={handleBuyGlitter} className="w-full font-semibold" disabled={goldCount < GLITTER_COST_IN_GOLD}>
+                    {goldCount < GLITTER_COST_IN_GOLD ? "Not Enough Gold" : "Buy Glitter (+1)"}
+                </Button>
+                 <p className="text-xs text-muted-foreground text-center w-full">
+                    You have {gameData.glitterCount} pack(s)
+                </p>
               </CardContent>
             </Card>
 
