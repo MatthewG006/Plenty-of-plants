@@ -1169,10 +1169,12 @@ export default function RoomPage() {
               <div className="flex flex-col items-center gap-4 pb-4">
                   <h2 className="text-xl text-primary">My Collection</h2>
                     {gameData.sprinklerUnlocked && (
-                      <Button onClick={handleUseSprinkler} disabled={isWatering}>
-                          <Droplets className="mr-2 h-4 w-4" />
-                          {isWatering ? 'Watering...' : `Use Sprinkler`}
-                      </Button>
+                      <div className="pb-4">
+                        <Button onClick={handleUseSprinkler} disabled={isWatering}>
+                            <Droplets className="mr-2 h-4 w-4" />
+                            {isWatering ? 'Watering...' : `Use Sprinkler`}
+                        </Button>
+                      </div>
                     )}
               </div>
               <DroppableCollectionArea>
