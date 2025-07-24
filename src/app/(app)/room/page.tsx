@@ -27,7 +27,7 @@ import { useDraw, refundDraw } from '@/lib/draw-manager';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { updatePlantArrangement, updateUserGold, savePlant, updatePlant, getPlantById, deletePlant, updateShowcasePlants, useSheen, useRainbowGlitter, GameData, useGlitter, useSprinkler, useWaterRefill } from '@/lib/firestore';
+import { updatePlantArrangement, updateUserGold, savePlant, updatePlant, getPlantById, deletePlant, updateShowcasePlants, useSheen, useRainbowGlitter, GameData, useGlitter, useSprinkler, useWaterRefill, useRedGlitter } from '@/lib/firestore';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { compressImage, makeBackgroundTransparent } from '@/lib/image-compression';
 import { Badge } from '@/components/ui/badge';
@@ -74,6 +74,22 @@ function RainbowGlitterAnimation() {
                     color: `hsl(${Math.random() * 360}, 100%, 70%)`,
                     width: `${5 + Math.random() * 5}px`,
                     height: `${5 + Math.random() * 5}px`,
+                }} />
+            ))}
+        </div>
+    );
+}
+
+function RedGlitterAnimation() {
+    return (
+        <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden">
+            {Array.from({ length: 7 }).map((_, i) => (
+                <Sparkles key={i} className="absolute text-red-500 animate-sparkle" style={{
+                    top: `${Math.random() * 100}%`,
+                    left: `${Math.random() * 100}%`,
+                    animationDelay: `${Math.random() * 1.5}s`,
+                    width: `${8 + Math.random() * 8}px`,
+                    height: `${8 + Math.random() * 8}px`,
                 }} />
             ))}
         </div>
@@ -314,6 +330,7 @@ function PlantDetailDialog({ plant, open, onOpenChange, onAddToEvolutionQueue, u
                             )}
                         </div>
                         {plant.hasGlitter && !viewingBase && <GlitterAnimation />}
+                        {plant.hasRedGlitter && !viewingBase && <RedGlitterAnimation />}
                         {plant.hasSheen && !viewingBase && <SheenAnimation />}
                         {plant.hasRainbowGlitter && !viewingBase && <RainbowGlitterAnimation />}
                         {isWatering && <WaterDropletAnimation />}
@@ -402,6 +419,7 @@ function PlantImageUI({ plant, image, canWater }: { plant: Plant, image: string 
             </div>
         )}
         {plant.hasGlitter && <GlitterAnimation />}
+        {plant.hasRedGlitter && <RedGlitterAnimation />}
         {plant.hasSheen && <SheenAnimation />}
         {plant.hasRainbowGlitter && <RainbowGlitterAnimation />}
       </div>
@@ -418,7 +436,9 @@ function PlantCardUI({
     onApplySheen, 
     canApplySheen,
     onApplyRainbowGlitter,
-    canApplyRainbowGlitter
+    canApplyRainbowGlitter,
+    onApplyRedGlitter,
+    canApplyRedGlitter
 }: { 
     plant: Plant,
     canWater: boolean,
@@ -428,14 +448,17 @@ function PlantCardUI({
     canApplySheen: boolean;
     onApplyRainbowGlitter: (plantId: number) => void;
     canApplyRainbowGlitter: boolean;
+    onApplyRedGlitter: (plantId: number) => void;
+    canApplyRedGlitter: boolean;
 }) {
+    const hasAnyCosmetic = plant.hasGlitter || plant.hasSheen || plant.hasRainbowGlitter || plant.hasRedGlitter;
     return (
         <Card className={cn(
             "group overflow-hidden shadow-md w-full relative",
             canWater && "animate-glow"
         )}>
             <div className="absolute top-1 left-1 z-10 flex flex-col gap-1">
-                {canApplyGlitter && !plant.hasGlitter && !plant.hasSheen && !plant.hasRainbowGlitter &&(
+                {canApplyGlitter && !hasAnyCosmetic &&(
                     <Button
                         size="icon"
                         className="h-7 w-7 bg-yellow-400/80 text-white hover:bg-yellow-500/90"
@@ -445,7 +468,7 @@ function PlantCardUI({
                         <Sparkles className="h-4 w-4" />
                     </Button>
                 )}
-                {canApplySheen && !plant.hasGlitter && !plant.hasSheen && !plant.hasRainbowGlitter &&(
+                {canApplySheen && !hasAnyCosmetic &&(
                     <Button
                         size="icon"
                         className="h-7 w-7 bg-blue-400/80 text-white hover:bg-blue-500/90"
@@ -455,11 +478,21 @@ function PlantCardUI({
                         <Star className="h-4 w-4" />
                     </Button>
                 )}
-                {canApplyRainbowGlitter && !plant.hasGlitter && !plant.hasSheen && !plant.hasRainbowGlitter && (
+                {canApplyRainbowGlitter && !hasAnyCosmetic && (
                     <Button
                         size="icon"
                         className="h-7 w-7 bg-gradient-to-r from-pink-500 to-yellow-500 text-white"
                         onClick={() => onApplyRainbowGlitter(plant.id)}
+                        onPointerDown={(e) => e.stopPropagation()}
+                    >
+                        <Sparkles className="h-4 w-4" />
+                    </Button>
+                )}
+                 {canApplyRedGlitter && !hasAnyCosmetic && (
+                    <Button
+                        size="icon"
+                        className="h-7 w-7 bg-red-500/80 text-white hover:bg-red-600/90"
+                        onClick={() => onApplyRedGlitter(plant.id)}
                         onPointerDown={(e) => e.stopPropagation()}
                     >
                         <Sparkles className="h-4 w-4" />
@@ -475,6 +508,7 @@ function PlantCardUI({
                         <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
                     )}
                     {plant.hasGlitter && <GlitterAnimation />}
+                    {plant.hasRedGlitter && <RedGlitterAnimation />}
                     {plant.hasSheen && <SheenAnimation />}
                     {plant.hasRainbowGlitter && <RainbowGlitterAnimation />}
                     {plant.form === 'Evolved' && (
@@ -493,7 +527,7 @@ function PlantCardUI({
     );
 }
 
-function DraggablePlant({ plant, source, canWater, onApplyGlitter, canApplyGlitter, onApplySheen, canApplySheen, onApplyRainbowGlitter, canApplyRainbowGlitter, ...rest }: { plant: Plant; source: 'collection' | 'desk'; canWater: boolean; onApplyGlitter: (plantId: number) => void; canApplyGlitter: boolean; onApplySheen: (plantId: number) => void; canApplySheen: boolean; onApplyRainbowGlitter: (plantId: number) => void; canApplyRainbowGlitter: boolean; } & React.HTMLAttributes<HTMLDivElement>) {
+function DraggablePlant({ plant, source, canWater, onApplyGlitter, canApplyGlitter, onApplySheen, canApplySheen, onApplyRainbowGlitter, canApplyRainbowGlitter, onApplyRedGlitter, canApplyRedGlitter, ...rest }: { plant: Plant; source: 'collection' | 'desk'; canWater: boolean; onApplyGlitter: (plantId: number) => void; canApplyGlitter: boolean; onApplySheen: (plantId: number) => void; canApplySheen: boolean; onApplyRainbowGlitter: (plantId: number) => void; canApplyRainbowGlitter: boolean; onApplyRedGlitter: (plantId: number) => void; canApplyRedGlitter: boolean; } & React.HTMLAttributes<HTMLDivElement>) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: `${source}:${plant.id}`,
         data: { plant, source },
@@ -516,6 +550,8 @@ function DraggablePlant({ plant, source, canWater, onApplyGlitter, canApplyGlitt
                     canApplySheen={canApplySheen}
                     onApplyRainbowGlitter={onApplyRainbowGlitter}
                     canApplyRainbowGlitter={canApplyRainbowGlitter}
+                    onApplyRedGlitter={onApplyRedGlitter}
+                    canApplyRedGlitter={canApplyRedGlitter}
                 />
             ) : (
                 <PlantImageUI plant={plant} image={plant.image} canWater={canWater} />
@@ -571,6 +607,8 @@ function DeskPot({ plant, index, onClickPlant, processedImage, canWater }: { pla
                 canApplySheen={false}
                 onApplyRainbowGlitter={() => {}}
                 canApplyRainbowGlitter={false}
+                onApplyRedGlitter={() => {}}
+                canApplyRedGlitter={false}
                 className="cursor-grab active:cursor-grabbing w-full h-full z-10" 
             />
             <div ref={setNodeRef} className={cn("absolute inset-0 z-0", isOver && "bg-primary/20 rounded-lg")} />
@@ -1041,6 +1079,22 @@ export default function RoomPage() {
     }
   };
 
+  const handleApplyRedGlitter = async (plantId: number) => {
+    if (!user) return;
+    try {
+        await useRedGlitter(user.uid);
+        await updatePlant(user.uid, plantId, { hasRedGlitter: true });
+        playSfx('chime');
+        toast({
+            title: "Red Glitter applied!",
+            description: "Your plant is sparkling with a fiery red.",
+        });
+    } catch (e: any) {
+        console.error("Failed to apply red glitter", e);
+        toast({ variant: 'destructive', title: "Error", description: e.message || "Could not apply red glitter." });
+    }
+  };
+
   const handlePointerDown = (plant: Plant) => {
     longPressTimerRef.current = setTimeout(() => {
       setLongPressPlant(plant);
@@ -1143,6 +1197,10 @@ export default function RoomPage() {
               <Sparkles className="h-5 w-5 text-pink-500" />
               <span className="font-bold text-pink-700">{gameData.rainbowGlitterCount}</span>
             </div>
+            <div className="flex items-center gap-2 rounded-full bg-red-100/80 px-3 py-1 border border-red-300/80">
+              <Sparkles className="h-5 w-5 text-red-500" />
+              <span className="font-bold text-red-700">{gameData.redGlitterCount}</span>
+            </div>
             <div className="flex items-center gap-2 rounded-full bg-green-100/80 px-3 py-1 border border-green-300/80">
                 <Droplet className="h-5 w-5 text-green-500" />
                 <span className="font-bold text-green-700">{gameData.waterRefillCount}</span>
@@ -1232,6 +1290,8 @@ export default function RoomPage() {
                                canApplySheen={gameData.sheenCount > 0}
                                onApplyRainbowGlitter={handleApplyRainbowGlitter}
                                canApplyRainbowGlitter={gameData.rainbowGlitterCount > 0}
+                               onApplyRedGlitter={handleApplyRedGlitter}
+                               canApplyRedGlitter={gameData.redGlitterCount > 0}
                                className="cursor-grab active:cursor-grabbing"
                              />
                            </div>
@@ -1315,6 +1375,7 @@ export default function RoomPage() {
                             onApplyGlitter={() => {}} canApplyGlitter={false} 
                             onApplySheen={() => {}} canApplySheen={false}
                             onApplyRainbowGlitter={() => {}} canApplyRainbowGlitter={false}
+                            onApplyRedGlitter={() => {}} canApplyRedGlitter={false}
                         />
                     )}
                 </div>
@@ -1336,5 +1397,3 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
-
-    

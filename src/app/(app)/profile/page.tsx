@@ -73,6 +73,22 @@ function RainbowGlitterAnimation() {
     );
 }
 
+function RedGlitterAnimation() {
+    return (
+        <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden">
+            {Array.from({ length: 7 }).map((_, i) => (
+                <Sparkles key={i} className="absolute text-red-500 animate-sparkle" style={{
+                    top: `${Math.random() * 100}%`,
+                    left: `${Math.random() * 100}%`,
+                    animationDelay: `${Math.random() * 1.5}s`,
+                    width: `${8 + Math.random() * 8}px`,
+                    height: `${8 + Math.random() * 8}px`,
+                }} />
+            ))}
+        </div>
+    );
+}
+
 function GlitterAnimation() {
     return (
         <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden">
@@ -114,6 +130,7 @@ function ShowcasePlantCard({ plant, isSelected, onSelect }: { plant: Plant, isSe
                         <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
                     )}
                     {plant.hasGlitter && <GlitterAnimation />}
+                    {plant.hasRedGlitter && <RedGlitterAnimation />}
                     {plant.hasSheen && <SheenAnimation />}
                     {plant.hasRainbowGlitter && <RainbowGlitterAnimation />}
                     {plant.form === 'Evolved' && (
