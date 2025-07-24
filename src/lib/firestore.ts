@@ -382,7 +382,6 @@ export async function toggleAutoWater(userId: string, isEnabled: boolean): Promi
         autoWaterEnabled: isEnabled
     });
 
-    // If we just enabled it, try to water plants now
     if (isEnabled) {
         return await autoWaterPlants(userId);
     }
@@ -394,7 +393,6 @@ export async function toggleAutoWater(userId: string, isEnabled: boolean): Promi
 export async function resetUserGameData(userId: string) {
     const userDocRef = doc(db, 'users', userId);
     
-    // Create a starter plant, since we are wiping the existing ones
     const startingPlant: Plant = {
         id: 1,
         name: "Friendly Fern",
@@ -477,7 +475,6 @@ export async function likeUser(likerUid: string, likedUid: string) {
 
 export async function autoWaterPlants(userId: string): Promise<AutoWaterResult> {
     const userDocRef = doc(db, 'users', userId);
-    // Get the most up-to-date data right before we act on it
     const gameData = await getUserGameData(userId);
     
     if (!gameData || !gameData.autoWaterEnabled || gameData.waterRefills <= 0) {
@@ -494,14 +491,18 @@ export async function autoWaterPlants(userId: string): Promise<AutoWaterResult> 
         return { evolutionCandidates: [], refillsUsed: 0, goldGained: 0 };
     }
 
-    let refillsToUse = Math.min(gameData.waterRefills, plantsToWater.length);
+    let refillsUsed = 0;
     let goldGained = 0;
     const evolutionCandidates: number[] = [];
     const updates: { [key: string]: any } = {};
     const now = Date.now();
 
-    for (let i = 0; i < refillsToUse; i++) {
-        const plant = plantsToWater[i];
+    for (const plant of plantsToWater) {
+        if (refillsUsed >= gameData.waterRefills) {
+            break; // Stop if we've run out of refills
+        }
+
+        refillsUsed++;
         goldGained += GOLD_PER_WATERING;
 
         const xpGained = XP_PER_WATERING;
@@ -515,6 +516,7 @@ export async function autoWaterPlants(userId: string): Promise<AutoWaterResult> 
                 evolutionCandidates.push(plant.id);
             }
         }
+        
         updates[`plants.${plant.id}.xp`] = newXp;
         updates[`plants.${plant.id}.level`] = newLevel;
         
@@ -522,11 +524,11 @@ export async function autoWaterPlants(userId: string): Promise<AutoWaterResult> 
         updates[`plants.${plant.id}.lastWatered`] = updatedLastWatered;
     }
     
-    if (refillsToUse > 0) {
-        updates.waterRefills = increment(-refillsToUse);
+    if (refillsUsed > 0) {
+        updates.waterRefills = increment(-refillsUsed);
         updates.gold = increment(goldGained);
         await updateDoc(userDocRef, updates);
     }
     
-    return { evolutionCandidates, refillsUsed: refillsToUse, goldGained };
+    return { evolutionCandidates, refillsUsed, goldGained };
 }
