@@ -33,7 +33,7 @@ export interface GameData {
     likedUsers: string[];
     autoWaterUnlocked?: boolean;
     autoWaterEnabled?: boolean;
-    waterRefills: number;
+    waterRefillCount: number;
 }
 
 export interface CommunityUser {
@@ -80,7 +80,7 @@ export async function getUserGameData(userId: string): Promise<GameData | null> 
             likedUsers: data.likedUsers || [],
             autoWaterUnlocked: data.autoWaterUnlocked || false,
             autoWaterEnabled: data.autoWaterEnabled || false,
-            waterRefills: data.waterRefills || 0,
+            waterRefillCount: data.waterRefillCount || 0,
         };
     } else {
         return null;
@@ -169,7 +169,7 @@ export async function createUserDocument(user: User): Promise<GameData> {
             likedUsers: [],
             autoWaterUnlocked: false,
             autoWaterEnabled: false,
-            waterRefills: 0,
+            waterRefillCount: 0,
         };
 
         await setDoc(docRef, {
@@ -437,7 +437,7 @@ export async function resetUserGameData(userId: string) {
         sheenCount: 0,
         rainbowGlitterCount: 0,
         showcasePlantIds: [],
-        waterRefills: 0,
+        waterRefillCount: 0,
     });
 }
 
@@ -496,7 +496,7 @@ export async function unequipSprinkler(userId: string) {
     });
 }
 
-export async function purchaseWaterRefills(userId: string, cost: number): Promise<void> {
+export async function purchaseWaterRefill(userId: string, cost: number): Promise<void> {
     const userDocRef = doc(db, 'users', userId);
     const gameData = await getUserGameData(userId);
 
@@ -504,16 +504,29 @@ export async function purchaseWaterRefills(userId: string, cost: number): Promis
         throw new Error("Not enough gold to purchase.");
     }
 
-    const updates: { [key: string]: any } = {
-        gold: increment(-cost)
-    };
+    await updateDoc(userDocRef, {
+        gold: increment(-cost),
+        waterRefillCount: increment(1)
+    });
+}
 
-    const allPlants = Object.values(gameData.plants || {});
-    for (const plant of allPlants) {
-        // Filter out timestamps from today, keeping only older ones.
-        const previousWaterings = plant.lastWatered.filter(ts => !isToday(ts));
-        updates[`plants.${plant.id}.lastWatered`] = previousWaterings;
+export async function useWaterRefill(userId: string, plantId: number): Promise<void> {
+    const userDocRef = doc(db, 'users', userId);
+    const gameData = await getUserGameData(userId);
+
+    if (!gameData || gameData.waterRefillCount <= 0) {
+        throw new Error("No water refills available.");
+    }
+    
+    const plant = gameData.plants[plantId];
+    if (!plant) {
+        throw new Error("Plant not found.");
     }
 
-    await updateDoc(userDocRef, updates);
+    const previousWaterings = plant.lastWatered.filter(ts => !isToday(ts));
+
+    await updateDoc(userDocRef, {
+        waterRefillCount: increment(-1),
+        [`plants.${plantId}.lastWatered`]: previousWaterings,
+    });
 }

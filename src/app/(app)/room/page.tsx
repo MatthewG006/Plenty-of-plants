@@ -5,7 +5,7 @@ import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose, DialogDescription } from '@/components/ui/dialog';
-import { Leaf, Loader2, Droplet, Coins, Sparkles, Droplets, Trash2, GripVertical, Star, Pipette } from 'lucide-react';
+import { Leaf, Loader2, Droplet, Coins, Sparkles, Droplets, Trash2, GripVertical, Star, Pipette, RefreshCw } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -27,7 +27,7 @@ import { useDraw, refundDraw } from '@/lib/draw-manager';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { updatePlantArrangement, updateUserGold, savePlant, updatePlant, getPlantById, deletePlant, updateShowcasePlants, useSheen, useRainbowGlitter, GameData, useGlitter, useSprinkler } from '@/lib/firestore';
+import { updatePlantArrangement, updateUserGold, savePlant, updatePlant, getPlantById, deletePlant, updateShowcasePlants, useSheen, useRainbowGlitter, GameData, useGlitter, useSprinkler, useWaterRefill } from '@/lib/firestore';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { compressImage, makeBackgroundTransparent } from '@/lib/image-compression';
 import { Badge } from '@/components/ui/badge';
@@ -139,6 +139,7 @@ function PlantDetailDialog({ plant, open, onOpenChange, onAddToEvolutionQueue, u
     const [visualXp, setVisualXp] = useState(plant?.xp || 0);
     const [isDeleting, setIsDeleting] = useState(false);
     const [viewingBase, setViewingBase] = useState(false);
+    const [isRefilling, setIsRefilling] = useState(false);
 
     useEffect(() => {
         if (plant) {
@@ -160,6 +161,22 @@ function PlantDetailDialog({ plant, open, onOpenChange, onAddToEvolutionQueue, u
     const displayName = viewingBase ? `Base: ${plant.name}` : plant.name;
     const displayImage = viewingBase ? plant.baseImage : plant.image;
 
+    const handleUseRefill = async () => {
+        if (!plant || gameData.waterRefillCount <= 0) return;
+        setIsRefilling(true);
+        try {
+            await useWaterRefill(userId, plant.id);
+            playSfx('chime');
+            toast({
+                title: "Water Refilled!",
+                description: `${plant.name} is ready for more water.`,
+            });
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: "Error", description: e.message });
+        } finally {
+            setIsRefilling(false);
+        }
+    };
 
     const handleWaterPlant = async () => {
         if (!canWater || !plant) return;
@@ -320,11 +337,21 @@ function PlantDetailDialog({ plant, open, onOpenChange, onAddToEvolutionQueue, u
                     </div>
 
                 </div>
-                <DialogFooter className="pt-2">
+                <DialogFooter className="pt-2 flex-col sm:flex-col sm:space-x-0 gap-2">
                     <Button onClick={handleWaterPlant} disabled={!canWater || isWatering || viewingBase} className="w-full bg-blue-500 hover:bg-blue-600">
                         <Droplet className="mr-2 h-4 w-4" />
                         {waterButtonText()}
                     </Button>
+                    {!canWater && gameData.waterRefillCount > 0 && (
+                        <Button
+                            onClick={handleUseRefill}
+                            disabled={isRefilling || viewingBase}
+                            className="w-full"
+                            variant="secondary"
+                        >
+                           {isRefilling ? <Loader2 className="animate-spin" /> : <><RefreshCw className="mr-2 h-4 w-4" /> Use Refill ({gameData.waterRefillCount})</>}
+                        </Button>
+                    )}
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -1113,6 +1140,10 @@ export default function RoomPage() {
             <div className="flex items-center gap-2 rounded-full bg-pink-100/80 px-3 py-1 border border-pink-300/80">
               <Sparkles className="h-5 w-5 text-pink-500" />
               <span className="font-bold text-pink-700">{gameData.rainbowGlitterCount}</span>
+            </div>
+            <div className="flex items-center gap-2 rounded-full bg-green-100/80 px-3 py-1 border border-green-300/80">
+                <Droplet className="h-5 w-5 text-green-500" />
+                <span className="font-bold text-green-700">{gameData.waterRefillCount}</span>
             </div>
           </div>
         </header>
