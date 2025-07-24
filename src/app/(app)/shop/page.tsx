@@ -34,7 +34,7 @@ function getNextDrawTimeString() {
 }
 
 export default function ShopPage() {
-  const { user, gameData } = useAuth();
+  const { user, gameData, setPlantsToEvolveQueue } = useAuth();
   const { toast } = useToast();
   const { playSfx } = useAudio();
   
@@ -86,9 +86,20 @@ export default function ShopPage() {
       }
 
       try {
-          await purchaseWaterRefills(user.uid, 4, WATER_REFILL_COST_IN_GOLD);
+          const result = await purchaseWaterRefills(user.uid, 4, WATER_REFILL_COST_IN_GOLD);
           playSfx('reward');
           toast({ title: "Purchase Successful!", description: `You bought 4 water refills!` });
+
+          if (result.refillsUsed > 0) {
+            toast({
+                title: "Auto-Watered!",
+                description: `Watered ${result.refillsUsed} plants and gained ${result.goldGained} gold.`
+            });
+          }
+          if (result.evolutionCandidates.length > 0) {
+              setPlantsToEvolveQueue(prev => [...new Set([...prev, ...result.evolutionCandidates])]);
+          }
+
       } catch (e) {
           console.error("Failed to purchase water refills", e);
           toast({ variant: "destructive", title: "Error", description: "Could not complete the purchase." });
