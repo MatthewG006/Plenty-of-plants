@@ -292,7 +292,7 @@ export async function useSprinkler(userId: string): Promise<{ plantsWatered: num
     if (!gameData) {
         throw new Error("User data not found.");
     }
-    
+
     const allPlants = Object.values(gameData.plants || {});
     if (allPlants.length === 0) {
         return { plantsWatered: 0, goldGained: 0, newlyEvolvablePlants: [] };
@@ -302,20 +302,22 @@ export async function useSprinkler(userId: string): Promise<{ plantsWatered: num
     let totalPlantsWatered = 0;
     const newlyEvolvablePlants: number[] = [];
     const updates: { [key: string]: any } = {};
-    
+
     for (const plant of allPlants) {
         const timesWateredToday = plant.lastWatered.filter(isToday).length;
-        const wateringsNeeded = MAX_WATERINGS_PER_DAY - timesWateredToday;
-
-        if (wateringsNeeded <= 0) continue;
-
+        if (timesWateredToday >= MAX_WATERINGS_PER_DAY) {
+            continue; // Already fully watered today
+        }
+        
+        const wateringsToApply = MAX_WATERINGS_PER_DAY - timesWateredToday;
+        
         let currentXp = plant.xp;
         let currentLevel = plant.level;
         const wasEvolvable = currentLevel >= EVOLUTION_LEVEL && plant.form === 'Base';
         const newTimestamps = [...plant.lastWatered];
         
-        for (let i = 0; i < wateringsNeeded; i++) {
-            newTimestamps.push(Date.now() + i);
+        for (let i = 0; i < wateringsToApply; i++) {
+            newTimestamps.push(Date.now() + i); // Add unique timestamp for each watering
             currentXp += XP_PER_WATERING;
             while(currentXp >= XP_PER_LEVEL) {
                 currentXp -= XP_PER_LEVEL;
@@ -332,8 +334,10 @@ export async function useSprinkler(userId: string): Promise<{ plantsWatered: num
             newlyEvolvablePlants.push(plant.id);
         }
         
-        totalGoldGained += wateringsNeeded * GOLD_PER_WATERING;
-        totalPlantsWatered++;
+        totalGoldGained += wateringsToApply * GOLD_PER_WATERING;
+        if (wateringsToApply > 0) {
+            totalPlantsWatered++;
+        }
     }
 
     if (totalPlantsWatered > 0) {
@@ -487,3 +491,6 @@ export async function unequipSprinkler(userId: string) {
         sprinklerUnlocked: false
     });
 }
+
+
+    
