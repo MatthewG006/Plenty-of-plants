@@ -57,7 +57,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               lastDrawRefill: data.lastDrawRefill || Date.now(),
               lastFreeDrawClaimed: data.lastFreeDrawClaimed || 0,
               lastLoginBonusClaimed: data.lastLoginBonusClaimed || 0,
-              waterRefills: data.waterRefills || 0,
+              sprinklerUnlocked: data.sprinklerUnlocked || false,
               glitterCount: data.glitterCount || 0,
               sheenCount: data.sheenCount || 0,
               rainbowGlitterCount: data.rainbowGlitterCount || 0,
@@ -133,3 +133,5 @@ export const useAuth = () => {
   }
   return context;
 };
+
+    
