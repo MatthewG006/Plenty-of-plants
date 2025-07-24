@@ -480,5 +480,3 @@ export async function likeUser(likerUid: string, likedUid: string) {
     });
     await batch.commit();
 }
-
-    
