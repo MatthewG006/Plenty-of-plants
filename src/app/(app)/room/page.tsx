@@ -104,8 +104,8 @@ function GlitterAnimation() {
                     top: `${Math.random() * 100}%`,
                     left: `${Math.random() * 100}%`,
                     animationDelay: `${Math.random() * 1.5}s`,
-                    width: `${8 + Math.random() * 8}px`,
-                    height: `${8 + Math.random() * 8}px`,
+                    width: `${5 + Math.random() * 5}px`,
+                    height: `${5 + Math.random() * 5}px`,
                 }} />
             ))}
         </div>
@@ -1184,26 +1184,26 @@ export default function RoomPage() {
       <div className="space-y-4 bg-white min-h-screen">
         <header className="flex flex-col items-center gap-4 p-4 text-center">
           <h1 className="text-3xl text-primary text-center">My Room</h1>
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            <div className="flex items-center gap-2 rounded-full bg-yellow-100/80 px-3 py-1 border border-yellow-300/80">
-              <Sparkles className="h-5 w-5 text-yellow-500" />
-              <span className="font-bold text-yellow-700">{gameData.glitterCount}</span>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <div className="flex items-center gap-1.5 rounded-full bg-yellow-100/80 px-2 py-0.5 border border-yellow-300/80">
+              <Sparkles className="h-4 w-4 text-yellow-500" />
+              <span className="font-bold text-sm text-yellow-700">{gameData.glitterCount}</span>
             </div>
-            <div className="flex items-center gap-2 rounded-full bg-blue-100/80 px-3 py-1 border border-blue-300/80">
-              <Star className="h-5 w-5 text-blue-500" />
-              <span className="font-bold text-blue-700">{gameData.sheenCount}</span>
+            <div className="flex items-center gap-1.5 rounded-full bg-blue-100/80 px-2 py-0.5 border border-blue-300/80">
+              <Star className="h-4 w-4 text-blue-500" />
+              <span className="font-bold text-sm text-blue-700">{gameData.sheenCount}</span>
             </div>
-            <div className="flex items-center gap-2 rounded-full bg-pink-100/80 px-3 py-1 border border-pink-300/80">
-              <Sparkles className="h-5 w-5 text-pink-500" />
-              <span className="font-bold text-pink-700">{gameData.rainbowGlitterCount}</span>
+            <div className="flex items-center gap-1.5 rounded-full bg-pink-100/80 px-2 py-0.5 border border-pink-300/80">
+              <Sparkles className="h-4 w-4 text-pink-500" />
+              <span className="font-bold text-sm text-pink-700">{gameData.rainbowGlitterCount}</span>
             </div>
-            <div className="flex items-center gap-2 rounded-full bg-red-100/80 px-3 py-1 border border-red-300/80">
-              <Sparkles className="h-5 w-5 text-red-500" />
-              <span className="font-bold text-red-700">{gameData.redGlitterCount}</span>
+            <div className="flex items-center gap-1.5 rounded-full bg-red-100/80 px-2 py-0.5 border border-red-300/80">
+              <Sparkles className="h-4 w-4 text-red-500" />
+              <span className="font-bold text-sm text-red-700">{gameData.redGlitterCount}</span>
             </div>
-            <div className="flex items-center gap-2 rounded-full bg-green-100/80 px-3 py-1 border border-green-300/80">
-                <Droplet className="h-5 w-5 text-green-500" />
-                <span className="font-bold text-green-700">{gameData.waterRefillCount}</span>
+            <div className="flex items-center gap-1.5 rounded-full bg-green-100/80 px-2 py-0.5 border border-green-300/80">
+                <Droplet className="h-4 w-4 text-green-500" />
+                <span className="font-bold text-sm text-green-700">{gameData.waterRefillCount}</span>
             </div>
           </div>
         </header>
