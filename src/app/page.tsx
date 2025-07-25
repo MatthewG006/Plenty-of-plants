@@ -8,11 +8,21 @@ import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { useEffect } from 'react';
 
 export default function SplashPage() {
   const { isPlaying, togglePlay, playSfx } = useAudio();
   const { user, loading } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && user) {
+        // Pre-emptively redirect if user is already known and we are on the splash page.
+        // The user clicks the button which will take them to the correct page.
+        return;
+    }
+  }, [user, loading, router]);
+
 
   const handleEnter = () => {
     if (!isPlaying) {
