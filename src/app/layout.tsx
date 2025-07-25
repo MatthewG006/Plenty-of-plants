@@ -4,10 +4,9 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
-import { AudioProvider } from '@/context/AudioContext';
-import MusicPlayer from '@/components/music-player';
 import { AuthProvider } from '@/context/AuthContext';
 import { useEffect } from 'react';
+import { AppWrapper } from '@/components/app-wrapper';
 
 // export const metadata: Metadata = {
 //   title: 'Plenty of Plants',
@@ -39,13 +38,12 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.webmanifest" />
       </head>
       <body className="font-body antialiased">
-        <AudioProvider>
+        <AppWrapper>
           <AuthProvider>
             {children}
             <Toaster />
-            <MusicPlayer />
           </AuthProvider>
-        </AudioProvider>
+        </AppWrapper>
       </body>
     </html>
   );
