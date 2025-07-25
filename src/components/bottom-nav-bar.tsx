@@ -23,8 +23,8 @@ export default function BottomNavBar() {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 h-20 border-t bg-card/95 backdrop-blur-sm z-10">
-      <div className="mx-auto grid h-full max-w-md grid-cols-4 items-center">
+    <nav className="fixed bottom-0 left-0 right-0 h-20 border-t bg-card/95 backdrop-blur-sm z-10 flex justify-center">
+      <div className="grid h-full w-full max-w-md grid-cols-4 items-center">
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
 
