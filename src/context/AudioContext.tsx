@@ -74,6 +74,27 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [audioElement, isPlaying]);
 
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!audioElement) return;
+      if (document.visibilityState === 'hidden') {
+        if (isPlaying) {
+          audioElement.pause();
+        }
+      } else {
+        if (isPlaying) {
+          audioElement.play().catch(e => console.error("Audio play failed:", e));
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [audioElement, isPlaying]);
+
 
   return (
     <AudioContext.Provider value={{ 
