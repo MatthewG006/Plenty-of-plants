@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -24,7 +23,7 @@ export default function BottomNavBar() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 h-20 border-t bg-card/95 backdrop-blur-sm z-10 flex justify-center">
-      <div className="grid h-full w-full max-w-md grid-cols-4 items-center">
+      <div className="grid h-full w-full max-w-md grid-cols-4 items-center relative left-[-5px]">
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
 
