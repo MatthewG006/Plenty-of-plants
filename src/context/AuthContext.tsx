@@ -110,20 +110,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (loading) return; // Don't do anything while loading
 
-    const publicPages = ['/', '/login', '/signup'];
-    const isPublicPage = publicPages.includes(pathname);
+    const authPages = ['/login', '/signup'];
+    const isAuthPage = authPages.includes(pathname);
+    const isSplashPage = pathname === '/';
 
-    if (!user && !isPublicPage) {
-      // If not logged in and trying to access a protected page, redirect
+    if (!user && !isAuthPage && !isSplashPage) {
+      // If not logged in and not on an auth page or splash, redirect to login
       router.push('/login');
-    } else if (user && isPublicPage && pathname !== '/') {
-      // If logged in and on a page like /login or /signup, redirect to home
+    } else if (user && isAuthPage) {
+      // If logged in and on an auth page, redirect to home
       router.push('/home');
     }
   }, [user, loading, pathname, router]);
 
 
-  if (loading) {
+  if (loading && pathname !== '/') {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
