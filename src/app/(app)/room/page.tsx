@@ -499,6 +499,10 @@ function PlantCardUI({
                     </Button>
                 )}
             </div>
+            
+            <Badge variant="secondary" className="absolute top-2 left-2 z-10 shadow-md">
+                Lvl {plant.level}
+            </Badge>
 
             <CardContent className="p-0">
                 <div className="aspect-square relative flex items-center justify-center bg-muted/30">
