@@ -500,10 +500,6 @@ function PlantCardUI({
                 )}
             </div>
             
-            <Badge variant="secondary" className="absolute top-2 left-2 z-10 shadow-md">
-                Lvl {plant.level}
-            </Badge>
-
             <CardContent className="p-0">
                 <div className="aspect-square relative flex items-center justify-center bg-muted/30">
                     {plant.image !== 'placeholder' ? (
@@ -524,6 +520,7 @@ function PlantCardUI({
                 </div>
                 <div className="p-2 text-center bg-white/50 space-y-1">
                     <p className="text-sm font-semibold text-primary truncate">{plant.name}</p>
+                    <div className="text-xs text-muted-foreground">Lvl {plant.level}</div>
                     <Progress value={(plant.xp / XP_PER_LEVEL) * 100} className="h-1.5" />
                 </div>
             </CardContent>
