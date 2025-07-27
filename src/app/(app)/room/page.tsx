@@ -42,6 +42,7 @@ const XP_PER_WATERING = 200;
 const XP_PER_LEVEL = 1000;
 const GOLD_PER_WATERING = 5;
 const EVOLUTION_LEVEL = 10;
+const SECOND_EVOLUTION_LEVEL = 25;
 const DRAG_CLICK_TOLERANCE = 5; // pixels
 const MAX_SHOWCASE_PLANTS = 5;
 const LONG_PRESS_DURATION = 500; // ms
@@ -223,6 +224,8 @@ function PlantDetailDialog({ plant, open, onOpenChange, onAddToEvolutionQueue, u
 
             if (newLevel >= EVOLUTION_LEVEL && plant.form === 'Base') {
                 shouldEvolve = true;
+            } else if (newLevel >= SECOND_EVOLUTION_LEVEL && plant.form === 'Evolved') {
+                shouldEvolve = true;
             } else {
                 playSfx('reward');
                 toast({
@@ -245,7 +248,7 @@ function PlantDetailDialog({ plant, open, onOpenChange, onAddToEvolutionQueue, u
             });
             await updateUserGold(userId, GOLD_PER_WATERING);
             
-            if (plant.form === 'Evolved') {
+            if (plant.form === 'Evolved' || plant.form === 'Final') {
                 await updateWaterEvolvedProgress(userId);
             } else {
                 await updateWateringProgress(userId);
@@ -515,6 +518,12 @@ function PlantCardUI({
                         <Badge variant="secondary" className="absolute top-2 right-2 shadow-md">
                             <Sparkles className="w-3 h-3 mr-1" />
                             Evolved
+                        </Badge>
+                    )}
+                    {plant.form === 'Final' && (
+                        <Badge variant="destructive" className="absolute top-2 right-2 shadow-md">
+                            <Sparkles className="w-3 h-3 mr-1" />
+                            Final
                         </Badge>
                     )}
                 </div>
@@ -1006,14 +1015,17 @@ export default function RoomPage() {
         const { newImageDataUri } = await evolvePlantAction({
             name: plantToEvolve.name,
             imageDataUri: plantToEvolve.image,
+            form: plantToEvolve.form,
         });
 
         const compressedImageDataUri = await compressImage(newImageDataUri);
         
+        const isFirstEvolution = plantToEvolve.form === 'Base';
+
         await updatePlant(user.uid, currentEvolvingPlantId, { 
             image: compressedImageDataUri, 
             baseImage: plantToEvolve.image, // Save the old image as the base image
-            form: 'Evolved' 
+            form: isFirstEvolution ? 'Evolved' : 'Final',
         });
         await updateEvolutionProgress(user.uid);
         
