@@ -18,6 +18,7 @@ const EvolvePlantInputSchema = z.object({
     .describe(
       "The current image of the plant, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
     ),
+  form: z.string().describe('The current form of the plant (e.g., "Base", "Evolved").'),
 });
 export type EvolvePlantInput = z.infer<typeof EvolvePlantInputSchema>;
 
@@ -40,13 +41,11 @@ const evolvePlantFlow = ai.defineFlow(
     inputSchema: EvolvePlantInputSchema,
     outputSchema: EvolvePlantOutputSchema,
   },
-  async ({ name, imageDataUri }) => {
+  async ({ name, imageDataUri, form }) => {
     try {
-      const { media } = await ai.generate({
-        model: 'googleai/gemini-2.0-flash-preview-image-generation',
-        prompt: [
-          { media: { url: imageDataUri, contentType: 'image/jpeg' } },
-          { text: `This is a plant character named ${name}. Your task is to generate an evolved, more mature version of this exact plant.
+      let promptText = '';
+      if (form === 'Base') {
+        promptText = `This is a plant character named ${name}. Your task is to generate an evolved, more mature version of this exact plant.
 
 **CRITICAL INSTRUCTIONS:**
 1.  **Evolve the Plant ONLY:** The changes should apply *only* to the plant itself. Make it bigger, more detailed, or add features like small flowers, glowing effects, or extra leaves.
@@ -54,7 +53,24 @@ const evolvePlantFlow = ai.defineFlow(
 3.  **Maintain Art Style:** The overall art style and character design must be consistent with the original.
 4.  **The Background:** The background of the image MUST be a solid white color.
 
-The final image should clearly be the same character, just a more advanced version. Do NOT change the core character, pot, or face.` }
+The final image should clearly be the same character, just a more advanced version. Do NOT change the core character, pot, or face.`;
+      } else { // Evolved to Final form
+        promptText = `This is an evolved plant character named ${name}. Your task is to generate its final, most powerful form.
+
+**CRITICAL INSTRUCTIONS:**
+1.  **Evolve the Plant ONLY:** The plant should look significantly more majestic and powerful. Add features like a radiant aura, crystalline structures, floating particles, or intricate patterns. It should be the ultimate version of this character.
+2.  **The Pot MUST NOT Change:** The pot it is in must remain absolutely identical to the original image. Do not change its color, shape, size, or the happy face on it.
+3.  **Maintain Art Style:** The overall art style must be consistent, but clearly show a powerful transformation.
+4.  **The Background:** The background of the image MUST be a solid white color.
+
+The final image should be an epic evolution, but still recognizably the same character in the same pot.`;
+      }
+
+      const { media } = await ai.generate({
+        model: 'googleai/gemini-2.0-flash-preview-image-generation',
+        prompt: [
+          { media: { url: imageDataUri, contentType: 'image/jpeg' } },
+          { text: promptText }
         ],
         config: {
           responseModalities: ['TEXT', 'IMAGE'],
