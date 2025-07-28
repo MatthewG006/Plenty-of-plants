@@ -1238,7 +1238,7 @@ export default function RoomPage() {
 
         const { newImageDataUri, personality } = await evolvePlantAction({
             name: plantToEvolve.name,
-            imageDataUri: plantToEvolve.image,
+            baseImageDataUri: plantToEvolve.baseImage || plantToEvolve.image,
             form: plantToEvolve.form,
         });
 
@@ -1250,8 +1250,8 @@ export default function RoomPage() {
             plantId: currentEvolvingPlantId,
             newImage: compressedImageDataUri,
             newForm: isFirstEvolution ? 'Evolved' : 'Final',
-            baseImage: plantToEvolve.image,
-            personality: personality || plantToEvolve.personality || '',
+            baseImage: plantToEvolve.baseImage || plantToEvolve.image,
+            personality: personality,
         });
 
     } catch (e) {
@@ -1268,14 +1268,16 @@ export default function RoomPage() {
 
     try {
         const { plantId, newImage, newForm, baseImage, personality } = evolvedPreviewData;
-        const plantToUpdate = allPlants[plantId];
         
         const updateData: Partial<Plant> = {
             image: newImage,
             form: newForm,
             baseImage: baseImage,
-            personality: personality || plantToUpdate.personality,
         };
+
+        if (personality) {
+            updateData.personality = personality;
+        }
 
         await updatePlant(user.uid, plantId, updateData);
         await updateEvolutionProgress(user.uid);
@@ -1455,28 +1457,6 @@ export default function RoomPage() {
       <div className="space-y-4 bg-white min-h-screen">
         <header className="flex flex-col items-center gap-4 p-4 text-center">
           <h1 className="text-3xl text-primary text-center">My Room</h1>
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <div className="flex items-center gap-1.5 rounded-full bg-yellow-100/80 px-2 py-0.5 border border-yellow-300/80">
-              <Sparkles className="h-3 w-3 text-yellow-500" />
-              <span className="font-bold text-xs text-yellow-700">{gameData.glitterCount}</span>
-            </div>
-            <div className="flex items-center gap-1.5 rounded-full bg-blue-100/80 px-2 py-0.5 border border-blue-300/80">
-              <Star className="h-3 w-3 text-blue-500" />
-              <span className="font-bold text-xs text-blue-700">{gameData.sheenCount}</span>
-            </div>
-            <div className="flex items-center gap-1.5 rounded-full bg-pink-100/80 px-2 py-0.5 border border-pink-300/80">
-              <Sparkles className="h-3 w-3 text-pink-500" />
-              <span className="font-bold text-xs text-pink-700">{gameData.rainbowGlitterCount}</span>
-            </div>
-            <div className="flex items-center gap-1.5 rounded-full bg-red-100/80 px-2 py-0.5 border border-red-300/80">
-              <Sparkles className="h-3 w-3 text-red-500" />
-              <span className="font-bold text-xs text-red-700">{gameData.redGlitterCount}</span>
-            </div>
-            <div className="flex items-center gap-1.5 rounded-full bg-green-100/80 px-2 py-0.5 border border-green-300/80">
-                <Droplet className="h-3 w-3 text-green-500" />
-                <span className="font-bold text-xs text-green-700">{gameData.waterRefillCount}</span>
-            </div>
-          </div>
         </header>
 
         <section className="px-4">
