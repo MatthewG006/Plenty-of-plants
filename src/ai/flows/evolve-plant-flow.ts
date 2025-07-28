@@ -60,7 +60,7 @@ const evolvePlantFlow = ai.defineFlow(
 1.  **Evolve the Plant ONLY:** The changes should apply *only* to the plant itself. Make it bigger, more detailed, or add features like small flowers, glowing effects, or extra leaves.
 2.  **The Pot MUST NOT Change:** The pot it is in must remain absolutely identical to the original image. Do not change its color, shape, size, or the happy face on it.
 3.  **Maintain Art Style:** The overall art style and character design must be consistent with the original.
-4.  **The Background:** The background of the image MUST be a solid white color.
+4.  **The Background:** The background of the image MUST be a solid white color. It absolutely cannot be black or any other color.
 
 The final image should clearly be the same character, just a more advanced version. Do NOT change the core character, pot, or face.`;
       } else { // Evolved to Final form
@@ -70,7 +70,7 @@ The final image should clearly be the same character, just a more advanced versi
 1.  **Evolve the Plant ONLY:** The plant should look significantly more majestic and powerful. Add features like a radiant aura, crystalline structures, floating particles, or intricate patterns. It should be the ultimate version of this character.
 2.  **The Pot MUST NOT Change:** The pot it is in must remain absolutely identical to the original image. Do not change its color, shape,size, or the happy face on it.
 3.  **Maintain Art Style:** The overall art style must be consistent, but clearly show a powerful transformation.
-4.  **The Background:** The background of the image MUST be a solid white color.
+4.  **The Background:** The background of the image MUST be a solid white color. It absolutely cannot be black or any other color.
 
 The final image should be an epic evolution, but still recognizably the same character in the same pot.`;
       }
