@@ -14,7 +14,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useAudio } from '@/context/AudioContext';
 import { cn } from '@/lib/utils';
 import { updateLikePlayerProgress } from '@/lib/challenge-manager';
-
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 
 function SheenAnimation() {
     return (
@@ -73,9 +73,48 @@ function GlitterAnimation() {
     );
 }
 
-function ShowcasePlant({ plant }: { plant: Plant }) {
+function PlantDetailDialog({ plant, open, onOpenChange }: { plant: Plant | null; open: boolean; onOpenChange: (open: boolean) => void }) {
+  if (!plant) return null;
+
   return (
-    <div className="w-full aspect-square relative rounded-md overflow-hidden bg-muted/30 border border-primary/10">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="text-3xl text-center text-primary">{plant.name}</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col items-center gap-4 pt-4">
+          <div className="w-64 h-64 relative">
+            <div className="rounded-lg overflow-hidden border-4 border-primary/50 shadow-lg bg-green-100 flex items-center justify-center h-full">
+              {plant.image && plant.image !== 'placeholder' ? (
+                <Image src={plant.image} alt={plant.name} width={256} height={256} className="object-cover w-full h-full" data-ai-hint={plant.hint} />
+              ) : (
+                <Leaf className="w-24 h-24 text-muted-foreground/50" />
+              )}
+            </div>
+            {plant.hasGlitter && <GlitterAnimation />}
+            {plant.hasRedGlitter && <RedGlitterAnimation />}
+            {plant.hasSheen && <SheenAnimation />}
+            {plant.hasRainbowGlitter && <RainbowGlitterAnimation />}
+          </div>
+          <p className="text-muted-foreground text-center mt-2 px-4">{plant.description}</p>
+        </div>
+        <DialogFooter className="pt-2">
+            <DialogClose asChild>
+                <Button className="w-full">Close</Button>
+            </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
+function ShowcasePlant({ plant, onSelectPlant }: { plant: Plant, onSelectPlant: (plant: Plant) => void }) {
+  return (
+    <div 
+        className="w-full aspect-square relative rounded-md overflow-hidden bg-muted/30 border border-primary/10 cursor-pointer"
+        onClick={() => onSelectPlant(plant)}
+    >
       {plant.image !== 'placeholder' ? (
         <Image src={plant.image} alt={plant.name} fill className="object-cover" />
       ) : (
@@ -103,6 +142,7 @@ export default function CommunityPage() {
   const [users, setUsers] = useState<CommunityUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [permissionError, setPermissionError] = useState(false);
+  const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -157,6 +197,15 @@ export default function CommunityPage() {
         }
     }
   }
+
+  const handleSelectPlant = (plant: Plant) => {
+    setSelectedPlant(plant);
+    playSfx('tap');
+  };
+
+  const handleCloseDialog = () => {
+    setSelectedPlant(null);
+  };
 
   return (
     <div className="p-4 space-y-6">
@@ -225,7 +274,7 @@ export default function CommunityPage() {
                   {communityUser.showcasePlants.length > 0 ? (
                     <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                       {communityUser.showcasePlants.map(plant => (
-                        <ShowcasePlant key={plant.id} plant={plant} />
+                        <ShowcasePlant key={plant.id} plant={plant} onSelectPlant={handleSelectPlant} />
                       ))}
                     </div>
                   ) : (
@@ -247,6 +296,11 @@ export default function CommunityPage() {
           )}
         </div>
       )}
+      <PlantDetailDialog
+        plant={selectedPlant}
+        open={!!selectedPlant}
+        onOpenChange={(isOpen) => !isOpen && handleCloseDialog()}
+      />
     </div>
   );
 }
