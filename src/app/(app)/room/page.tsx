@@ -1199,13 +1199,18 @@ export default function RoomPage() {
         const compressedImageDataUri = await compressImage(newImageDataUri);
         
         const isFirstEvolution = plantToEvolve.form === 'Base';
-
-        await updatePlant(user.uid, currentEvolvingPlantId, { 
-            image: compressedImageDataUri, 
-            baseImage: plantToEvolve.image, // Save the old image as the base image
+        
+        const updateData: Partial<Plant> = {
+            image: compressedImageDataUri,
+            baseImage: plantToEvolve.image,
             form: isFirstEvolution ? 'Evolved' : 'Final',
-            personality: personality || plantToEvolve.personality,
-        });
+        };
+
+        if (personality) {
+            updateData.personality = personality;
+        }
+
+        await updatePlant(user.uid, currentEvolvingPlantId, updateData);
         await updateEvolutionProgress(user.uid);
         
         playSfx('success');
@@ -1599,5 +1604,3 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
-
-    
