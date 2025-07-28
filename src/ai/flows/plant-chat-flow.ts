@@ -35,17 +35,19 @@ export async function plantChat(input: PlantChatInput): Promise<PlantChatOutput>
 
 const plantChatPrompt = ai.definePrompt({
   name: 'plantChatPrompt',
-  input: { schema: PlantChatInputSchema },
+  input: { schema: z.object({
+      plantName: z.string(),
+      plantPersonality: z.string(),
+      userMessage: z.string(),
+      formattedHistory: z.string().optional(),
+  }) },
   output: { schema: PlantChatOutputSchema },
   prompt: `You are a plant character in a game. Your name is {{plantName}} and you have a {{plantPersonality}} personality.
 Respond to the user's message in character. Keep your responses short and cute, like a text message. Do not use emojis.
 
-{{#if history}}
+{{#if formattedHistory}}
 Conversation History:
-{{#each history}}
-{{#if (eq role 'user')}}User: {{content}}{{/if}}
-{{#if (eq role 'model')}}You: {{content}}{{/if}}
-{{/each}}
+{{{formattedHistory}}}
 {{/if}}
 
 User's new message: {{userMessage}}
@@ -59,7 +61,18 @@ const plantChatFlow = ai.defineFlow(
     outputSchema: PlantChatOutputSchema,
   },
   async (input) => {
-    const { output } = await plantChatPrompt(input);
+    
+    const formattedHistory = (input.history || []).map(turn => {
+        return turn.role === 'user' ? `User: ${turn.content}` : `You: ${turn.content}`;
+    }).join('\n');
+
+    const { output } = await plantChatPrompt({
+        plantName: input.plantName,
+        plantPersonality: input.plantPersonality,
+        userMessage: input.userMessage,
+        formattedHistory,
+    });
+    
     return {
       response: output?.response || "I'm a little sleepy right now...",
     };
