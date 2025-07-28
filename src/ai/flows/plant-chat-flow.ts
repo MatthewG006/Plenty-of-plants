@@ -15,7 +15,7 @@ const ConversationTurnSchema = z.object({
   content: z.string(),
 });
 
-export const PlantChatInputSchema = z.object({
+const PlantChatInputSchema = z.object({
   plantName: z.string().describe("The name of the plant."),
   plantPersonality: z.string().describe("The plant's personality trait."),
   userMessage: z.string().describe("The user's message to the plant."),
@@ -23,7 +23,7 @@ export const PlantChatInputSchema = z.object({
 });
 export type PlantChatInput = z.infer<typeof PlantChatInputSchema>;
 
-export const PlantChatOutputSchema = z.object({
+const PlantChatOutputSchema = z.object({
   response: z.string().describe("The plant's response to the user."),
 });
 export type PlantChatOutput = z.infer<typeof PlantChatOutputSchema>;
