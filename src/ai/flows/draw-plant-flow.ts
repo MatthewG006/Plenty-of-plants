@@ -64,11 +64,49 @@ You MUST NOT use any of the following names:
 `,
 });
 
+const imageGenerationRules = `
+You MUST adhere to the following rules without exception:
+1. **Art Style:** The final image must have a clean, 2D, illustrated style.
+2. **The Pot:** The plant MUST be in a simple, terracotta pot.
+3. **The Face:** The pot MUST have a simple, smiling face on it. This is not optional.
+4. **The Plant:** The new plant character must be cute and simple. It absolutely MUST NOT have arms, legs, or a human-like body.
+5. **The Background:** The background MUST be a solid white color. It absolutely cannot be black or any other color.
+6. **Composition:** The image must contain ONLY the single plant character in its pot. NO other objects, text, people, hands, or background elements are allowed.
+`;
+
+const qualityControlPrompt = ai.definePrompt({
+  name: 'qualityControlPrompt',
+  input: {
+    schema: z.object({
+      imageDataUri: z.string(),
+      rules: z.string(),
+    }),
+  },
+  output: {
+    schema: z.object({
+      isValid: z.boolean().describe('Whether the image meets all the rules.'),
+      reason: z.string().optional().describe('The reason for failure, if any.'),
+    }),
+  },
+  prompt: `You are an art director for a video game. Your job is to perform quality control on AI-generated images.
+Analyze the following image and determine if it strictly follows all of the provided rules.
+
+**Image to Analyze:**
+{{media url=imageDataUri}}
+
+**Rules:**
+{{{rules}}}
+
+Does the image pass inspection?
+`,
+});
+
 const drawPlantFlow = ai.defineFlow(
   {
     name: 'drawPlantFlow',
     inputSchema: DrawPlantInputSchema,
     outputSchema: DrawPlantOutputSchema,
+    maxRetries: 2, // Allow up to 2 retries on failure
   },
   async ({ existingNames }) => {
     let media;
@@ -94,21 +132,12 @@ const drawPlantFlow = ai.defineFlow(
 
       // Step 3: Build the prompt. If there's a reference image, include it.
       const imageGenPrompt: (any)[] = [];
-      const rules = `
-        You MUST adhere to the following rules without exception:
-        1. **Art Style:** The final image must have a clean, 2D, illustrated style.
-        2. **The Pot:** The plant MUST be in a simple, terracotta pot.
-        3. **The Face:** The pot MUST have a simple, smiling face on it. This is not optional.
-        4. **The Plant:** The new plant character must be cute and simple. It absolutely MUST NOT have arms, legs, or a human-like body.
-        5. **The Background:** The background MUST be a solid white color. It absolutely cannot be black or any other color.
-        6. **Composition:** The image must contain ONLY the single plant character in its pot. NO other objects, text, people, hands, or background elements are allowed.
-      `;
       
       if (referenceImageDataUri) {
           imageGenPrompt.push({ media: { url: referenceImageDataUri, contentType: 'image/png' } });
-          imageGenPrompt.push({ text: `Your primary goal is to replicate the art style of the provided reference image EXACTLY. Create a new plant character based on the description: "${plantDetails.imagePrompt}".\n\n${rules}` });
+          imageGenPrompt.push({ text: `Your primary goal is to replicate the art style of the provided reference image EXACTLY. Create a new plant character based on the description: "${plantDetails.imagePrompt}".\n\n${imageGenerationRules}` });
       } else {
-          imageGenPrompt.push({ text: `Create a new plant character based on the description: "${plantDetails.imagePrompt}".\n\n${rules}` });
+          imageGenPrompt.push({ text: `Create a new plant character based on the description: "${plantDetails.imagePrompt}".\n\n${imageGenerationRules}` });
       }
 
       // Step 4: Use the details to generate the new plant image.
@@ -127,7 +156,19 @@ const drawPlantFlow = ai.defineFlow(
         throw new Error('Could not generate plant image from AI.');
       }
 
-      // Step 6: Save the newly generated plant image to be used as a future fallback.
+      // Step 6: Perform Quality Control check.
+      const { output: qcResult } = await qualityControlPrompt({
+        imageDataUri: media.url,
+        rules: imageGenerationRules,
+      });
+
+      if (!qcResult || !qcResult.isValid) {
+        console.warn(`Image generation failed quality control. Reason: ${qcResult?.reason || 'Unknown'}. Retrying...`);
+        throw new Error(`Image failed QC: ${qcResult?.reason}`); // This will trigger the flow's retry mechanism.
+      }
+
+
+      // Step 7: Save the newly generated plant image to be used as a future fallback.
       const fallbackDir = path.join(process.cwd(), 'public', 'fallback-plants');
       const safeFilename = `${plantDetails.name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-')}.png`;
       const savePath = path.join(fallbackDir, safeFilename);
@@ -143,7 +184,7 @@ const drawPlantFlow = ai.defineFlow(
         }
       }
 
-      // Step 7: Return the complete plant data.
+      // Step 8: Return the complete plant data.
       return {
         name: plantDetails.name,
         description: plantDetails.description,
@@ -155,7 +196,7 @@ const drawPlantFlow = ai.defineFlow(
             throw new Error("Invalid API Key");
         }
 
-        console.error("Primary plant generation failed, triggering fallback.", error);
+        console.error("Primary plant generation failed after all retries, triggering fallback.", error);
         return getFallbackPlantFlow({ existingNames });
     }
   }
