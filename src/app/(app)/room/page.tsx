@@ -5,7 +5,7 @@ import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose, DialogDescription } from '@/components/ui/dialog';
-import { Leaf, Loader2, Droplet, Coins, Sparkles, Droplets, Trash2, GripVertical, Star, Pipette, RefreshCw } from 'lucide-react';
+import { Leaf, Loader2, Droplet, Coins, Sparkles, Droplets, Trash2, GripVertical, Star, Pipette, RefreshCw, Gem, MessageCircle } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -27,7 +27,7 @@ import { useDraw, refundDraw } from '@/lib/draw-manager';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { updatePlantArrangement, updateUserGold, savePlant, updatePlant, getPlantById, deletePlant, updateShowcasePlants, useSheen, useRainbowGlitter, GameData, useGlitter, useSprinkler, useWaterRefill, useRedGlitter } from '@/lib/firestore';
+import { updateUserGold, updateUserRubies, savePlant, updatePlant, getPlantById, deletePlant, updateShowcasePlants, useSheen, useRainbowGlitter, GameData, useGlitter, useSprinkler, useWaterRefill, useRedGlitter, unlockPlantChat, addConversationHistory, updatePlantArrangement } from '@/lib/firestore';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { compressImage, makeBackgroundTransparent } from '@/lib/image-compression';
 import { Badge } from '@/components/ui/badge';
@@ -35,12 +35,15 @@ import { evolvePlantAction } from '@/app/actions/evolve-plant';
 import { drawPlantAction } from '@/app/actions/draw-plant';
 import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 import { updateWateringProgress, updateEvolutionProgress, updateCollectionProgress, updateWaterEvolvedProgress, updateApplyGlitterProgress } from '@/lib/challenge-manager';
+import { plantChatAction } from '@/app/actions/plant-chat';
+import { Textarea } from '@/components/ui/textarea';
 
 const NUM_POTS = 3;
 const MAX_WATERINGS_PER_DAY = 4;
 const XP_PER_WATERING = 200;
 const XP_PER_LEVEL = 1000;
 const GOLD_PER_WATERING = 5;
+const RUBIES_PER_WATERING = 1;
 const EVOLUTION_LEVEL = 10;
 const SECOND_EVOLUTION_LEVEL = 25;
 const DRAG_CLICK_TOLERANCE = 5; // pixels
@@ -146,17 +149,148 @@ function GoldCoinAnimation() {
     );
 }
 
+function RubyAnimation() {
+    return (
+        <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
+            {Array.from({ length: 1 }).map((_, i) => (
+                <Gem key={i} className="absolute text-red-500 animate-float-up" style={{
+                    left: `${30 + Math.random() * 40}%`,
+                    bottom: '20px',
+                    animationDelay: `${Math.random() * 0.3}s`,
+                    animationDuration: `${1.2 + Math.random() * 0.5}s`,
+                    width: `${24 + Math.random() * 12}px`,
+                    height: `${24 + Math.random() * 12}px`,
+                }} />
+            ))}
+        </div>
+    );
+}
 
-function PlantDetailDialog({ plant, open, onOpenChange, onAddToEvolutionQueue, userId }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, onAddToEvolutionQueue: (plantId: number) => void, userId: string }) {
+
+function PlantChatDialog({ plant, open, onOpenChange, userId }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, userId: string }) {
+    const [history, setHistory] = useState<{ role: 'user' | 'model'; content: string }[]>([]);
+    const [message, setMessage] = useState('');
+    const [isThinking, setIsThinking] = useState(false);
+    const scrollAreaRef = useRef<HTMLDivElement>(null);
+    const { playSfx } = useAudio();
+
+    useEffect(() => {
+        if (plant) {
+            setHistory(plant.conversationHistory || []);
+        }
+    }, [plant]);
+
+    useEffect(() => {
+        // Scroll to bottom when history changes
+        if (scrollAreaRef.current) {
+            scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+        }
+    }, [history]);
+
+    if (!plant) return null;
+
+    const handleSendMessage = async () => {
+        if (!message.trim() || isThinking) return;
+
+        const newUserMessage = { role: 'user' as const, content: message };
+        const newHistory = [...history, newUserMessage];
+        setHistory(newHistory);
+        setMessage('');
+        setIsThinking(true);
+        playSfx('tap');
+
+        try {
+            const { response } = await plantChatAction({
+                plantName: plant.name,
+                plantPersonality: plant.personality,
+                userMessage: message,
+                history: history,
+            });
+            
+            const newModelMessage = { role: 'model' as const, content: response };
+            setHistory([...newHistory, newModelMessage]);
+            await addConversationHistory(userId, plant.id, newUserMessage.content, newModelMessage.content);
+            playSfx('chime');
+
+        } catch (e) {
+            console.error("Chat error:", e);
+            setHistory(history); // Revert history on error
+        } finally {
+            setIsThinking(false);
+        }
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-md flex flex-col h-[70vh]">
+                <DialogHeader>
+                    <DialogTitle className="text-2xl text-center text-primary">Chat with {plant.name}</DialogTitle>
+                    <DialogDescription className="text-center">Personality: <span className="font-semibold">{plant.personality}</span></DialogDescription>
+                </DialogHeader>
+                <div ref={scrollAreaRef} className="flex-grow overflow-y-auto p-4 space-y-4 bg-muted/50 rounded-lg">
+                    {history.map((turn, index) => (
+                        <div key={index} className={cn(
+                            "flex items-end gap-2",
+                            turn.role === 'user' ? 'justify-end' : 'justify-start'
+                        )}>
+                           {turn.role === 'model' && (
+                                <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-primary/50 shrink-0">
+                                     <Image src={plant.image} alt={plant.name} width={32} height={32} />
+                                </div>
+                           )}
+                           <div className={cn(
+                               "max-w-xs p-3 rounded-lg",
+                               turn.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-background'
+                           )}>
+                               <p className="text-sm">{turn.content}</p>
+                           </div>
+                        </div>
+                    ))}
+                    {isThinking && (
+                         <div className="flex items-end gap-2 justify-start">
+                            <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-primary/50 shrink-0">
+                                 <Image src={plant.image} alt={plant.name} width={32} height={32} />
+                            </div>
+                           <div className="bg-background p-3 rounded-lg">
+                               <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                           </div>
+                        </div>
+                    )}
+                </div>
+                <DialogFooter className="pt-4 flex-row gap-2">
+                    <Textarea 
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        placeholder="Say something..."
+                        className="flex-grow resize-none"
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSendMessage();
+                            }
+                        }}
+                        disabled={isThinking}
+                    />
+                    <Button onClick={handleSendMessage} disabled={!message.trim() || isThinking}>
+                        Send
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function PlantDetailDialog({ plant, open, onOpenChange, onAddToEvolutionQueue, onOpenChat, userId }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, onAddToEvolutionQueue: (plantId: number) => void, onOpenChat: (plant: Plant) => void, userId: string }) {
     const { playSfx } = useAudio();
     const { toast } = useToast();
     const { gameData } = useAuth();
     const [isWatering, setIsWatering] = useState(false);
-    const [showGold, setShowGold] = useState(false);
+    const [showReward, setShowReward] = useState<'gold' | 'ruby' | null>(null);
     const [visualXp, setVisualXp] = useState(plant?.xp || 0);
     const [isDeleting, setIsDeleting] = useState(false);
     const [viewingBase, setViewingBase] = useState(false);
     const [isRefilling, setIsRefilling] = useState(false);
+    const [isUnlockingChat, setIsUnlockingChat] = useState(false);
 
     useEffect(() => {
         if (plant) {
@@ -200,7 +334,10 @@ function PlantDetailDialog({ plant, open, onOpenChange, onAddToEvolutionQueue, u
         
         setIsWatering(true);
         playSfx('watering');
-        setShowGold(true);
+        
+        const isFinalForm = plant.form === 'Final';
+        setShowReward(isFinalForm ? 'ruby' : 'gold');
+
 
         const xpGained = XP_PER_WATERING;
         let newXp = plant.xp + xpGained;
@@ -246,7 +383,12 @@ function PlantDetailDialog({ plant, open, onOpenChange, onAddToEvolutionQueue, u
                 level: newLevel,
                 lastWatered: updatedLastWatered,
             });
-            await updateUserGold(userId, GOLD_PER_WATERING);
+            
+            if (isFinalForm) {
+                await updateUserRubies(userId, RUBIES_PER_WATERING);
+            } else {
+                await updateUserGold(userId, GOLD_PER_WATERING);
+            }
             
             if (plant.form === 'Evolved' || plant.form === 'Final') {
                 await updateWaterEvolvedProgress(userId);
@@ -265,7 +407,7 @@ function PlantDetailDialog({ plant, open, onOpenChange, onAddToEvolutionQueue, u
         }
 
         setTimeout(() => setIsWatering(false), 1200);
-        setTimeout(() => setShowGold(false), 1000);
+        setTimeout(() => setShowReward(null), 1000);
     };
 
     const handleDeletePlant = async () => {
@@ -285,6 +427,24 @@ function PlantDetailDialog({ plant, open, onOpenChange, onAddToEvolutionQueue, u
             setIsDeleting(false);
         }
     };
+    
+    const handleUnlockChat = async () => {
+        if (!plant) return;
+        setIsUnlockingChat(true);
+        try {
+            await unlockPlantChat(userId, plant.id);
+            playSfx('success');
+            toast({
+                title: "Chat Unlocked!",
+                description: `You can now chat with ${plant.name}.`
+            });
+        } catch (e: any) {
+            console.error("Failed to unlock chat", e);
+            toast({ variant: 'destructive', title: "Error", description: e.message || "Could not unlock chat." });
+        } finally {
+            setIsUnlockingChat(false);
+        }
+    };
 
 
     return (
@@ -299,11 +459,25 @@ function PlantDetailDialog({ plant, open, onOpenChange, onAddToEvolutionQueue, u
                                 {viewingBase ? 'View Evolved' : 'View Base Form'}
                             </Button>
                          )}
+                         {plant.form === 'Final' && (
+                             <>
+                                {plant.chatEnabled ? (
+                                    <Button variant="outline" size="sm" className="text-xs h-7 px-2" onClick={() => onOpenChat(plant)}>
+                                        <MessageCircle className="mr-1 h-3 w-3" />
+                                        Chat
+                                    </Button>
+                                ) : (
+                                    <Button variant="outline" size="sm" className="text-xs h-7 px-2" onClick={handleUnlockChat} disabled={isUnlockingChat}>
+                                        {isUnlockingChat ? <Loader2 className="animate-spin" /> : <><Gem className="mr-1 h-3 w-3 text-red-500" /> Unlock Chat</>}
+                                    </Button>
+                                )}
+                             </>
+                         )}
                          <AlertDialog>
                             <AlertDialogTrigger asChild>
                                 <Button variant="outline" size="sm" className="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive text-xs h-7 px-2">
                                     <Trash2 className="mr-1 h-3 w-3" />
-                                    Delete Plant
+                                    Delete
                                 </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
@@ -337,11 +511,12 @@ function PlantDetailDialog({ plant, open, onOpenChange, onAddToEvolutionQueue, u
                         {plant.hasSheen && !viewingBase && <SheenAnimation />}
                         {plant.hasRainbowGlitter && !viewingBase && <RainbowGlitterAnimation />}
                         {isWatering && <WaterDropletAnimation />}
-                        {isWatering && <GoldCoinAnimation />}
-                        {showGold && (
+                        {showReward === 'gold' && <GoldCoinAnimation />}
+                        {showReward === 'ruby' && <RubyAnimation />}
+                        {showReward && (
                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-1 bg-yellow-400/80 text-white font-bold px-3 py-1 rounded-full shadow-lg animate-fade-out-fast pointer-events-none">
-                                <Coins className="w-5 h-5" />
-                                <span>+{GOLD_PER_WATERING}</span>
+                                {showReward === 'gold' ? <Coins className="w-5 h-5" /> : <Gem className="w-5 h-5 text-red-300" />}
+                                <span>+1</span>
                             </div>
                         )}
                     </div>
@@ -744,6 +919,9 @@ export default function RoomPage() {
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [showLongPressInfo, setShowLongPressInfo] = useState(false);
 
+  // For Plant Chat
+  const [chattingPlant, setChattingPlant] = useState<Plant | null>(null);
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -1012,7 +1190,7 @@ export default function RoomPage() {
             throw new Error("Plant not found for evolution.");
         }
 
-        const { newImageDataUri } = await evolvePlantAction({
+        const { newImageDataUri, personality } = await evolvePlantAction({
             name: plantToEvolve.name,
             imageDataUri: plantToEvolve.image,
             form: plantToEvolve.form,
@@ -1026,6 +1204,7 @@ export default function RoomPage() {
             image: compressedImageDataUri, 
             baseImage: plantToEvolve.image, // Save the old image as the base image
             form: isFirstEvolution ? 'Evolved' : 'Final',
+            personality: personality || plantToEvolve.personality,
         });
         await updateEvolutionProgress(user.uid);
         
@@ -1199,24 +1378,24 @@ export default function RoomPage() {
           <h1 className="text-3xl text-primary text-center">My Room</h1>
           <div className="flex flex-wrap items-center justify-center gap-2">
             <div className="flex items-center gap-1.5 rounded-full bg-yellow-100/80 px-2 py-0.5 border border-yellow-300/80">
-              <Sparkles className="h-4 w-4 text-yellow-500" />
-              <span className="font-bold text-sm text-yellow-700">{gameData.glitterCount}</span>
+              <Sparkles className="h-3 w-3 text-yellow-500" />
+              <span className="font-bold text-xs text-yellow-700">{gameData.glitterCount}</span>
             </div>
             <div className="flex items-center gap-1.5 rounded-full bg-blue-100/80 px-2 py-0.5 border border-blue-300/80">
-              <Star className="h-4 w-4 text-blue-500" />
-              <span className="font-bold text-sm text-blue-700">{gameData.sheenCount}</span>
+              <Star className="h-3 w-3 text-blue-500" />
+              <span className="font-bold text-xs text-blue-700">{gameData.sheenCount}</span>
             </div>
             <div className="flex items-center gap-1.5 rounded-full bg-pink-100/80 px-2 py-0.5 border border-pink-300/80">
-              <Sparkles className="h-4 w-4 text-pink-500" />
-              <span className="font-bold text-sm text-pink-700">{gameData.rainbowGlitterCount}</span>
+              <Sparkles className="h-3 w-3 text-pink-500" />
+              <span className="font-bold text-xs text-pink-700">{gameData.rainbowGlitterCount}</span>
             </div>
             <div className="flex items-center gap-1.5 rounded-full bg-red-100/80 px-2 py-0.5 border border-red-300/80">
-              <Sparkles className="h-4 w-4 text-red-500" />
-              <span className="font-bold text-sm text-red-700">{gameData.redGlitterCount}</span>
+              <Sparkles className="h-3 w-3 text-red-500" />
+              <span className="font-bold text-xs text-red-700">{gameData.redGlitterCount}</span>
             </div>
             <div className="flex items-center gap-1.5 rounded-full bg-green-100/80 px-2 py-0.5 border border-green-300/80">
-                <Droplet className="h-4 w-4 text-green-500" />
-                <span className="font-bold text-sm text-green-700">{gameData.waterRefillCount}</span>
+                <Droplet className="h-3 w-3 text-green-500" />
+                <span className="font-bold text-xs text-green-700">{gameData.waterRefillCount}</span>
             </div>
           </div>
         </header>
@@ -1325,6 +1504,7 @@ export default function RoomPage() {
           open={!!selectedPlant}
           onOpenChange={(isOpen) => !isOpen && setSelectedPlant(null)}
           onAddToEvolutionQueue={(plantId) => setPlantsToEvolveQueue(prev => [...prev, plantId])}
+          onOpenChat={(plant) => setChattingPlant(plant)}
           userId={user.uid}
         />
         
@@ -1338,6 +1518,15 @@ export default function RoomPage() {
           onToggleShowcase={handleToggleShowcaseAction}
           isPlantInShowcase={isPlantInShowcase}
           canAddToShowcase={canAddToShowcase}
+        />
+
+        <PlantChatDialog
+            plant={chattingPlant}
+            open={!!chattingPlant}
+            onOpenChange={(isOpen) => {
+                if (!isOpen) setChattingPlant(null);
+            }}
+            userId={user.uid}
         />
 
         <NewPlantDialog
@@ -1410,3 +1599,5 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
+
+    
