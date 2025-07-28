@@ -13,10 +13,10 @@ import {z} from 'genkit';
 
 const EvolvePlantInputSchema = z.object({
   name: z.string().describe('The name of the plant being evolved.'),
-  imageDataUri: z
+  baseImageDataUri: z
     .string()
     .describe(
-      "The current image of the plant, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
+      "The image of the plant's original, base form, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
     ),
   form: z.string().describe('The current form of the plant (e.g., "Base", "Evolved").'),
 });
@@ -50,7 +50,7 @@ const evolvePlantFlow = ai.defineFlow(
     inputSchema: EvolvePlantInputSchema,
     outputSchema: EvolvePlantOutputSchema,
   },
-  async ({ name, imageDataUri, form }) => {
+  async ({ name, baseImageDataUri, form }) => {
     try {
       let promptText = '';
       if (form === 'Base') {
@@ -78,7 +78,7 @@ The final image should be an epic evolution, but still recognizably the same cha
       const { media } = await ai.generate({
         model: 'googleai/gemini-2.0-flash-preview-image-generation',
         prompt: [
-          { media: { url: imageDataUri, contentType: 'image/jpeg' } },
+          { media: { url: baseImageDataUri, contentType: 'image/jpeg' } },
           { text: promptText }
         ],
         config: {
@@ -90,15 +90,17 @@ The final image should be an epic evolution, but still recognizably the same cha
         throw new Error('Could not generate evolved plant image from AI.');
       }
       
-      let personality;
+      let personality = '';
       if (form === 'Evolved') {
         const { output } = await personalityPrompt({ name });
-        personality = output?.personality;
+        if (output) {
+          personality = output.personality;
+        }
       }
       
       return {
         newImageDataUri: media.url,
-        personality: personality || '',
+        personality: personality,
       };
 
     } catch (error) {
@@ -106,7 +108,7 @@ The final image should be an epic evolution, but still recognizably the same cha
         // In case of an error, we can just return the original image to avoid breaking the flow.
         // A more robust solution might involve a fallback or retry.
         return {
-            newImageDataUri: imageDataUri,
+            newImageDataUri: baseImageDataUri,
             personality: '',
         };
     }
