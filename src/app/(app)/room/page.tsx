@@ -579,6 +579,40 @@ function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlantOutput 
     );
 }
 
+function EvolutionPreviewDialog({
+  plant,
+  previewData,
+  open,
+  onConfirm,
+}: {
+  plant: Plant | null;
+  previewData: { newImage: string; newForm: string } | null;
+  open: boolean;
+  onConfirm: () => void;
+}) {
+  if (!plant || !previewData) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={() => {}}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="text-3xl text-center text-primary">Evolution Complete!</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col items-center gap-4 py-4">
+          <div className="w-64 h-64 rounded-lg overflow-hidden border-4 border-primary/50 shadow-lg bg-green-100">
+            <Image src={previewData.newImage} alt={`Evolved ${plant.name}`} width={256} height={256} className="object-cover w-full h-full" />
+          </div>
+          <h3 className="text-2xl font-semibold text-primary">{plant.name} has evolved into its {previewData.newForm} form!</h3>
+        </div>
+        <DialogFooter>
+          <Button className="w-full text-lg" onClick={onConfirm}>Continue</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 function PlantImageUI({ plant, image, canWater }: { plant: Plant, image: string | null, canWater: boolean }) {
   return (
     <div className={cn("flex flex-col items-center text-center pointer-events-none w-full h-full rounded-lg", canWater && "animate-glow")}>
@@ -911,6 +945,13 @@ export default function RoomPage() {
 
   const [currentEvolvingPlantId, setCurrentEvolvingPlantId] = useState<number | null>(null);
   const [isEvolving, setIsEvolving] = useState(false);
+  const [evolvedPreviewData, setEvolvedPreviewData] = useState<{
+    plantId: number;
+    newImage: string;
+    newForm: string;
+    baseImage: string;
+    personality: string;
+  } | null>(null);
 
   const [processedDeskImages, setProcessedDeskImages] = useState<Record<number, string | null>>({});
 
@@ -967,6 +1008,12 @@ export default function RoomPage() {
     if (!currentEvolvingPlantId) return null;
     return allPlants[currentEvolvingPlantId] || null;
   }, [currentEvolvingPlantId, allPlants]);
+  
+  const evolvedPreviewPlant = useMemo(() => {
+    if (!evolvedPreviewData) return null;
+    return allPlants[evolvedPreviewData.plantId] || null;
+  }, [evolvedPreviewData, allPlants]);
+
 
   useEffect(() => {
     const processImages = async () => {
@@ -1174,16 +1221,15 @@ export default function RoomPage() {
     }
   }, [plantsToEvolveQueue, currentEvolvingPlantId]);
 
-  const handleFinishEvolution = () => {
-    setIsEvolving(false);
-    setCurrentEvolvingPlantId(null);
-    setPlantsToEvolveQueue(prev => prev.slice(1));
-  };
-  
-  const handleEvolve = async () => {
-    if (!currentEvolvingPlantId || !user) return;
-
+  const handleStartEvolution = () => {
+    if (!currentEvolvingPlantId) return;
     setIsEvolving(true);
+    handleEvolve();
+  };
+
+  const handleEvolve = async () => {
+    if (!currentEvolvingPlantId) return;
+
     try {
         const plantToEvolve = await getPlantById(user.uid, currentEvolvingPlantId);
         if (!plantToEvolve) {
@@ -1200,33 +1246,61 @@ export default function RoomPage() {
         
         const isFirstEvolution = plantToEvolve.form === 'Base';
         
-        const updateData: Partial<Plant> = {
-            image: compressedImageDataUri,
-            form: isFirstEvolution ? 'Evolved' : 'Final',
+        setEvolvedPreviewData({
+            plantId: currentEvolvingPlantId,
+            newImage: compressedImageDataUri,
+            newForm: isFirstEvolution ? 'Evolved' : 'Final',
             baseImage: plantToEvolve.image,
-        };
-
-        if (personality) {
-            updateData.personality = personality;
-        } else if (!isFirstEvolution) {
-            updateData.personality = plantToEvolve.personality || '';
-        }
-
-        await updatePlant(user.uid, currentEvolvingPlantId, updateData);
-        await updateEvolutionProgress(user.uid);
-        
-        playSfx('success');
-        toast({
-            title: "Evolution Complete!",
-            description: `${plantToEvolve.name} has evolved!`,
+            personality: personality,
         });
 
     } catch (e) {
         console.error("Evolution failed", e);
         toast({ variant: 'destructive', title: "Evolution Failed", description: "Could not evolve your plant. Please try again." });
+        handleFinishEvolution();
+    } finally {
+        setIsEvolving(false);
+    }
+  };
+
+  const handleConfirmEvolution = async () => {
+    if (!user || !evolvedPreviewData) return;
+
+    try {
+        const { plantId, newImage, newForm, baseImage, personality } = evolvedPreviewData;
+
+        const updateData: Partial<Plant> = {
+            image: newImage,
+            form: newForm,
+            baseImage: baseImage,
+        };
+
+        if (newForm === 'Final' && personality) {
+            updateData.personality = personality;
+        }
+
+        await updatePlant(user.uid, plantId, updateData);
+        await updateEvolutionProgress(user.uid);
+        
+        playSfx('success');
+        toast({
+            title: "Evolution Complete!",
+            description: `Your plant has evolved!`,
+        });
+
+    } catch (e) {
+        console.error("Failed to save evolution", e);
+        toast({ variant: 'destructive', title: "Save Failed", description: "Could not save your evolved plant." });
     } finally {
         handleFinishEvolution();
     }
+  };
+  
+  const handleFinishEvolution = () => {
+    setIsEvolving(false);
+    setCurrentEvolvingPlantId(null);
+    setEvolvedPreviewData(null);
+    setPlantsToEvolveQueue(prev => prev.slice(1));
   };
   
   const handleApplyGlitter = async (plantId: number) => {
@@ -1548,7 +1622,7 @@ export default function RoomPage() {
 
         <LongPressInfoDialog open={showLongPressInfo} onOpenChange={handleCloseLongPressInfo} />
 
-        <AlertDialog open={!!currentEvolvingPlantId || isEvolving} onOpenChange={(isOpen) => !isOpen && !isEvolving && handleFinishEvolution()}>
+        <AlertDialog open={!!currentEvolvingPlantId && !evolvedPreviewData} onOpenChange={(isOpen) => !isOpen && !isEvolving && handleFinishEvolution()}>
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle className="text-center text-primary">
@@ -1570,12 +1644,19 @@ export default function RoomPage() {
                 )}
                 <AlertDialogFooter>
                     <AlertDialogCancel onClick={handleFinishEvolution} disabled={isEvolving}>Later</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleEvolve} disabled={isEvolving}>
+                    <AlertDialogAction onClick={handleStartEvolution} disabled={isEvolving}>
                         {isEvolving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Evolving...</> : "Evolve"}
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
+
+        <EvolutionPreviewDialog
+          plant={evolvedPreviewPlant}
+          previewData={evolvedPreviewData}
+          open={!!evolvedPreviewData}
+          onConfirm={handleConfirmEvolution}
+        />
 
         <DragOverlay>
             {activeDragData ? (
