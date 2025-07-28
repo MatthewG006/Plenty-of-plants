@@ -475,9 +475,8 @@ function PlantDetailDialog({ plant, open, onOpenChange, onAddToEvolutionQueue, o
                          )}
                          <AlertDialog>
                             <AlertDialogTrigger asChild>
-                                <Button variant="outline" size="sm" className="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive text-xs h-7 px-2">
-                                    <Trash2 className="mr-1 h-3 w-3" />
-                                    Delete
+                                <Button variant="outline" size="icon" className="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive h-7 w-7">
+                                    <Trash2 className="h-4 w-4" />
                                 </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
@@ -1228,7 +1227,7 @@ export default function RoomPage() {
   };
 
   const handleEvolve = async () => {
-    if (!currentEvolvingPlantId) return;
+    if (!currentEvolvingPlantId || !user) return;
 
     try {
         const plantToEvolve = await getPlantById(user.uid, currentEvolvingPlantId);
@@ -1251,7 +1250,7 @@ export default function RoomPage() {
             newImage: compressedImageDataUri,
             newForm: isFirstEvolution ? 'Evolved' : 'Final',
             baseImage: plantToEvolve.image,
-            personality: personality,
+            personality: personality || plantToEvolve.personality,
         });
 
     } catch (e) {
@@ -1275,7 +1274,7 @@ export default function RoomPage() {
             baseImage: baseImage,
         };
 
-        if (newForm === 'Final' && personality) {
+        if (personality) {
             updateData.personality = personality;
         }
 
