@@ -947,9 +947,8 @@ export default function RoomPage() {
   const [isEvolving, setIsEvolving] = useState(false);
   const [evolvedPreviewData, setEvolvedPreviewData] = useState<{
     plantId: number;
-    newImage: string;
+    newImageDataUri: string; // The raw, uncompressed image from AI
     newForm: string;
-    baseImage: string;
     personality: string;
   } | null>(null);
 
@@ -1241,16 +1240,13 @@ export default function RoomPage() {
             baseImageDataUri: plantToEvolve.baseImage || plantToEvolve.image,
             form: plantToEvolve.form,
         });
-
-        const compressedImageDataUri = await compressImage(newImageDataUri);
         
         const isFirstEvolution = plantToEvolve.form === 'Base';
         
         setEvolvedPreviewData({
             plantId: currentEvolvingPlantId,
-            newImage: compressedImageDataUri,
+            newImageDataUri: newImageDataUri, // Store the uncompressed image
             newForm: isFirstEvolution ? 'Evolved' : 'Final',
-            baseImage: plantToEvolve.baseImage || plantToEvolve.image,
             personality: personality,
         });
 
@@ -1267,15 +1263,22 @@ export default function RoomPage() {
     if (!user || !evolvedPreviewData) return;
 
     try {
-        const { plantId, newImage, newForm, baseImage, personality } = evolvedPreviewData;
+        const { plantId, newImageDataUri, newForm, personality } = evolvedPreviewData;
+        
+        const compressedImage = await compressImage(newImageDataUri);
         
         const updateData: Partial<Plant> = {
-            image: newImage,
+            image: compressedImage,
             form: newForm,
-            baseImage: baseImage,
         };
+        
+        // If it's the first evolution, set the uncompressed new image as the baseImage for the next evolution
+        if (newForm === 'Evolved') {
+            updateData.baseImage = newImageDataUri;
+        }
 
-        if (personality) {
+        // Only set personality on the final evolution
+        if (newForm === 'Final' && personality) {
             updateData.personality = personality;
         }
 
@@ -1629,12 +1632,15 @@ export default function RoomPage() {
             </AlertDialogContent>
         </AlertDialog>
 
-        <EvolutionPreviewDialog
-          plant={evolvedPreviewPlant}
-          previewData={evolvedPreviewData ? { newImage: evolvedPreviewData.newImage, newForm: evolvedPreviewData.newForm } : null}
-          open={!!evolvedPreviewData}
-          onConfirm={handleConfirmEvolution}
-        />
+        {evolvedPreviewData && (
+            <EvolutionPreviewDialog
+                plant={evolvedPreviewPlant}
+                previewData={{ newImage: evolvedPreviewData.newImageDataUri, newForm: evolvedPreviewData.newForm }}
+                open={!!evolvedPreviewData}
+                onConfirm={handleConfirmEvolution}
+            />
+        )}
+
 
         <DragOverlay>
             {activeDragData ? (

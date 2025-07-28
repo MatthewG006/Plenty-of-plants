@@ -100,7 +100,7 @@ The final image should be an epic evolution, but still recognizably the same cha
       
       return {
         newImageDataUri: media.url,
-        personality: personality,
+        personality: personality || '',
       };
 
     } catch (error) {
