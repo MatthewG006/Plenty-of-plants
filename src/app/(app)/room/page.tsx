@@ -467,8 +467,8 @@ function PlantDetailDialog({ plant, open, onOpenChange, onAddToEvolutionQueue, o
                                         Chat
                                     </Button>
                                 ) : (
-                                    <Button variant="outline" size="sm" className="text-xs h-7 px-2" onClick={handleUnlockChat} disabled={isUnlockingChat}>
-                                        {isUnlockingChat ? <Loader2 className="animate-spin" /> : <><Gem className="mr-1 h-3 w-3 text-red-500" /> Unlock Chat</>}
+                                    <Button variant="outline" size="sm" className="text-xs h-7 px-2" onClick={handleUnlockChat} disabled={isUnlockingChat || gameData.plantChatTokens < 1}>
+                                        {isUnlockingChat ? <Loader2 className="animate-spin" /> : <><Gem className="mr-1 h-3 w-3 text-red-500" /> Unlock Chat ({gameData.plantChatTokens})</>}
                                     </Button>
                                 )}
                              </>
@@ -963,9 +963,9 @@ export default function RoomPage() {
   const deskPlants = useMemo(() => deskPlantIds.map(id => id ? allPlants[id] : null), [deskPlantIds, allPlants]);
   const collectionPlants = useMemo(() => collectionPlantIds.map(id => allPlants[id]).filter(Boolean), [collectionPlantIds, allPlants]);
   
-  const evolutionPlantName = useMemo(() => {
-    if (!currentEvolvingPlantId) return '';
-    return allPlants[currentEvolvingPlantId]?.name || '';
+  const evolutionPlant = useMemo(() => {
+    if (!currentEvolvingPlantId) return null;
+    return allPlants[currentEvolvingPlantId] || null;
   }, [currentEvolvingPlantId, allPlants]);
 
   useEffect(() => {
@@ -1202,12 +1202,14 @@ export default function RoomPage() {
         
         const updateData: Partial<Plant> = {
             image: compressedImageDataUri,
-            baseImage: plantToEvolve.image,
             form: isFirstEvolution ? 'Evolved' : 'Final',
+            baseImage: plantToEvolve.image,
         };
 
         if (personality) {
             updateData.personality = personality;
+        } else if (!isFirstEvolution) {
+            updateData.personality = plantToEvolve.personality || '';
         }
 
         await updatePlant(user.uid, currentEvolvingPlantId, updateData);
@@ -1553,13 +1555,18 @@ export default function RoomPage() {
                         {isEvolving ? "Evolving..." : "Your plant is growing!"}
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                        {isEvolving ? "Please wait a moment." : `${evolutionPlantName} is ready for a new form! Would you like to evolve it?`}
+                        {isEvolving ? `Please wait a moment while ${evolutionPlant?.name} evolves.` : `${evolutionPlant?.name} is ready for a new form! Would you like to evolve it?`}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
-                {isEvolving && (
-                    <div className="flex justify-center p-4">
-                        <Loader2 className="w-12 h-12 text-primary animate-spin" />
+                {isEvolving && evolutionPlant && (
+                  <div className="flex justify-center items-center p-4 flex-col gap-4">
+                    <div className="w-48 h-48 relative">
+                       <Image src={evolutionPlant.image} alt={evolutionPlant.name} width={192} height={192} className="object-cover w-full h-full opacity-50" />
+                       <div className="absolute inset-0 flex items-center justify-center">
+                          <Loader2 className="w-16 h-16 text-primary animate-spin" />
+                       </div>
                     </div>
+                  </div>
                 )}
                 <AlertDialogFooter>
                     <AlertDialogCancel onClick={handleFinishEvolution} disabled={isEvolving}>Later</AlertDialogCancel>
