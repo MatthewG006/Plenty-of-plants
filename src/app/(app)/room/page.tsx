@@ -205,6 +205,7 @@ function PlantChatDialog({ plant, open, onOpenChange, userId }: { plant: Plant |
                 plantPersonality: plant.personality,
                 userMessage: message,
                 history: history,
+                form: plant.form,
             });
             
             const newModelMessage = { role: 'model' as const, content: response };
@@ -1250,7 +1251,7 @@ export default function RoomPage() {
             newImage: compressedImageDataUri,
             newForm: isFirstEvolution ? 'Evolved' : 'Final',
             baseImage: plantToEvolve.image,
-            personality: personality || plantToEvolve.personality,
+            personality: personality || plantToEvolve.personality || '',
         });
 
     } catch (e) {
@@ -1267,16 +1268,14 @@ export default function RoomPage() {
 
     try {
         const { plantId, newImage, newForm, baseImage, personality } = evolvedPreviewData;
-
+        const plantToUpdate = allPlants[plantId];
+        
         const updateData: Partial<Plant> = {
             image: newImage,
             form: newForm,
             baseImage: baseImage,
+            personality: personality || plantToUpdate.personality,
         };
-
-        if (personality) {
-            updateData.personality = personality;
-        }
 
         await updatePlant(user.uid, plantId, updateData);
         await updateEvolutionProgress(user.uid);
@@ -1652,7 +1651,7 @@ export default function RoomPage() {
 
         <EvolutionPreviewDialog
           plant={evolvedPreviewPlant}
-          previewData={evolvedPreviewData}
+          previewData={evolvedPreviewData ? { newImage: evolvedPreviewData.newImage, newForm: evolvedPreviewData.newForm } : null}
           open={!!evolvedPreviewData}
           onConfirm={handleConfirmEvolution}
         />
