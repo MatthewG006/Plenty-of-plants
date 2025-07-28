@@ -2,3 +2,4 @@
 import './flows/draw-plant-flow';
 import './flows/get-fallback-plant-flow';
 import './flows/evolve-plant-flow';
+import './flows/plant-chat-flow';

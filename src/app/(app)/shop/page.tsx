@@ -5,12 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { claimFreeDraw, loadDraws, MAX_DRAWS, hasClaimedDailyDraw } from '@/lib/draw-manager';
-import { Gift, Coins, Leaf, Clock, Loader2, Droplets, Sparkles, Zap, Pipette, RefreshCw, Star, Package } from 'lucide-react';
+import { Gift, Coins, Leaf, Clock, Loader2, Droplets, Sparkles, Zap, Pipette, RefreshCw, Star, Package, Gem, MessageCircle } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { useAudio } from '@/context/AudioContext';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/context/AuthContext';
-import { purchaseCosmetic, purchaseSprinkler, purchaseWaterRefill, purchaseBundle } from '@/lib/firestore';
+import { purchaseCosmetic, purchaseSprinkler, purchaseWaterRefill, purchaseBundle, purchasePlantChat } from '@/lib/firestore';
 import { useRouter } from 'next/navigation';
 
 const DRAW_COST_IN_GOLD = 50;
@@ -21,6 +21,7 @@ const RED_GLITTER_COST_IN_GOLD = 50;
 const GLITTER_COST_IN_GOLD = 50;
 const WATER_REFILL_COST_IN_GOLD = 15;
 const BUNDLE_COST_IN_GOLD = 215;
+const PLANT_CHAT_COST_IN_RUBIES = 5;
 
 
 function getNextDrawTimeString() {
@@ -218,6 +219,24 @@ export default function ShopPage() {
     }
   };
 
+  const handleBuyPlantChat = async () => {
+    if (!user || !gameData) return;
+
+    if (gameData.rubyCount < PLANT_CHAT_COST_IN_RUBIES) {
+        toast({ variant: "destructive", title: "Not Enough Rubies", description: `You need ${PLANT_CHAT_COST_IN_RUBIES} rubies.` });
+        return;
+    }
+
+    try {
+        await purchasePlantChat(user.uid, PLANT_CHAT_COST_IN_RUBIES);
+        playSfx('reward');
+        toast({ title: "Purchase Successful!", description: "You bought a Plant Chat token. Use it on a max-level plant!" });
+    } catch (e: any) {
+        console.error("Failed to purchase plant chat", e);
+        toast({ variant: "destructive", title: "Error", description: e.message || "Could not complete the purchase." });
+    }
+  };
+
   
   if (!user || !gameData) {
       return (
@@ -228,15 +247,22 @@ export default function ShopPage() {
   }
   
   const goldCount = gameData.gold;
+  const rubyCount = gameData.rubyCount;
   const drawCount = gameData.draws;
 
   return (
     <div className="p-4">
       <header className="flex flex-col items-center justify-center pb-4 text-center">
         <h1 className="text-3xl text-primary">Shop</h1>
-        <div className="flex items-center gap-2 rounded-full bg-yellow-100/80 px-3 py-1 border border-yellow-300/80 mt-2">
-            <Coins className="h-5 w-5 text-yellow-500" />
-            <span className="font-bold text-yellow-700">{goldCount}</span>
+        <div className="flex items-center gap-4 mt-2">
+            <div className="flex items-center gap-2 rounded-full bg-yellow-100/80 px-3 py-1 border border-yellow-300/80">
+                <Coins className="h-5 w-5 text-yellow-500" />
+                <span className="font-bold text-yellow-700">{goldCount}</span>
+            </div>
+            <div className="flex items-center gap-2 rounded-full bg-red-100/80 px-3 py-1 border border-red-300/80">
+                <Gem className="h-5 w-5 text-red-500" />
+                <span className="font-bold text-red-700">{rubyCount}</span>
+            </div>
         </div>
       </header>
 
@@ -266,6 +292,33 @@ export default function ShopPage() {
         </Card>
 
         <Separator />
+        
+        <Card className="shadow-sm border-red-500/50">
+          <CardHeader>
+            <div className="flex items-center gap-4">
+              <MessageCircle className="h-8 w-8 text-red-500" />
+              <div>
+                <CardTitle className="text-xl text-red-600">Plant Chat Token</CardTitle>
+                <CardDescription>Unlock the ability to chat with one of your max-level plants.</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="flex flex-col items-start gap-4">
+            <div className="flex items-center gap-2">
+                <Gem className="h-6 w-6 text-red-500" />
+                <p className="text-2xl font-bold text-red-600">{PLANT_CHAT_COST_IN_RUBIES}</p>
+            </div>
+            <Button onClick={handleBuyPlantChat} variant="destructive" className="w-full font-semibold bg-red-500 hover:bg-red-600" disabled={rubyCount < PLANT_CHAT_COST_IN_RUBIES}>
+                {rubyCount < PLANT_CHAT_COST_IN_RUBIES ? "Not Enough Rubies" : "Buy Chat Token"}
+            </Button>
+            <p className="text-xs text-muted-foreground text-center w-full">
+                You have {gameData.plantChatTokens} token(s)
+            </p>
+          </CardContent>
+        </Card>
+
+        <Separator />
+
 
         <div className="grid md:grid-cols-2 gap-6">
             <Card className="shadow-sm">
