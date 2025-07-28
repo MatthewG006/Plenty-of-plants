@@ -1,4 +1,5 @@
 
+
 export interface Plant {
   id: number;
   name: string;
@@ -14,4 +15,7 @@ export interface Plant {
   hasSheen?: boolean;
   hasRainbowGlitter?: boolean;
   hasRedGlitter?: boolean;
+  personality: string;
+  chatEnabled: boolean;
+  conversationHistory?: { role: 'user' | 'model', content: string }[];
 }

@@ -28,12 +28,21 @@ const EvolvePlantOutputSchema = z.object({
     .describe(
       "The newly generated, evolved image of the plant, as a data URI."
     ),
+  personality: z.string().optional().describe("A one-word personality trait for the plant (e.g., 'cheerful', 'grumpy'). This is only generated for the final form."),
 });
 export type EvolvePlantOutput = z.infer<typeof EvolvePlantOutputSchema>;
 
 export async function evolvePlant(input: EvolvePlantInput): Promise<EvolvePlantOutput> {
   return evolvePlantFlow(input);
 }
+
+const personalityPrompt = ai.definePrompt({
+    name: 'plantPersonalityPrompt',
+    input: { schema: z.object({ name: z.string() }) },
+    output: { schema: z.object({ personality: z.string().describe("A single, one-word personality trait (e.g., 'bubbly', 'wise', 'sassy').") }) },
+    prompt: `Based on the plant name "{{name}}", what is a fitting one-word personality trait for it?`,
+});
+
 
 const evolvePlantFlow = ai.defineFlow(
   {
@@ -81,8 +90,15 @@ The final image should be an epic evolution, but still recognizably the same cha
         throw new Error('Could not generate evolved plant image from AI.');
       }
       
+      let personality;
+      if (form === 'Evolved') {
+        const { output } = await personalityPrompt({ name });
+        personality = output?.personality;
+      }
+      
       return {
         newImageDataUri: media.url,
+        personality: personality,
       };
 
     } catch (error) {

@@ -80,6 +80,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               autoWaterUnlocked: data.autoWaterUnlocked || false,
               autoWaterEnabled: data.autoWaterEnabled || false,
               waterRefillCount: data.waterRefillCount || 0,
+              rubyCount: data.rubyCount || 0,
+              plantChatTokens: data.plantChatTokens || 0,
             };
             setGameData(loadedGameData);
           } else {

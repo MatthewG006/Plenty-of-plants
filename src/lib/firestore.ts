@@ -1,4 +1,5 @@
 
+
 import { doc, getDoc, setDoc, getFirestore, updateDoc, arrayUnion, DocumentData, writeBatch, increment, collection, getDocs, query, where, limit, deleteDoc, arrayRemove } from 'firebase/firestore';
 import { app, db, auth } from './firebase';
 import type { Plant } from '@/interfaces/plant';
@@ -36,6 +37,8 @@ export interface GameData {
     autoWaterUnlocked?: boolean;
     autoWaterEnabled?: boolean;
     waterRefillCount: number;
+    rubyCount: number;
+    plantChatTokens: number;
 }
 
 export interface CommunityUser {
@@ -94,6 +97,8 @@ export async function getUserGameData(userId: string): Promise<GameData | null> 
             autoWaterUnlocked: data.autoWaterUnlocked || false,
             autoWaterEnabled: data.autoWaterEnabled || false,
             waterRefillCount: data.waterRefillCount || 0,
+            rubyCount: data.rubyCount || 0,
+            plantChatTokens: data.plantChatTokens || 0,
         };
     } else {
         return null;
@@ -161,6 +166,8 @@ export async function createUserDocument(user: User): Promise<GameData> {
             hasSheen: false,
             hasRainbowGlitter: false,
             hasRedGlitter: false,
+            personality: '',
+            chatEnabled: false,
         };
         
         const newGameData: GameData = {
@@ -185,6 +192,8 @@ export async function createUserDocument(user: User): Promise<GameData> {
             autoWaterUnlocked: false,
             autoWaterEnabled: false,
             waterRefillCount: 0,
+            rubyCount: 0,
+            plantChatTokens: 0,
         };
 
         await setDoc(docRef, {
@@ -230,6 +239,8 @@ export async function savePlant(userId: string, plantData: DrawPlantOutput): Pro
         hasSheen: false,
         hasRainbowGlitter: false,
         hasRedGlitter: false,
+        personality: '',
+        chatEnabled: false,
     };
 
     const firstEmptyPotIndex = gameData.deskPlantIds.findIndex(id => id === null);
@@ -287,6 +298,13 @@ export async function updateUserGold(userId: string, amount: number) {
     });
 }
 
+export async function updateUserRubies(userId: string, amount: number) {
+    const userDocRef = doc(db, 'users', userId);
+    await updateDoc(userDocRef, {
+        rubyCount: increment(amount)
+    });
+}
+
 export async function purchaseSprinkler(userId: string, cost: number): Promise<void> {
     const userDocRef = doc(db, 'users', userId);
     const gameData = await getUserGameData(userId);
@@ -332,7 +350,7 @@ export async function useSprinkler(userId: string): Promise<{ plantsWatered: num
         
         let currentXp = plant.xp;
         let currentLevel = plant.level;
-        const wasEvolvable = currentLevel >= EVOLUTION_LEVEL && plant.form === 'Base';
+        const wasEvolvable = (currentLevel >= EVOLUTION_LEVEL && plant.form === 'Base') || (currentLevel >= 25 && plant.form === 'Evolved');
         const newTimestamps = [...plant.lastWatered];
         
         for (let i = 0; i < wateringsToApply; i++) {
@@ -348,12 +366,14 @@ export async function useSprinkler(userId: string): Promise<{ plantsWatered: num
         updates[`plants.${plant.id}.level`] = currentLevel;
         updates[`plants.${plant.id}.lastWatered`] = newTimestamps;
 
-        const isNowEvolvable = currentLevel >= EVOLUTION_LEVEL && plant.form === 'Base';
+        const isNowEvolvable = (currentLevel >= EVOLUTION_LEVEL && plant.form === 'Base') || (currentLevel >= 25 && plant.form === 'Evolved');
         if (isNowEvolvable && !wasEvolvable) {
             newlyEvolvablePlants.push(plant.id);
         }
         
-        totalGoldGained += wateringsToApply * GOLD_PER_WATERING;
+        if (plant.form !== 'Final') {
+            totalGoldGained += wateringsToApply * GOLD_PER_WATERING;
+        }
         if (wateringsToApply > 0) {
             totalPlantsWatered++;
         }
@@ -470,6 +490,8 @@ export async function resetUserGameData(userId: string) {
         hasSheen: false,
         hasRainbowGlitter: false,
         hasRedGlitter: false,
+        personality: '',
+        chatEnabled: false,
     };
 
     await updateDoc(userDocRef, {
@@ -487,6 +509,8 @@ export async function resetUserGameData(userId: string) {
         redGlitterCount: 0,
         showcasePlantIds: [],
         waterRefillCount: 0,
+        rubyCount: 0,
+        plantChatTokens: 0,
     });
 }
 
@@ -583,5 +607,50 @@ export async function useWaterRefill(userId: string, plantId: number): Promise<v
     await updateDoc(userDocRef, {
         waterRefillCount: increment(-1),
         [`plants.${plantId}.lastWatered`]: previousWaterings,
+    });
+}
+
+export async function purchasePlantChat(userId: string, cost: number): Promise<void> {
+    const userDocRef = doc(db, 'users', userId);
+    const gameData = await getUserGameData(userId);
+
+    if (!gameData || gameData.rubyCount < cost) {
+        throw new Error("Not enough rubies to purchase.");
+    }
+    
+    await updateDoc(userDocRef, {
+        rubyCount: increment(-cost),
+        plantChatTokens: increment(1)
+    });
+}
+
+export async function unlockPlantChat(userId: string, plantId: number): Promise<void> {
+    const userDocRef = doc(db, 'users', userId);
+    const gameData = await getUserGameData(userId);
+
+    if (!gameData || gameData.plantChatTokens <= 0) {
+        throw new Error("You don't have a Plant Chat token to use.");
+    }
+    const plant = gameData.plants[plantId];
+    if (!plant) {
+        throw new Error("Plant not found.");
+    }
+    if (plant.chatEnabled) {
+        throw new Error("Chat is already unlocked for this plant.");
+    }
+
+    await updateDoc(userDocRef, {
+        plantChatTokens: increment(-1),
+        [`plants.${plantId}.chatEnabled`]: true,
+    });
+}
+
+export async function addConversationHistory(userId: string, plantId: number, userMessage: string, modelMessage: string) {
+    const userDocRef = doc(db, 'users', userId);
+    await updateDoc(userDocRef, {
+        [`plants.${plantId}.conversationHistory`]: arrayUnion(
+            { role: 'user', content: userMessage },
+            { role: 'model', content: modelMessage }
+        )
     });
 }
