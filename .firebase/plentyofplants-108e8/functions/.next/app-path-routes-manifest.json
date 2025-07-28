@@ -1,13 +1,13 @@
 {
-  "/_not-found/page": "/_not-found",
   "/favicon.ico/route": "/favicon.ico",
+  "/_not-found/page": "/_not-found",
   "/login/page": "/login",
   "/page": "/",
   "/signup/page": "/signup",
-  "/(app)/community/page": "/community",
-  "/(app)/home/page": "/home",
-  "/(app)/profile/page": "/profile",
-  "/(app)/room/page": "/room",
   "/(app)/settings/page": "/settings",
-  "/(app)/shop/page": "/shop"
+  "/(app)/profile/page": "/profile",
+  "/(app)/home/page": "/home",
+  "/(app)/room/page": "/room",
+  "/(app)/shop/page": "/shop",
+  "/(app)/community/page": "/community"
 }
