@@ -286,6 +286,12 @@ export async function updatePlant(userId: string, plantId: number, plantUpdateDa
             updates[`plants.${plantId}.${key}`] = value;
         }
     }
+    
+    // Explicitly check for undefined baseImage and convert to empty string.
+    const baseImageKey = `plants.${plantId}.baseImage`;
+    if (updates[baseImageKey] === undefined) {
+      updates[baseImageKey] = '';
+    }
 
     if (Object.keys(updates).length > 0) {
         await updateDoc(userDocRef, updates);
@@ -657,3 +663,4 @@ export async function addConversationHistory(userId: string, plantId: number, us
         )
     });
 }
+

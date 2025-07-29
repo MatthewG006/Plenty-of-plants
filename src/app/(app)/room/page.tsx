@@ -1261,6 +1261,9 @@ export default function RoomPage() {
 
   const handleConfirmEvolution = async () => {
     if (!user || !evolvedPreviewData) return;
+    
+    const plantToEvolve = await getPlantById(user.uid, evolvedPreviewData.plantId);
+    if (!plantToEvolve) return;
 
     try {
         const { plantId, newImageDataUri, newForm, personality } = evolvedPreviewData;
@@ -1272,9 +1275,9 @@ export default function RoomPage() {
             form: newForm,
         };
         
-        // If it's the first evolution, set the uncompressed new image as the baseImage for the next evolution
+        // If it's the first evolution, set the original image as the baseImage for the next evolution.
         if (newForm === 'Evolved') {
-            updateData.baseImage = newImageDataUri;
+             updateData.baseImage = plantToEvolve.image;
         }
 
         // Only set personality on the final evolution
