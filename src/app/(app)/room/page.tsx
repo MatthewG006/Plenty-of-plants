@@ -28,7 +28,7 @@ import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { updateUserGold, updateUserRubies, savePlant, updatePlant, getPlantById, deletePlant, updateShowcasePlants, useSheen, useRainbowGlitter, GameData, useGlitter, useSprinkler, useWaterRefill, useRedGlitter, unlockPlantChat, addConversationHistory, updatePlantArrangement } from '@/lib/firestore';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { compressImage, makeBackgroundTransparent } from '@/lib/image-compression';
 import { Badge } from '@/components/ui/badge';
 import { evolvePlantAction } from '@/app/actions/evolve-plant';
@@ -930,27 +930,27 @@ function EvolutionDialog({
   if (!plant) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-sm">
+    <AlertDialog open={isOpen} onOpenChange={handleOpenChange}>
+      <AlertDialogContent className="max-w-sm">
         {stage === 'confirm' && (
           <>
-            <AlertDialogHeader>
-              <AlertDialogTitle className="text-center text-primary">Your plant is growing!</AlertDialogTitle>
-              <AlertDialogDescription>
+            <DialogHeader>
+              <DialogTitle className="text-center text-primary">Your plant is growing!</DialogTitle>
+              <DialogDescription>
                 {`${plant.name} is ready for a new form! Would you like to evolve it?`}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={onCancel}>Later</AlertDialogCancel>
-              <AlertDialogAction onClick={onEvolve}>Evolve</AlertDialogAction>
-            </AlertDialogFooter>
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={onCancel}>Later</Button>
+              <Button onClick={onEvolve}>Evolve</Button>
+            </DialogFooter>
           </>
         )}
         {stage === 'evolving' && (
           <>
-            <AlertDialogHeader>
-              <AlertDialogTitle className="text-2xl text-center text-primary">Evolving...</AlertDialogTitle>
-            </AlertDialogHeader>
+            <DialogHeader>
+              <DialogTitle className="text-2xl text-center text-primary">Evolving...</DialogTitle>
+            </DialogHeader>
             <div className="flex flex-col items-center gap-4 py-4">
               <div className="w-48 h-48 relative">
                 <Image src={plant.image} alt={plant.name} width={192} height={192} className="object-cover w-full h-full opacity-50" />
@@ -978,8 +978,8 @@ function EvolutionDialog({
             </DialogFooter>
           </>
         )}
-      </DialogContent>
-    </Dialog>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
