@@ -613,7 +613,7 @@ function EvolutionPreviewDialog({
 }
 
 function EvolvingDialog({ plant, open }: { plant: Plant | null; open: boolean; }) {
-    if (!plant) return null;
+    if (!plant || !open) return null;
   
     return (
       <Dialog open={open}>
@@ -1238,21 +1238,20 @@ export default function RoomPage() {
   };
   
   useEffect(() => {
-    if (plantsToEvolveQueue.length > 0 && !currentEvolvingPlantId) {
+    if (plantsToEvolveQueue.length > 0 && !currentEvolvingPlantId && !isEvolving) {
         setCurrentEvolvingPlantId(plantsToEvolveQueue[0]);
     }
-  }, [plantsToEvolveQueue, currentEvolvingPlantId]);
+  }, [plantsToEvolveQueue, currentEvolvingPlantId, isEvolving]);
 
   const handleStartEvolution = () => {
     if (!currentEvolvingPlantId) return;
     handleEvolve(currentEvolvingPlantId);
-    setCurrentEvolvingPlantId(null);
-    setPlantsToEvolveQueue(prev => prev.slice(1));
   };
 
   const handleEvolve = async (plantId: number) => {
     if (!user) return;
     setIsEvolving(true);
+    setCurrentEvolvingPlantId(plantId);
     
     try {
         const plantToEvolve = await getPlantById(user.uid, plantId);
@@ -1280,6 +1279,8 @@ export default function RoomPage() {
         toast({ variant: 'destructive', title: "Evolution Failed", description: "Could not evolve your plant. Please try again." });
     } finally {
         setIsEvolving(false);
+        setCurrentEvolvingPlantId(null);
+        setPlantsToEvolveQueue(prev => prev.filter(id => id !== plantId));
     }
   };
 
@@ -1299,7 +1300,7 @@ export default function RoomPage() {
             personality: personality || '',
         };
         
-        if (newForm === 'Evolved') {
+        if (newForm === 'Evolved' && !plantToEvolve.baseImage) {
             updateData.baseImage = plantToEvolve.image;
         }
 
@@ -1647,7 +1648,7 @@ export default function RoomPage() {
 
         <LongPressInfoDialog open={showLongPressInfo} onOpenChange={handleCloseLongPressInfo} />
 
-        <AlertDialog open={!!currentEvolvingPlantId} onOpenChange={(isOpen) => !isOpen && handleFinishEvolution()}>
+        <AlertDialog open={!!currentEvolvingPlantId} onOpenChange={(isOpen) => { if (!isOpen) { setCurrentEvolvingPlantId(null); setPlantsToEvolveQueue(prev => prev.slice(1)); } }}>
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle className="text-center text-primary">Your plant is growing!</AlertDialogTitle>
@@ -1711,4 +1712,5 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
+
 
