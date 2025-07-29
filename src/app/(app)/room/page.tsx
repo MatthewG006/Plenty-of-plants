@@ -612,6 +612,29 @@ function EvolutionPreviewDialog({
   );
 }
 
+function EvolvingDialog({ plant, open }: { plant: Plant | null; open: boolean; }) {
+  if (!plant) return null;
+
+  return (
+    <Dialog open={open}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="text-2xl text-center text-primary">Evolving...</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col items-center gap-4 py-4">
+          <div className="w-48 h-48 relative">
+            <Image src={plant.image} alt={plant.name} width={192} height={192} className="object-cover w-full h-full opacity-50" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Loader2 className="w-16 h-16 text-primary animate-spin" />
+            </div>
+          </div>
+          <p className="text-muted-foreground text-center">Please wait while {plant.name} evolves.</p>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 function PlantImageUI({ plant, image, canWater }: { plant: Plant, image: string | null, canWater: boolean }) {
   return (
@@ -1625,35 +1648,26 @@ export default function RoomPage() {
 
         <LongPressInfoDialog open={showLongPressInfo} onOpenChange={handleCloseLongPressInfo} />
 
-        <AlertDialog open={!!currentEvolvingPlantId && !evolvedPreviewData} onOpenChange={(isOpen) => !isOpen && !isEvolving && handleFinishEvolution()}>
+        <AlertDialog open={!!currentEvolvingPlantId && !isEvolving && !evolvedPreviewData} onOpenChange={(isOpen) => !isOpen && handleFinishEvolution()}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle className="text-center text-primary">
-                        {isEvolving ? "Evolving..." : "Your plant is growing!"}
-                    </AlertDialogTitle>
+                    <AlertDialogTitle className="text-center text-primary">Your plant is growing!</AlertDialogTitle>
                     <AlertDialogDescription>
-                        {isEvolving ? `Please wait a moment while ${evolutionPlant?.name} evolves.` : `${evolutionPlant?.name} is ready for a new form! Would you like to evolve it?`}
+                        {`${evolutionPlant?.name} is ready for a new form! Would you like to evolve it?`}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
-                {isEvolving && evolutionPlant && (
-                  <div className="flex justify-center items-center p-4 flex-col gap-4">
-                    <div className="w-48 h-48 relative">
-                       <Image src={evolutionPlant.image} alt={evolutionPlant.name} width={192} height={192} className="object-cover w-full h-full opacity-50" />
-                       <div className="absolute inset-0 flex items-center justify-center">
-                          <Loader2 className="w-16 h-16 text-primary animate-spin" />
-                       </div>
-                    </div>
-                  </div>
-                )}
                 <AlertDialogFooter>
-                    <AlertDialogCancel onClick={handleFinishEvolution} disabled={isEvolving}>Later</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleStartEvolution} disabled={isEvolving}>
-                        {isEvolving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Evolving...</> : "Evolve"}
-                    </AlertDialogAction>
+                    <AlertDialogCancel onClick={handleFinishEvolution}>Later</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleStartEvolution}>Evolve</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
 
+        <EvolvingDialog
+            plant={evolutionPlant}
+            open={isEvolving && !evolvedPreviewData}
+        />
+        
         {evolvedPreviewData && (
             <EvolutionPreviewDialog
                 plant={evolvedPreviewPlant}
