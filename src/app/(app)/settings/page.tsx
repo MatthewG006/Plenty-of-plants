@@ -114,10 +114,10 @@ export default function SettingsPage() {
           <CardTitle>Game Controls</CardTitle>
         </CardHeader>
         <CardContent>
-          <SettingRow icon={Music} label="Sounds">
+          <SettingRow icon={Music} label="BGM">
             <Switch id="sounds" checked={isPlaying} onCheckedChange={togglePlay} aria-label="Toggle music" />
           </SettingRow>
-          <SettingRow icon={Zap} label="FX">
+          <SettingRow icon={Zap} label="Effects">
             <Switch id="fx" checked={sfxVolume > 0} onCheckedChange={(checked) => setSfxVolume(checked ? 0.75 : 0)} />
           </SettingRow>
           <SettingRow icon={Bell} label="Reminders">
