@@ -1275,9 +1275,9 @@ export default function RoomPage() {
             form: newForm,
         };
         
-        // If it's the first evolution, set the original image as the baseImage for the next evolution.
+        // If it's the first evolution, save the uncompressed new image as the baseImage.
         if (newForm === 'Evolved') {
-             updateData.baseImage = plantToEvolve.image;
+            updateData.baseImage = newImageDataUri;
         }
 
         // Only set personality on the final evolution
@@ -1466,7 +1466,7 @@ export default function RoomPage() {
         </header>
 
         <section className="px-4">
-            <div className="flex justify-center gap-4 text-sm text-muted-foreground mb-4">
+            <div className="flex justify-center gap-4 text-sm text-muted-foreground mb-4 flex-wrap">
                 <div className="flex items-center gap-1.5 p-2 rounded-lg bg-muted/50">
                     <Sparkles className="w-5 h-5 text-yellow-400" />
                     <span>{gameData.glitterCount}</span>
@@ -1474,6 +1474,17 @@ export default function RoomPage() {
                 <div className="flex items-center gap-1.5 p-2 rounded-lg bg-muted/50">
                     <Star className="w-5 h-5 text-blue-400" />
                     <span>{gameData.sheenCount}</span>
+                </div>
+                <div className="flex items-center gap-1.5 p-2 rounded-lg bg-muted/50">
+                    <Sparkles className="w-5 h-5 text-red-500" />
+                    <span>{gameData.redGlitterCount}</span>
+                </div>
+                <div className="flex items-center gap-1.5 p-2 rounded-lg bg-muted/50">
+                    <div className="w-5 h-5 relative">
+                        <Sparkles className="w-full h-full absolute text-pink-500" style={{clipPath: 'polygon(0 0, 50% 0, 50% 100%, 0 100%)'}} />
+                        <Sparkles className="w-full h-full absolute text-yellow-400" style={{clipPath: 'polygon(50% 0, 100% 0, 100% 100%, 50% 100%)'}}/>
+                    </div>
+                    <span>{gameData.rainbowGlitterCount}</span>
                 </div>
                 <div className="flex items-center gap-1.5 p-2 rounded-lg bg-muted/50">
                     <RefreshCw className="w-5 h-5 text-green-500" />
