@@ -1262,27 +1262,21 @@ export default function RoomPage() {
   const handleConfirmEvolution = async () => {
     if (!user || !evolvedPreviewData) return;
     
-    const plantToEvolve = await getPlantById(user.uid, evolvedPreviewData.plantId);
-    if (!plantToEvolve) return;
-
     try {
         const { plantId, newImageDataUri, newForm, personality } = evolvedPreviewData;
+        const plantToEvolve = await getPlantById(user.uid, plantId);
+        if (!plantToEvolve) return;
         
         const compressedImage = await compressImage(newImageDataUri);
         
         const updateData: Partial<Plant> = {
             image: compressedImage,
             form: newForm,
+            personality: personality || '', // Ensure personality is never undefined
         };
         
-        // If it's the first evolution, save the uncompressed new image as the baseImage.
         if (newForm === 'Evolved') {
-            updateData.baseImage = newImageDataUri;
-        }
-
-        // Only set personality on the final evolution
-        if (newForm === 'Final' && personality) {
-            updateData.personality = personality;
+            updateData.baseImage = plantToEvolve.image;
         }
 
         await updatePlant(user.uid, plantId, updateData);
