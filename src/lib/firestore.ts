@@ -23,6 +23,7 @@ export interface GameData {
     draws: number;
     lastDrawRefill: number;
     lastFreeDrawClaimed: number;
+
     lastLoginBonusClaimed: number;
     sprinklerUnlocked: boolean;
     glitterCount: number;
@@ -285,12 +286,6 @@ export async function updatePlant(userId: string, plantId: number, plantUpdateDa
         for (const [key, value] of Object.entries(plantUpdateData)) {
             updates[`plants.${plantId}.${key}`] = value;
         }
-    }
-    
-    // Explicitly check for undefined baseImage and convert to empty string.
-    const baseImageKey = `plants.${plantId}.baseImage`;
-    if (updates[baseImageKey] === undefined) {
-      updates[baseImageKey] = '';
     }
 
     if (Object.keys(updates).length > 0) {
@@ -663,4 +658,3 @@ export async function addConversationHistory(userId: string, plantId: number, us
         )
     });
 }
-
