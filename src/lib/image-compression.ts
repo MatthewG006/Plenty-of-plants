@@ -28,7 +28,7 @@ export async function compressImage(dataUri: string, maxSize = 256): Promise<str
             }
             ctx.drawImage(img, 0, 0, width, height);
             // Use JPEG with a quality setting for better compression
-            resolve(canvas.toDataURL('image/jpeg', 0.7));
+            resolve(canvas.toDataURL('image/jpeg', 0.9));
         };
         img.onerror = reject;
         img.src = dataUri;
