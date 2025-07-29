@@ -168,6 +168,7 @@ export async function createUserDocument(user: User): Promise<GameData> {
             hasRedGlitter: false,
             personality: '',
             chatEnabled: false,
+            conversationHistory: [],
         };
         
         const newGameData: GameData = {
@@ -241,6 +242,7 @@ export async function savePlant(userId: string, plantData: DrawPlantOutput): Pro
         hasRedGlitter: false,
         personality: '',
         chatEnabled: false,
+        conversationHistory: [],
     };
 
     const firstEmptyPotIndex = gameData.deskPlantIds.findIndex(id => id === null);
@@ -492,6 +494,7 @@ export async function resetUserGameData(userId: string) {
         hasRedGlitter: false,
         personality: '',
         chatEnabled: false,
+        conversationHistory: [],
     };
 
     await updateDoc(userDocRef, {
