@@ -106,98 +106,107 @@ const drawPlantFlow = ai.defineFlow(
     name: 'drawPlantFlow',
     inputSchema: DrawPlantInputSchema,
     outputSchema: DrawPlantOutputSchema,
-    maxRetries: 2, // Allow up to 2 retries on failure
   },
   async ({ existingNames }) => {
-    let media;
-    let plantDetails;
-    try {
-      // Step 1: Generate the plant's details first and wait for the result.
-      const { output } = await plantDetailsPrompt({ existingNames });
-      plantDetails = output;
-      
-      if (!plantDetails) {
-        throw new Error('Could not generate plant details.');
-      }
+    let retries = 0;
+    const maxRetries = 2;
 
-      // Step 2: Try to read the reference image from the filesystem.
-      let referenceImageDataUri: string | null = null;
-      try {
-        const imagePath = path.join(process.cwd(), 'public', 'fern.png');
-        const referenceImageBuffer = await fs.readFile(imagePath);
-        referenceImageDataUri = `data:image/png;base64,${referenceImageBuffer.toString('base64')}`;
-      } catch (e) {
-        console.warn("Could not load reference image 'fern.png'. Generating image without it.", e);
-      }
-
-      // Step 3: Build the prompt. If there's a reference image, include it.
-      const imageGenPrompt: (any)[] = [];
-      
-      if (referenceImageDataUri) {
-          imageGenPrompt.push({ media: { url: referenceImageDataUri, contentType: 'image/png' } });
-          imageGenPrompt.push({ text: `Your primary goal is to replicate the art style of the provided reference image EXACTLY. Create a new plant character based on the description: "${plantDetails.imagePrompt}".\n\n${imageGenerationRules}` });
-      } else {
-          imageGenPrompt.push({ text: `Create a new plant character based on the description: "${plantDetails.imagePrompt}".\n\n${imageGenerationRules}` });
-      }
-
-      // Step 4: Use the details to generate the new plant image.
-      const result = await ai.generate({
-        model: 'googleai/gemini-2.0-flash-preview-image-generation',
-        prompt: imageGenPrompt,
-        config: {
-          responseModalities: ['TEXT', 'IMAGE'],
-        },
-      });
-
-      media = result.media;
-
-      // Step 5: Check if the image was generated successfully.
-      if (!media || !media.url) {
-        throw new Error('Could not generate plant image from AI.');
-      }
-
-      // Step 6: Perform Quality Control check.
-      const { output: qcResult } = await qualityControlPrompt({
-        imageDataUri: media.url,
-        rules: imageGenerationRules,
-      });
-
-      if (!qcResult || !qcResult.isValid) {
-        console.warn(`Image generation failed quality control. Reason: ${qcResult?.reason || 'Unknown'}. Retrying...`);
-        throw new Error(`Image failed QC: ${qcResult?.reason}`); // This will trigger the flow's retry mechanism.
-      }
-
-
-      // Step 7: Save the newly generated plant image to be used as a future fallback.
-      const fallbackDir = path.join(process.cwd(), 'public', 'fallback-plants');
-      const safeFilename = `${plantDetails.name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-')}.png`;
-      const savePath = path.join(fallbackDir, safeFilename);
-      
-      const base64Data = media.url.split(';base64,').pop();
-      if (base64Data) {
+    while (retries <= maxRetries) {
         try {
-          await fs.mkdir(fallbackDir, { recursive: true });
-          await fs.writeFile(savePath, base64Data, 'base64');
-          console.log(`Saved new plant image to: ${savePath}`);
-        } catch (saveError) {
-          console.error(`Failed to save new plant image to fallback folder: ${saveError}`);
-        }
-      }
+            // Step 1: Generate the plant's details first and wait for the result.
+            const { output: plantDetails } = await plantDetailsPrompt({ existingNames });
+            
+            if (!plantDetails) {
+                throw new Error('Could not generate plant details.');
+            }
 
-      // Step 8: Return the complete plant data.
-      return {
-        name: plantDetails.name,
-        description: plantDetails.description,
-        imageDataUri: media.url,
-      };
-    } catch (error: any) {
-        if (error.message && error.message.includes('API key not valid')) {
-            console.error("Authentication Error: The provided Google AI API key is invalid or missing.", error);
-            throw new Error("Invalid API Key");
-        }
+            // Step 2: Try to read the reference image from the filesystem.
+            let referenceImageDataUri: string | null = null;
+            try {
+                const imagePath = path.join(process.cwd(), 'public', 'fern.png');
+                const referenceImageBuffer = await fs.readFile(imagePath);
+                referenceImageDataUri = `data:image/png;base64,${referenceImageBuffer.toString('base64')}`;
+            } catch (e) {
+                console.warn("Could not load reference image 'fern.png'. Generating image without it.", e);
+            }
 
-        console.error("Primary plant generation failed after all retries, triggering fallback.", error);
-        return getFallbackPlantFlow({ existingNames });
+            // Step 3: Build the prompt. If there's a reference image, include it.
+            const imageGenPrompt: (any)[] = [];
+            
+            if (referenceImageDataUri) {
+                imageGenPrompt.push({ media: { url: referenceImageDataUri, contentType: 'image/png' } });
+                imageGenPrompt.push({ text: `Your primary goal is to replicate the art style of the provided reference image EXACTLY. Create a new plant character based on the description: "${plantDetails.imagePrompt}".\n\n${imageGenerationRules}` });
+            } else {
+                imageGenPrompt.push({ text: `Create a new plant character based on the description: "${plantDetails.imagePrompt}".\n\n${imageGenerationRules}` });
+            }
+
+            // Step 4: Use the details to generate the new plant image.
+            const result = await ai.generate({
+                model: 'googleai/gemini-2.0-flash-preview-image-generation',
+                prompt: imageGenPrompt,
+                config: {
+                responseModalities: ['TEXT', 'IMAGE'],
+                },
+            });
+
+            const media = result.media;
+
+            // Step 5: Check if the image was generated successfully.
+            if (!media || !media.url) {
+                throw new Error('Could not generate plant image from AI.');
+            }
+
+            // Step 6: Perform Quality Control check.
+            const { output: qcResult } = await qualityControlPrompt({
+                imageDataUri: media.url,
+                rules: imageGenerationRules,
+            });
+
+            if (!qcResult || !qcResult.isValid) {
+                throw new Error(`Image failed QC: ${qcResult?.reason}`);
+            }
+
+            // Step 7: Save the newly generated plant image to be used as a future fallback.
+            const fallbackDir = path.join(process.cwd(), 'public', 'fallback-plants');
+            const safeFilename = `${plantDetails.name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-')}.png`;
+            const savePath = path.join(fallbackDir, safeFilename);
+            
+            const base64Data = media.url.split(';base64,').pop();
+            if (base64Data) {
+                try {
+                await fs.mkdir(fallbackDir, { recursive: true });
+                await fs.writeFile(savePath, base64Data, 'base64');
+                console.log(`Saved new plant image to: ${savePath}`);
+                } catch (saveError) {
+                console.error(`Failed to save new plant image to fallback folder: ${saveError}`);
+                }
+            }
+
+            // Step 8: Return the complete plant data if everything is successful.
+            return {
+                name: plantDetails.name,
+                description: plantDetails.description,
+                imageDataUri: media.url,
+            };
+
+        } catch (error: any) {
+            retries++;
+            if (error.message && error.message.includes('API key not valid')) {
+                console.error("Authentication Error: The provided Google AI API key is invalid or missing.", error);
+                throw new Error("Invalid API Key"); // Re-throw to be caught by the client
+            }
+            
+            console.warn(`Attempt ${retries} failed for drawPlantFlow. Reason: ${error.message}. Retrying...`);
+            
+            if (retries > maxRetries) {
+                console.error("Primary plant generation failed after all retries, triggering fallback.", error);
+                return getFallbackPlantFlow({ existingNames });
+            }
+        }
     }
+    
+    // This should not be reached if logic is correct, but as a failsafe:
+    console.error("drawPlantFlow exhausted retries and did not return a value. Triggering fallback.");
+    return getFallbackPlantFlow({ existingNames });
   }
 );
