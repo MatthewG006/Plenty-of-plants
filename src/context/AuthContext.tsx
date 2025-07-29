@@ -98,6 +98,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // User is logged out
         setGameData(null);
         setLoading(false);
+        setPlantsToEvolveQueue([]);
       }
     });
 

@@ -1299,7 +1299,7 @@ export default function RoomPage() {
     if (!user || !evolutionState.plant || !evolutionState.previewData) return;
     
     try {
-        const { id: plantId } = evolutionState.plant;
+        const plantId = evolutionState.plant.id;
         const { newImageDataUri, newForm, personality } = evolutionState.previewData;
 
         const plantToEvolve = await getPlantById(user.uid, plantId);
@@ -1337,7 +1337,8 @@ export default function RoomPage() {
   
   const handleCancelEvolution = () => {
     setEvolutionState({ plant: null, stage: 'idle' });
-    setPlantsToEvolveQueue(prev => prev.slice(1));
+    // Remove the plant from the queue only when the user explicitly cancels
+    setPlantsToEvolveQueue(prev => prev.filter(id => id !== evolutionState.plant?.id));
   };
   
   const handleApplyGlitter = async (plantId: number) => {
