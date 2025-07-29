@@ -1463,34 +1463,48 @@ export default function RoomPage() {
         </header>
 
         <section className="px-4">
-          <div
-            className="relative h-48 rounded-lg border-2 border-primary/20 bg-card/80 p-6 overflow-hidden"
-          >
-            <Image
-              src="/desk.jpg"
-              alt="A wooden desk for plants"
-              fill
-              className="z-0 object-cover"
-              data-ai-hint="desk wood"
-              sizes="100vw"
-              priority
-            />
-            <div className="relative z-10 flex h-full items-end justify-around">
-              {deskPlants.map((plant, index) => {
-                   const canWater = plant ? (plant.lastWatered?.filter(isToday).length ?? 0) < MAX_WATERINGS_PER_DAY : false;
-                   return (
-                      <DeskPot
-                        key={plant?.id || `pot-${index}`}
-                        plant={plant}
-                        index={index}
-                        onClickPlant={(p) => setSelectedPlant(allPlants[p.id])}
-                        processedImage={plant ? processedDeskImages[plant.id] : null}
-                        canWater={canWater}
-                      />
-                  )
-              })}
+            <div className="flex justify-center gap-4 text-sm text-muted-foreground mb-4">
+                <div className="flex items-center gap-1.5 p-2 rounded-lg bg-muted/50">
+                    <Sparkles className="w-5 h-5 text-yellow-400" />
+                    <span>{gameData.glitterCount}</span>
+                </div>
+                <div className="flex items-center gap-1.5 p-2 rounded-lg bg-muted/50">
+                    <Star className="w-5 h-5 text-blue-400" />
+                    <span>{gameData.sheenCount}</span>
+                </div>
+                <div className="flex items-center gap-1.5 p-2 rounded-lg bg-muted/50">
+                    <RefreshCw className="w-5 h-5 text-green-500" />
+                    <span>{gameData.waterRefillCount}</span>
+                </div>
             </div>
-          </div>
+            <div
+                className="relative h-48 rounded-lg border-2 border-primary/20 bg-card/80 p-6 overflow-hidden"
+            >
+                <Image
+                src="/desk.jpg"
+                alt="A wooden desk for plants"
+                fill
+                className="z-0 object-cover"
+                data-ai-hint="desk wood"
+                sizes="100vw"
+                priority
+                />
+                <div className="relative z-10 flex h-full items-end justify-around">
+                {deskPlants.map((plant, index) => {
+                    const canWater = plant ? (plant.lastWatered?.filter(isToday).length ?? 0) < MAX_WATERINGS_PER_DAY : false;
+                    return (
+                        <DeskPot
+                            key={plant?.id || `pot-${index}`}
+                            plant={plant}
+                            index={index}
+                            onClickPlant={(p) => setSelectedPlant(allPlants[p.id])}
+                            processedImage={plant ? processedDeskImages[plant.id] : null}
+                            canWater={canWater}
+                        />
+                    )
+                })}
+                </div>
+            </div>
         </section>
 
         <section className="px-4 flex justify-center">
