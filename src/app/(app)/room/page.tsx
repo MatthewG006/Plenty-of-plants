@@ -1272,7 +1272,7 @@ export default function RoomPage() {
         const updateData: Partial<Plant> = {
             image: compressedImage,
             form: newForm,
-            personality: personality || '', // Ensure personality is never undefined
+            personality: personality || '',
         };
         
         if (newForm === 'Evolved') {
