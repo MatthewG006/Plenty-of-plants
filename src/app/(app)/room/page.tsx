@@ -281,7 +281,7 @@ function PlantChatDialog({ plant, open, onOpenChange, userId }: { plant: Plant |
     );
 }
 
-function PlantDetailDialog({ plant, open, onOpenChange, onAddToEvolutionQueue, onOpenChat, userId }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, onAddToEvolutionQueue: (plantId: number) => void, onOpenChat: (plant: Plant) => void, userId: string }) {
+function PlantDetailDialog({ plant, open, onOpenChange, onStartEvolution, onOpenChat, userId }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, onStartEvolution: (plant: Plant) => void, onOpenChat: (plant: Plant) => void, userId: string }) {
     const { playSfx } = useAudio();
     const { toast } = useToast();
     const { gameData } = useAuth();
@@ -379,11 +379,13 @@ function PlantDetailDialog({ plant, open, onOpenChange, onAddToEvolutionQueue, o
         let updatedLastWatered = [...(plant.lastWatered || []), now];
 
         try {
-            await updatePlant(userId, plant.id, {
+            const updatedPlantData = {
                 xp: newXp,
                 level: newLevel,
                 lastWatered: updatedLastWatered,
-            });
+            };
+
+            await updatePlant(userId, plant.id, updatedPlantData);
             
             if (isFinalForm) {
                 await updateUserRubies(userId, RUBIES_PER_WATERING);
@@ -398,7 +400,9 @@ function PlantDetailDialog({ plant, open, onOpenChange, onAddToEvolutionQueue, o
             }
 
             if (shouldEvolve) {
-                onAddToEvolutionQueue(plant.id);
+                // Find the full, updated plant object to pass to the evolution flow
+                const fullPlant = { ...plant, ...updatedPlantData };
+                onStartEvolution(fullPlant);
                 onOpenChange(false);
             }
 
@@ -984,7 +988,7 @@ function EvolutionDialog({
 }
 
 export default function RoomPage() {
-  const { user, gameData, plantsToEvolveQueue, setPlantsToEvolveQueue } = useAuth();
+  const { user, gameData } = useAuth();
   const { toast } = useToast();
   const { playSfx } = useAudio();
   
@@ -1162,7 +1166,14 @@ export default function RoomPage() {
                     description: `Watered ${result.plantsWatered} plant(s) and gained ${result.goldGained} gold.`,
                 });
                 if (result.newlyEvolvablePlants.length > 0) {
-                    setPlantsToEvolveQueue(prev => [...prev, ...result.newlyEvolvablePlants]);
+                   for (const plantId of result.newlyEvolvablePlants) {
+                     const plant = await getPlantById(user.uid, plantId);
+                     if (plant) {
+                       // This will only ever show the first one, but it's a simple way to handle multiple.
+                       setEvolutionState({ plant, stage: 'confirm' });
+                       break;
+                     }
+                   }
                 }
             } else {
                  toast({
@@ -1249,33 +1260,24 @@ export default function RoomPage() {
     setCollectionPlantIds(finalCollectionIds);
     await updatePlantArrangement(user.uid, finalCollectionIds, newDeskIds);
   };
-  
-    useEffect(() => {
-        if (plantsToEvolveQueue.length > 0 && evolutionState.stage === 'idle') {
-            const plantIdToEvolve = plantsToEvolveQueue[0];
-            const plant = allPlants[plantIdToEvolve];
-            if (plant) {
-                setEvolutionState({ plant, stage: 'confirm' });
-            }
-        }
-    }, [plantsToEvolveQueue, evolutionState.stage, allPlants]);
 
-    const handleStartEvolve = async () => {
+    const handleStartEvolve = (plant: Plant) => {
+        setEvolutionState({ plant, stage: 'confirm' });
+    };
+
+    const handleRunEvolve = async () => {
         if (!user || !evolutionState.plant) return;
 
         setEvolutionState(prev => ({ ...prev, stage: 'evolving' }));
 
         try {
-            const plantToEvolve = await getPlantById(user.uid, evolutionState.plant.id);
-            if (!plantToEvolve) throw new Error("Plant not found for evolution.");
-            
             const { newImageDataUri, personality } = await evolvePlantAction({
-                name: plantToEvolve.name,
-                baseImageDataUri: plantToEvolve.baseImage || plantToEvolve.image,
-                form: plantToEvolve.form,
+                name: evolutionState.plant.name,
+                baseImageDataUri: evolutionState.plant.baseImage || evolutionState.plant.image,
+                form: evolutionState.plant.form,
             });
 
-            const isFirstEvolution = plantToEvolve.form === 'Base';
+            const isFirstEvolution = evolutionState.plant.form === 'Base';
             
             setEvolutionState(prev => ({
                 ...prev,
@@ -1291,30 +1293,30 @@ export default function RoomPage() {
             console.error("Evolution failed", e);
             toast({ variant: 'destructive', title: "Evolution Failed", description: "Could not evolve your plant. Please try again." });
             setEvolutionState({ plant: null, stage: 'idle' });
-            setPlantsToEvolveQueue(prev => prev.slice(1));
         }
     };
 
   const handleConfirmEvolution = async () => {
-    if (!user || !evolutionState.plant || !evolutionState.previewData) return;
+    if (!user || !evolutionState.plant || !evolutionState.previewData) {
+        console.error("Missing state for evolution confirmation");
+        setEvolutionState({ plant: null, stage: 'idle' });
+        return;
+    }
     
     try {
-        const plantId = evolutionState.plant.id;
+        const { id: plantId } = evolutionState.plant;
         const { newImageDataUri, newForm, personality } = evolutionState.previewData;
-
-        const plantToEvolve = await getPlantById(user.uid, plantId);
-        if (!plantToEvolve) throw new Error("Could not find plant to save.");
         
         const compressedImage = await compressImage(newImageDataUri);
         
         const updateData: Partial<Plant> = {
             image: compressedImage,
             form: newForm,
-            personality: personality || '',
+            personality: personality || '', // Ensure personality is never undefined
         };
         
-        if (newForm === 'Evolved' && !plantToEvolve.baseImage) {
-            updateData.baseImage = plantToEvolve.image;
+        if (newForm === 'Evolved' && !evolutionState.plant.baseImage) {
+            updateData.baseImage = evolutionState.plant.image;
         }
 
         await updatePlant(user.uid, plantId, updateData);
@@ -1331,14 +1333,11 @@ export default function RoomPage() {
         toast({ variant: 'destructive', title: "Save Failed", description: "Could not save your evolved plant." });
     } finally {
         setEvolutionState({ plant: null, stage: 'idle' });
-        setPlantsToEvolveQueue(prev => prev.filter(id => id !== evolutionState.plant?.id));
     }
   };
   
   const handleCancelEvolution = () => {
     setEvolutionState({ plant: null, stage: 'idle' });
-    // Remove the plant from the queue only when the user explicitly cancels
-    setPlantsToEvolveQueue(prev => prev.filter(id => id !== evolutionState.plant?.id));
   };
   
   const handleApplyGlitter = async (plantId: number) => {
@@ -1625,7 +1624,7 @@ export default function RoomPage() {
           plant={selectedPlant ? allPlants[selectedPlant.id] : null}
           open={!!selectedPlant}
           onOpenChange={(isOpen) => !isOpen && setSelectedPlant(null)}
-          onAddToEvolutionQueue={(plantId) => setPlantsToEvolveQueue(prev => [...prev, plantId])}
+          onStartEvolution={handleStartEvolve}
           onOpenChat={(plant) => setChattingPlant(plant)}
           userId={user.uid}
         />
@@ -1665,7 +1664,7 @@ export default function RoomPage() {
 
         <EvolutionDialog
             state={evolutionState}
-            onEvolve={handleStartEvolve}
+            onEvolve={handleRunEvolve}
             onCancel={handleCancelEvolution}
             onConfirm={handleConfirmEvolution}
         />
