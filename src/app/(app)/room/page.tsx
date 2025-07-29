@@ -28,7 +28,7 @@ import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { updateUserGold, updateUserRubies, savePlant, updatePlant, getPlantById, deletePlant, updateShowcasePlants, useSheen, useRainbowGlitter, GameData, useGlitter, useSprinkler, useWaterRefill, useRedGlitter, unlockPlantChat, addConversationHistory, updatePlantArrangement } from '@/lib/firestore';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, AlertDialogDescription as AlertDialogDescriptionComponent } from '@/components/ui/alert-dialog';
 import { compressImage, makeBackgroundTransparent } from '@/lib/image-compression';
 import { Badge } from '@/components/ui/badge';
 import { evolvePlantAction } from '@/app/actions/evolve-plant';
@@ -483,9 +483,9 @@ function PlantDetailDialog({ plant, open, onOpenChange, onAddToEvolutionQueue, o
                             <AlertDialogContent>
                                 <AlertDialogHeader>
                                     <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
+                                    <AlertDialogDescriptionComponent>
                                         This will permanently delete {plant.name} from your collection. This action cannot be undone.
-                                    </AlertDialogDescription>
+                                    </AlertDialogDescriptionComponent>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                     <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
@@ -848,9 +848,9 @@ function PlantActionDialog({
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                <AlertDialogDescription>
+                <AlertDialogDescriptionComponent>
                   This will permanently delete {plant.name} from your collection. This action cannot be undone.
-                </AlertDialogDescription>
+                </AlertDialogDescriptionComponent>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -934,23 +934,23 @@ function EvolutionDialog({
       <AlertDialogContent className="max-w-sm">
         {stage === 'confirm' && (
           <>
-            <DialogHeader>
-              <DialogTitle className="text-center text-primary">Your plant is growing!</DialogTitle>
-              <DialogDescription>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-center text-primary">Your plant is growing!</AlertDialogTitle>
+              <AlertDialogDescriptionComponent>
                 {`${plant.name} is ready for a new form! Would you like to evolve it?`}
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={onCancel}>Later</Button>
-              <Button onClick={onEvolve}>Evolve</Button>
-            </DialogFooter>
+              </AlertDialogDescriptionComponent>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={onCancel}>Later</AlertDialogCancel>
+              <AlertDialogAction onClick={onEvolve}>Evolve</AlertDialogAction>
+            </AlertDialogFooter>
           </>
         )}
         {stage === 'evolving' && (
           <>
-            <DialogHeader>
-              <DialogTitle className="text-2xl text-center text-primary">Evolving...</DialogTitle>
-            </DialogHeader>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-2xl text-center text-primary">Evolving...</AlertDialogTitle>
+            </AlertDialogHeader>
             <div className="flex flex-col items-center gap-4 py-4">
               <div className="w-48 h-48 relative">
                 <Image src={plant.image} alt={plant.name} width={192} height={192} className="object-cover w-full h-full opacity-50" />
@@ -964,18 +964,18 @@ function EvolutionDialog({
         )}
         {stage === 'preview' && previewData && (
           <>
-            <DialogHeader>
-              <DialogTitle className="text-3xl text-center text-primary">Evolution Complete!</DialogTitle>
-            </DialogHeader>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-3xl text-center text-primary">Evolution Complete!</AlertDialogTitle>
+            </AlertDialogHeader>
             <div className="flex flex-col items-center gap-4 py-4">
               <div className="w-64 h-64 rounded-lg overflow-hidden border-4 border-primary/50 shadow-lg bg-green-100">
                 <Image src={previewData.newImageDataUri} alt={`Evolved ${plant.name}`} width={256} height={256} className="object-cover w-full h-full" />
               </div>
               <h3 className="text-2xl font-semibold text-primary">{plant.name} has evolved into its {previewData.newForm} form!</h3>
             </div>
-            <DialogFooter>
-              <Button className="w-full text-lg" onClick={onConfirm}>Continue</Button>
-            </DialogFooter>
+            <AlertDialogFooter>
+                <AlertDialogAction onClick={onConfirm} className="w-full text-lg">Continue</AlertDialogAction>
+            </AlertDialogFooter>
           </>
         )}
       </AlertDialogContent>
