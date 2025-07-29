@@ -9,6 +9,7 @@
       "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "317861154450",
       "NEXT_PUBLIC_FIREBASE_APP_ID": "1:317861154450:web:3a586f3cc5b1c42e64e04b"
     },
+    "webpack": null,
     "eslint": {
       "ignoreDuringBuilds": true
     },
