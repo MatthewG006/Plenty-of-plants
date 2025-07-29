@@ -1219,21 +1219,11 @@ export default function RoomPage() {
     }
   }, [plantsToEvolveQueue, currentEvolvingPlantId, isEvolving]);
 
-  const handleStartEvolution = () => {
-    if (!currentEvolvingPlantId) return;
-    setIsEvolving(true);
-    handleEvolve(currentEvolvingPlantId);
-  };
-
-  const handleFinishEvolution = () => {
-    setCurrentEvolvingPlantId(null);
-    setPlantsToEvolveQueue(prev => prev.slice(1));
-  };
-
-
   const handleEvolve = async (plantId: number) => {
     if (!user) return;
     
+    setIsEvolving(true);
+
     try {
         const plantToEvolve = await getPlantById(user.uid, plantId);
         if (!plantToEvolve) {
@@ -1260,7 +1250,6 @@ export default function RoomPage() {
         toast({ variant: 'destructive', title: "Evolution Failed", description: "Could not evolve your plant. Please try again." });
     } finally {
         setIsEvolving(false);
-        // The preview dialog will handle clearing the currentEvolvingPlantId
     }
   };
 
@@ -1625,38 +1614,46 @@ export default function RoomPage() {
 
         <LongPressInfoDialog open={showLongPressInfo} onOpenChange={handleCloseLongPressInfo} />
 
-        <AlertDialog open={!!currentEvolvingPlantId} onOpenChange={(isOpen) => { if (!isOpen && !isEvolving) { handleFinishEvolution(); } }}>
-            <AlertDialogContent>
-              {isEvolving ? (
-                <>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle className="text-2xl text-center text-primary">Evolving...</AlertDialogTitle>
-                  </AlertDialogHeader>
-                  <div className="flex flex-col items-center gap-4 py-4">
-                    <div className="w-48 h-48 relative">
-                      {evolutionPlant && <Image src={evolutionPlant.image} alt={evolutionPlant.name} width={192} height={192} className="object-cover w-full h-full opacity-50" />}
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Loader2 className="w-16 h-16 text-primary animate-spin" />
-                      </div>
+        <AlertDialog open={!!currentEvolvingPlantId && !evolvedPreviewData} onOpenChange={(isOpen) => {
+          if (!isOpen && !isEvolving) {
+            setCurrentEvolvingPlantId(null);
+            setPlantsToEvolveQueue(q => q.slice(1));
+          }
+        }}>
+          <AlertDialogContent>
+            {isEvolving ? (
+              <>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-2xl text-center text-primary">Evolving...</AlertDialogTitle>
+                </AlertDialogHeader>
+                <div className="flex flex-col items-center gap-4 py-4">
+                  <div className="w-48 h-48 relative">
+                    {evolutionPlant && <Image src={evolutionPlant.image} alt={evolutionPlant.name} width={192} height={192} className="object-cover w-full h-full opacity-50" />}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Loader2 className="w-16 h-16 text-primary animate-spin" />
                     </div>
-                    <p className="text-muted-foreground text-center">Please wait while {evolutionPlant?.name} evolves.</p>
                   </div>
-                </>
-              ) : (
-                <>
-                  <AlertDialogHeader>
-                      <AlertDialogTitle className="text-center text-primary">Your plant is growing!</AlertDialogTitle>
-                      <AlertDialogDescription>
-                          {`${evolutionPlant?.name} is ready for a new form! Would you like to evolve it?`}
-                      </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                      <AlertDialogCancel onClick={handleFinishEvolution}>Later</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleStartEvolution}>Evolve</AlertDialogAction>
-                  </AlertDialogFooter>
-                </>
-              )}
-            </AlertDialogContent>
+                  <p className="text-muted-foreground text-center">Please wait while {evolutionPlant?.name} evolves.</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <AlertDialogHeader>
+                    <AlertDialogTitle className="text-center text-primary">Your plant is growing!</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        {`${evolutionPlant?.name} is ready for a new form! Would you like to evolve it?`}
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => {
+                       setCurrentEvolvingPlantId(null);
+                       setPlantsToEvolveQueue(q => q.slice(1));
+                    }}>Later</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => handleEvolve(currentEvolvingPlantId!)}>Evolve</AlertDialogAction>
+                </AlertDialogFooter>
+              </>
+            )}
+          </AlertDialogContent>
         </AlertDialog>
 
         
