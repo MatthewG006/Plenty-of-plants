@@ -33,31 +33,6 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
     NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
   },
-  webpack: (config) => {
-    config.module.rules.push({
-      test: /\.mjs$/,
-      include: /node_modules/,
-      type: 'javascript/auto',
-    });
-    config.module.rules.push({
-      test: /node_modules\/handlebars\/lib\/index\.js$/,
-      loader: 'string-replace-loader',
-      options: {
-        search: 'require.extensions',
-        replace: '((() => {})())', // Replace with a no-op
-      },
-    });
-    config.module.rules.push({
-        test: /node_modules\/(@genkit-ai|genkit)\/.*\.js$/,
-        loader: 'string-replace-loader',
-        options: {
-            search: '(import\\.meta\\.url)',
-            replace: 'import.meta.url',
-            flags: 'g'
-        },
-    });
-    return config;
-  },
 };
 
 export default nextConfig;
