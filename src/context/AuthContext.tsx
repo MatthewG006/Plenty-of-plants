@@ -14,23 +14,18 @@ interface AuthContextType {
   user: User | null;
   gameData: GameData | null;
   loading: boolean;
-  plantsToEvolveQueue: number[];
-  setPlantsToEvolveQueue: React.Dispatch<React.SetStateAction<number[]>>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   gameData: null,
   loading: true,
-  plantsToEvolveQueue: [],
-  setPlantsToEvolveQueue: () => {},
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [gameData, setGameData] = useState<GameData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [plantsToEvolveQueue, setPlantsToEvolveQueue] = useState<number[]>([]);
 
   const router = useRouter();
   const pathname = usePathname();
@@ -98,7 +93,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // User is logged out
         setGameData(null);
         setLoading(false);
-        setPlantsToEvolveQueue([]);
       }
     });
 
@@ -136,7 +130,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, gameData, loading, plantsToEvolveQueue, setPlantsToEvolveQueue }}>
+    <AuthContext.Provider value={{ user, gameData, loading }}>
       {children}
     </AuthContext.Provider>
   );
