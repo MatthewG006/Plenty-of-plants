@@ -959,7 +959,7 @@ export default function RoomPage() {
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   
-  const [currentEvolvingPlantId, setCurrentEvolvingPlantId] = useState<number | null>(null);
+  const [currentEvolvingPlant, setCurrentEvolvingPlant] = useState<Plant | null>(null);
   const [isEvolving, setIsEvolving] = useState(false);
   const [evolvedPreviewData, setEvolvedPreviewData] = useState<{plantName: string; newForm: string, newImageUri: string, personality?: string } | null>(null);
 
@@ -1130,7 +1130,7 @@ export default function RoomPage() {
                    for (const plantId of result.newlyEvolvablePlants) {
                      const plant = await getPlantById(user.uid, plantId);
                      if (plant) {
-                       setCurrentEvolvingPlantId(plantId);
+                       setCurrentEvolvingPlant(plant);
                        break;
                      }
                    }
@@ -1220,28 +1220,23 @@ export default function RoomPage() {
     setCollectionPlantIds(finalCollectionIds);
     await updatePlantArrangement(user.uid, finalCollectionIds, newDeskIds);
   };
-
-  const evolutionPlant = useMemo(() => {
-    if (!currentEvolvingPlantId) return null;
-    return allPlants[currentEvolvingPlantId] || null;
-  }, [currentEvolvingPlantId, allPlants]);
   
   const handleEvolve = async () => {
-    if (!evolutionPlant || !user) return;
+    if (!currentEvolvingPlant || !user) return;
     
     setIsEvolving(true);
     try {
         const { newImageDataUri, personality } = await evolvePlantAction({
-            name: evolutionPlant.name,
-            baseImageDataUri: evolutionPlant.baseImage || evolutionPlant.image,
-            form: evolutionPlant.form,
+            name: currentEvolvingPlant.name,
+            baseImageDataUri: currentEvolvingPlant.baseImage || currentEvolvingPlant.image,
+            form: currentEvolvingPlant.form,
         });
 
-        const isFirstEvolution = evolutionPlant.form === 'Base';
+        const isFirstEvolution = currentEvolvingPlant.form === 'Base';
         const newForm = isFirstEvolution ? 'Evolved' : 'Final';
 
         setEvolvedPreviewData({ 
-            plantName: evolutionPlant.name, 
+            plantName: currentEvolvingPlant.name, 
             newForm,
             newImageUri: newImageDataUri,
             personality
@@ -1255,7 +1250,7 @@ export default function RoomPage() {
   };
   
   const handleConfirmEvolution = async () => {
-    if (!user || !evolvedPreviewData || !currentEvolvingPlantId) return;
+    if (!user || !evolvedPreviewData || !currentEvolvingPlant) return;
     
     try {
         const { newImageUri, newForm, personality } = evolvedPreviewData;
@@ -1267,11 +1262,11 @@ export default function RoomPage() {
             personality: personality || '',
         };
         
-        if (newForm === 'Evolved' && evolutionPlant && !evolutionPlant.baseImage) {
-            updateData.baseImage = evolutionPlant.image;
+        if (newForm === 'Evolved' && currentEvolvingPlant && !currentEvolvingPlant.baseImage) {
+            updateData.baseImage = currentEvolvingPlant.image;
         }
 
-        await updatePlant(user.uid, currentEvolvingPlantId, updateData);
+        await updatePlant(user.uid, currentEvolvingPlant.id, updateData);
         await updateEvolutionProgress(user.uid);
         
         playSfx('success');
@@ -1285,7 +1280,7 @@ export default function RoomPage() {
         toast({ variant: 'destructive', title: "Save Failed", description: "Could not save your evolved plant." });
     } finally {
         setIsEvolving(false);
-        setCurrentEvolvingPlantId(null);
+        setCurrentEvolvingPlant(null);
         setEvolvedPreviewData(null);
     }
   };
@@ -1574,7 +1569,7 @@ export default function RoomPage() {
           plant={selectedPlant ? allPlants[selectedPlant.id] : null}
           open={!!selectedPlant}
           onOpenChange={(isOpen) => !isOpen && setSelectedPlant(null)}
-          onStartEvolution={(plant) => setCurrentEvolvingPlantId(plant.id)}
+          onStartEvolution={(plant) => setCurrentEvolvingPlant(plant)}
           onOpenChat={(plant) => setChattingPlant(plant)}
           userId={user.uid}
         />
@@ -1613,10 +1608,10 @@ export default function RoomPage() {
         <LongPressInfoDialog open={showLongPressInfo} onOpenChange={handleCloseLongPressInfo} />
 
         <EvolveConfirmationDialog
-            plant={evolutionPlant}
-            open={!!evolutionPlant && !isEvolving && !evolvedPreviewData}
+            plant={currentEvolvingPlant}
+            open={!!currentEvolvingPlant && !isEvolving && !evolvedPreviewData}
             onConfirm={handleEvolve}
-            onCancel={() => setCurrentEvolvingPlantId(null)}
+            onCancel={() => setCurrentEvolvingPlant(null)}
             isEvolving={isEvolving}
         />
 
@@ -1665,5 +1660,7 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
+
+    
 
     
