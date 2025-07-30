@@ -477,6 +477,7 @@ function PlantDetailDialog({ plant, open, onOpenChange, onStartEvolution, onOpen
                                     </Button>
                                 )}
                              </>
+                         )}
                          <AlertDialog>
                             <AlertDialogTrigger asChild>
                                 <Button variant="outline" size="icon" className="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive h-7 w-7">
@@ -935,7 +936,7 @@ function EvolvePreviewDialog({ plantName, newForm, newImageUri, open, onConfirm 
                     <h3 className="text-2xl font-semibold text-primary">{plantName} has evolved into its {newForm} form!</h3>
                 </div>
                 <DialogFooter>
-                    <div onClick={onConfirm}><Button className="w-full text-lg">Continue</Button></div>
+                    <Button onClick={onConfirm} className="w-full text-lg">Continue</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -1253,6 +1254,7 @@ export default function RoomPage() {
     if (!user || !evolvedPreviewData || !currentEvolvingPlant) return;
     
     try {
+        playSfx('success');
         const plantToUpdateId = currentEvolvingPlant.id;
         const { newImageUri, newForm, personality } = evolvedPreviewData;
         const compressedImage = await compressImage(newImageUri);
@@ -1270,7 +1272,6 @@ export default function RoomPage() {
         await updatePlant(user.uid, plantToUpdateId, updateData);
         await updateEvolutionProgress(user.uid);
         
-        playSfx('success');
         toast({
             title: "Evolution Complete!",
             description: `${evolvedPreviewData.plantName} has evolved!`,
