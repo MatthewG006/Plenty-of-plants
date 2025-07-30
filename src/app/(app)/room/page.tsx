@@ -1243,7 +1243,7 @@ export default function RoomPage() {
         setEvolvedPreviewData({ 
             plantName: evolutionPlant.name, 
             newForm,
-            newImageUri,
+            newImageUri: newImageDataUri,
             personality
         });
 
@@ -1665,3 +1665,5 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
+
+    
