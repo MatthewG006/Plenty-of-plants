@@ -70,8 +70,9 @@ You MUST adhere to the following rules without exception:
 2. **The Pot:** The plant MUST be in a simple, terracotta pot.
 3. **The Face:** The pot MUST have a simple, smiling face on it. This is not optional.
 4. **The Plant:** The new plant character must be cute and simple. It absolutely MUST NOT have arms, legs, or a human-like body.
-5. **The Background:** The background MUST be a solid white color. It absolutely cannot be black or any other color.
-6. **Composition:** The image must contain ONLY the single plant character in its pot. NO other objects, text, people, hands, or background elements are allowed.
+5. **Color Constraint:** The plant and pot MUST NOT be black. They should be colorful and vibrant.
+6. **The Background:** The background MUST be a solid, pure white color. It absolutely cannot be black or any other color.
+7. **Composition:** The image must contain ONLY the single plant character in its pot. NO other objects, text, people, hands, or background elements are allowed.
 `;
 
 const qualityControlPrompt = ai.definePrompt({
