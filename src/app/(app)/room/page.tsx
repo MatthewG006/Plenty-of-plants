@@ -959,7 +959,7 @@ export default function RoomPage() {
   
   const [currentEvolvingPlant, setCurrentEvolvingPlant] = useState<Plant | null>(null);
   const [isEvolving, setIsEvolving] = useState(false);
-  const [evolvedPreviewData, setEvolvedPreviewData] = useState<{plantName: string; newForm: string, newImageUri: string, personality?: string } | null>(null);
+  const [evolvedPreviewData, setEvolvedPreviewData] = useState<{plantId: number; plantName: string; newForm: string, newImageUri: string, personality?: string } | null>(null);
 
 
   const [processedDeskImages, setProcessedDeskImages] = useState<Record<number, string | null>>({});
@@ -1236,6 +1236,7 @@ export default function RoomPage() {
         const newForm = isFirstEvolution ? 'Evolved' : 'Final';
 
         setEvolvedPreviewData({ 
+            plantId: evolutionPlant.id,
             plantName: evolutionPlant.name, 
             newForm,
             newImageUri: newImageDataUri,
@@ -1247,17 +1248,19 @@ export default function RoomPage() {
         toast({ variant: 'destructive', title: "Evolution Failed", description: "Could not evolve your plant. Please try again." });
     } finally {
         setIsEvolving(false);
+        setCurrentEvolvingPlant(null);
     }
   };
   
   const handleConfirmEvolution = async () => {
-    if (!user || !evolvedPreviewData || !currentEvolvingPlant) return;
+    if (!user || !evolvedPreviewData) return;
     
     try {
         playSfx('success');
-        const plantToUpdateId = currentEvolvingPlant.id;
+        const plantToUpdateId = evolvedPreviewData.plantId;
         const { newImageUri, newForm, personality } = evolvedPreviewData;
         const compressedImage = await compressImage(newImageUri);
+        const currentPlant = allPlants[plantToUpdateId];
 
         const updateData: Partial<Plant> = {
             image: compressedImage,
@@ -1265,8 +1268,8 @@ export default function RoomPage() {
             personality: personality || '',
         };
         
-        if (newForm === 'Evolved' && currentEvolvingPlant && !currentEvolvingPlant.baseImage) {
-            updateData.baseImage = currentEvolvingPlant.image;
+        if (newForm === 'Evolved' && currentPlant && !currentPlant.baseImage) {
+            updateData.baseImage = currentPlant.image;
         }
 
         await updatePlant(user.uid, plantToUpdateId, updateData);
@@ -1283,7 +1286,6 @@ export default function RoomPage() {
     } finally {
         setIsEvolving(false);
         setEvolvedPreviewData(null);
-        setCurrentEvolvingPlant(null);
     }
   };
   
