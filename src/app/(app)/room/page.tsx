@@ -477,7 +477,6 @@ function PlantDetailDialog({ plant, open, onOpenChange, onStartEvolution, onOpen
                                     </Button>
                                 )}
                              </>
-                         )}
                          <AlertDialog>
                             <AlertDialogTrigger asChild>
                                 <Button variant="outline" size="icon" className="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive h-7 w-7">
@@ -936,9 +935,7 @@ function EvolvePreviewDialog({ plantName, newForm, newImageUri, open, onConfirm 
                     <h3 className="text-2xl font-semibold text-primary">{plantName} has evolved into its {newForm} form!</h3>
                 </div>
                 <DialogFooter>
-                    <DialogClose asChild>
-                        <Button className="w-full text-lg" onClick={onConfirm}>Continue</Button>
-                    </DialogClose>
+                    <div onClick={onConfirm}><Button className="w-full text-lg">Continue</Button></div>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -1664,3 +1661,5 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
+
+    
