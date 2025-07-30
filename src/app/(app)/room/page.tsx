@@ -1245,8 +1245,10 @@ export default function RoomPage() {
     } catch (e) {
         console.error("Evolution failed", e);
         toast({ variant: 'destructive', title: "Evolution Failed", description: "Could not evolve your plant. Please try again." });
+    } finally {
+        setIsEvolving(false);
+        setCurrentEvolvingPlant(null);
     }
-    // Don't set isEvolving to false here, wait for preview confirmation
   };
   
   const handleConfirmEvolution = async () => {
@@ -1280,8 +1282,8 @@ export default function RoomPage() {
         toast({ variant: 'destructive', title: "Save Failed", description: "Could not save your evolved plant." });
     } finally {
         setIsEvolving(false);
-        setCurrentEvolvingPlant(null);
         setEvolvedPreviewData(null);
+        setCurrentEvolvingPlant(null);
     }
   };
   
@@ -1609,7 +1611,7 @@ export default function RoomPage() {
 
         <EvolveConfirmationDialog
             plant={currentEvolvingPlant}
-            open={!!currentEvolvingPlant && !isEvolving && !evolvedPreviewData}
+            open={!!currentEvolvingPlant && !isEvolving}
             onConfirm={handleEvolve}
             onCancel={() => setCurrentEvolvingPlant(null)}
             isEvolving={isEvolving}
@@ -1660,6 +1662,8 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
+
+    
 
     
 
