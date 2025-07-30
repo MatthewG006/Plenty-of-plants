@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -1225,17 +1226,19 @@ export default function RoomPage() {
     
     setIsEvolving(true);
     try {
+        const evolutionPlant = { ...currentEvolvingPlant };
+        
         const { newImageDataUri, personality } = await evolvePlantAction({
-            name: currentEvolvingPlant.name,
-            baseImageDataUri: currentEvolvingPlant.baseImage || currentEvolvingPlant.image,
-            form: currentEvolvingPlant.form,
+            name: evolutionPlant.name,
+            baseImageDataUri: evolutionPlant.baseImage || evolutionPlant.image,
+            form: evolutionPlant.form,
         });
 
-        const isFirstEvolution = currentEvolvingPlant.form === 'Base';
+        const isFirstEvolution = evolutionPlant.form === 'Base';
         const newForm = isFirstEvolution ? 'Evolved' : 'Final';
 
         setEvolvedPreviewData({ 
-            plantName: currentEvolvingPlant.name, 
+            plantName: evolutionPlant.name, 
             newForm,
             newImageUri: newImageDataUri,
             personality
@@ -1246,7 +1249,6 @@ export default function RoomPage() {
         toast({ variant: 'destructive', title: "Evolution Failed", description: "Could not evolve your plant. Please try again." });
     } finally {
         setIsEvolving(false);
-        setCurrentEvolvingPlant(null);
     }
   };
   
@@ -1254,6 +1256,7 @@ export default function RoomPage() {
     if (!user || !evolvedPreviewData || !currentEvolvingPlant) return;
     
     try {
+        const plantToUpdateId = currentEvolvingPlant.id;
         const { newImageUri, newForm, personality } = evolvedPreviewData;
         const compressedImage = await compressImage(newImageUri);
 
@@ -1267,7 +1270,7 @@ export default function RoomPage() {
             updateData.baseImage = currentEvolvingPlant.image;
         }
 
-        await updatePlant(user.uid, currentEvolvingPlant.id, updateData);
+        await updatePlant(user.uid, plantToUpdateId, updateData);
         await updateEvolutionProgress(user.uid);
         
         playSfx('success');
@@ -1661,9 +1664,3 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
-
-    
-
-    
-
-    
