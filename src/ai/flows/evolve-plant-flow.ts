@@ -90,7 +90,7 @@ The final image should be an epic evolution, but still recognizably the same cha
         throw new Error('Could not generate evolved plant image from AI.');
       }
       
-      let personality = '';
+      let personality;
       if (form === 'Evolved') {
         const { output } = await personalityPrompt({ name });
         if (output) {
