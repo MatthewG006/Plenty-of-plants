@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { claimFreeDraw, loadDraws, MAX_DRAWS, hasClaimedDailyDraw } from '@/lib/draw-manager';
-import { Gift, Coins, Leaf, Clock, Loader2, Droplets, Sparkles, Zap, Pipette, RefreshCw, Star, Package, Gem, MessageCircle } from 'lucide-react';
+import { Gift, Coins, Leaf, Clock, Loader2, Droplets, Sparkles, Zap, Pipette, RefreshCw, Star, Package, Gem, MessageCircle, ShoppingCart } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { useAudio } from '@/context/AudioContext';
 import { Separator } from '@/components/ui/separator';
@@ -237,6 +237,13 @@ export default function ShopPage() {
     }
   };
 
+  const handlePremiumPurchase = () => {
+    toast({
+        title: "Coming Soon!",
+        description: "Real-money purchases are not yet implemented."
+    });
+  }
+
   
   if (!user || !gameData) {
       return (
@@ -273,7 +280,7 @@ export default function ShopPage() {
               <Gift className="h-8 w-8 text-primary" />
               <div>
                 <CardTitle className="text-xl">Daily Free Draw</CardTitle>
-                <CardDescription>Claim one free draw every day.</CardDescription>
+                <CardDescription>Claim one free draw every day after watching an ad.</CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -288,6 +295,31 @@ export default function ShopPage() {
                     <span>Next free draw in {nextDrawTime}</span>
                 </div>
             )}
+          </CardContent>
+        </Card>
+
+        <Separator />
+
+         <Card className="shadow-sm border-purple-500/50">
+          <CardHeader>
+            <div className="flex items-center gap-4">
+              <ShoppingCart className="h-8 w-8 text-purple-500" />
+              <div>
+                <CardTitle className="text-xl text-purple-600">Premium Shop</CardTitle>
+                <CardDescription>Special items available for purchase.</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-purple-50">
+                <div>
+                    <h4 className="font-semibold text-purple-800">Seasonal Plant Pack</h4>
+                    <p className="text-sm text-purple-600">Get 5 exclusive seasonal plants!</p>
+                </div>
+                 <Button onClick={handlePremiumPurchase} className="bg-purple-500 hover:bg-purple-600">
+                    $4.99
+                </Button>
+            </div>
           </CardContent>
         </Card>
 
