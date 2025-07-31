@@ -42,25 +42,21 @@ function getNextDrawTimeString() {
     return `${hours}h ${minutes}m`;
 }
 
-function VideoAdDialog({ open, onOpenChange, onAdFinished }: { open: boolean; onOpenChange: (open: boolean) => void; onAdFinished: () => void }) {
+function VideoAdDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void; }) {
   const [countdown, setCountdown] = useState(5);
 
-  const handleSkip = useCallback(() => {
-    onAdFinished();
-    onOpenChange(false);
-  }, [onAdFinished, onOpenChange]);
-
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
 
-    setCountdown(5); // Reset countdown when dialog opens
+    setCountdown(5);
 
     const timer = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
           clearInterval(timer);
-          // Using a timeout to avoid race conditions with state updates
-          setTimeout(handleSkip, 0); 
+          onOpenChange(false);
           return 0;
         }
         return prev - 1;
@@ -68,7 +64,11 @@ function VideoAdDialog({ open, onOpenChange, onAdFinished }: { open: boolean; on
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [open, handleSkip]);
+  }, [open, onOpenChange]);
+
+  const handleSkip = () => {
+    onOpenChange(false);
+  };
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -101,6 +101,7 @@ export default function ShopPage() {
   const [dailyDrawClaimed, setDailyDrawClaimed] = useState(false);
   const [nextDrawTime, setNextDrawTime] = useState(getNextDrawTimeString());
   const [showAd, setShowAd] = useState(false);
+  const [adFinished, setAdFinished] = useState(false);
   
   useEffect(() => {
       const checkClaimed = async () => {
@@ -117,12 +118,18 @@ export default function ShopPage() {
       return () => clearInterval(timer);
   }, [user]);
 
+  useEffect(() => {
+    if (adFinished) {
+      handleClaimFreeDraw();
+      setAdFinished(false);
+    }
+  }, [adFinished]);
+
   const handlePreClaimFreeDraw = () => {
       setShowAd(true);
   };
 
   const handleClaimFreeDraw = async () => {
-    setShowAd(false);
     if (!user) return;
     const result = await claimFreeDraw(user.uid);
 
@@ -575,9 +582,18 @@ export default function ShopPage() {
       </div>
       <VideoAdDialog
         open={showAd}
-        onOpenChange={setShowAd}
-        onAdFinished={handleClaimFreeDraw}
+        onOpenChange={(isOpen) => {
+          setShowAd(isOpen);
+          if (!isOpen && !adFinished) {
+            // If the user manually closed the dialog without the timer finishing
+            // we should check if we should grant the reward.
+            // For this simple placeholder, we'll grant it. In a real app, you'd check ad view state.
+            setAdFinished(true);
+          }
+        }}
       />
     </div>
   );
 }
+
+    
