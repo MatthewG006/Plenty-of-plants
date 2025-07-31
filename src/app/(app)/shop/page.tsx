@@ -48,7 +48,7 @@ function VideoAdDialog({ open, onOpenChange, onSkip, countdown }: { open: boolea
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md p-0" hideCloseButton>
-        <DialogHeader>
+        <DialogHeader className="p-4">
           <DialogTitle>Video Ad</DialogTitle>
         </DialogHeader>
         <div className="aspect-video bg-black flex flex-col items-center justify-center text-white relative">
@@ -71,7 +71,7 @@ function VideoAdDialog({ open, onOpenChange, onSkip, countdown }: { open: boolea
 }
 
 export default function ShopPage() {
-  const { user, gameData, setPlantsToEvolveQueue } = useAuth();
+  const { user, gameData } = useAuth();
   const { toast } = useToast();
   const { playSfx } = useAudio();
   
@@ -134,8 +134,6 @@ export default function ShopPage() {
             if (countdownTimerRef.current) {
                 clearInterval(countdownTimerRef.current);
             }
-            // Use the stable callback to prevent issues
-            handleSkipAd();
             return 0;
           }
           return prev - 1;
@@ -152,7 +150,7 @@ export default function ShopPage() {
             clearInterval(countdownTimerRef.current);
         }
     }
-  }, [showAd, handleSkipAd]);
+  }, [showAd]);
 
 
   const handlePreClaimFreeDraw = () => {
