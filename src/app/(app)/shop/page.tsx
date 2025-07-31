@@ -5,13 +5,18 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { claimFreeDraw, loadDraws, MAX_DRAWS, hasClaimedDailyDraw } from '@/lib/draw-manager';
-import { Gift, Coins, Leaf, Clock, Loader2, Droplets, Sparkles, Zap, Pipette, RefreshCw, Star, Package, Gem, MessageCircle, ShoppingCart } from 'lucide-react';
+import { Gift, Coins, Leaf, Clock, Loader2, Droplets, Sparkles, Zap, Pipette, RefreshCw, Star, Package, Gem, MessageCircle, ShoppingCart, Video } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { useAudio } from '@/context/AudioContext';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/context/AuthContext';
 import { purchaseCosmetic, purchaseSprinkler, purchaseWaterRefill, purchaseBundle, purchasePlantChat } from '@/lib/firestore';
 import { useRouter } from 'next/navigation';
+import {
+  Dialog,
+  DialogContent,
+} from '@/components/ui/dialog';
+
 
 const DRAW_COST_IN_GOLD = 50;
 const SPRINKLER_COST_IN_GOLD = 100;
@@ -37,6 +42,53 @@ function getNextDrawTimeString() {
     return `${hours}h ${minutes}m`;
 }
 
+function VideoAdDialog({ open, onOpenChange, onAdFinished }: { open: boolean; onOpenChange: (open: boolean) => void; onAdFinished: () => void }) {
+  const [countdown, setCountdown] = useState(5);
+
+  useEffect(() => {
+    if (open) {
+      setCountdown(5); // Reset countdown when dialog opens
+      const timer = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            onAdFinished();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [open, onAdFinished]);
+
+  const handleSkip = () => {
+    onAdFinished();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md p-0" hideCloseButton>
+        <div className="aspect-video bg-black flex flex-col items-center justify-center text-white relative">
+          <Video className="w-16 h-16 text-muted-foreground" />
+          <p className="text-lg font-semibold mt-4">Video Ad Placeholder</p>
+          <p className="text-sm text-muted-foreground">Your ad would be shown here.</p>
+          <div className="absolute bottom-4 right-4">
+            {countdown > 2 ? (
+              <p className="text-sm bg-black/50 rounded-full px-3 py-1">Reward in {countdown}...</p>
+            ) : (
+              <Button onClick={handleSkip} variant="secondary" size="sm">
+                Skip Ad
+              </Button>
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 export default function ShopPage() {
   const { user, gameData, setPlantsToEvolveQueue } = useAuth();
   const { toast } = useToast();
@@ -44,6 +96,7 @@ export default function ShopPage() {
   
   const [dailyDrawClaimed, setDailyDrawClaimed] = useState(false);
   const [nextDrawTime, setNextDrawTime] = useState(getNextDrawTimeString());
+  const [showAd, setShowAd] = useState(false);
   
   useEffect(() => {
       const checkClaimed = async () => {
@@ -60,8 +113,12 @@ export default function ShopPage() {
       return () => clearInterval(timer);
   }, [user]);
 
+  const handlePreClaimFreeDraw = () => {
+      setShowAd(true);
+  };
 
   const handleClaimFreeDraw = async () => {
+    setShowAd(false);
     if (!user) return;
     const result = await claimFreeDraw(user.uid);
 
@@ -286,7 +343,7 @@ export default function ShopPage() {
           </CardHeader>
           <CardContent className="flex flex-col items-start gap-4">
             <p className="text-2xl font-bold text-chart-3">FREE</p>
-            <Button onClick={handleClaimFreeDraw} className="w-full font-semibold" disabled={drawCount >= MAX_DRAWS || dailyDrawClaimed}>
+            <Button onClick={handlePreClaimFreeDraw} className="w-full font-semibold" disabled={drawCount >= MAX_DRAWS || dailyDrawClaimed}>
               {dailyDrawClaimed ? "Claimed for Today" : drawCount >= MAX_DRAWS ? "Draws Full" : "Claim"}
             </Button>
             {dailyDrawClaimed && (
@@ -512,6 +569,11 @@ export default function ShopPage() {
             </Card>
         </div>
       </div>
+      <VideoAdDialog
+        open={showAd}
+        onOpenChange={setShowAd}
+        onAdFinished={handleClaimFreeDraw}
+      />
     </div>
   );
 }

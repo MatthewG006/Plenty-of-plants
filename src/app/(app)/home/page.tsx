@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings, User, Check, X, Loader2, Leaf, Award, Coins, Info, Clock, Users, Video } from 'lucide-react';
+import { Settings, User, Check, X, Loader2, Leaf, Award, Coins, Info, Clock, Users } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useRef, useMemo } from 'react';
@@ -112,53 +112,6 @@ function CommunityInfoDialog({ open, onOpenChange }: { open: boolean, onOpenChan
   );
 }
 
-function VideoAdDialog({ open, onOpenChange, onAdFinished }: { open: boolean; onOpenChange: (open: boolean) => void; onAdFinished: () => void }) {
-  const [countdown, setCountdown] = useState(5);
-
-  useEffect(() => {
-    if (open) {
-      setCountdown(5); // Reset countdown when dialog opens
-      const timer = setInterval(() => {
-        setCountdown(prev => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            onAdFinished();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => clearInterval(timer);
-    }
-  }, [open, onAdFinished]);
-
-  const handleSkip = () => {
-    onAdFinished();
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md p-0" hideCloseButton>
-        <div className="aspect-video bg-black flex flex-col items-center justify-center text-white relative">
-          <Video className="w-16 h-16 text-muted-foreground" />
-          <p className="text-lg font-semibold mt-4">Video Ad Placeholder</p>
-          <p className="text-sm text-muted-foreground">Your ad would be shown here.</p>
-          <div className="absolute bottom-4 right-4">
-            {countdown > 2 ? (
-              <p className="text-sm bg-black/50 rounded-full px-3 py-1">Reward in {countdown}...</p>
-            ) : (
-              <Button onClick={handleSkip} variant="secondary" size="sm">
-                Skip Ad
-              </Button>
-            )}
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-
 function ChallengeCard({ challenge, onClaim, isClaiming }: { challenge: Challenge, onClaim: (challengeId: string) => void, isClaiming: boolean }) {
     const isComplete = challenge.progress >= challenge.target;
 
@@ -203,7 +156,6 @@ export default function HomePage() {
   const [isClaimingChallenge, setIsClaimingChallenge] = useState(false);
   const [nextDrawTime, setNextDrawTime] = useState('');
   const [showCommunityInfo, setShowCommunityInfo] = useState(false);
-  const [showAd, setShowAd] = useState(false);
 
   const autoplayPlugin = useRef(
     Autoplay({ delay: 4000, stopOnInteraction: true })
@@ -255,8 +207,10 @@ export default function HomePage() {
     }
   }, [gameData?.lastDrawRefill]);
 
-  const handlePreDraw = () => {
-      if (!gameData || gameData.draws <= 0) {
+  const handleDraw = async () => {
+    if (!user) return;
+    
+    if (!gameData || gameData.draws <= 0) {
         toast({
             variant: "destructive",
             title: "No Draws Left",
@@ -264,12 +218,6 @@ export default function HomePage() {
         });
         return;
     }
-    setShowAd(true);
-  }
-
-  const handleDraw = async () => {
-    setShowAd(false);
-    if (!user) return;
 
     setIsDrawing(true);
     try {
@@ -477,7 +425,7 @@ export default function HomePage() {
                     )}
                 </div>
             </div>
-            <Button onClick={handlePreDraw} disabled={isDrawing || gameData.draws <= 0} size="lg" className="w-full rounded-full mt-2">
+            <Button onClick={handleDraw} disabled={isDrawing || gameData.draws <= 0} size="lg" className="w-full rounded-full mt-2">
               {isDrawing ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -533,12 +481,6 @@ export default function HomePage() {
       />
 
       <CommunityInfoDialog open={showCommunityInfo} onOpenChange={handleCloseCommunityInfo} />
-
-      <VideoAdDialog
-        open={showAd}
-        onOpenChange={setShowAd}
-        onAdFinished={handleDraw}
-      />
 
     </div>
   );
