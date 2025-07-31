@@ -42,33 +42,7 @@ function getNextDrawTimeString() {
     return `${hours}h ${minutes}m`;
 }
 
-function VideoAdDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void; }) {
-  const [countdown, setCountdown] = useState(5);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    setCountdown(5);
-
-    const timer = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          onOpenChange(false);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [open, onOpenChange]);
-
-  const handleSkip = () => {
-    onOpenChange(false);
-  };
+function VideoAdDialog({ open, onOpenChange, countdown }: { open: boolean; onOpenChange: (open: boolean) => void; countdown: number; }) {
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -78,11 +52,11 @@ function VideoAdDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o
           <p className="text-lg font-semibold mt-4">Video Ad Placeholder</p>
           <p className="text-sm text-muted-foreground">Your ad would be shown here.</p>
           <div className="absolute bottom-4 right-4">
-            {countdown > 2 ? (
+            {countdown > 0 ? (
               <p className="text-sm bg-black/50 rounded-full px-3 py-1">Reward in {countdown}...</p>
             ) : (
-              <Button onClick={handleSkip} variant="secondary" size="sm" disabled={countdown <= 0}>
-                {countdown <= 0 ? "Claiming..." : "Skip Ad"}
+              <Button onClick={() => onOpenChange(false)} variant="secondary" size="sm">
+                Claim Reward
               </Button>
             )}
           </div>
@@ -101,7 +75,8 @@ export default function ShopPage() {
   const [dailyDrawClaimed, setDailyDrawClaimed] = useState(false);
   const [nextDrawTime, setNextDrawTime] = useState(getNextDrawTimeString());
   const [showAd, setShowAd] = useState(false);
-  const [adFinished, setAdFinished] = useState(false);
+  const [countdown, setCountdown] = useState(5);
+
   
   useEffect(() => {
       const checkClaimed = async () => {
@@ -117,17 +92,36 @@ export default function ShopPage() {
 
       return () => clearInterval(timer);
   }, [user]);
-
+  
   useEffect(() => {
-    if (adFinished) {
+    let timer: NodeJS.Timeout;
+    if (showAd && countdown > 0) {
+      timer = setInterval(() => {
+        setCountdown(prev => prev - 1);
+      }, 1000);
+    } else if (showAd && countdown === 0) {
+      // When countdown finishes, close the dialog and claim the reward.
+      setShowAd(false);
       handleClaimFreeDraw();
-      setAdFinished(false);
     }
-  }, [adFinished]);
+    
+    return () => clearInterval(timer);
+  }, [showAd, countdown]);
 
   const handlePreClaimFreeDraw = () => {
+      setCountdown(5); // Reset countdown
       setShowAd(true);
   };
+  
+  const handleAdClose = (isOpen: boolean) => {
+    if (!isOpen) {
+      setShowAd(false);
+      // If the user closes the dialog manually (e.g. by pressing Esc) before the timer is done, grant the reward.
+      if (countdown > 0) {
+        handleClaimFreeDraw();
+      }
+    }
+  }
 
   const handleClaimFreeDraw = async () => {
     if (!user) return;
@@ -582,18 +576,9 @@ export default function ShopPage() {
       </div>
       <VideoAdDialog
         open={showAd}
-        onOpenChange={(isOpen) => {
-          setShowAd(isOpen);
-          if (!isOpen && !adFinished) {
-            // If the user manually closed the dialog without the timer finishing
-            // we should check if we should grant the reward.
-            // For this simple placeholder, we'll grant it. In a real app, you'd check ad view state.
-            setAdFinished(true);
-          }
-        }}
+        onOpenChange={handleAdClose}
+        countdown={countdown}
       />
     </div>
   );
 }
-
-    
