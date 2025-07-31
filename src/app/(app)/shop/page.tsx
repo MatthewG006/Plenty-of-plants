@@ -15,6 +15,7 @@ import { useRouter } from 'next/navigation';
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
 } from '@/components/ui/dialog';
 
 
@@ -42,11 +43,13 @@ function getNextDrawTimeString() {
     return `${hours}h ${minutes}m`;
 }
 
-function VideoAdDialog({ open, onOpenChange, countdown }: { open: boolean; onOpenChange: (open: boolean) => void; countdown: number; }) {
-  
+function VideoAdDialog({ open, onOpenChange, onSkip, countdown }: { open: boolean; onOpenChange: (open: boolean) => void; onSkip: () => void; countdown: number; }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md p-0" hideCloseButton>
+        <DialogHeader className="sr-only">
+          <CardTitle>Video Ad</CardTitle>
+        </DialogHeader>
         <div className="aspect-video bg-black flex flex-col items-center justify-center text-white relative">
           <Video className="w-16 h-16 text-muted-foreground" />
           <p className="text-lg font-semibold mt-4">Video Ad Placeholder</p>
@@ -55,8 +58,8 @@ function VideoAdDialog({ open, onOpenChange, countdown }: { open: boolean; onOpe
             {countdown > 0 ? (
               <p className="text-sm bg-black/50 rounded-full px-3 py-1">Reward in {countdown}...</p>
             ) : (
-              <Button onClick={() => onOpenChange(false)} variant="secondary" size="sm">
-                Claim Reward
+              <Button onClick={onSkip} variant="secondary" size="sm">
+                Skip
               </Button>
             )}
           </div>
@@ -65,7 +68,6 @@ function VideoAdDialog({ open, onOpenChange, countdown }: { open: boolean; onOpe
     </Dialog>
   );
 }
-
 
 export default function ShopPage() {
   const { user, gameData, setPlantsToEvolveQueue } = useAuth();
@@ -76,6 +78,7 @@ export default function ShopPage() {
   const [nextDrawTime, setNextDrawTime] = useState(getNextDrawTimeString());
   const [showAd, setShowAd] = useState(false);
   const [countdown, setCountdown] = useState(5);
+  const countdownTimerRef =  useRef<NodeJS.Timeout | null>(null);
 
   
   useEffect(() => {
@@ -92,38 +95,8 @@ export default function ShopPage() {
 
       return () => clearInterval(timer);
   }, [user]);
-  
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (showAd && countdown > 0) {
-      timer = setInterval(() => {
-        setCountdown(prev => prev - 1);
-      }, 1000);
-    } else if (showAd && countdown === 0) {
-      // When countdown finishes, close the dialog and claim the reward.
-      setShowAd(false);
-      handleClaimFreeDraw();
-    }
-    
-    return () => clearInterval(timer);
-  }, [showAd, countdown]);
 
-  const handlePreClaimFreeDraw = () => {
-      setCountdown(5); // Reset countdown
-      setShowAd(true);
-  };
-  
-  const handleAdClose = (isOpen: boolean) => {
-    if (!isOpen) {
-      setShowAd(false);
-      // If the user closes the dialog manually (e.g. by pressing Esc) before the timer is done, grant the reward.
-      if (countdown > 0) {
-        handleClaimFreeDraw();
-      }
-    }
-  }
-
-  const handleClaimFreeDraw = async () => {
+  const handleClaimFreeDraw = useCallback(async () => {
     if (!user) return;
     const result = await claimFreeDraw(user.uid);
 
@@ -141,7 +114,49 @@ export default function ShopPage() {
         description: result.reason === 'max_draws' ? "You already have the maximum number of draws." : "You can claim your next free draw tomorrow.",
       });
     }
+  }, [user, playSfx, toast]);
+  
+  useEffect(() => {
+    if (showAd) {
+      setCountdown(5);
+      countdownTimerRef.current = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            if (countdownTimerRef.current) {
+                clearInterval(countdownTimerRef.current);
+            }
+            setShowAd(false);
+            handleClaimFreeDraw();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (countdownTimerRef.current) {
+        clearInterval(countdownTimerRef.current);
+      }
+    }
+    
+    return () => {
+        if (countdownTimerRef.current) {
+            clearInterval(countdownTimerRef.current);
+        }
+    }
+  }, [showAd, handleClaimFreeDraw]);
+
+
+  const handlePreClaimFreeDraw = () => {
+      setShowAd(true);
   };
+  
+  const handleSkipAd = () => {
+      if (countdownTimerRef.current) {
+          clearInterval(countdownTimerRef.current);
+      }
+      setShowAd(false);
+      handleClaimFreeDraw();
+  }
 
     const handleBuyWaterRefill = async () => {
         if (!user || !gameData) return;
@@ -576,9 +591,11 @@ export default function ShopPage() {
       </div>
       <VideoAdDialog
         open={showAd}
-        onOpenChange={handleAdClose}
+        onOpenChange={setShowAd}
+        onSkip={handleSkipAd}
         countdown={countdown}
       />
     </div>
   );
 }
+
