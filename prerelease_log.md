@@ -1,5 +1,10 @@
 # Prerelease Log
 
+## Version 0.15
+
+- **Feature:** Video Ad & IAP Foundation
+- **Description:** Added the foundational UI and logic for displaying a placeholder video ad before a free plant draw. Added a "Premium Shop" section with a placeholder for real-money purchases.
+
 ## Version 0.14
 
 - **Feature:** Continuous Background Music
