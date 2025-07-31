@@ -69,12 +69,6 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
   }, [sfxVolume]);
 
   useEffect(() => {
-    if (audioElement && isPlaying && audioElement.paused) {
-        audioElement.play().catch(e => console.log("Autoplay was prevented. Waiting for user interaction."));
-    }
-  }, [audioElement, isPlaying]);
-
-  useEffect(() => {
     const handleVisibilityChange = () => {
       if (!audioElement) return;
       if (document.visibilityState === 'hidden') {
