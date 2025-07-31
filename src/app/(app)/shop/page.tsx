@@ -51,27 +51,25 @@ function VideoAdDialog({ open, onOpenChange, onAdFinished }: { open: boolean; on
   }, [onAdFinished, onOpenChange]);
 
   useEffect(() => {
-    if (open) {
-      setCountdown(5); // Reset countdown when dialog opens
-      const timer = setInterval(() => {
-        setCountdown(prev => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => clearInterval(timer);
-    }
-  }, [open]);
+    if (!open) return;
 
-  useEffect(() => {
-    if (open && countdown === 0) {
-      handleSkip();
-    }
-  }, [open, countdown, handleSkip]);
+    setCountdown(5); // Reset countdown when dialog opens
 
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          // Using a timeout to avoid race conditions with state updates
+          setTimeout(handleSkip, 0); 
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [open, handleSkip]);
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md p-0" hideCloseButton>
@@ -83,8 +81,8 @@ function VideoAdDialog({ open, onOpenChange, onAdFinished }: { open: boolean; on
             {countdown > 2 ? (
               <p className="text-sm bg-black/50 rounded-full px-3 py-1">Reward in {countdown}...</p>
             ) : (
-              <Button onClick={handleSkip} variant="secondary" size="sm">
-                Skip Ad
+              <Button onClick={handleSkip} variant="secondary" size="sm" disabled={countdown <= 0}>
+                {countdown <= 0 ? "Claiming..." : "Skip Ad"}
               </Button>
             )}
           </div>
@@ -583,4 +581,3 @@ export default function ShopPage() {
     </div>
   );
 }
-
