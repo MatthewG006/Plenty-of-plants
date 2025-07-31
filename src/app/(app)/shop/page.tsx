@@ -45,10 +45,10 @@ function getNextDrawTimeString() {
 function VideoAdDialog({ open, onOpenChange, onAdFinished }: { open: boolean; onOpenChange: (open: boolean) => void; onAdFinished: () => void }) {
   const [countdown, setCountdown] = useState(5);
 
-  const handleSkip = () => {
+  const handleSkip = useCallback(() => {
     onAdFinished();
     onOpenChange(false);
-  };
+  }, [onAdFinished, onOpenChange]);
 
   useEffect(() => {
     if (open) {
@@ -67,11 +67,10 @@ function VideoAdDialog({ open, onOpenChange, onAdFinished }: { open: boolean; on
   }, [open]);
 
   useEffect(() => {
-    if (countdown === 0) {
+    if (open && countdown === 0) {
       handleSkip();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [countdown]);
+  }, [open, countdown, handleSkip]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -584,3 +583,4 @@ export default function ShopPage() {
     </div>
   );
 }
+
