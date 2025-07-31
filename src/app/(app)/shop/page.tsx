@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { claimFreeDraw, loadDraws, MAX_DRAWS, hasClaimedDailyDraw } from '@/lib/draw-manager';
 import { Gift, Coins, Leaf, Clock, Loader2, Droplets, Sparkles, Zap, Pipette, RefreshCw, Star, Package, Gem, MessageCircle, ShoppingCart, Video } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAudio } from '@/context/AudioContext';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/context/AuthContext';
@@ -16,6 +16,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog';
 
 
@@ -47,8 +48,8 @@ function VideoAdDialog({ open, onOpenChange, onSkip, countdown }: { open: boolea
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md p-0" hideCloseButton>
-        <DialogHeader className="sr-only">
-          <CardTitle>Video Ad</CardTitle>
+        <DialogHeader>
+          <DialogTitle>Video Ad</DialogTitle>
         </DialogHeader>
         <div className="aspect-video bg-black flex flex-col items-center justify-center text-white relative">
           <Video className="w-16 h-16 text-muted-foreground" />
@@ -115,6 +116,14 @@ export default function ShopPage() {
       });
     }
   }, [user, playSfx, toast]);
+
+  const handleSkipAd = useCallback(() => {
+      if (countdownTimerRef.current) {
+          clearInterval(countdownTimerRef.current);
+      }
+      setShowAd(false);
+      handleClaimFreeDraw();
+  }, [handleClaimFreeDraw]);
   
   useEffect(() => {
     if (showAd) {
@@ -125,8 +134,8 @@ export default function ShopPage() {
             if (countdownTimerRef.current) {
                 clearInterval(countdownTimerRef.current);
             }
-            setShowAd(false);
-            handleClaimFreeDraw();
+            // Use the stable callback to prevent issues
+            handleSkipAd();
             return 0;
           }
           return prev - 1;
@@ -143,20 +152,13 @@ export default function ShopPage() {
             clearInterval(countdownTimerRef.current);
         }
     }
-  }, [showAd, handleClaimFreeDraw]);
+  }, [showAd, handleSkipAd]);
 
 
   const handlePreClaimFreeDraw = () => {
       setShowAd(true);
   };
   
-  const handleSkipAd = () => {
-      if (countdownTimerRef.current) {
-          clearInterval(countdownTimerRef.current);
-      }
-      setShowAd(false);
-      handleClaimFreeDraw();
-  }
 
     const handleBuyWaterRefill = async () => {
         if (!user || !gameData) return;
@@ -598,4 +600,3 @@ export default function ShopPage() {
     </div>
   );
 }
-
