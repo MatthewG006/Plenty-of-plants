@@ -48,6 +48,9 @@ function VideoAdDialog({ open, onOpenChange, onSkip, countdown }: { open: boolea
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md p-0" hideCloseButton>
+        <DialogHeader>
+          <DialogTitle className="sr-only">Video Ad</DialogTitle>
+        </DialogHeader>
         <div className="aspect-video bg-black flex flex-col items-center justify-center text-white relative">
           <Video className="w-16 h-16 text-muted-foreground" />
           <p className="text-lg font-semibold mt-4">Video Ad Placeholder</p>
