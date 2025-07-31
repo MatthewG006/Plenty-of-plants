@@ -45,6 +45,11 @@ function getNextDrawTimeString() {
 function VideoAdDialog({ open, onOpenChange, onAdFinished }: { open: boolean; onOpenChange: (open: boolean) => void; onAdFinished: () => void }) {
   const [countdown, setCountdown] = useState(5);
 
+  const handleSkip = () => {
+    onAdFinished();
+    onOpenChange(false);
+  };
+
   useEffect(() => {
     if (open) {
       setCountdown(5); // Reset countdown when dialog opens
@@ -52,7 +57,6 @@ function VideoAdDialog({ open, onOpenChange, onAdFinished }: { open: boolean; on
         setCountdown(prev => {
           if (prev <= 1) {
             clearInterval(timer);
-            onAdFinished();
             return 0;
           }
           return prev - 1;
@@ -60,11 +64,14 @@ function VideoAdDialog({ open, onOpenChange, onAdFinished }: { open: boolean; on
       }, 1000);
       return () => clearInterval(timer);
     }
-  }, [open, onAdFinished]);
+  }, [open]);
 
-  const handleSkip = () => {
-    onAdFinished();
-  };
+  useEffect(() => {
+    if (countdown === 0) {
+      handleSkip();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countdown]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
