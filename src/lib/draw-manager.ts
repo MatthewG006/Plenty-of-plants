@@ -14,35 +14,38 @@ export async function refillDraws(userId: string): Promise<number> {
   if (!gameData) return 0;
   
   const now = Date.now();
-  let currentDraws = gameData.draws;
-  
-  if (currentDraws >= MAX_DRAWS) {
-    return 0; // Already at max, no need to do anything
-  }
-  
   const lastRefill = gameData.lastDrawRefill || now;
   const timeSinceRefill = now - lastRefill;
 
   if (timeSinceRefill < REFILL_INTERVAL) {
-      return 0; // Not enough time has passed
+      return 0; // Not enough time has passed for even one refill.
+  }
+
+  const drawsToAdd = Math.floor(timeSinceRefill / REFILL_INTERVAL);
+  const newLastRefill = lastRefill + (drawsToAdd * REFILL_INTERVAL);
+  
+  const currentDraws = gameData.draws;
+  
+  if (currentDraws >= MAX_DRAWS) {
+    // If draws are already full, we don't add any, but we MUST update the timestamp
+    // to prevent getting stuck.
+    const userDocRef = doc(db, 'users', userId);
+    await updateDoc(userDocRef, { lastDrawRefill: newLastRefill });
+    return 0;
   }
   
-  const drawsToAdd = Math.floor(timeSinceRefill / REFILL_INTERVAL);
   const newDrawsTotal = Math.min(currentDraws + drawsToAdd, MAX_DRAWS);
-  const drawsAdded = newDrawsTotal - currentDraws;
+  const drawsActuallyAdded = newDrawsTotal - currentDraws;
 
-  if (drawsAdded > 0) {
+  if (drawsActuallyAdded > 0) {
     const userDocRef = doc(db, 'users', userId);
-    // Correctly update the last refill time by adding the consumed intervals
-    const newLastRefill = lastRefill + (drawsToAdd * REFILL_INTERVAL);
-    
     await updateDoc(userDocRef, {
       draws: newDrawsTotal,
       lastDrawRefill: newLastRefill,
     });
   }
   
-  return drawsAdded;
+  return drawsActuallyAdded;
 }
 
 export async function useDraw(userId: string) {
