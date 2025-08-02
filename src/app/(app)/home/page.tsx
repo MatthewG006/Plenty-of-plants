@@ -163,7 +163,14 @@ export default function HomePage() {
 
   useEffect(() => {
     if (user) {
-        refillDraws(user.uid);
+        refillDraws(user.uid).then(newDraws => {
+          if (newDraws > 0) {
+            toast({
+              title: "Draws Refilled!",
+              description: `You have ${newDraws} new draw(s) available.`,
+            });
+          }
+        });
         checkAndResetChallenges(user.uid).then(() => {
             updateLoginProgress(user.uid);
         });
@@ -173,7 +180,7 @@ export default function HomePage() {
           setShowCommunityInfo(true);
         }
     }
-  }, [user]);
+  }, [user, toast]);
 
   const handleCloseCommunityInfo = (isOpen: boolean) => {
     if (!isOpen) {
@@ -485,3 +492,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
