@@ -1,13 +1,13 @@
 {
-  "/_not-found/page": "/_not-found",
   "/favicon.ico/route": "/favicon.ico",
+  "/_not-found/page": "/_not-found",
   "/login/page": "/login",
   "/page": "/",
   "/signup/page": "/signup",
+  "/(app)/home/page": "/home",
   "/(app)/community/page": "/community",
   "/(app)/profile/page": "/profile",
   "/(app)/room/page": "/room",
   "/(app)/settings/page": "/settings",
-  "/(app)/shop/page": "/shop",
-  "/(app)/home/page": "/home"
+  "/(app)/shop/page": "/shop"
 }

@@ -1,5 +1,4 @@
 
-
 import { doc, getDoc, setDoc, getFirestore, updateDoc, arrayUnion, DocumentData, writeBatch, increment, collection, getDocs, query, where, limit, deleteDoc, arrayRemove } from 'firebase/firestore';
 import { app, db, auth } from './firebase';
 import type { Plant } from '@/interfaces/plant';
@@ -19,7 +18,7 @@ export interface GameData {
     gold: number;
     plants: Record<string, Plant>;
     collectionPlantIds: number[];
-    deskPlantIds: (number | null)[];
+    gardenPlantIds: (number | null)[];
     draws: number;
     lastDrawRefill: number;
     lastFreeDrawClaimed: number;
@@ -80,7 +79,7 @@ export async function getUserGameData(userId: string): Promise<GameData | null> 
             gold: data.gold || 0,
             plants: data.plants || {},
             collectionPlantIds: data.collectionPlantIds || [],
-            deskPlantIds: data.deskPlantIds || Array(NUM_POTS).fill(null),
+            gardenPlantIds: data.gardenPlantIds || data.deskPlantIds || Array(NUM_POTS).fill(null),
             draws: data.draws ?? MAX_DRAWS,
             lastDrawRefill: data.lastDrawRefill || Date.now(),
             lastFreeDrawClaimed: data.lastFreeDrawClaimed || 0,
@@ -176,7 +175,7 @@ export async function createUserDocument(user: User): Promise<GameData> {
             gold: 20, // Start with bonus
             plants: { '1': startingPlant },
             collectionPlantIds: [],
-            deskPlantIds: [1, null, null],
+            gardenPlantIds: [1, null, null],
             draws: MAX_DRAWS,
             lastDrawRefill: Date.now(),
             lastFreeDrawClaimed: 0,
@@ -246,16 +245,16 @@ export async function savePlant(userId: string, plantData: DrawPlantOutput): Pro
         conversationHistory: [],
     };
 
-    const firstEmptyPotIndex = gameData.deskPlantIds.findIndex(id => id === null);
+    const firstEmptyPotIndex = gameData.gardenPlantIds.findIndex(id => id === null);
 
     const updatePayload: { [key: string]: any } = {
         [`plants.${newPlant.id}`]: newPlant,
     };
     
     if (firstEmptyPotIndex !== -1) {
-        const newDeskPlantIds = [...gameData.deskPlantIds];
-        newDeskPlantIds[firstEmptyPotIndex] = newPlant.id;
-        updatePayload.deskPlantIds = newDeskPlantIds;
+        const newGardenPlantIds = [...gameData.gardenPlantIds];
+        newGardenPlantIds[firstEmptyPotIndex] = newPlant.id;
+        updatePayload.gardenPlantIds = newGardenPlantIds;
     } else {
         updatePayload.collectionPlantIds = arrayUnion(newPlant.id);
     }
@@ -266,10 +265,10 @@ export async function savePlant(userId: string, plantData: DrawPlantOutput): Pro
 }
 
 
-export async function updatePlantArrangement(userId: string, collectionPlantIds: number[], deskPlantIds: (number | null)[]) {
+export async function updatePlantArrangement(userId: string, collectionPlantIds: number[], gardenPlantIds: (number | null)[]) {
     await updateDoc(doc(db, 'users', userId), { 
         collectionPlantIds: collectionPlantIds, 
-        deskPlantIds: deskPlantIds
+        gardenPlantIds: gardenPlantIds
     });
 }
 
@@ -501,7 +500,7 @@ export async function resetUserGameData(userId: string) {
     await updateDoc(userDocRef, {
         plants: { '1': startingPlant },
         collectionPlantIds: [],
-        deskPlantIds: [1, null, null],
+        gardenPlantIds: [1, null, null],
         gold: 0,
         draws: MAX_DRAWS,
         lastDrawRefill: Date.now(),
@@ -528,13 +527,13 @@ export async function deletePlant(userId: string, plantId: number) {
 
     const { [`${plantId}`]: deletedPlant, ...remainingPlants } = gameData.plants;
 
-    const newDeskPlantIds = gameData.deskPlantIds.map(id => (id === plantId ? null : id));
+    const newGardenPlantIds = gameData.gardenPlantIds.map(id => (id === plantId ? null : id));
     const newCollectionPlantIds = gameData.collectionPlantIds.filter(id => id !== plantId);
     const newShowcasePlantIds = gameData.showcasePlantIds.filter(id => id !== plantId);
 
     await updateDoc(userDocRef, {
         plants: remainingPlants,
-        deskPlantIds: newDeskPlantIds,
+        gardenPlantIds: newGardenPlantIds,
         collectionPlantIds: newCollectionPlantIds,
         showcasePlantIds: newShowcasePlantIds,
     });
