@@ -5,9 +5,9 @@
   "/page": "/",
   "/signup/page": "/signup",
   "/(app)/community/page": "/community",
-  "/(app)/home/page": "/home",
   "/(app)/profile/page": "/profile",
   "/(app)/room/page": "/room",
   "/(app)/settings/page": "/settings",
-  "/(app)/shop/page": "/shop"
+  "/(app)/shop/page": "/shop",
+  "/(app)/home/page": "/home"
 }
