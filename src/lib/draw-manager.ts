@@ -15,28 +15,33 @@ export async function refillDraws(userId: string): Promise<number> {
   
   const now = Date.now();
   let currentDraws = gameData.draws;
-  let drawsAdded = 0;
   
-  if (currentDraws < MAX_DRAWS) {
-    const lastRefill = gameData.lastDrawRefill || now;
-    const timeSinceRefill = now - lastRefill;
-
-    if (timeSinceRefill >= REFILL_INTERVAL) {
-      const drawsToAdd = Math.floor(timeSinceRefill / REFILL_INTERVAL);
-      const newDraws = Math.min(currentDraws + drawsToAdd, MAX_DRAWS);
-      drawsAdded = newDraws - currentDraws;
-
-      if (drawsAdded > 0) {
-        const userDocRef = doc(db, 'users', userId);
-        // Correctly update the last refill time by adding the consumed intervals
-        const newLastRefill = lastRefill + (drawsToAdd * REFILL_INTERVAL);
-        await updateDoc(userDocRef, {
-          draws: newDraws,
-          lastDrawRefill: newLastRefill,
-        });
-      }
-    }
+  if (currentDraws >= MAX_DRAWS) {
+    return 0; // Already at max, no need to do anything
   }
+  
+  const lastRefill = gameData.lastDrawRefill || now;
+  const timeSinceRefill = now - lastRefill;
+
+  if (timeSinceRefill < REFILL_INTERVAL) {
+      return 0; // Not enough time has passed
+  }
+  
+  const drawsToAdd = Math.floor(timeSinceRefill / REFILL_INTERVAL);
+  const newDrawsTotal = Math.min(currentDraws + drawsToAdd, MAX_DRAWS);
+  const drawsAdded = newDrawsTotal - currentDraws;
+
+  if (drawsAdded > 0) {
+    const userDocRef = doc(db, 'users', userId);
+    // Correctly update the last refill time by adding the consumed intervals
+    const newLastRefill = lastRefill + (drawsToAdd * REFILL_INTERVAL);
+    
+    await updateDoc(userDocRef, {
+      draws: newDrawsTotal,
+      lastDrawRefill: newLastRefill,
+    });
+  }
+  
   return drawsAdded;
 }
 
