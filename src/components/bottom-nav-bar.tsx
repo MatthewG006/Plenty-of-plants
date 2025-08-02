@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -8,7 +9,7 @@ import { useAudio } from '@/context/AudioContext';
 
 const navItems = [
   { href: '/home', label: 'Home', icon: Home },
-  { href: '/room', label: 'Room', icon: Sprout },
+  { href: '/garden', label: 'Garden', icon: Sprout },
   { href: '/shop', label: 'Shop', icon: Store },
   { href: '/community', label: 'Community', icon: Users },
 ];
