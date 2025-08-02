@@ -28,9 +28,11 @@ export async function refillDraws(userId: string): Promise<number> {
 
       if (drawsAdded > 0) {
         const userDocRef = doc(db, 'users', userId);
+        // Correctly update the last refill time by adding the consumed intervals
+        const newLastRefill = lastRefill + (drawsToAdd * REFILL_INTERVAL);
         await updateDoc(userDocRef, {
           draws: newDraws,
-          lastDrawRefill: now,
+          lastDrawRefill: newLastRefill,
         });
       }
     }
