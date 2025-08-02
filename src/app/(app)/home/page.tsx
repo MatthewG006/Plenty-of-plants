@@ -162,15 +162,16 @@ export default function HomePage() {
   );
 
   useEffect(() => {
-    if (user) {
-        refillDraws(user.uid).then(newDraws => {
-          if (newDraws > 0) {
+    if (user && gameData) {
+        refillDraws(user.uid);
+        
+        if (gameData.draws > 0) {
             toast({
-              title: "Draws Refilled!",
-              description: `You have ${newDraws} new draw(s) available.`,
+                title: "Draws Available!",
+                description: `You have ${gameData.draws} draw(s) ready.`,
             });
-          }
-        });
+        }
+        
         checkAndResetChallenges(user.uid).then(() => {
             updateLoginProgress(user.uid);
         });
@@ -180,7 +181,7 @@ export default function HomePage() {
           setShowCommunityInfo(true);
         }
     }
-  }, [user, toast]);
+  }, [user, gameData, toast]);
 
   const handleCloseCommunityInfo = (isOpen: boolean) => {
     if (!isOpen) {
