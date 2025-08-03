@@ -1041,17 +1041,17 @@ export default function GardenPage() {
                     </Button>
                 )}
             </div>
-            <div className="relative max-w-lg mx-auto">
+            <div className="relative max-w-lg mx-auto aspect-[4/3]">
                 <Image
                     src="/garden-bg.png"
                     alt="Garden background"
-                    width={1024}
-                    height={768}
-                    className="w-full h-auto rounded-lg"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 512px"
+                    className="w-full h-auto rounded-lg object-cover"
                     priority
                 />
-                <div className="absolute inset-0 p-10 px-12">
-                  <div className="grid grid-cols-3 grid-rows-4 gap-x-6 gap-y-4 h-full w-full">
+                <div className="absolute inset-0 p-10">
+                  <div className="grid grid-cols-3 grid-rows-4 gap-4 h-full w-full">
                       {deskPlants.map((plant, index) => {
                           const canWater = plant ? (plant.lastWatered?.filter(isToday).length ?? 0) < MAX_WATERINGS_PER_DAY : false;
                           return (
@@ -1126,5 +1126,3 @@ export default function GardenPage() {
     </DndContext>
   );
 }
-
-    
