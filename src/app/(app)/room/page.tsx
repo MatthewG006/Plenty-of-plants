@@ -26,10 +26,11 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { updatePlant, useGlitter, useSheen, useRainbowGlitter, useRedGlitter, updatePlantArrangement } from '@/lib/firestore';
+import { updatePlant, useGlitter, useSheen, useRainbowGlitter, useRedGlitter, updatePlantArrangement, NUM_POTS } from '@/lib/firestore';
 import { updateApplyGlitterProgress } from '@/lib/challenge-manager';
 
 const XP_PER_LEVEL = 1000;
+const DRAG_CLICK_TOLERANCE = 5; // pixels
 
 function SheenAnimation() {
     return (
@@ -223,6 +224,66 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
     );
 }
 
+function DeskPot({ plant, index, onPointerDown, onPointerUp }: { plant: Plant | null, index: number, onPointerDown: (e: React.PointerEvent) => void, onPointerUp: (e: React.PointerEvent) => void }) {
+    const { setNodeRef, isOver } = useDroppable({ id: `pot:${index}` });
+    
+    return (
+        <div 
+            ref={setNodeRef} 
+            className={cn("relative w-full h-full flex items-center justify-center rounded-lg transition-colors", isOver ? "bg-black/20" : "")}
+            onPointerDown={onPointerDown}
+            onPointerUp={onPointerUp}
+        >
+            {plant && (
+                <div className="w-full h-full flex items-center justify-center">
+                    <DraggablePlant 
+                        plant={plant} 
+                        source="desk" 
+                        className="cursor-grab active:cursor-grabbing w-full h-full z-10"
+                    />
+                </div>
+            )}
+        </div>
+    )
+}
+
+function DraggablePlant({ plant, source, ...rest }: { plant: Plant; source: 'desk' | 'collection'; } & React.HTMLAttributes<HTMLDivElement>) {
+    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+        id: `${source}:${plant.id}`,
+        data: { plant, source },
+    });
+
+    const style = {
+        opacity: isDragging ? 0.4 : 1,
+        touchAction: 'none',
+    };
+
+    return (
+        <div ref={setNodeRef} style={style} {...listeners} {...attributes} {...rest}>
+            <div className={cn("flex items-center justify-center p-1 rounded-lg pointer-events-none w-full h-full")}>
+              <div className="relative h-16 w-16 sm:h-20 sm:w-20 flex items-center justify-center">
+                {plant.image && plant.image !== 'placeholder' ? (
+                    <Image 
+                        src={plant.image} 
+                        alt={plant.name} 
+                        fill 
+                        sizes="80px" 
+                        className="object-contain"
+                        data-ai-hint={plant.hint} />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center rounded-lg">
+                      <Leaf className="w-12 h-12 text-transparent" />
+                    </div>
+                )}
+                {plant.hasGlitter && <GlitterAnimation />}
+                {plant.hasRedGlitter && <RedGlitterAnimation />}
+                {plant.hasSheen && <SheenAnimation />}
+                {plant.hasRainbowGlitter && <RainbowGlitterAnimation />}
+              </div>
+            </div>
+        </div>
+    );
+}
 
 export default function RoomPage() {
   const { user, gameData } = useAuth();
@@ -236,7 +297,7 @@ export default function RoomPage() {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: DRAG_CLICK_TOLERANCE,
       },
     }),
     useSensor(TouchSensor, {
@@ -250,19 +311,20 @@ export default function RoomPage() {
   useEffect(() => {
     if (gameData) {
         setCollectionPlantIds(gameData.collectionPlantIds || []);
-        setDeskPlantIds(gameData.deskPlantIds || []);
+        setDeskPlantIds(gameData.deskPlantIds || Array(NUM_POTS).fill(null));
     }
   }, [gameData]);
 
   const allPlants = useMemo(() => gameData?.plants || {}, [gameData]);
   const collectionPlants = useMemo(() => collectionPlantIds.map(id => allPlants[id]).filter(Boolean), [collectionPlantIds, allPlants]);
-  const deskPlants = useMemo(() => deskPlantIds.map(id => id ? allPlants[id] : null).filter(Boolean) as Plant[], [deskPlantIds, allPlants]);
+  const deskPlants = useMemo(() => deskPlantIds.map(id => id ? allPlants[id] : null), [deskPlantIds, allPlants]);
   
-  const activeDragPlant = useMemo(() => {
+  const activeDragData = useMemo(() => {
     if (!activeDragId) return null;
     const [source, idStr] = activeDragId.split(":");
     const id = parseInt(idStr, 10);
-    return allPlants[id] ?? null;
+    const plant = allPlants[id];
+    return plant ? { plant, source } : null;
   }, [activeDragId, allPlants]);
 
 
@@ -282,33 +344,46 @@ export default function RoomPage() {
       return;
     }
   
-    // This page only handles dragging collection items to the garden (which is off-page)
-    // The actual state update happens on the Garden page.
-    // For visual consistency, we won't update the state here, but in a real app
-    // you might want to optimistically update or have a shared state manager.
-    const [overType] = (over.id as string).split(':');
-    if (overType !== 'pot') {
-      return;
-    }
-  
     const activePlant = active.data.current.plant as Plant;
-    const potIndex = parseInt((over.id as string).split(':')[1], 10);
+    const [activeSource] = (active.id as string).split(':');
+    const [overType, overIdStr] = (over.id as string).split(':');
     
-    let newDeskIds = [...gameData.deskPlantIds];
-    let newCollectionIds = [...collectionPlantIds];
-    const plantInPotId = newDeskIds[potIndex];
+    let newDeskIds = [...deskPlantIds];
+    const newCollectionIds = [...collectionPlantIds];
 
-    // Add dragged plant to pot
-    newDeskIds[potIndex] = activePlant.id;
-    // Remove from collection
-    newCollectionIds = newCollectionIds.filter(id => id !== activePlant.id);
-    // If a plant was in the pot, move it to collection
-    if (plantInPotId) {
-      newCollectionIds.push(plantInPotId);
+    if (overType === 'pot') { // desk to desk, or collection to desk
+        const potIndex = parseInt(overIdStr, 10);
+        const plantInPotId = newDeskIds[potIndex];
+
+        // Add dragged plant to pot
+        newDeskIds[potIndex] = activePlant.id;
+        
+        if (activeSource === 'desk') {
+            const sourcePotIndex = deskPlantIds.findIndex(id => id === activePlant.id);
+            if (sourcePotIndex !== -1 && sourcePotIndex !== potIndex) {
+                 newDeskIds[sourcePotIndex] = plantInPotId; // Swap
+            }
+        } else { // from collection
+             if (plantInPotId) {
+                newCollectionIds.push(plantInPotId);
+            }
+        }
+         const finalCollectionIds = collectionPlantIds.filter(id => id !== activePlant.id);
+         if (plantInPotId && !finalCollectionIds.includes(plantInPotId)) {
+            finalCollectionIds.push(plantInPotId)
+         }
+         await updatePlantArrangement(user.uid, finalCollectionIds, newDeskIds);
+
+    } else if (overType === 'collection' && activeSource === 'desk') { // desk to collection
+        const sourcePotIndex = deskPlantIds.findIndex(id => id === activePlant.id);
+        if (sourcePotIndex !== -1) {
+             newDeskIds[sourcePotIndex] = null;
+        }
+        if (!newCollectionIds.includes(activePlant.id)) {
+            newCollectionIds.push(activePlant.id);
+        }
+        await updatePlantArrangement(user.uid, newCollectionIds, newDeskIds);
     }
-  
-    const finalCollectionIds = newCollectionIds.sort((a,b) => a - b);
-    await updatePlantArrangement(user.uid, finalCollectionIds, newDeskIds);
   };
   
   const handleApplyGlitter = async (plantId: number) => {
@@ -401,13 +476,20 @@ export default function RoomPage() {
           className="relative h-48 max-w-lg mx-auto rounded-lg bg-cover bg-center" 
           style={{backgroundImage: "url('/desk-bg.png')"}}
         >
-          <div className="absolute inset-0 flex justify-center items-end gap-4 p-4">
-              {deskPlants.map((plant) => (
-                  <div key={plant.id} className="relative w-16 h-16 sm:w-20 sm:w-20">
-                      <Image src={plant.image} alt={plant.name} fill className="object-contain drop-shadow-lg" />
-                  </div>
-              ))}
-          </div>
+            <div className="absolute inset-0 p-4 sm:p-6 md:p-8 grid grid-cols-5 grid-rows-1 gap-2">
+                {Array.from({ length: 5 }).map((_, index) => {
+                    const plant = deskPlants[index];
+                    return (
+                        <DeskPot
+                            key={plant?.id || `pot-${index}`}
+                            plant={plant}
+                            index={index}
+                            onPointerDown={(e) => {}}
+                            onPointerUp={(e) => {}}
+                        />
+                    )
+                })}
+            </div>
         </section>
 
         <section className="px-4 pb-4">
@@ -443,19 +525,25 @@ export default function RoomPage() {
         </section>
 
         <DragOverlay>
-            {activeDragPlant ? (
-                <div className="w-28">
-                    <PlantCardUI 
-                        plant={activeDragPlant} 
-                        onApplyGlitter={() => {}} canApplyGlitter={false} 
-                        onApplySheen={() => {}} canApplySheen={false}
-                        onApplyRainbowGlitter={() => {}} canApplyRainbowGlitter={false}
-                        onApplyRedGlitter={() => {}} canApplyRedGlitter={false}
-                    />
-                </div>
+            {activeDragData ? (
+                activeDragData.source === 'collection' ? (
+                    <div className="w-28">
+                        <PlantCardUI 
+                            plant={activeDragData.plant} 
+                            onApplyGlitter={() => {}} canApplyGlitter={false} 
+                            onApplySheen={() => {}} canApplySheen={false}
+                            onApplyRainbowGlitter={() => {}} canApplyRainbowGlitter={false}
+                            onApplyRedGlitter={() => {}} canApplyRedGlitter={false}
+                        />
+                    </div>
+                ) : (
+                    <DraggablePlant plant={activeDragData.plant} source="desk" />
+                )
             ) : null}
         </DragOverlay>
       </div>
     </DndContext>
   );
 }
+
+    
