@@ -33,6 +33,7 @@ import { AlertDialog, AlertDialogTrigger, AlertDialogAction, AlertDialogCancel, 
 import { evolvePlantAction } from '@/app/actions/evolve-plant';
 import { plantChatAction } from '@/app/actions/plant-chat';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 
 const DRAG_CLICK_TOLERANCE = 5; // pixels
 const NUM_POTS = 3;
@@ -555,9 +556,12 @@ function PlantCardUI({
                     {plant.hasSheen && <SheenAnimation />}
                     {plant.hasRainbowGlitter && <RainbowGlitterAnimation />}
                     {(plant.form === 'Evolved' || plant.form === 'Final') && (
-                        <div className="absolute top-1 right-1 bg-secondary/80 text-secondary-foreground p-1 rounded-full shadow-md backdrop-blur-sm">
-                            <Sparkles className="w-2 h-2" />
-                        </div>
+                        <Badge 
+                            variant={plant.form === 'Final' ? "destructive" : "secondary"}
+                            className="absolute top-1 right-1"
+                        >
+                            {plant.form}
+                        </Badge>
                     )}
                 </div>
                 <div className="p-2 text-center bg-white/50 space-y-1">
