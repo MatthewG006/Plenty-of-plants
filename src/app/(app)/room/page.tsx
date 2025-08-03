@@ -5,7 +5,7 @@ import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose, DialogDescription } from '@/components/ui/dialog';
-import { Leaf, Loader2, Sparkles, Star, GripVertical } from 'lucide-react';
+import { Leaf, Loader2, Sparkles, Star, GripVertical, Gem, MessageCircle, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -26,13 +26,20 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { updatePlant, useSheen, useRainbowGlitter, useGlitter, useRedGlitter, updatePlantArrangement } from '@/lib/firestore';
+import { updatePlant, useSheen, useRainbowGlitter, useGlitter, useRedGlitter, updatePlantArrangement, unlockPlantChat, addConversationHistory, deletePlant } from '@/lib/firestore';
 import { makeBackgroundTransparent } from '@/lib/image-compression';
-import { updateApplyGlitterProgress } from '@/lib/challenge-manager';
-
+import { updateApplyGlitterProgress, updateEvolutionProgress } from '@/lib/challenge-manager';
+import { AlertDialog, AlertDialogTrigger, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription as AlertDialogDescriptionComponent } from '@/components/ui/alert-dialog';
+import { evolvePlantAction } from '@/app/actions/evolve-plant';
+import { plantChatAction } from '@/app/actions/plant-chat';
+import { Textarea } from '@/components/ui/textarea';
 
 const DRAG_CLICK_TOLERANCE = 5; // pixels
 const NUM_POTS = 3;
+const EVOLUTION_LEVEL = 10;
+const SECOND_EVOLUTION_LEVEL = 25;
+const XP_PER_LEVEL = 1000;
+
 
 function SheenAnimation() {
     return (
@@ -92,35 +99,261 @@ function GlitterAnimation() {
 }
 
 
-function PlantDetailDialog({ plant, open, onOpenChange }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void }) {
+function PlantChatDialog({ plant, open, onOpenChange, userId }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, userId: string }) {
+    const [history, setHistory] = useState<{ role: 'user' | 'model'; content: string }[]>([]);
+    const [message, setMessage] = useState('');
+    const [isThinking, setIsThinking] = useState(false);
+    const scrollAreaRef = useRef<HTMLDivElement>(null);
+    const { playSfx } = useAudio();
+
+    useEffect(() => {
+        if (plant) {
+            setHistory(plant.conversationHistory || []);
+        }
+    }, [plant]);
+
+    useEffect(() => {
+        // Scroll to bottom when history changes
+        if (scrollAreaRef.current) {
+            scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+        }
+    }, [history]);
+
     if (!plant) return null;
+
+    const handleSendMessage = async () => {
+        if (!message.trim() || isThinking) return;
+
+        const newUserMessage = { role: 'user' as const, content: message };
+        const newHistory = [...history, newUserMessage];
+        setHistory(newHistory);
+        setMessage('');
+        setIsThinking(true);
+        playSfx('tap');
+
+        try {
+            const { response } = await plantChatAction({
+                plantName: plant.name,
+                plantPersonality: plant.personality,
+                userMessage: message,
+                history: history,
+                form: plant.form,
+            });
+            
+            const newModelMessage = { role: 'model' as const, content: response };
+            setHistory([...newHistory, newModelMessage]);
+            await addConversationHistory(userId, plant.id, newUserMessage.content, newModelMessage.content);
+            playSfx('chime');
+
+        } catch (e) {
+            console.error("Chat error:", e);
+            setHistory(history); // Revert history on error
+        } finally {
+            setIsThinking(false);
+        }
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-md flex flex-col h-[70vh]">
+                <DialogHeader>
+                    <DialogTitle className="text-2xl text-center text-primary">Chat with {plant.name}</DialogTitle>
+                    <DialogDescription className="text-center">Personality: <span className="font-semibold">{plant.personality}</span></DialogDescription>
+                </DialogHeader>
+                <div ref={scrollAreaRef} className="flex-grow overflow-y-auto p-4 space-y-4 bg-muted/50 rounded-lg">
+                    {history.map((turn, index) => (
+                        <div key={index} className={cn(
+                            "flex items-end gap-2",
+                            turn.role === 'user' ? 'justify-end' : 'justify-start'
+                        )}>
+                           {turn.role === 'model' && (
+                                <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-primary/50 shrink-0">
+                                     <Image src={plant.image} alt={plant.name} width={32} height={32} />
+                                </div>
+                           )}
+                           <div className={cn(
+                               "max-w-xs p-3 rounded-lg",
+                               turn.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-background'
+                           )}>
+                               <p className="text-sm">{turn.content}</p>
+                           </div>
+                        </div>
+                    ))}
+                    {isThinking && (
+                         <div className="flex items-end gap-2 justify-start">
+                            <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-primary/50 shrink-0">
+                                 <Image src={plant.image} alt={plant.name} width={32} height={32} />
+                            </div>
+                           <div className="bg-background p-3 rounded-lg">
+                               <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                           </div>
+                        </div>
+                    )}
+                </div>
+                <DialogFooter className="pt-4 flex-row gap-2">
+                    <Textarea 
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        placeholder="Say something..."
+                        className="flex-grow resize-none"
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSendMessage();
+                            }
+                        }}
+                        disabled={isThinking}
+                    />
+                    <Button onClick={handleSendMessage} disabled={!message.trim() || isThinking}>
+                        Send
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function PlantDetailDialog({ plant, open, onOpenChange, onStartEvolution, onOpenChat, userId }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, onStartEvolution: (plant: Plant) => void, onOpenChat: (plant: Plant) => void, userId: string }) {
+    const { playSfx } = useAudio();
+    const { toast } = useToast();
+    const { gameData } = useAuth();
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [viewingBase, setViewingBase] = useState(false);
+    const [isUnlockingChat, setIsUnlockingChat] = useState(false);
+
+    useEffect(() => {
+        // Reset view when dialog opens or plant changes
+        setViewingBase(false);
+    }, [plant, open]);
+
+    if (!plant || !gameData) return null;
+    
+    const displayName = viewingBase ? `Base: ${plant.name}` : plant.name;
+    const displayImage = viewingBase ? plant.baseImage : plant.image;
+    
+    const shouldEvolve = (plant.level >= EVOLUTION_LEVEL && plant.form === 'Base') || (plant.level >= SECOND_EVOLUTION_LEVEL && plant.form === 'Evolved');
+
+    const handleDeletePlant = async () => {
+        if (!plant) return;
+        setIsDeleting(true);
+        try {
+            await deletePlant(userId, plant.id);
+            toast({
+                title: "Plant Deleted",
+                description: `${plant.name} has been removed from your collection.`,
+            });
+            onOpenChange(false);
+        } catch (e) {
+            console.error("Failed to delete plant", e);
+            toast({ variant: 'destructive', title: "Error", description: "Could not delete the plant." });
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+    
+    const handleUnlockChat = async () => {
+        if (!plant) return;
+        setIsUnlockingChat(true);
+        try {
+            await unlockPlantChat(userId, plant.id);
+            playSfx('success');
+            toast({
+                title: "Chat Unlocked!",
+                description: `You can now chat with ${plant.name}.`
+            });
+        } catch (e: any) {
+            console.error("Failed to unlock chat", e);
+            toast({ variant: 'destructive', title: "Error", description: e.message || "Could not unlock chat." });
+        } finally {
+            setIsUnlockingChat(false);
+        }
+    };
+
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-sm">
                 <DialogHeader>
-                    <DialogTitle className="text-3xl text-center text-primary">{plant.name}</DialogTitle>
+                    <DialogTitle className="text-3xl text-center text-primary">{displayName}</DialogTitle>
+                     <div className="flex flex-row items-center justify-center pt-2 gap-2">
+                         {plant.baseImage && (
+                            <Button variant="outline" size="sm" className="text-xs h-7 px-2" onClick={() => setViewingBase(v => !v)}>
+                                <Sparkles className="mr-1 h-3 w-3" />
+                                {viewingBase ? 'View Evolved' : 'View Base Form'}
+                            </Button>
+                         )}
+                         {plant.form === 'Final' && (
+                             <>
+                                {plant.chatEnabled ? (
+                                    <Button variant="outline" size="sm" className="text-xs h-7 px-2" onClick={() => onOpenChat(plant)}>
+                                        <MessageCircle className="mr-1 h-3 w-3" />
+                                        Chat
+                                    </Button>
+                                ) : (
+                                    <Button variant="outline" size="sm" className="text-xs h-7 px-2" onClick={handleUnlockChat} disabled={isUnlockingChat || gameData.plantChatTokens < 1}>
+                                        {isUnlockingChat ? <Loader2 className="animate-spin" /> : <><Gem className="mr-1 h-3 w-3 text-red-500" /> Unlock Chat ({gameData.plantChatTokens})</>}
+                                    </Button>
+                                )}
+                             </>
+                         )}
+                         <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="outline" size="icon" className="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive h-7 w-7">
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogDescriptionComponent>
+                                        This will permanently delete {plant.name} from your collection. This action cannot be undone.
+                                    </AlertDialogDescriptionComponent>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleDeletePlant} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+                                        {isDeleting ? <Loader2 className="animate-spin" /> : "Yes, delete it"}
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </div>
                 </DialogHeader>
                 <div className="flex flex-col items-center gap-4 pt-4">
                     <div className="w-64 h-64 relative">
                         <div className="rounded-lg overflow-hidden border-4 border-primary/50 shadow-lg bg-green-100 flex items-center justify-center h-full">
-                            {plant.image && plant.image !== 'placeholder' ? (
-                                <Image src={plant.image} alt={plant.name} width={256} height={256} className="object-cover w-full h-full" data-ai-hint={plant.hint} />
+                            {displayImage && displayImage !== 'placeholder' ? (
+                                <Image src={displayImage} alt={plant.name} width={256} height={256} className="object-cover w-full h-full" data-ai-hint={plant.hint} />
                             ) : (
                                 <Leaf className="w-24 h-24 text-muted-foreground/50" />
                             )}
                         </div>
-                        {plant.hasGlitter && <GlitterAnimation />}
-                        {plant.hasRedGlitter && <RedGlitterAnimation />}
-                        {plant.hasSheen && <SheenAnimation />}
-                        {plant.hasRainbowGlitter && <RainbowGlitterAnimation />}
+                        {plant.hasGlitter && !viewingBase && <GlitterAnimation />}
+                        {plant.hasRedGlitter && !viewingBase && <RedGlitterAnimation />}
+                        {plant.hasSheen && !viewingBase && <SheenAnimation />}
+                        {plant.hasRainbowGlitter && !viewingBase && <RainbowGlitterAnimation />}
                     </div>
 
                     <p className="text-muted-foreground text-center mt-2 px-4">{plant.description}</p>
+                    
+                    <div className="w-full px-4 space-y-2">
+                        <div className="flex justify-between items-baseline">
+                            <p className="text-lg font-semibold text-primary">Level {plant.level}</p>
+                             <p className="text-sm text-muted-foreground">{plant.xp} / {XP_PER_LEVEL} XP</p>
+                        </div>
+                        <Progress value={(plant.xp / XP_PER_LEVEL) * 100} className="w-full" />
+                    </div>
+
                 </div>
-                <DialogFooter className="pt-2">
+                <DialogFooter className="pt-2 flex-col sm:flex-col sm:space-x-0 gap-2">
+                    {shouldEvolve && (
+                         <Button onClick={() => { onStartEvolution(plant); onOpenChange(false); }} className="w-full">
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Evolve Plant
+                        </Button>
+                    )}
                     <DialogClose asChild>
-                        <Button className="w-full">Close</Button>
+                        <Button className="w-full" variant="outline">Close</Button>
                     </DialogClose>
                 </DialogFooter>
             </DialogContent>
@@ -128,6 +361,49 @@ function PlantDetailDialog({ plant, open, onOpenChange }: { plant: Plant | null,
     );
 }
 
+function EvolveConfirmationDialog({ plant, open, onConfirm, onCancel, isEvolving }: { plant: Plant | null, open: boolean, onConfirm: () => void, onCancel: () => void, isEvolving: boolean }) {
+    if (!plant) return null;
+
+    return (
+        <AlertDialog open={open} onOpenChange={(isOpen) => !isOpen && onCancel()}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Your plant is growing!</AlertDialogTitle>
+                    <AlertDialogDescriptionComponent>
+                        {plant.name} is ready for a new form! Would you like to evolve it?
+                    </AlertDialogDescriptionComponent>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={onCancel} disabled={isEvolving}>Later</AlertDialogCancel>
+                    <AlertDialogAction onClick={onConfirm} disabled={isEvolving}>
+                        {isEvolving ? <Loader2 className="animate-spin" /> : 'Evolve'}
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
+}
+
+function EvolvePreviewDialog({ plantName, newForm, newImageUri, open, onConfirm }: { plantName: string, newForm: string, newImageUri: string, open: boolean, onConfirm: () => void }) {
+    return (
+        <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onConfirm()}>
+            <DialogContent className="max-w-sm">
+                 <DialogHeader>
+                    <DialogTitle className="text-3xl text-center">Evolution Complete!</DialogTitle>
+                </DialogHeader>
+                <div className="flex flex-col items-center gap-4 py-4">
+                    <div className="w-64 h-64 rounded-lg overflow-hidden border-4 border-primary/50 shadow-lg bg-green-100">
+                        <Image src={newImageUri} alt={`Evolved ${plantName}`} width={256} height={256} className="object-cover w-full h-full" />
+                    </div>
+                    <h3 className="text-2xl font-semibold text-primary">{plantName} has evolved into its {newForm} form!</h3>
+                </div>
+                <DialogFooter>
+                    <Button onClick={onConfirm} className="w-full text-lg">Continue</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
 
 function PlantImageUI({ plant, image }: { plant: Plant, image: string | null }) {
   return (
@@ -278,7 +554,7 @@ function PlantCardUI({
                     {plant.hasRedGlitter && <RedGlitterAnimation />}
                     {plant.hasSheen && <SheenAnimation />}
                     {plant.hasRainbowGlitter && <RainbowGlitterAnimation />}
-                    {plant.form === 'Evolved' && (
+                    {(plant.form === 'Evolved' || plant.form === 'Final') && (
                         <div className="absolute top-1 right-1 bg-secondary/80 text-secondary-foreground p-1 rounded-full shadow-md backdrop-blur-sm">
                             <Sparkles className="w-2 h-2" />
                         </div>
@@ -390,6 +666,13 @@ export default function RoomPage() {
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
 
   const [processedDeskImages, setProcessedDeskImages] = useState<Record<number, string | null>>({});
+
+  const [currentEvolvingPlant, setCurrentEvolvingPlant] = useState<Plant | null>(null);
+  const [isEvolving, setIsEvolving] = useState(false);
+  const [evolvedPreviewData, setEvolvedPreviewData] = useState<{plantId: number; plantName: string; newForm: string, newImageUri: string, personality?: string } | null>(null);
+
+  // For Plant Chat
+  const [chattingPlant, setChattingPlant] = useState<Plant | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -576,6 +859,76 @@ export default function RoomPage() {
     }
   };
   
+  const handleEvolve = async () => {
+    if (!currentEvolvingPlant || !user) return;
+    
+    setIsEvolving(true);
+    try {
+        const evolutionPlant = { ...currentEvolvingPlant };
+        
+        const { newImageDataUri, personality } = await evolvePlantAction({
+            name: evolutionPlant.name,
+            baseImageDataUri: evolutionPlant.baseImage || evolutionPlant.image,
+            form: evolutionPlant.form,
+        });
+
+        const isFirstEvolution = evolutionPlant.form === 'Base';
+        const newForm = isFirstEvolution ? 'Evolved' : 'Final';
+
+        setEvolvedPreviewData({ 
+            plantId: evolutionPlant.id,
+            plantName: evolutionPlant.name, 
+            newForm,
+            newImageUri: newImageDataUri,
+            personality
+        });
+
+    } catch (e) {
+        console.error("Evolution failed", e);
+        toast({ variant: 'destructive', title: "Evolution Failed", description: "Could not evolve your plant. Please try again." });
+    } finally {
+        setIsEvolving(false);
+        setCurrentEvolvingPlant(null);
+    }
+  };
+  
+  const handleConfirmEvolution = async () => {
+    if (!user || !evolvedPreviewData) return;
+    
+    try {
+        playSfx('success');
+        const plantToUpdateId = evolvedPreviewData.plantId;
+        const { newImageUri, newForm, personality } = evolvedPreviewData;
+        
+        const currentPlant = allPlants[plantToUpdateId];
+
+        const updateData: Partial<Plant> = {
+            image: newImageUri,
+            form: newForm,
+            personality: personality || '',
+        };
+        
+        if (newForm === 'Evolved' && currentPlant && !currentPlant.baseImage) {
+            updateData.baseImage = currentPlant.image;
+        }
+
+        await updatePlant(user.uid, plantToUpdateId, updateData);
+        await updateEvolutionProgress(user.uid);
+        
+        toast({
+            title: "Evolution Complete!",
+            description: `${evolvedPreviewData.plantName} has evolved!`,
+        });
+
+    } catch (e) {
+        console.error("Failed to save evolution", e);
+        toast({ variant: 'destructive', title: "Save Failed", description: "Could not save your evolved plant." });
+    } finally {
+        setIsEvolving(false);
+        setEvolvedPreviewData(null);
+    }
+  };
+
   if (!user || !gameData) {
     return (
         <div className="flex h-screen w-full items-center justify-center bg-white">
@@ -653,7 +1006,37 @@ export default function RoomPage() {
           plant={selectedPlant ? allPlants[selectedPlant.id] : null}
           open={!!selectedPlant}
           onOpenChange={(isOpen) => !isOpen && setSelectedPlant(null)}
+          onStartEvolution={(plant) => setCurrentEvolvingPlant(plant)}
+          onOpenChat={(plant) => setChattingPlant(plant)}
+          userId={user.uid}
         />
+        
+        <PlantChatDialog
+            plant={chattingPlant}
+            open={!!chattingPlant}
+            onOpenChange={(isOpen) => {
+                if (!isOpen) setChattingPlant(null);
+            }}
+            userId={user.uid}
+        />
+
+        <EvolveConfirmationDialog
+            plant={currentEvolvingPlant}
+            open={!!currentEvolvingPlant && !isEvolving}
+            onConfirm={handleEvolve}
+            onCancel={() => setCurrentEvolvingPlant(null)}
+            isEvolving={isEvolving}
+        />
+
+        {evolvedPreviewData && (
+            <EvolvePreviewDialog
+                plantName={evolvedPreviewData.plantName}
+                newForm={evolvedPreviewData.newForm}
+                newImageUri={evolvedPreviewData.newImageUri}
+                open={!!evolvedPreviewData}
+                onConfirm={handleConfirmEvolution}
+            />
+        )}
         
         <DragOverlay>
             {activeDragData ? (
