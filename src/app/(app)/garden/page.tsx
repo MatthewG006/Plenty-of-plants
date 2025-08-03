@@ -993,7 +993,7 @@ export default function GardenPage() {
                 )}
             </div>
             <div 
-                className="relative aspect-[4/5] max-w-lg mx-auto rounded-lg bg-cover bg-center" 
+                className="relative aspect-auto h-[60vh] max-w-lg mx-auto rounded-lg bg-cover bg-center" 
                 style={{backgroundImage: "url('/garden-bg.png')"}}
             >
                 <div className="absolute inset-0 p-4 sm:p-6 md:p-8 grid grid-cols-3 grid-rows-4 gap-2">
@@ -1074,4 +1074,3 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
         </div>
     );
 }
-
