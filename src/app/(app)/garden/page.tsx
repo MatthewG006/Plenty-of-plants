@@ -26,26 +26,28 @@ const SECOND_EVOLUTION_LEVEL = 25;
 function PlantCard({ plant, onSelectPlant }: { plant: Plant; onSelectPlant: (plant: Plant) => void; }) {
     
     return (
-        <Card 
-            className="group overflow-hidden shadow-md w-full relative bg-white/70 backdrop-blur-sm cursor-pointer hover:scale-105 transition-transform"
+        <div 
+            className="group w-full relative cursor-pointer hover:scale-105 transition-transform"
             onClick={() => onSelectPlant(plant)}
         >
-            <CardContent className="p-2 space-y-2">
-                <div className="aspect-square relative flex items-center justify-center bg-muted/30 rounded-md">
-                    {plant.image !== 'placeholder' ? (
-                        <Image src={plant.image} alt={plant.name} fill sizes="100px" className="object-contain p-2" data-ai-hint={plant.hint} />
-                    ) : (
-                        <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
-                    )}
-                </div>
+            <div className="aspect-square relative flex items-center justify-center rounded-md">
+                {plant.image !== 'placeholder' ? (
+                    <Image src={plant.image} alt={plant.name} fill sizes="100px" className="object-contain p-2" data-ai-hint={plant.hint} />
+                ) : (
+                    <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
+                )}
+            </div>
 
-                <div className="text-center space-y-1">
-                    <p className="text-sm font-semibold text-primary truncate">{plant.name}</p>
-                    <div className="text-xs text-muted-foreground">Lvl {plant.level}</div>
-                    <Progress value={(plant.xp / 1000) * 100} className="h-1.5" />
+            <div className="text-center space-y-1">
+                <p className="text-sm font-semibold text-white truncate" style={{ textShadow: '1px 1px 2px black' }}>{plant.name}</p>
+                <div className="text-xs text-muted-foreground">
+                     <div className="bg-black/20 rounded-full px-2 py-0.5 inline-block">
+                        <span className="text-white" style={{ textShadow: '1px 1px 1px black' }}>Lvl {plant.level}</span>
+                    </div>
                 </div>
-            </CardContent>
-        </Card>
+                <Progress value={(plant.xp / 1000) * 100} className="h-1.5" />
+            </div>
+        </div>
     );
 }
 
