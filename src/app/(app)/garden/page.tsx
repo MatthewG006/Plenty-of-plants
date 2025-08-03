@@ -292,57 +292,59 @@ export default function GardenPage() {
   }
 
   return (
-    <div className="fixed inset-0 w-full h-full bg-cover bg-top" style={{backgroundImage: "url('/garden-bg.png')"}}>
-        <div className="absolute inset-0 bg-black/50 backdrop-blur-lg" />
-        <div className="relative min-h-screen w-full bg-contain bg-top bg-no-repeat" style={{backgroundImage: "url('/garden-bg.png')"}}>
-            <div className="absolute inset-0" />
-            <div className="relative z-10 p-4 space-y-4">
-                <header className="flex flex-col items-center gap-2 p-4 text-center">
-                  <h1 className="text-3xl text-white font-bold [text-shadow:0_2px_4px_rgba(0,0,0,0.5)]">My Garden</h1>
-                  <p className="text-white/90 [text-shadow:0_1px_2px_rgba(0,0,0,0.5)]">Water your plants to help them level up and evolve.</p>
-                </header>
+    <div style={{ paddingTop: '100px' }}>
+      <div className="fixed inset-0 w-full h-full bg-cover bg-top" style={{backgroundImage: "url('/garden-bg.png')"}}>
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-lg" />
+          <div className="relative min-h-screen w-full bg-contain bg-top bg-no-repeat" style={{backgroundImage: "url('/garden-bg.png')"}}>
+              <div className="absolute inset-0" />
+              <div className="relative z-10 p-4 space-y-4">
+                  <header className="flex flex-col items-center gap-2 p-4 text-center">
+                    <h1 className="text-3xl text-white font-bold [text-shadow:0_2px_4px_rgba(0,0,0,0.5)]">My Garden</h1>
+                    <p className="text-white/90 [text-shadow:0_1px_2px_rgba(0,0,0,0.5)]">Water your plants to help them level up and evolve.</p>
+                  </header>
 
-                <section>
-                     {allPlants.length > 0 ? (
-                        <div className="grid grid-cols-3 gap-4">
-                            {allPlants.map(plant => (
-                                <PlantCard 
-                                    key={plant.id}
-                                    plant={plant}
-                                    onWater={handleWaterPlant}
-                                    onStartEvolution={(p) => setCurrentEvolvingPlant(p)}
-                                    isWatering={isWatering}
-                                />
-                            ))}
-                        </div>
-                    ) : (
-                        <Card className="text-center py-10 bg-white/70 backdrop-blur-sm">
-                          <CardContent>
-                            <p className="text-muted-foreground">Your garden is empty. Go home to draw some new plants!</p>
-                          </CardContent>
-                        </Card>
-                    )}
-                </section>
-            </div>
-        </div>
-        
-        <EvolveConfirmationDialog
-            plant={currentEvolvingPlant}
-            open={!!currentEvolvingPlant && !isEvolving}
-            onConfirm={handleEvolve}
-            onCancel={() => setCurrentEvolvingPlant(null)}
-            isEvolving={isEvolving}
-        />
+                  <section>
+                       {allPlants.length > 0 ? (
+                          <div className="grid grid-cols-3 gap-4">
+                              {allPlants.map(plant => (
+                                  <PlantCard 
+                                      key={plant.id}
+                                      plant={plant}
+                                      onWater={handleWaterPlant}
+                                      onStartEvolution={(p) => setCurrentEvolvingPlant(p)}
+                                      isWatering={isWatering}
+                                  />
+                              ))}
+                          </div>
+                      ) : (
+                          <Card className="text-center py-10 bg-white/70 backdrop-blur-sm">
+                            <CardContent>
+                              <p className="text-muted-foreground">Your garden is empty. Go home to draw some new plants!</p>
+                            </CardContent>
+                          </Card>
+                      )}
+                  </section>
+              </div>
+          </div>
+          
+          <EvolveConfirmationDialog
+              plant={currentEvolvingPlant}
+              open={!!currentEvolvingPlant && !isEvolving}
+              onConfirm={handleEvolve}
+              onCancel={() => setCurrentEvolvingPlant(null)}
+              isEvolving={isEvolving}
+          />
 
-        {evolvedPreviewData && (
-            <EvolvePreviewDialog
-                plantName={evolvedPreviewData.plantName}
-                newForm={evolvedPreviewData.newForm}
-                newImageUri={evolvedPreviewData.newImageUri}
-                open={!!evolvedPreviewData}
-                onConfirm={handleConfirmEvolution}
-            />
-        )}
+          {evolvedPreviewData && (
+              <EvolvePreviewDialog
+                  plantName={evolvedPreviewData.plantName}
+                  newForm={evolvedPreviewData.newForm}
+                  newImageUri={evolvedPreviewData.newImageUri}
+                  open={!!evolvedPreviewData}
+                  onConfirm={handleConfirmEvolution}
+              />
+          )}
+      </div>
     </div>
   );
 }
