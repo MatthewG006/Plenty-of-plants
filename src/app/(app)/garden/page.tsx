@@ -33,7 +33,7 @@ function PlantCard({ plant, onSelectPlant }: { plant: Plant; onSelectPlant: (pla
             <CardContent className="p-2 space-y-2">
                 <div className="aspect-square relative flex items-center justify-center bg-muted/30 rounded-md">
                     {plant.image !== 'placeholder' ? (
-                        <Image src={plant.image} alt={plant.name} fill sizes="100px" className="object-cover" data-ai-hint={plant.hint} />
+                        <Image src={plant.image} alt={plant.name} fill sizes="100px" className="object-contain p-2" data-ai-hint={plant.hint} />
                     ) : (
                         <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
                     )}
