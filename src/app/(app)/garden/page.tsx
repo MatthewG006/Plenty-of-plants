@@ -33,9 +33,9 @@ function PlantCard({ plant, onSelectPlant, processedImage, className }: { plant:
             className={cn("group w-full relative cursor-pointer hover:scale-105 transition-transform", className)}
             onClick={() => onSelectPlant(plant)}
         >
-            <div className="relative flex items-center justify-center rounded-md mb-2">
+            <div className="relative flex items-center justify-center mb-2">
                 {imageToDisplay !== 'placeholder' ? (
-                    <div className="p-4 h-full w-full relative">
+                    <div className="h-full w-full relative">
                         <Image src={imageToDisplay} alt={plant.name} fill sizes="100px" className="object-contain" data-ai-hint={plant.hint} />
                     </div>
                 ) : (
