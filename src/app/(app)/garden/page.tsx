@@ -36,7 +36,7 @@ function PlantCard({ plant, onSelectPlant, processedImage }: { plant: Plant; onS
             <div className="aspect-square relative flex items-center justify-center rounded-md">
                 {imageToDisplay !== 'placeholder' ? (
                     <div className="p-1">
-                        <Image src={imageToDisplay} alt={plant.name} fill sizes="100px" className="object-contain p-2" data-ai-hint={plant.hint} />
+                        <Image src={imageToDisplay} alt={plant.name} fill sizes="100px" className="object-contain p-4" data-ai-hint={plant.hint} />
                     </div>
                 ) : (
                     <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
@@ -203,7 +203,7 @@ export default function GardenPage() {
         <div className="relative z-10 p-4 space-y-4">
             <section>
               {allPlants.length > 0 ? (
-                <div className="grid grid-cols-3 gap-y-4 gap-x-8">
+                <div className="grid grid-cols-3 gap-y-0 gap-x-8">
                   {allPlants.map((plant) => (
                     <PlantCard
                       key={plant.id}
