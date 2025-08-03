@@ -137,8 +137,8 @@ function ChallengeCard({ challenge, onClaim, isClaiming }: { challenge: Challeng
 }
 
 const gameTips = [
-    "Drag plants from your collection onto the pots in your room to display them.",
-    "Water your plants in the room to gain XP and level them up. Evolve them at level 10!",
+    "Go to the Garden to water your plants and help them grow.",
+    "Drag plants from your collection onto the pots in the garden to display them.",
     "Complete daily challenges to earn extra gold.",
     "Visit the shop to get daily free draws or buy more with your gold.",
     "Show off your favorite plants on the community page by selecting them in your profile."
@@ -164,7 +164,7 @@ export default function HomePage() {
   useEffect(() => {
     if (user && gameData) {
         if (gameData.draws > 0) {
-            toast({
+             toast({
                 title: "Draws Available!",
                 description: `You have ${gameData.draws} draw(s) ready.`,
             });
@@ -325,7 +325,7 @@ export default function HomePage() {
   const userChallenges = gameData.challenges;
 
   return (
-    <div className="p-4 space-y-6 bg-white">
+    <div className="p-4 space-y-6 bg-white pb-24">
       <header className="flex flex-col items-center space-y-2">
         <h1 className="text-3xl text-primary font-bold text-center">
           Plenty Of Plants
@@ -487,6 +487,15 @@ export default function HomePage() {
       />
 
       <CommunityInfoDialog open={showCommunityInfo} onOpenChange={handleCloseCommunityInfo} />
+
+       <Link href="/garden">
+        <Button
+            size="icon"
+            className="fixed bottom-24 right-4 h-16 w-16 rounded-full bg-green-500 hover:bg-green-600 shadow-lg animate-pulse-subtle"
+        >
+            <Sprout className="h-8 w-8 text-white" />
+        </Button>
+      </Link>
     </div>
   );
 }

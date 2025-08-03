@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Sprout, Users, Store } from 'lucide-react';
+import { Home, Sprout, Users, Store, Wind } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAudio } from '@/context/AudioContext';
 
