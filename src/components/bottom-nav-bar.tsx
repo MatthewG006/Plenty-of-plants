@@ -3,13 +3,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Wind, Users, Store } from 'lucide-react';
+import { Home, LayoutGrid, Users, Store } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAudio } from '@/context/AudioContext';
 
 const navItems = [
   { href: '/home', label: 'Home', icon: Home },
-  { href: '/room', label: 'Room', icon: Wind },
+  { href: '/room', label: 'Room', icon: LayoutGrid },
   { href: '/community', label: 'Community', icon: Users },
   { href: '/shop', label: 'Shop', icon: Store },
 ];
