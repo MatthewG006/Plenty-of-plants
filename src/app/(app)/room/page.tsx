@@ -23,18 +23,15 @@ import {
   useSensors,
   TouchSensor
 } from '@dnd-kit/core';
-import { useDraw, refundDraw } from '@/lib/draw-manager';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { updateUserGold, updateUserRubies, savePlant, updatePlant, getPlantById, deletePlant, updateShowcasePlants, useSheen, useRainbowGlitter, GameData, useGlitter, useSprinkler, useWaterRefill, useRedGlitter, unlockPlantChat, addConversationHistory, updatePlantArrangement, NUM_POTS } from '@/lib/firestore';
+import { updateUserGold, updateUserRubies, updatePlant, getPlantById, deletePlant, useSheen, useRainbowGlitter, useGlitter, useSprinkler, useWaterRefill, useRedGlitter, unlockPlantChat, addConversationHistory, updatePlantArrangement, NUM_POTS } from '@/lib/firestore';
 import { AlertDialog, AlertDialogTrigger, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription as AlertDialogDescriptionComponent } from '@/components/ui/alert-dialog';
 import { compressImage, makeBackgroundTransparent } from '@/lib/image-compression';
-import { Badge } from '@/components/ui/badge';
 import { evolvePlantAction } from '@/app/actions/evolve-plant';
-import { drawPlantAction } from '@/app/actions/draw-plant';
 import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
-import { updateWateringProgress, updateEvolutionProgress, updateCollectionProgress, updateWaterEvolvedProgress, updateApplyGlitterProgress } from '@/lib/challenge-manager';
+import { updateWateringProgress, updateEvolutionProgress, updateApplyGlitterProgress, updateWaterEvolvedProgress } from '@/lib/challenge-manager';
 import { plantChatAction } from '@/app/actions/plant-chat';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -1296,7 +1293,9 @@ export default function RoomPage() {
                         />
                     </div>
                 ) : (
-                    <DraggablePlant plant={activeDragData.plant} source="desk" />
+                    <div className="w-28 h-28">
+                       <PlantImageUI plant={activeDragData.plant} image={activeDragData.image} canWater={false} />
+                    </div>
                 )
             ) : null}
         </DragOverlay>
