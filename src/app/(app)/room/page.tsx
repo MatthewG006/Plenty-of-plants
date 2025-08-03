@@ -312,11 +312,29 @@ function DraggablePlant({ plant, source, ...rest }: { plant: Plant; source: 'des
     );
 }
 
-function DraggablePlantCard({ plant, onApplyGlitter, canApplyGlitter, onApplySheen, canApplySheen, onApplyRainbowGlitter, canApplyRainbowGlitter, onApplyRedGlitter, canApplyRedGlitter }: { plant: Plant; onApplyGlitter: (plantId: number) => void; canApplyGlitter: boolean; onApplySheen: (plantId: number) => void; canApplySheen: boolean; onApplyRainbowGlitter: (plantId: number) => void; canApplyRainbowGlitter: boolean; onApplyRedGlitter: (plantId: number) => void; canApplyRedGlitter: boolean; }) {
+function DraggablePlantCard({ plant, onClick, onApplyGlitter, canApplyGlitter, onApplySheen, canApplySheen, onApplyRainbowGlitter, canApplyRainbowGlitter, onApplyRedGlitter, canApplyRedGlitter }: { plant: Plant; onClick: (plant: Plant) => void; onApplyGlitter: (plantId: number) => void; canApplyGlitter: boolean; onApplySheen: (plantId: number) => void; canApplySheen: boolean; onApplyRainbowGlitter: (plantId: number) => void; canApplyRainbowGlitter: boolean; onApplyRedGlitter: (plantId: number) => void; canApplyRedGlitter: boolean; }) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: `collection:${plant.id}`,
         data: { plant, source: 'collection' },
     });
+    
+    const pos = useRef([0, 0]);
+
+    const onPointerDown = (e: React.PointerEvent) => {
+        pos.current = [e.clientX, e.clientY];
+        if (attributes.onPointerDown) {
+            attributes.onPointerDown(e);
+        }
+    };
+
+    const onPointerUp = (e: React.PointerEvent) => {
+        const [x, y] = pos.current;
+        const dist = Math.sqrt(Math.pow(e.clientX - x, 2) + Math.pow(e.clientY - y, 2));
+
+        if (dist < DRAG_CLICK_TOLERANCE) {
+             onClick(plant);
+        }
+    };
 
     const style = {
         opacity: isDragging ? 0.4 : 1,
@@ -324,7 +342,15 @@ function DraggablePlantCard({ plant, onApplyGlitter, canApplyGlitter, onApplyShe
     };
 
     return (
-        <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing">
+        <div 
+            ref={setNodeRef} 
+            style={style} 
+            {...listeners} 
+            {...attributes} 
+            onPointerDown={onPointerDown}
+            onPointerUp={onPointerUp}
+            className="cursor-grab active:cursor-grabbing"
+        >
             <PlantCardUI 
                 plant={plant} 
                 onApplyGlitter={onApplyGlitter} 
@@ -602,6 +628,7 @@ export default function RoomPage() {
                            <DraggablePlantCard
                               key={plant.id}
                                plant={plant}
+                               onClick={(p) => setSelectedPlant(allPlants[p.id])}
                                onApplyGlitter={handleApplyGlitter}
                                canApplyGlitter={gameData.glitterCount > 0}
                                onApplySheen={handleApplySheen}
@@ -651,4 +678,3 @@ export default function RoomPage() {
     </DndContext>
   );
 }
-
