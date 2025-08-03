@@ -992,10 +992,15 @@ export default function GardenPage() {
                     </Button>
                 )}
             </div>
-            <div 
-                className="relative aspect-auto h-[60vh] max-w-lg mx-auto rounded-lg bg-cover bg-center" 
-                style={{backgroundImage: "url('/garden-bg.png')"}}
-            >
+            <div className="relative max-w-lg mx-auto">
+                <Image
+                    src="/garden-bg.png"
+                    alt="Garden background"
+                    width={1024}
+                    height={768}
+                    className="w-full h-auto rounded-lg"
+                    priority
+                />
                 <div className="absolute inset-0 p-4 sm:p-6 md:p-8 grid grid-cols-3 grid-rows-4 gap-2">
                     {deskPlants.map((plant, index) => {
                         const canWater = plant ? (plant.lastWatered?.filter(isToday).length ?? 0) < MAX_WATERINGS_PER_DAY : false;
