@@ -560,7 +560,7 @@ function PlantCardUI({
                             variant={plant.form === 'Final' ? "destructive" : "secondary"}
                             className="absolute top-1 right-1"
                         >
-                            {plant.form}
+                            {plant.form === 'Final' ? 'Max' : plant.form}
                         </Badge>
                     )}
                 </div>
