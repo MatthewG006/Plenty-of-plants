@@ -17,22 +17,25 @@ import { updateUserGold, updateUserRubies, updatePlant, getPlantById } from '@/l
 import { updateWateringProgress, updateEvolutionProgress, updateWaterEvolvedProgress } from '@/lib/challenge-manager';
 import { EvolveConfirmationDialog, EvolvePreviewDialog, PlantCareDialog } from '@/components/plant-dialogs';
 import { evolvePlantAction } from '@/app/actions/evolve-plant';
+import { makeBackgroundTransparent } from '@/lib/image-compression';
 
 
 const EVOLUTION_LEVEL = 10;
 const SECOND_EVOLUTION_LEVEL = 25;
 
 
-function PlantCard({ plant, onSelectPlant }: { plant: Plant; onSelectPlant: (plant: Plant) => void; }) {
+function PlantCard({ plant, onSelectPlant, processedImage }: { plant: Plant; onSelectPlant: (plant: Plant) => void; processedImage: string | null; }) {
     
+    const imageToDisplay = processedImage || plant.image;
+
     return (
         <div 
             className="group w-full relative cursor-pointer hover:scale-105 transition-transform"
             onClick={() => onSelectPlant(plant)}
         >
             <div className="aspect-square relative flex items-center justify-center rounded-md">
-                {plant.image !== 'placeholder' ? (
-                    <Image src={plant.image} alt={plant.name} fill sizes="100px" className="object-contain p-2" data-ai-hint={plant.hint} />
+                {imageToDisplay !== 'placeholder' ? (
+                    <Image src={imageToDisplay} alt={plant.name} fill sizes="100px" className="object-contain p-2" data-ai-hint={plant.hint} />
                 ) : (
                     <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
                 )}
@@ -61,14 +64,44 @@ export default function GardenPage() {
   const [currentEvolvingPlant, setCurrentEvolvingPlant] = useState<Plant | null>(null);
   const [isEvolving, setIsEvolving] = useState(false);
   const [evolvedPreviewData, setEvolvedPreviewData] = useState<{plantId: number; plantName: string; newForm: string, newImageUri: string, personality?: string } | null>(null);
+  const [processedImages, setProcessedImages] = useState<Record<number, string | null>>({});
+
 
   const allPlants = useMemo(() => {
     if (!gameData?.plants) return [];
     return Object.values(gameData.plants).sort((a,b) => b.level - a.level);
   }, [gameData]);
 
+  useEffect(() => {
+    const processImages = async () => {
+        const newImages: Record<number, string | null> = {};
+        for (const plant of allPlants) {
+            if (plant && plant.image && !plant.image.startsWith('/')) { // Don't process local placeholders
+                try {
+                    const transparentImage = await makeBackgroundTransparent(plant.image);
+                    newImages[plant.id] = transparentImage;
+                } catch (e) {
+                    console.error("Failed to process image for plant:", plant.id, e);
+                    newImages[plant.id] = plant.image; // fallback to original
+                }
+            } else if (plant) {
+                newImages[plant.id] = plant.image;
+            }
+        }
+        setProcessedImages(newImages);
+    };
+
+    if (allPlants.length > 0) {
+        processImages();
+    }
+  }, [allPlants]);
+
   const handleSelectPlant = (plant: Plant) => {
-    setSelectedPlant(plant);
+    const processedPlant = {
+      ...plant,
+      image: processedImages[plant.id] || plant.image,
+    };
+    setSelectedPlant(processedPlant);
     playSfx('tap');
   };
 
@@ -162,7 +195,7 @@ export default function GardenPage() {
       </header>
 
       <div className="flex-grow relative">
-        <div className="absolute inset-0 -z-10 h-full w-full bg-cover bg-top bg-black" style={{ backgroundImage: "url('/garden-bg.png')" }} />
+        <div className="absolute inset-0 -z-10 h-full w-full bg-cover bg-top" style={{ backgroundImage: "url('/garden-bg.png')" }} />
         <div className="absolute inset-0 -z-10 h-full w-full bg-contain bg-top bg-no-repeat backdrop-blur-sm" style={{ backgroundImage: "url('/garden-bg.png')" }} />
         
         <div className="relative z-10 p-4 space-y-4">
@@ -174,6 +207,7 @@ export default function GardenPage() {
                       key={plant.id}
                       plant={plant}
                       onSelectPlant={handleSelectPlant}
+                      processedImage={processedImages[plant.id]}
                     />
                   ))}
                 </div>
