@@ -25,7 +25,7 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { updatePlant, useGlitter, useSheen, useRainbowGlitter, useRedGlitter, updatePlantArrangement } from '@/lib/firestore';
+import { updatePlant, useGlitter, useSheen, useRainbowGlitter, useRedGlitter, updatePlantArrangement, NUM_POTS } from '@/lib/firestore';
 import { updateApplyGlitterProgress } from '@/lib/challenge-manager';
 
 const XP_PER_LEVEL = 1000;
@@ -348,7 +348,7 @@ export default function RoomPage() {
     const [overType, overIdStr] = (over.id as string).split(':');
     
     // Use the full deskPlantIds from gameData for logic, not the sliced one
-    let newDeskIds = [...(gameData.deskPlantIds || [])];
+    let newDeskIds = [...(gameData.deskPlantIds || Array(NUM_POTS).fill(null))];
     let newCollectionIds = [...collectionPlantIds];
 
     if (overType === 'pot') { // desk to desk, or collection to desk
@@ -539,6 +539,3 @@ export default function RoomPage() {
     </DndContext>
   );
 }
-
-
-    
