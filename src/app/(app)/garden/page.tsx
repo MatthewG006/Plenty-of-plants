@@ -292,9 +292,9 @@ export default function GardenPage() {
   }
 
   return (
-    <div className="fixed inset-0 w-full h-full bg-cover bg-center" style={{backgroundImage: "url('/garden-bg.png')"}}>
+    <div className="fixed inset-0 w-full h-full bg-cover bg-top" style={{backgroundImage: "url('/garden-bg.png')"}}>
         <div className="absolute inset-0 bg-black/50 backdrop-blur-lg" />
-        <div className="relative min-h-screen w-full bg-contain bg-center bg-no-repeat" style={{backgroundImage: "url('/garden-bg.png')"}}>
+        <div className="relative min-h-screen w-full bg-contain bg-top bg-no-repeat" style={{backgroundImage: "url('/garden-bg.png')"}}>
             <div className="absolute inset-0" />
             <div className="relative z-10 p-4 space-y-4">
                 <header className="flex flex-col items-center gap-2 p-4 text-center">
