@@ -5,7 +5,7 @@ import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose, DialogDescription } from '@/components/ui/dialog';
-import { Leaf, Loader2, Droplet, Coins, Sparkles, Droplets, Trash2, GripVertical, Star, Pipette, RefreshCw, Gem, MessageCircle } from 'lucide-react';
+import { Leaf, Loader2, Sparkles, Star } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -23,21 +23,11 @@ import {
   useSensors,
   TouchSensor
 } from '@dnd-kit/core';
-import { useDraw, refundDraw } from '@/lib/draw-manager';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { updateUserGold, updateUserRubies, savePlant, updatePlant, getPlantById, deletePlant, updateShowcasePlants, useSheen, useRainbowGlitter, GameData, useGlitter, useSprinkler, useWaterRefill, useRedGlitter, unlockPlantChat, addConversationHistory, updatePlantArrangement, NUM_POTS } from '@/lib/firestore';
-import { AlertDialog, AlertDialogTrigger, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription as AlertDialogDescriptionComponent } from '@/components/ui/alert-dialog';
-import { compressImage, makeBackgroundTransparent } from '@/lib/image-compression';
-import { Badge } from '@/components/ui/badge';
-import { evolvePlantAction } from '@/app/actions/evolve-plant';
-import { drawPlantAction } from '@/app/actions/draw-plant';
-import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
-import { updateWateringProgress, updateEvolutionProgress, updateCollectionProgress, updateWaterEvolvedProgress, updateApplyGlitterProgress } from '@/lib/challenge-manager';
-import { plantChatAction } from '@/app/actions/plant-chat';
-import { Textarea } from '@/components/ui/textarea';
-
+import { updatePlant, useGlitter, useSheen, useRainbowGlitter, useRedGlitter, updatePlantArrangement } from '@/lib/firestore';
+import { updateApplyGlitterProgress } from '@/lib/challenge-manager';
 
 const XP_PER_LEVEL = 1000;
 
@@ -178,16 +168,9 @@ function PlantCardUI({
                     {plant.hasSheen && <SheenAnimation />}
                     {plant.hasRainbowGlitter && <RainbowGlitterAnimation />}
                     {plant.form === 'Evolved' && (
-                        <Badge variant="secondary" className="absolute top-2 right-2 shadow-md">
-                            <Sparkles className="w-3 h-3 mr-1" />
-                            Evolved
-                        </Badge>
-                    )}
-                    {plant.form === 'Final' && (
-                        <Badge variant="destructive" className="absolute top-2 right-2 shadow-md">
-                            <Sparkles className="w-3 h-3 mr-1" />
-                            Max
-                        </Badge>
+                        <div className="absolute top-1 right-1 bg-secondary/80 text-secondary-foreground p-1 rounded-full shadow-md backdrop-blur-sm">
+                            <Sparkles className="w-2 h-2" />
+                        </div>
                     )}
                 </div>
                 <div className="p-2 text-center bg-white/50 space-y-1">
@@ -247,6 +230,7 @@ export default function RoomPage() {
   const { playSfx } = useAudio();
   
   const [collectionPlantIds, setCollectionPlantIds] = useState<number[]>([]);
+  const [deskPlantIds, setDeskPlantIds] = useState<(number | null)[]>([]);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
 
   const sensors = useSensors(
@@ -266,11 +250,13 @@ export default function RoomPage() {
   useEffect(() => {
     if (gameData) {
         setCollectionPlantIds(gameData.collectionPlantIds || []);
+        setDeskPlantIds(gameData.deskPlantIds || []);
     }
   }, [gameData]);
 
   const allPlants = useMemo(() => gameData?.plants || {}, [gameData]);
   const collectionPlants = useMemo(() => collectionPlantIds.map(id => allPlants[id]).filter(Boolean), [collectionPlantIds, allPlants]);
+  const deskPlants = useMemo(() => deskPlantIds.map(id => id ? allPlants[id] : null).filter(Boolean) as Plant[], [deskPlantIds, allPlants]);
   
   const activeDragPlant = useMemo(() => {
     if (!activeDragId) return null;
@@ -296,7 +282,10 @@ export default function RoomPage() {
       return;
     }
   
-    // If an item from the collection is dropped onto something that's not a pot, do nothing.
+    // This page only handles dragging collection items to the garden (which is off-page)
+    // The actual state update happens on the Garden page.
+    // For visual consistency, we won't update the state here, but in a real app
+    // you might want to optimistically update or have a shared state manager.
     const [overType] = (over.id as string).split(':');
     if (overType !== 'pot') {
       return;
@@ -407,29 +396,18 @@ export default function RoomPage() {
           <h1 className="text-3xl text-primary text-center">My Room</h1>
           <p className="text-muted-foreground">Drag plants from your collection to your Garden to water them. Apply cosmetics here.</p>
         </header>
-
-        <section className="px-4">
-             <div className="flex justify-center gap-4 text-sm text-muted-foreground mb-4 flex-wrap">
-                <div className="flex items-center gap-1.5 p-2 rounded-lg bg-muted/50">
-                    <Sparkles className="w-5 h-5 text-yellow-400" />
-                    <span>{gameData.glitterCount}</span>
-                </div>
-                <div className="flex items-center gap-1.5 p-2 rounded-lg bg-muted/50">
-                    <Star className="w-5 h-5 text-blue-400" />
-                    <span>{gameData.sheenCount}</span>
-                </div>
-                <div className="flex items-center gap-1.5 p-2 rounded-lg bg-muted/50">
-                    <Sparkles className="w-5 h-5 text-red-500" />
-                    <span>{gameData.redGlitterCount}</span>
-                </div>
-                <div className="flex items-center gap-1.5 p-2 rounded-lg bg-muted/50">
-                    <div className="w-5 h-5 relative">
-                        <Sparkles className="w-full h-full absolute text-pink-500" style={{clipPath: 'polygon(0 0, 50% 0, 50% 100%, 0 100%)'}} />
-                        <Sparkles className="w-full h-full absolute text-yellow-400" style={{clipPath: 'polygon(50% 0, 100% 0, 100% 100%, 50% 100%)'}}/>
-                    </div>
-                    <span>{gameData.rainbowGlitterCount}</span>
-                </div>
-            </div>
+        
+        <section 
+          className="relative h-48 max-w-lg mx-auto rounded-lg bg-cover bg-center" 
+          style={{backgroundImage: "url('/desk-bg.png')"}}
+        >
+          <div className="absolute inset-0 flex justify-center items-end gap-4 p-4">
+              {deskPlants.map((plant) => (
+                  <div key={plant.id} className="relative w-16 h-16 sm:w-20 sm:w-20">
+                      <Image src={plant.image} alt={plant.name} fill className="object-contain drop-shadow-lg" />
+                  </div>
+              ))}
+          </div>
         </section>
 
         <section className="px-4 pb-4">
