@@ -1306,5 +1306,3 @@ export default function RoomPage() {
 }
 
     
-
-    
