@@ -572,10 +572,10 @@ export default function RoomPage() {
         </header>
 
         <section 
-            className="relative h-64 max-w-lg mx-auto rounded-lg bg-cover bg-center" 
+            className="relative h-56 max-w-lg mx-auto rounded-lg bg-cover bg-center" 
             style={{backgroundImage: "url('/desk.jpg')"}}
         >
-            <div className="absolute inset-x-0 bottom-0 h-40 p-4 sm:p-6 md:p-8 grid grid-cols-3 grid-rows-1 gap-2">
+            <div className="absolute inset-x-0 bottom-0 h-32 p-4 sm:p-6 md:p-8 grid grid-cols-3 grid-rows-1 gap-2">
                 {deskPlants.slice(0, 3).map((plant, index) => {
                     return (
                         <DeskPot
@@ -651,5 +651,7 @@ export default function RoomPage() {
     </DndContext>
   );
 }
+
+    
 
     
