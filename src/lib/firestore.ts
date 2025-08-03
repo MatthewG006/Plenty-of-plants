@@ -6,7 +6,7 @@ import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 import { User } from 'firebase/auth';
 import { MAX_DRAWS } from './draw-manager';
 
-const NUM_POTS = 3;
+const NUM_POTS = 12;
 const MAX_WATERINGS_PER_DAY = 4;
 const XP_PER_WATERING = 200;
 const XP_PER_LEVEL = 1000;
@@ -175,7 +175,7 @@ export async function createUserDocument(user: User): Promise<GameData> {
             gold: 20, // Start with bonus
             plants: { '1': startingPlant },
             collectionPlantIds: [],
-            deskPlantIds: [1, null, null],
+            deskPlantIds: Array(NUM_POTS).fill(null),
             draws: MAX_DRAWS,
             lastDrawRefill: Date.now(),
             lastFreeDrawClaimed: 0,
@@ -196,6 +196,9 @@ export async function createUserDocument(user: User): Promise<GameData> {
             rubyCount: 0,
             plantChatTokens: 0,
         };
+
+        newGameData.deskPlantIds[0] = 1;
+
 
         await setDoc(docRef, {
             email: user.email,
