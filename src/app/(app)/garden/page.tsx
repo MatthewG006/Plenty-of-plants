@@ -1050,7 +1050,7 @@ export default function GardenPage() {
                     className="w-full h-auto rounded-lg"
                     priority
                 />
-                <div className="absolute inset-0 grid grid-cols-3 grid-rows-4 p-4 pt-5 pb-28 sm:p-6 sm:pt-7 sm:pb-32 md:p-8 md:pt-9 md:pb-40 gap-x-6 gap-y-0">
+                <div className="absolute inset-0 grid grid-cols-3 grid-rows-7 p-4 pt-10 pb-44 sm:p-6 sm:pt-12 sm:pb-48 md:p-8 md:pt-14 md:pb-52 gap-x-6 gap-y-0">
                     {deskPlants.map((plant, index) => {
                         const canWater = plant ? (plant.lastWatered?.filter(isToday).length ?? 0) < MAX_WATERINGS_PER_DAY : false;
                         return (
