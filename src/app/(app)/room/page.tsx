@@ -34,6 +34,8 @@ import { evolvePlantAction } from '@/app/actions/evolve-plant';
 import { plantChatAction } from '@/app/actions/plant-chat';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 
 const DRAG_CLICK_TOLERANCE = 5; // pixels
 const NUM_POTS = 3;
@@ -668,6 +670,7 @@ export default function RoomPage() {
   const [deskPlantIds, setDeskPlantIds] = useState<(number | null)[]>([]);
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [sortOption, setSortOption] = useState<'level' | 'stage'>('level');
 
   const [processedDeskImages, setProcessedDeskImages] = useState<Record<number, string | null>>({});
 
@@ -700,7 +703,22 @@ export default function RoomPage() {
   }, [gameData]);
 
   const allPlants = useMemo(() => gameData?.plants || {}, [gameData]);
-  const collectionPlants = useMemo(() => collectionPlantIds.map(id => allPlants[id]).filter(Boolean).sort((a,b) => b.level - a.level), [collectionPlantIds, allPlants]);
+
+  const collectionPlants = useMemo(() => {
+    const formOrder: { [key: string]: number } = { 'Base': 0, 'Evolved': 1, 'Final': 2 };
+    
+    return collectionPlantIds
+      .map(id => allPlants[id])
+      .filter(Boolean)
+      .sort((a,b) => {
+          if (sortOption === 'level') {
+              return b.level - a.level;
+          } else {
+              return formOrder[b.form] - formOrder[a.form];
+          }
+      });
+  }, [collectionPlantIds, allPlants, sortOption]);
+
   const deskPlants = useMemo(() => deskPlantIds.map(id => id ? allPlants[id] : null), [deskPlantIds, allPlants]);
   
   useEffect(() => {
@@ -976,7 +994,18 @@ export default function RoomPage() {
         <section className="px-4 pb-24">
             <Card className="p-4">
               <div className="flex flex-col items-center gap-4">
-                  <h2 className="text-xl text-primary">My Collection</h2>
+                  <div className="w-full flex justify-between items-center mb-2">
+                    <h2 className="text-xl text-primary">My Collection</h2>
+                    <Select value={sortOption} onValueChange={(value: 'level' | 'stage') => setSortOption(value)}>
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Sort by..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="level">Sort by Level</SelectItem>
+                        <SelectItem value="stage">Sort by Stage</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
               </div>
               <DroppableCollectionArea>
                 <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5">
