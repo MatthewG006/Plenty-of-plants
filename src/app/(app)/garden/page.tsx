@@ -186,18 +186,18 @@ export default function GardenPage() {
             lastWatered: updatedLastWatered,
         };
 
-        await updatePlant(userId, plant.id, updatedPlantData);
+        await updatePlant(user.uid, plant.id, updatedPlantData);
         
         if (isFinalForm) {
-            await updateUserRubies(userId, RUBIES_PER_WATERING);
+            await updateUserRubies(user.uid, RUBIES_PER_WATERING);
         } else {
-            await updateUserGold(userId, GOLD_PER_WATERING);
+            await updateUserGold(user.uid, GOLD_PER_WATERING);
         }
         
         if (plant.form === 'Evolved' || plant.form === 'Final') {
-            await updateWaterEvolvedProgress(userId);
+            await updateWaterEvolvedProgress(user.uid);
         } else {
-            await updateWateringProgress(userId);
+            await updateWateringProgress(user.uid);
         }
 
         if (shouldEvolve) {
@@ -302,7 +302,7 @@ export default function GardenPage() {
 
             <section>
                  {allPlants.length > 0 ? (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-3 gap-4">
                         {allPlants.map(plant => (
                             <PlantCard 
                                 key={plant.id}
