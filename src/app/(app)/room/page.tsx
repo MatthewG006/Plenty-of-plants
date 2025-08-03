@@ -4,7 +4,6 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import { Leaf, Loader2, Sparkles, Star } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -224,15 +223,13 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
     );
 }
 
-function DeskPot({ plant, index, onPointerDown, onPointerUp }: { plant: Plant | null, index: number, onPointerDown: (e: React.PointerEvent) => void, onPointerUp: (e: React.PointerEvent) => void }) {
+function DeskPot({ plant, index }: { plant: Plant | null, index: number }) {
     const { setNodeRef, isOver } = useDroppable({ id: `pot:${index}` });
     
     return (
         <div 
             ref={setNodeRef} 
             className={cn("relative w-full h-full flex items-center justify-center rounded-lg transition-colors", isOver ? "bg-black/20" : "")}
-            onPointerDown={onPointerDown}
-            onPointerUp={onPointerUp}
         >
             {plant && (
                 <div className="w-full h-full flex items-center justify-center">
@@ -316,7 +313,7 @@ export default function RoomPage() {
   }, [gameData]);
 
   const allPlants = useMemo(() => gameData?.plants || {}, [gameData]);
-  const collectionPlants = useMemo(() => collectionPlantIds.map(id => allPlants[id]).filter(Boolean), [collectionPlantIds, allPlants]);
+  const collectionPlants = useMemo(() => collectionPlantIds.map(id => allPlants[id]).filter(Boolean).sort((a, b) => b.level - a.level), [collectionPlantIds, allPlants]);
   const deskPlants = useMemo(() => deskPlantIds.map(id => id ? allPlants[id] : null), [deskPlantIds, allPlants]);
   
   const activeDragData = useMemo(() => {
@@ -349,7 +346,7 @@ export default function RoomPage() {
     const [overType, overIdStr] = (over.id as string).split(':');
     
     let newDeskIds = [...deskPlantIds];
-    const newCollectionIds = [...collectionPlantIds];
+    let newCollectionIds = [...collectionPlantIds];
 
     if (overType === 'pot') { // desk to desk, or collection to desk
         const potIndex = parseInt(overIdStr, 10);
@@ -364,15 +361,14 @@ export default function RoomPage() {
                  newDeskIds[sourcePotIndex] = plantInPotId; // Swap
             }
         } else { // from collection
-             if (plantInPotId) {
-                newCollectionIds.push(plantInPotId);
+            if (plantInPotId) {
+                if (!newCollectionIds.includes(plantInPotId)) {
+                   newCollectionIds.push(plantInPotId);
+                }
             }
+            newCollectionIds = newCollectionIds.filter(id => id !== activePlant.id);
         }
-         const finalCollectionIds = collectionPlantIds.filter(id => id !== activePlant.id);
-         if (plantInPotId && !finalCollectionIds.includes(plantInPotId)) {
-            finalCollectionIds.push(plantInPotId)
-         }
-         await updatePlantArrangement(user.uid, finalCollectionIds, newDeskIds);
+        await updatePlantArrangement(user.uid, newCollectionIds, newDeskIds);
 
     } else if (overType === 'collection' && activeSource === 'desk') { // desk to collection
         const sourcePotIndex = deskPlantIds.findIndex(id => id === activePlant.id);
@@ -477,18 +473,13 @@ export default function RoomPage() {
           style={{backgroundImage: "url('/desk-bg.png')"}}
         >
             <div className="absolute inset-0 p-4 sm:p-6 md:p-8 grid grid-cols-5 grid-rows-1 gap-2">
-                {Array.from({ length: 5 }).map((_, index) => {
-                    const plant = deskPlants[index];
-                    return (
-                        <DeskPot
-                            key={plant?.id || `pot-${index}`}
-                            plant={plant}
-                            index={index}
-                            onPointerDown={(e) => {}}
-                            onPointerUp={(e) => {}}
-                        />
-                    )
-                })}
+                {deskPlants.slice(0,5).map((plant, index) => (
+                    <DeskPot
+                        key={plant?.id || `pot-${index}`}
+                        plant={plant}
+                        index={index}
+                    />
+                ))}
             </div>
         </section>
 
@@ -545,5 +536,7 @@ export default function RoomPage() {
     </DndContext>
   );
 }
+
+    
 
     
