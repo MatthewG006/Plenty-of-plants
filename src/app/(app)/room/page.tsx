@@ -25,11 +25,12 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { updatePlant, useGlitter, useSheen, useRainbowGlitter, useRedGlitter, updatePlantArrangement, NUM_POTS } from '@/lib/firestore';
+import { updatePlant, useGlitter, useSheen, useRainbowGlitter, useRedGlitter, updatePlantArrangement } from '@/lib/firestore';
 import { updateApplyGlitterProgress } from '@/lib/challenge-manager';
 
 const XP_PER_LEVEL = 1000;
 const DRAG_CLICK_TOLERANCE = 5; // pixels
+const NUM_DESK_POTS = 5;
 
 function SheenAnimation() {
     return (
@@ -308,7 +309,8 @@ export default function RoomPage() {
   useEffect(() => {
     if (gameData) {
         setCollectionPlantIds(gameData.collectionPlantIds || []);
-        setDeskPlantIds(gameData.deskPlantIds || Array(NUM_POTS).fill(null));
+        // The desk in the room page shows only 5 pots, which reflect the first 5 garden slots
+        setDeskPlantIds((gameData.deskPlantIds || []).slice(0, NUM_DESK_POTS));
     }
   }, [gameData]);
 
@@ -345,7 +347,8 @@ export default function RoomPage() {
     const [activeSource] = (active.id as string).split(':');
     const [overType, overIdStr] = (over.id as string).split(':');
     
-    let newDeskIds = [...deskPlantIds];
+    // Use the full deskPlantIds from gameData for logic, not the sliced one
+    let newDeskIds = [...(gameData.deskPlantIds || [])];
     let newCollectionIds = [...collectionPlantIds];
 
     if (overType === 'pot') { // desk to desk, or collection to desk
@@ -355,7 +358,7 @@ export default function RoomPage() {
         // Add dragged plant to pot
         newDeskIds[potIndex] = activePlant.id;
         
-        if (activeSource === 'desk') {
+        if (activeSource === 'desk') { // plant came from another desk pot
             const sourcePotIndex = deskPlantIds.findIndex(id => id === activePlant.id);
             if (sourcePotIndex !== -1 && sourcePotIndex !== potIndex) {
                  newDeskIds[sourcePotIndex] = plantInPotId; // Swap
@@ -473,7 +476,7 @@ export default function RoomPage() {
           style={{backgroundImage: "url('/desk-bg.png')"}}
         >
             <div className="absolute inset-0 p-4 sm:p-6 md:p-8 grid grid-cols-5 grid-rows-1 gap-2">
-                {deskPlants.slice(0,5).map((plant, index) => (
+                {deskPlants.map((plant, index) => (
                     <DeskPot
                         key={plant?.id || `pot-${index}`}
                         plant={plant}
@@ -536,7 +539,3 @@ export default function RoomPage() {
     </DndContext>
   );
 }
-
-    
-
-    
