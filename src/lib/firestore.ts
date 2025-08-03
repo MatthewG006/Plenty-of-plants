@@ -6,7 +6,7 @@ import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 import { User } from 'firebase/auth';
 import { MAX_DRAWS } from './draw-manager';
 
-export const NUM_POTS = 12;
+export const NUM_POTS = 3;
 const MAX_WATERINGS_PER_DAY = 4;
 const XP_PER_WATERING = 200;
 const XP_PER_LEVEL = 1000;
@@ -503,7 +503,7 @@ export async function resetUserGameData(userId: string) {
     await updateDoc(userDocRef, {
         plants: { '1': startingPlant },
         collectionPlantIds: [],
-        deskPlantIds: [1, null, null, null, null, null, null, null, null, null, null, null],
+        deskPlantIds: [1, null, null],
         gold: 0,
         draws: MAX_DRAWS,
         lastDrawRefill: Date.now(),
@@ -660,7 +660,3 @@ export async function addConversationHistory(userId: string, plantId: number, us
         )
     });
 }
-
-
-
-    

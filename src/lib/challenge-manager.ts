@@ -164,5 +164,3 @@ export async function claimChallengeReward(userId: string, challengeId: string) 
         [`challenges.${challengeId}.claimed`]: true
     });
 }
-
-    
