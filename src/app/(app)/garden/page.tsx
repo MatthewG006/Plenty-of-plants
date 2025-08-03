@@ -292,8 +292,8 @@ export default function GardenPage() {
   }
 
   return (
-    <div style={{ paddingTop: '100px' }}>
-      <div className="fixed inset-0 w-full h-full bg-cover bg-top" style={{backgroundImage: "url('/garden-bg.png')"}}>
+    <div>
+      <div className="fixed inset-0 w-full h-full bg-cover bg-top" style={{backgroundImage: "url('/garden-bg.png')", top: '20px'}}>
           <div className="absolute inset-0 bg-black/50 backdrop-blur-lg" />
           <div className="relative min-h-screen w-full bg-contain bg-top bg-no-repeat" style={{backgroundImage: "url('/garden-bg.png')"}}>
               <div className="absolute inset-0" />
