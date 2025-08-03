@@ -35,8 +35,8 @@ function PlantCard({ plant, onSelectPlant, processedImage, className }: { plant:
         >
             <div className="relative flex items-center justify-center mb-2">
                 {imageToDisplay !== 'placeholder' ? (
-                    <div className="h-full w-full relative">
-                        <Image src={imageToDisplay} alt={plant.name} fill sizes="120px" className="object-contain" data-ai-hint={plant.hint} />
+                    <div className="h-full w-full relative p-4">
+                        <Image src={imageToDisplay} alt={plant.name} fill sizes="100px" className="object-contain" data-ai-hint={plant.hint} />
                     </div>
                 ) : (
                     <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
