@@ -972,6 +972,27 @@ export default function RoomPage() {
           <p className="text-muted-foreground text-sm">Drag plants from your collection to your desk to display them.</p>
         </header>
 
+         <section className="px-4">
+            <div className="flex justify-center gap-4 text-sm text-muted-foreground mb-4 flex-wrap">
+                <div className="flex items-center gap-1.5 p-2 rounded-lg bg-yellow-100/80 border border-yellow-300/80">
+                    <Sparkles className="w-5 h-5 text-yellow-500" />
+                    <span>{gameData.glitterCount}</span>
+                </div>
+                 <div className="flex items-center gap-1.5 p-2 rounded-lg bg-blue-100/80 border border-blue-300/80">
+                    <Star className="w-5 h-5 text-blue-500" />
+                    <span>{gameData.sheenCount}</span>
+                </div>
+                 <div className="flex items-center gap-1.5 p-2 rounded-lg bg-pink-100/80 border border-pink-300/80">
+                    <Sparkles className="w-5 h-5 text-pink-500" />
+                    <span>{gameData.rainbowGlitterCount}</span>
+                </div>
+                 <div className="flex items-center gap-1.5 p-2 rounded-lg bg-red-100/80 border border-red-300/80">
+                    <Sparkles className="w-5 h-5 text-red-500" />
+                    <span>{gameData.redGlitterCount}</span>
+                </div>
+            </div>
+        </section>
+
         <section 
             className="relative h-48 max-w-lg mx-auto rounded-lg bg-cover bg-center" 
             style={{backgroundImage: "url('/desk.jpg')"}}
@@ -1094,4 +1115,3 @@ export default function RoomPage() {
     </DndContext>
   );
 }
-
