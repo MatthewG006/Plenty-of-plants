@@ -15,91 +15,21 @@ import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { updateUserGold, updateUserRubies, updatePlant, getPlantById } from '@/lib/firestore';
 import { updateWateringProgress, updateEvolutionProgress, updateWaterEvolvedProgress } from '@/lib/challenge-manager';
-import { EvolveConfirmationDialog, EvolvePreviewDialog } from '@/components/plant-dialogs';
+import { EvolveConfirmationDialog, EvolvePreviewDialog, PlantCareDialog } from '@/components/plant-dialogs';
 import { evolvePlantAction } from '@/app/actions/evolve-plant';
 
 
-const MAX_WATERINGS_PER_DAY = 4;
-const XP_PER_WATERING = 200;
-const XP_PER_LEVEL = 1000;
-const GOLD_PER_WATERING = 5;
-const RUBIES_PER_WATERING = 1;
 const EVOLUTION_LEVEL = 10;
 const SECOND_EVOLUTION_LEVEL = 25;
 
-// Helper to check if a timestamp is from the current day
-function isToday(timestamp: number): boolean {
-    const today = new Date();
-    const someDate = new Date(timestamp);
-    return someDate.getDate() === today.getDate() &&
-           someDate.getMonth() === today.getMonth() &&
-           someDate.getFullYear() === today.getFullYear();
-}
 
-function GlitterAnimation() {
-    return (
-        <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden">
-            {Array.from({ length: 7 }).map((_, i) => (
-                <Sparkles key={i} className="absolute text-yellow-300 animate-sparkle" style={{
-                    top: `${Math.random() * 100}%`,
-                    left: `${Math.random() * 100}%`,
-                    animationDelay: `${Math.random() * 1.5}s`,
-                    width: `${5 + Math.random() * 5}px`,
-                    height: `${5 + Math.random() * 5}px`,
-                }} />
-            ))}
-        </div>
-    );
-}
-
-function RedGlitterAnimation() {
-    return (
-        <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden">
-            {Array.from({ length: 7 }).map((_, i) => (
-                <Sparkles key={i} className="absolute text-red-500 animate-sparkle" style={{
-                    top: `${Math.random() * 100}%`,
-                    left: `${Math.random() * 100}%`,
-                    animationDelay: `${Math.random() * 1.5}s`,
-                    width: `${8 + Math.random() * 8}px`,
-                    height: `${8 + Math.random() * 8}px`,
-                }} />
-            ))}
-        </div>
-    );
-}
-
-function SheenAnimation() {
-    return (
-        <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden rounded-lg">
-            <div className="absolute -top-1/2 w-1/12 h-[200%] bg-white/30 animate-sheen" />
-        </div>
-    )
-}
-
-function RainbowGlitterAnimation() {
-    return (
-        <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden">
-            {Array.from({ length: 10 }).map((_, i) => (
-                <Sparkles key={i} className="absolute animate-sparkle" style={{
-                    top: `${Math.random() * 100}%`,
-                    left: `${Math.random() * 100}%`,
-                    animationDelay: `${Math.random() * 1.5}s`,
-                    color: `hsl(${Math.random() * 360}, 100%, 70%)`,
-                    width: `${5 + Math.random() * 5}px`,
-                    height: `${5 + Math.random() * 5}px`,
-                }} />
-            ))}
-        </div>
-    );
-}
-
-
-function PlantCard({ plant, onWater, onStartEvolution, isWatering }: { plant: Plant; onWater: (plant: Plant) => void; onStartEvolution: (plant: Plant) => void; isWatering: boolean }) {
-    const timesWateredToday = plant.lastWatered?.filter(isToday).length ?? 0;
-    const canWater = timesWateredToday < MAX_WATERINGS_PER_DAY;
+function PlantCard({ plant, onSelectPlant }: { plant: Plant; onSelectPlant: (plant: Plant) => void; }) {
     
     return (
-        <Card className="group overflow-hidden shadow-md w-full relative bg-white/70 backdrop-blur-sm">
+        <Card 
+            className="group overflow-hidden shadow-md w-full relative bg-white/70 backdrop-blur-sm cursor-pointer hover:scale-105 transition-transform"
+            onClick={() => onSelectPlant(plant)}
+        >
             <CardContent className="p-2 space-y-2">
                 <div className="aspect-square relative flex items-center justify-center bg-muted/30 rounded-md">
                     {plant.image !== 'placeholder' ? (
@@ -107,27 +37,13 @@ function PlantCard({ plant, onWater, onStartEvolution, isWatering }: { plant: Pl
                     ) : (
                         <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
                     )}
-                    {plant.hasGlitter && <GlitterAnimation />}
-                    {plant.hasRedGlitter && <RedGlitterAnimation />}
-                    {plant.hasSheen && <SheenAnimation />}
-                    {plant.hasRainbowGlitter && <RainbowGlitterAnimation />}
                 </div>
 
                 <div className="text-center space-y-1">
                     <p className="text-sm font-semibold text-primary truncate">{plant.name}</p>
                     <div className="text-xs text-muted-foreground">Lvl {plant.level}</div>
-                    <Progress value={(plant.xp / XP_PER_LEVEL) * 100} className="h-1.5" />
+                    <Progress value={(plant.xp / 1000) * 100} className="h-1.5" />
                 </div>
-                
-                <Button 
-                    size="sm"
-                    className="w-full"
-                    onClick={() => onWater(plant)}
-                    disabled={!canWater || isWatering}
-                >
-                    <Droplet className="mr-1 h-3 w-3" />
-                    {isWatering ? "Watering..." : `Water (${timesWateredToday}/${MAX_WATERINGS_PER_DAY})`}
-                </Button>
             </CardContent>
         </Card>
     );
@@ -139,7 +55,7 @@ export default function GardenPage() {
   const { toast } = useToast();
   const { playSfx } = useAudio();
   
-  const [isWatering, setIsWatering] = useState(false);
+  const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
   const [currentEvolvingPlant, setCurrentEvolvingPlant] = useState<Plant | null>(null);
   const [isEvolving, setIsEvolving] = useState(false);
   const [evolvedPreviewData, setEvolvedPreviewData] = useState<{plantId: number; plantName: string; newForm: string, newImageUri: string, personality?: string } | null>(null);
@@ -149,68 +65,13 @@ export default function GardenPage() {
     return Object.values(gameData.plants).sort((a,b) => b.level - a.level);
   }, [gameData]);
 
-  const handleWaterPlant = async (plant: Plant) => {
-    if (!user) return;
-    
-    setIsWatering(true);
-    playSfx('watering');
-    
-    const isFinalForm = plant.form === 'Final';
-    
-    const xpGained = XP_PER_WATERING;
-    let newXp = plant.xp + xpGained;
-    let newLevel = plant.level;
-    let shouldEvolve = false;
+  const handleSelectPlant = (plant: Plant) => {
+    setSelectedPlant(plant);
+    playSfx('tap');
+  };
 
-    while(newXp >= XP_PER_LEVEL) {
-        newXp -= XP_PER_LEVEL;
-        newLevel += 1;
-        playSfx('reward');
-        toast({
-            title: "Level Up!",
-            description: `${plant.name} has reached level ${newLevel}!`,
-        });
-    }
-
-    if ((newLevel >= EVOLUTION_LEVEL && plant.form === 'Base') || (newLevel >= SECOND_EVOLUTION_LEVEL && plant.form === 'Evolved')) {
-        shouldEvolve = true;
-    }
-    
-    const now = Date.now();
-    let updatedLastWatered = [...(plant.lastWatered || []), now];
-
-    try {
-        const updatedPlantData = {
-            xp: newXp,
-            level: newLevel,
-            lastWatered: updatedLastWatered,
-        };
-
-        await updatePlant(user.uid, plant.id, updatedPlantData);
-        
-        if (isFinalForm) {
-            await updateUserRubies(user.uid, RUBIES_PER_WATERING);
-        } else {
-            await updateUserGold(user.uid, GOLD_PER_WATERING);
-        }
-        
-        if (plant.form === 'Evolved' || plant.form === 'Final') {
-            await updateWaterEvolvedProgress(user.uid);
-        } else {
-            await updateWateringProgress(user.uid);
-        }
-
-        if (shouldEvolve) {
-            const fullPlant = { ...plant, ...updatedPlantData };
-            setCurrentEvolvingPlant(fullPlant);
-        }
-
-    } catch(e) {
-        console.error("Failed to update plant or gold", e);
-        toast({ variant: 'destructive', title: "Error", description: "Could not save watering progress."})
-    } finally {
-        setIsWatering(false);
-    }
+  const handleCloseDialog = () => {
+    setSelectedPlant(null);
   };
   
   const handleEvolve = async () => {
@@ -298,41 +159,32 @@ export default function GardenPage() {
         <p className="text-muted-foreground">Water your plants to help them level up and evolve.</p>
       </header>
 
-      <div className="relative -mt-4">
-        <div
-          className="absolute inset-0 w-full h-full bg-cover bg-top"
-          style={{ backgroundImage: "url('/garden-bg.png')" }}
-        >
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-lg" />
-        </div>
-
-        <div className="relative min-h-[calc(100vh-100px)] w-full bg-contain bg-top bg-no-repeat" style={{backgroundImage: "url('/garden-bg.png')"}}>
-             <div className="absolute inset-0" />
-            <div className="relative z-10 p-4 space-y-4">
-              <section>
-                {allPlants.length > 0 ? (
-                  <div className="grid grid-cols-3 gap-4">
-                    {allPlants.map((plant) => (
-                      <PlantCard
-                        key={plant.id}
-                        plant={plant}
-                        onWater={handleWaterPlant}
-                        onStartEvolution={(p) => setCurrentEvolvingPlant(p)}
-                        isWatering={isWatering}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <Card className="text-center py-10 bg-white/70 backdrop-blur-sm">
-                    <CardContent>
-                      <p className="text-muted-foreground">
-                        Your garden is empty. Go home to draw some new plants!
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
-              </section>
-            </div>
+      <div className="relative">
+        <div className="fixed inset-0 top-0 -z-10 h-screen w-full bg-cover bg-top bg-black" style={{ backgroundImage: "url('/garden-bg.png')" }} />
+        <div className="fixed inset-0 top-0 -z-10 h-screen w-full bg-contain bg-top bg-no-repeat backdrop-blur-sm" style={{ backgroundImage: "url('/garden-bg.png')" }} />
+       
+        <div className="relative z-10 p-4 space-y-4">
+          <section>
+            {allPlants.length > 0 ? (
+              <div className="grid grid-cols-3 gap-4">
+                {allPlants.map((plant) => (
+                  <PlantCard
+                    key={plant.id}
+                    plant={plant}
+                    onSelectPlant={handleSelectPlant}
+                  />
+                ))}
+              </div>
+            ) : (
+              <Card className="text-center py-10 bg-white/70 backdrop-blur-sm">
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    Your garden is empty. Go home to draw some new plants!
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </section>
         </div>
       </div>
           
@@ -352,6 +204,15 @@ export default function GardenPage() {
               open={!!evolvedPreviewData}
               onConfirm={handleConfirmEvolution}
           />
+      )}
+      
+      {selectedPlant && (
+        <PlantCareDialog
+            plant={selectedPlant}
+            open={!!selectedPlant}
+            onOpenChange={(isOpen) => !isOpen && handleCloseDialog()}
+            onStartEvolution={(plant) => setCurrentEvolvingPlant(plant)}
+        />
       )}
     </div>
   );

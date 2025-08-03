@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose, DialogDescription } from '@/components/ui/dialog';
-import { Leaf, Loader2, Sparkles, Gem, MessageCircle, Trash2 } from 'lucide-react';
+import { Leaf, Loader2, Sparkles, Gem, MessageCircle, Trash2, Droplet, Coins } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -13,14 +13,29 @@ import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { deletePlant, unlockPlantChat, addConversationHistory } from '@/lib/firestore';
+import { deletePlant, unlockPlantChat, addConversationHistory, updatePlant, updateUserGold, updateUserRubies } from '@/lib/firestore';
 import { AlertDialog, AlertDialogTrigger, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription as AlertDialogDescriptionComponent } from '@/components/ui/alert-dialog';
 import { plantChatAction } from '@/app/actions/plant-chat';
 import { Textarea } from '@/components/ui/textarea';
+import { updateWaterEvolvedProgress, updateWateringProgress } from '@/lib/challenge-manager';
+
 
 const XP_PER_LEVEL = 1000;
 const EVOLUTION_LEVEL = 10;
 const SECOND_EVOLUTION_LEVEL = 25;
+const MAX_WATERINGS_PER_DAY = 4;
+const XP_PER_WATERING = 200;
+const GOLD_PER_WATERING = 5;
+const RUBIES_PER_WATERING = 1;
+
+// Helper to check if a timestamp is from the current day
+function isToday(timestamp: number): boolean {
+    const today = new Date();
+    const someDate = new Date(timestamp);
+    return someDate.getDate() === today.getDate() &&
+           someDate.getMonth() === today.getMonth() &&
+           someDate.getFullYear() === today.getFullYear();
+}
 
 
 function GlitterAnimation() {
@@ -193,6 +208,135 @@ export function PlantChatDialog({ plant, open, onOpenChange, userId }: { plant: 
             </DialogContent>
         </Dialog>
     );
+}
+
+export function PlantCareDialog({ plant, open, onOpenChange, onStartEvolution }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, onStartEvolution: (plant: Plant) => void }) {
+    const { playSfx } = useAudio();
+    const { toast } = useToast();
+    const { user, gameData } = useAuth();
+    const [isWatering, setIsWatering] = useState(false);
+    
+    if (!plant || !user || !gameData) return null;
+    
+    const { lastWatered = [] } = plant;
+    const timesWateredToday = lastWatered.filter(isToday).length;
+    const canWater = timesWateredToday < MAX_WATERINGS_PER_DAY;
+    const shouldEvolve = (plant.level >= EVOLUTION_LEVEL && plant.form === 'Base') || (plant.level >= SECOND_EVOLUTION_LEVEL && plant.form === 'Evolved');
+
+    const handleWaterPlant = async () => {
+        if (!user) return;
+        
+        setIsWatering(true);
+        playSfx('watering');
+        
+        const isFinalForm = plant.form === 'Final';
+        
+        const xpGained = XP_PER_WATERING;
+        let newXp = plant.xp + xpGained;
+        let newLevel = plant.level;
+    
+        while(newXp >= XP_PER_LEVEL) {
+            newXp -= XP_PER_LEVEL;
+            newLevel += 1;
+            playSfx('reward');
+            toast({
+                title: "Level Up!",
+                description: `${plant.name} has reached level ${newLevel}!`,
+            });
+        }
+    
+        const now = Date.now();
+        let updatedLastWatered = [...(plant.lastWatered || []), now];
+    
+        try {
+            const updatedPlantData = {
+                xp: newXp,
+                level: newLevel,
+                lastWatered: updatedLastWatered,
+            };
+    
+            await updatePlant(user.uid, plant.id, updatedPlantData);
+            
+            if (isFinalForm) {
+                await updateUserRubies(user.uid, RUBIES_PER_WATERING);
+            } else {
+                await updateUserGold(user.uid, GOLD_PER_WATERING);
+            }
+            
+            if (plant.form === 'Evolved' || plant.form === 'Final') {
+                await updateWaterEvolvedProgress(user.uid);
+            } else {
+                await updateWateringProgress(user.uid);
+            }
+    
+            const isNowEvolvable = (newLevel >= EVOLUTION_LEVEL && plant.form === 'Base') || (newLevel >= SECOND_EVOLUTION_LEVEL && plant.form === 'Evolved');
+            if (isNowEvolvable) {
+                const fullPlant = { ...plant, ...updatedPlantData };
+                onOpenChange(false);
+                onStartEvolution(fullPlant);
+            }
+    
+        } catch(e) {
+            console.error("Failed to update plant or gold", e);
+            toast({ variant: 'destructive', title: "Error", description: "Could not save watering progress."})
+        } finally {
+            setIsWatering(false);
+        }
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-sm">
+                <DialogHeader>
+                    <DialogTitle className="text-3xl text-center text-primary">{plant.name}</DialogTitle>
+                </DialogHeader>
+                <div className="flex flex-col items-center gap-4 pt-4">
+                    <div className="w-64 h-64 relative">
+                        <div className="rounded-lg overflow-hidden border-4 border-primary/50 shadow-lg bg-green-100 flex items-center justify-center h-full">
+                            {plant.image && plant.image !== 'placeholder' ? (
+                                <Image src={plant.image} alt={plant.name} width={256} height={256} className="object-cover w-full h-full" data-ai-hint={plant.hint} />
+                            ) : (
+                                <Leaf className="w-24 h-24 text-muted-foreground/50" />
+                            )}
+                        </div>
+                    </div>
+
+                    <p className="text-muted-foreground text-center mt-2 px-4">{plant.description}</p>
+                    
+                    <div className="w-full px-4 space-y-4">
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-baseline">
+                                <p className="text-lg font-semibold text-primary">Level {plant.level}</p>
+                                <p className="text-sm text-muted-foreground">{plant.xp} / {XP_PER_LEVEL} XP</p>
+                            </div>
+                            <Progress value={(plant.xp / XP_PER_LEVEL) * 100} className="w-full" />
+                        </div>
+
+                         <Button 
+                            className="w-full"
+                            onClick={handleWaterPlant}
+                            disabled={!canWater || isWatering}
+                        >
+                            <Droplet className="mr-1 h-4 w-4" />
+                            {isWatering ? "Watering..." : `Water (${timesWateredToday}/${MAX_WATERINGS_PER_DAY})`}
+                        </Button>
+                    </div>
+
+                </div>
+                <DialogFooter className="pt-2 flex-col sm:flex-col sm:space-x-0 gap-2">
+                    {shouldEvolve && (
+                         <Button onClick={() => { onStartEvolution(plant); onOpenChange(false); }} className="w-full">
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Evolve Plant
+                        </Button>
+                    )}
+                    <DialogClose asChild>
+                        <Button className="w-full" variant="outline">Close</Button>
+                    </DialogClose>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
 }
 
 export function PlantDetailDialog({ plant, open, onOpenChange, onStartEvolution, onOpenChat, userId }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, onStartEvolution: (plant: Plant) => void, onOpenChat: (plant: Plant) => void, userId: string }) {
