@@ -43,7 +43,7 @@ function PlantCard({ plant, onSelectPlant, processedImage }: { plant: Plant; onS
                 )}
             </div>
 
-            <div className="text-center space-y-1">
+            <div className="text-center">
                 <p className="text-sm font-semibold text-white truncate" style={{ textShadow: '1px 1px 2px black' }}>{plant.name}</p>
                 <div className="text-xs text-muted-foreground">
                      <div className="bg-black/20 rounded-full px-2 py-0.5 inline-block">
