@@ -38,7 +38,7 @@ import { updateWateringProgress, updateEvolutionProgress, updateCollectionProgre
 import { plantChatAction } from '@/app/actions/plant-chat';
 import { Textarea } from '@/components/ui/textarea';
 
-const NUM_POTS = 3;
+const NUM_POTS = 12;
 const MAX_WATERINGS_PER_DAY = 4;
 const XP_PER_WATERING = 200;
 const XP_PER_LEVEL = 1000;
@@ -596,8 +596,8 @@ function PlantImageUI({ plant, image, canWater }: { plant: Plant, image: string 
                 className="object-contain"
                 data-ai-hint={plant.hint} />
         ) : (
-            <div className="w-full h-full flex items-center justify-center rounded-lg bg-muted/20">
-              <Leaf className="w-12 h-12 text-muted-foreground/50" />
+            <div className="w-full h-full flex items-center justify-center rounded-lg">
+              <Leaf className="w-12 h-12 text-transparent" />
             </div>
         )}
         {plant.hasGlitter && <GlitterAnimation />}
@@ -769,11 +769,9 @@ function DeskPot({ plant, index, onClickPlant, processedImage, canWater }: { pla
     
     const EmptyPot = () => (
         <div ref={setNodeRef} className={cn(
-            "relative flex h-24 w-24 items-end justify-center rounded-lg transition-colors",
-            isOver ? "bg-primary/20" : "bg-transparent"
-        )}>
-            <div className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-primary/30" />
-        </div>
+            "relative flex items-center justify-center rounded-lg transition-colors aspect-[3/4]",
+            isOver ? "bg-black/20" : "bg-transparent"
+        )} />
     );
 
     if (!plant) {
@@ -782,7 +780,7 @@ function DeskPot({ plant, index, onClickPlant, processedImage, canWater }: { pla
     
     return (
         <div 
-            className="relative flex h-24 w-24 items-end justify-center"
+            className="relative flex items-center justify-center aspect-[3/4]"
             onPointerDown={onPointerDown}
             onPointerUp={onPointerUp}
         >
@@ -800,7 +798,7 @@ function DeskPot({ plant, index, onClickPlant, processedImage, canWater }: { pla
                 canApplyRedGlitter={false}
                 className="cursor-grab active:cursor-grabbing w-full h-full z-10" 
             />
-            <div ref={setNodeRef} className={cn("absolute inset-0 z-0", isOver && "bg-primary/20 rounded-lg")} />
+            <div ref={setNodeRef} className={cn("absolute inset-0 z-0", isOver && "bg-black/20 rounded-lg")} />
         </div>
     );
 }
@@ -1282,18 +1280,10 @@ export default function GardenPage() {
                 </div>
             </div>
             <div
-                className="relative h-48 rounded-lg border-2 border-primary/20 bg-card/80 p-6 overflow-hidden"
+                className="relative aspect-[3/4] max-w-lg mx-auto rounded-lg bg-cover bg-center overflow-hidden"
+                style={{ backgroundImage: "url('/garden-bg.png')" }}
             >
-                <Image
-                src="/desk.jpg"
-                alt="A wooden desk for plants"
-                fill
-                className="z-0 object-cover"
-                data-ai-hint="desk wood"
-                sizes="100vw"
-                priority
-                />
-                <div className="relative z-10 flex h-full items-end justify-around">
+                <div className="grid grid-cols-3 grid-rows-4 gap-4 p-4 h-full">
                 {deskPlants.map((plant, index) => {
                     const canWater = plant ? (plant.lastWatered?.filter(isToday).length ?? 0) < MAX_WATERINGS_PER_DAY : false;
                     return (
