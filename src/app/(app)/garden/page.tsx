@@ -69,7 +69,7 @@ export default function GardenPage() {
 
   const allPlants = useMemo(() => {
     if (!gameData?.plants) return [];
-    return Object.values(gameData.plants).sort((a,b) => b.level - a.level);
+    return Object.values(gameData.plants).sort((a,b) => b.level - a.level).slice(0, 12);
   }, [gameData]);
 
   useEffect(() => {
