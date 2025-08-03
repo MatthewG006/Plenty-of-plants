@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -1193,8 +1194,8 @@ export default function RoomPage() {
                     )}
                 </div>
             </div>
-            <div className="absolute inset-x-0 bottom-0 h-40 p-4 sm:p-6 md:p-8 grid grid-cols-5 grid-rows-1 gap-2">
-                {deskPlants.slice(0, 5).map((plant, index) => {
+            <div className="absolute inset-x-0 bottom-0 h-40 p-4 sm:p-6 md:p-8 grid grid-cols-3 grid-rows-1 gap-2">
+                {deskPlants.slice(0, 3).map((plant, index) => {
                     const canWater = plant ? (plant.lastWatered?.filter(isToday).length ?? 0) < MAX_WATERINGS_PER_DAY : false;
                     return (
                         <DeskPot
