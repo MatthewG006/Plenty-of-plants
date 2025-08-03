@@ -1187,13 +1187,15 @@ export default function RoomPage() {
             className="relative h-64 max-w-lg mx-auto rounded-lg bg-cover bg-center" 
             style={{backgroundImage: "url('/desk-bg.png')"}}
         >
-            <div className="flex justify-center gap-4 text-sm text-muted-foreground mb-4 flex-wrap absolute -top-12 right-0 left-0 mx-auto w-fit">
-                {gameData.sprinklerUnlocked && (
-                    <Button onClick={handleUseSprinkler} disabled={isWatering} size="sm">
-                        <Droplets className="mr-2 h-4 w-4" />
-                        {isWatering ? 'Watering...' : `Use Sprinkler`}
-                    </Button>
-                )}
+            <div className="absolute -top-12 right-0 left-0 mx-auto w-fit">
+                 <div className="flex justify-center gap-4 text-sm text-muted-foreground mb-4 flex-wrap">
+                    {gameData.sprinklerUnlocked && (
+                        <Button onClick={handleUseSprinkler} disabled={isWatering} size="sm">
+                            <Droplets className="mr-2 h-4 w-4" />
+                            {isWatering ? 'Watering...' : `Use Sprinkler`}
+                        </Button>
+                    )}
+                </div>
             </div>
             <div className="absolute inset-x-0 bottom-0 h-40 p-4 sm:p-6 md:p-8 grid grid-cols-5 grid-rows-1 gap-2">
                 {deskPlants.slice(0, 5).map((plant, index) => {
