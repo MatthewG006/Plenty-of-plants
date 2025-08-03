@@ -997,7 +997,7 @@ export default function RoomPage() {
                   <div className="w-full flex justify-between items-center mb-2">
                     <h2 className="text-xl text-primary">My Collection</h2>
                     <Select value={sortOption} onValueChange={(value: 'level' | 'stage') => setSortOption(value)}>
-                      <SelectTrigger className="w-[180px]">
+                      <SelectTrigger className="w-[150px] h-9">
                         <SelectValue placeholder="Sort by..." />
                       </SelectTrigger>
                       <SelectContent>
@@ -1094,3 +1094,4 @@ export default function RoomPage() {
     </DndContext>
   );
 }
+
