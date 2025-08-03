@@ -1,5 +1,9 @@
 # Prerelease Log
 
+## Version 0.16
+
+- **Revert:** Reverted the "Garden" page feature. All watering and plant care functionality has been returned to the main "Room" page to simplify the user experience.
+
 ## Version 0.15
 
 - **Feature:** Video Ad & IAP Foundation
