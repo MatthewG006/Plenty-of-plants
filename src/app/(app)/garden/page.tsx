@@ -153,39 +153,40 @@ export default function GardenPage() {
   }
 
   return (
-    <div className="min-h-screen">
-      {/* Background Image */}
-      <div className="fixed inset-0 top-0 -z-10 h-screen w-full bg-cover bg-top bg-black" style={{ backgroundImage: "url('/garden-bg.png')" }} />
-      <div className="fixed inset-0 top-0 -z-10 h-screen w-full bg-contain bg-top bg-no-repeat backdrop-blur-sm" style={{ backgroundImage: "url('/garden-bg.png')" }} />
-      
+    <div className="min-h-screen flex flex-col">
       <header className="flex flex-col items-center gap-2 p-4 text-center z-20 relative bg-background">
         <h1 className="text-3xl text-primary font-bold">My Garden</h1>
         <p className="text-muted-foreground">Water your plants to help them level up and evolve.</p>
       </header>
 
-      <div className="relative z-10 p-4 space-y-4">
-          <section>
-            {allPlants.length > 0 ? (
-              <div className="grid grid-cols-3 gap-4">
-                {allPlants.map((plant) => (
-                  <PlantCard
-                    key={plant.id}
-                    plant={plant}
-                    onSelectPlant={handleSelectPlant}
-                  />
-                ))}
-              </div>
-            ) : (
-              <Card className="text-center py-10 bg-white/70 backdrop-blur-sm">
-                <CardContent>
-                  <p className="text-muted-foreground">
-                    Your garden is empty. Go home to draw some new plants!
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </section>
-        </div>
+      <div className="flex-grow relative">
+        <div className="absolute inset-0 -z-10 h-full w-full bg-cover bg-top bg-black" style={{ backgroundImage: "url('/garden-bg.png')" }} />
+        <div className="absolute inset-0 -z-10 h-full w-full bg-contain bg-top bg-no-repeat backdrop-blur-sm" style={{ backgroundImage: "url('/garden-bg.png')" }} />
+        
+        <div className="relative z-10 p-4 space-y-4">
+            <section>
+              {allPlants.length > 0 ? (
+                <div className="grid grid-cols-3 gap-4">
+                  {allPlants.map((plant) => (
+                    <PlantCard
+                      key={plant.id}
+                      plant={plant}
+                      onSelectPlant={handleSelectPlant}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <Card className="text-center py-10 bg-white/70 backdrop-blur-sm">
+                  <CardContent>
+                    <p className="text-muted-foreground">
+                      Your garden is empty. Go home to draw some new plants!
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </section>
+          </div>
+      </div>
           
       <EvolveConfirmationDialog
           plant={currentEvolvingPlant}
