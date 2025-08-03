@@ -1042,10 +1042,10 @@ export default function GardenPage() {
                 )}
             </div>
             <div 
-                className="relative max-w-lg mx-auto aspect-[4/3] bg-cover bg-center rounded-lg"
+                className="relative max-w-lg mx-auto aspect-[9/16] bg-contain bg-no-repeat bg-center rounded-lg"
                 style={{backgroundImage: "url('/garden-bg.png')"}}
             >
-                <div className="absolute inset-0 p-4 sm:p-6 md:p-8">
+                <div className="absolute inset-0 p-8 sm:p-10 md:p-12">
                   <div className="grid grid-cols-3 grid-rows-4 gap-2 h-full w-full">
                       {deskPlants.map((plant, index) => {
                           const canWater = plant ? (plant.lastWatered?.filter(isToday).length ?? 0) < MAX_WATERINGS_PER_DAY : false;
@@ -1121,5 +1121,3 @@ export default function GardenPage() {
     </DndContext>
   );
 }
-
-    
