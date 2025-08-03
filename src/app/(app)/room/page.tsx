@@ -132,13 +132,13 @@ function PlantDetailDialog({ plant, open, onOpenChange }: { plant: Plant | null,
 function PlantImageUI({ plant, image }: { plant: Plant, image: string | null }) {
   return (
     <div className={cn("flex items-center justify-center p-1 rounded-lg pointer-events-none w-full h-full")}>
-      <div className="relative h-24 w-24 sm:h-28 sm:w-28 flex items-center justify-center">
+      <div className="relative h-32 w-32 sm:h-36 sm:w-36 flex items-center justify-center">
         {image && image !== 'placeholder' ? (
             <Image 
                 src={image} 
                 alt={plant.name} 
                 fill 
-                sizes="112px" 
+                sizes="144px" 
                 className="object-contain"
                 data-ai-hint={plant.hint} />
         ) : (
@@ -575,7 +575,7 @@ export default function RoomPage() {
             className="relative h-48 max-w-lg mx-auto rounded-lg bg-cover bg-center" 
             style={{backgroundImage: "url('/desk.jpg')"}}
         >
-            <div className="absolute inset-x-0 bottom-0 h-40 p-4 sm:p-6 md:p-8 grid grid-cols-3 grid-rows-1 gap-2">
+            <div className="absolute inset-x-0 top-0 h-40 p-4 sm:p-6 md:p-8 grid grid-cols-3 grid-rows-1 gap-2">
                 {deskPlants.slice(0, 3).map((plant, index) => {
                     return (
                         <DeskPot
@@ -651,3 +651,4 @@ export default function RoomPage() {
     </DndContext>
   );
 }
+
