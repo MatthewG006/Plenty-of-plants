@@ -153,8 +153,8 @@ export default function GardenPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="flex flex-col items-center gap-2 p-4 text-center bg-background z-20 relative">
+    <div className="min-h-screen">
+      <header className="flex flex-col items-center gap-2 p-4 text-center z-20 relative">
         <h1 className="text-3xl text-primary font-bold">My Garden</h1>
         <p className="text-muted-foreground">Water your plants to help them level up and evolve.</p>
       </header>
