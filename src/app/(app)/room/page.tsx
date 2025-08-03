@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -1182,7 +1181,7 @@ export default function RoomPage() {
 
         <section 
             className="relative h-64 max-w-lg mx-auto rounded-lg bg-cover bg-center" 
-            style={{backgroundImage: "url('/desk-bg.png')"}}
+            style={{backgroundImage: "url('/desk.jpg')"}}
         >
             <div className="absolute -top-12 right-0 left-0 mx-auto w-fit">
                  <div className="flex justify-center gap-4 text-sm text-muted-foreground mb-4 flex-wrap">
