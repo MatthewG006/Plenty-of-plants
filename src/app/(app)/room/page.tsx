@@ -27,7 +27,7 @@ import { useDraw, refundDraw } from '@/lib/draw-manager';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { updateUserGold, updateUserRubies, savePlant, updatePlant, getPlantById, deletePlant, updateShowcasePlants, useSheen, useRainbowGlitter, GameData, useGlitter, useSprinkler, useWaterRefill, useRedGlitter, unlockPlantChat, addConversationHistory, updatePlantArrangement } from '@/lib/firestore';
+import { updateUserGold, updateUserRubies, savePlant, updatePlant, getPlantById, deletePlant, updateShowcasePlants, useSheen, useRainbowGlitter, GameData, useGlitter, useSprinkler, useWaterRefill, useRedGlitter, unlockPlantChat, addConversationHistory, updatePlantArrangement, NUM_POTS } from '@/lib/firestore';
 import { AlertDialog, AlertDialogTrigger, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription as AlertDialogDescriptionComponent } from '@/components/ui/alert-dialog';
 import { compressImage, makeBackgroundTransparent } from '@/lib/image-compression';
 import { Badge } from '@/components/ui/badge';
@@ -38,26 +38,8 @@ import { updateWateringProgress, updateEvolutionProgress, updateCollectionProgre
 import { plantChatAction } from '@/app/actions/plant-chat';
 import { Textarea } from '@/components/ui/textarea';
 
-const NUM_POTS = 5;
-const MAX_WATERINGS_PER_DAY = 4;
-const XP_PER_WATERING = 200;
-const XP_PER_LEVEL = 1000;
-const GOLD_PER_WATERING = 5;
-const RUBIES_PER_WATERING = 1;
-const EVOLUTION_LEVEL = 10;
-const SECOND_EVOLUTION_LEVEL = 25;
-const DRAG_CLICK_TOLERANCE = 5; // pixels
-const MAX_SHOWCASE_PLANTS = 5;
-const LONG_PRESS_DURATION = 500; // ms
 
-// Helper to check if a timestamp is from the current day
-function isToday(timestamp: number): boolean {
-    const today = new Date();
-    const someDate = new Date(timestamp);
-    return someDate.getDate() === today.getDate() &&
-           someDate.getMonth() === today.getMonth() &&
-           someDate.getFullYear() === today.getFullYear();
-}
+const XP_PER_LEVEL = 1000;
 
 function SheenAnimation() {
     return (
@@ -116,502 +98,9 @@ function GlitterAnimation() {
     );
 }
 
-function WaterDropletAnimation() {
-    return (
-        <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
-            {Array.from({ length: 5 }).map((_, i) => (
-                <Droplet key={i} className="absolute text-blue-400 animate-water-drop" style={{
-                    left: `${Math.random() * 100}%`,
-                    animationDelay: `${Math.random() * 0.5}s`,
-                    animationDuration: `${0.5 + Math.random() * 0.5}s`,
-                    width: `${16 + Math.random() * 16}px`,
-                    height: `${16 + Math.random() * 16}px`,
-                }} />
-            ))}
-        </div>
-    );
-}
-
-function GoldCoinAnimation() {
-    return (
-        <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
-            {Array.from({ length: 3 }).map((_, i) => (
-                <Coins key={i} className="absolute text-yellow-400 animate-float-up" style={{
-                    left: `${20 + Math.random() * 60}%`,
-                    bottom: '20px',
-                    animationDelay: `${Math.random() * 0.5}s`,
-                    animationDuration: `${1 + Math.random() * 0.5}s`,
-                    width: `${20 + Math.random() * 12}px`,
-                    height: `${20 + Math.random() * 12}px`,
-                }} />
-            ))}
-        </div>
-    );
-}
-
-function RubyAnimation() {
-    return (
-        <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
-            {Array.from({ length: 1 }).map((_, i) => (
-                <Gem key={i} className="absolute text-red-500 animate-float-up" style={{
-                    left: `${30 + Math.random() * 40}%`,
-                    bottom: '20px',
-                    animationDelay: `${Math.random() * 0.3}s`,
-                    animationDuration: `${1.2 + Math.random() * 0.5}s`,
-                    width: `${24 + Math.random() * 12}px`,
-                    height: `${24 + Math.random() * 12}px`,
-                }} />
-            ))}
-        </div>
-    );
-}
-
-
-function PlantChatDialog({ plant, open, onOpenChange, userId }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, userId: string }) {
-    const [history, setHistory] = useState<{ role: 'user' | 'model'; content: string }[]>([]);
-    const [message, setMessage] = useState('');
-    const [isThinking, setIsThinking] = useState(false);
-    const scrollAreaRef = useRef<HTMLDivElement>(null);
-    const { playSfx } = useAudio();
-
-    useEffect(() => {
-        if (plant) {
-            setHistory(plant.conversationHistory || []);
-        }
-    }, [plant]);
-
-    useEffect(() => {
-        // Scroll to bottom when history changes
-        if (scrollAreaRef.current) {
-            scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
-        }
-    }, [history]);
-
-    if (!plant) return null;
-
-    const handleSendMessage = async () => {
-        if (!message.trim() || isThinking) return;
-
-        const newUserMessage = { role: 'user' as const, content: message };
-        const newHistory = [...history, newUserMessage];
-        setHistory(newHistory);
-        setMessage('');
-        setIsThinking(true);
-        playSfx('tap');
-
-        try {
-            const { response } = await plantChatAction({
-                plantName: plant.name,
-                plantPersonality: plant.personality,
-                userMessage: message,
-                history: history,
-                form: plant.form,
-            });
-            
-            const newModelMessage = { role: 'model' as const, content: response };
-            setHistory([...newHistory, newModelMessage]);
-            await addConversationHistory(userId, plant.id, newUserMessage.content, newModelMessage.content);
-            playSfx('chime');
-
-        } catch (e) {
-            console.error("Chat error:", e);
-            setHistory(history); // Revert history on error
-        } finally {
-            setIsThinking(false);
-        }
-    };
-
-    return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-md flex flex-col h-[70vh]">
-                <DialogHeader>
-                    <DialogTitle className="text-2xl text-center text-primary">Chat with {plant.name}</DialogTitle>
-                    <DialogDescription className="text-center">Personality: <span className="font-semibold">{plant.personality}</span></DialogDescription>
-                </DialogHeader>
-                <div ref={scrollAreaRef} className="flex-grow overflow-y-auto p-4 space-y-4 bg-muted/50 rounded-lg">
-                    {history.map((turn, index) => (
-                        <div key={index} className={cn(
-                            "flex items-end gap-2",
-                            turn.role === 'user' ? 'justify-end' : 'justify-start'
-                        )}>
-                           {turn.role === 'model' && (
-                                <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-primary/50 shrink-0">
-                                     <Image src={plant.image} alt={plant.name} width={32} height={32} />
-                                </div>
-                           )}
-                           <div className={cn(
-                               "max-w-xs p-3 rounded-lg",
-                               turn.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-background'
-                           )}>
-                               <p className="text-sm">{turn.content}</p>
-                           </div>
-                        </div>
-                    ))}
-                    {isThinking && (
-                         <div className="flex items-end gap-2 justify-start">
-                            <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-primary/50 shrink-0">
-                                 <Image src={plant.image} alt={plant.name} width={32} height={32} />
-                            </div>
-                           <div className="bg-background p-3 rounded-lg">
-                               <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                           </div>
-                        </div>
-                    )}
-                </div>
-                <DialogFooter className="pt-4 flex-row gap-2">
-                    <Textarea 
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        placeholder="Say something..."
-                        className="flex-grow resize-none"
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                handleSendMessage();
-                            }
-                        }}
-                        disabled={isThinking}
-                    />
-                    <Button onClick={handleSendMessage} disabled={!message.trim() || isThinking}>
-                        Send
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
-}
-
-function PlantDetailDialog({ plant, open, onOpenChange, onStartEvolution, onOpenChat, userId }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, onStartEvolution: (plant: Plant) => void, onOpenChat: (plant: Plant) => void, userId: string }) {
-    const { playSfx } = useAudio();
-    const { toast } = useToast();
-    const { gameData } = useAuth();
-    const [isWatering, setIsWatering] = useState(false);
-    const [showReward, setShowReward] = useState<'gold' | 'ruby' | null>(null);
-    const [visualXp, setVisualXp] = useState(plant?.xp || 0);
-    const [isDeleting, setIsDeleting] = useState(false);
-    const [viewingBase, setViewingBase] = useState(false);
-    const [isRefilling, setIsRefilling] = useState(false);
-    const [isUnlockingChat, setIsUnlockingChat] = useState(false);
-
-    useEffect(() => {
-        if (plant) {
-            setVisualXp(plant.xp);
-        }
-        // Reset view when dialog opens or plant changes
-        setViewingBase(false);
-    }, [plant, open]);
-
-    if (!plant || !gameData) return null;
-
-    const timesWateredToday = plant.lastWatered?.filter(isToday).length ?? 0;
-    const canWater = timesWateredToday < MAX_WATERINGS_PER_DAY;
-    const waterButtonText = () => {
-        if (isWatering) return 'Watering...';
-        return `Water Plant (${timesWateredToday}/${MAX_WATERINGS_PER_DAY})`;
-    };
-    
-    const displayName = viewingBase ? `Base: ${plant.name}` : plant.name;
-    const displayImage = viewingBase ? plant.baseImage : plant.image;
-
-    const handleUseRefill = async () => {
-        if (!plant || gameData.waterRefillCount <= 0) return;
-        setIsRefilling(true);
-        try {
-            await useWaterRefill(userId, plant.id);
-            playSfx('chime');
-            toast({
-                title: "Water Refilled!",
-                description: `${plant.name} is ready for more water.`,
-            });
-        } catch (e: any) {
-            toast({ variant: 'destructive', title: "Error", description: e.message });
-        } finally {
-            setIsRefilling(false);
-        }
-    };
-
-    const handleWaterPlant = async () => {
-        if (!canWater || !plant) return;
-        
-        setIsWatering(true);
-        playSfx('watering');
-        
-        const isFinalForm = plant.form === 'Final';
-        setShowReward(isFinalForm ? 'ruby' : 'gold');
-
-
-        const xpGained = XP_PER_WATERING;
-        let newXp = plant.xp + xpGained;
-        let newLevel = plant.level;
-        let shouldEvolve = false;
-
-        const willLevelUp = newXp >= XP_PER_LEVEL;
-
-        if (willLevelUp) {
-            setVisualXp(XP_PER_LEVEL); // Fill the bar to full visually
-            
-            await new Promise(resolve => setTimeout(resolve, 500)); // Wait for animation
-
-            newLevel += 1;
-            newXp -= XP_PER_LEVEL;
-            
-            // This sequence ensures the bar visually resets and animates to the new value.
-            setVisualXp(0);
-            await new Promise(resolve => setTimeout(resolve, 50));
-            setVisualXp(newXp);
-
-            if (newLevel >= EVOLUTION_LEVEL && plant.form === 'Base') {
-                shouldEvolve = true;
-            } else if (newLevel >= SECOND_EVOLUTION_LEVEL && plant.form === 'Evolved') {
-                shouldEvolve = true;
-            } else {
-                playSfx('reward');
-                toast({
-                    title: "Level Up!",
-                    description: `${plant.name} has reached level ${newLevel}!`,
-                });
-            }
-        } else {
-            setVisualXp(newXp);
-        }
-        
-        const now = Date.now();
-        let updatedLastWatered = [...(plant.lastWatered || []), now];
-
-        try {
-            const updatedPlantData = {
-                xp: newXp,
-                level: newLevel,
-                lastWatered: updatedLastWatered,
-            };
-
-            await updatePlant(userId, plant.id, updatedPlantData);
-            
-            if (isFinalForm) {
-                await updateUserRubies(userId, RUBIES_PER_WATERING);
-            } else {
-                await updateUserGold(userId, GOLD_PER_WATERING);
-            }
-            
-            if (plant.form === 'Evolved' || plant.form === 'Final') {
-                await updateWaterEvolvedProgress(userId);
-            } else {
-                await updateWateringProgress(userId);
-            }
-
-            if (shouldEvolve) {
-                // Find the full, updated plant object to pass to the evolution flow
-                const fullPlant = { ...plant, ...updatedPlantData };
-                onStartEvolution(fullPlant);
-                onOpenChange(false);
-            }
-
-        } catch(e) {
-            console.error("Failed to update plant or gold", e);
-            toast({ variant: 'destructive', title: "Error", description: "Could not save watering progress."})
-        }
-
-        setTimeout(() => setIsWatering(false), 1200);
-        setTimeout(() => setShowReward(null), 1000);
-    };
-
-    const handleDeletePlant = async () => {
-        if (!plant) return;
-        setIsDeleting(true);
-        try {
-            await deletePlant(userId, plant.id);
-            toast({
-                title: "Plant Deleted",
-                description: `${plant.name} has been removed from your collection.`,
-            });
-            onOpenChange(false);
-        } catch (e) {
-            console.error("Failed to delete plant", e);
-            toast({ variant: 'destructive', title: "Error", description: "Could not delete the plant." });
-        } finally {
-            setIsDeleting(false);
-        }
-    };
-    
-    const handleUnlockChat = async () => {
-        if (!plant) return;
-        setIsUnlockingChat(true);
-        try {
-            await unlockPlantChat(userId, plant.id);
-            playSfx('success');
-            toast({
-                title: "Chat Unlocked!",
-                description: `You can now chat with ${plant.name}.`
-            });
-        } catch (e: any) {
-            console.error("Failed to unlock chat", e);
-            toast({ variant: 'destructive', title: "Error", description: e.message || "Could not unlock chat." });
-        } finally {
-            setIsUnlockingChat(false);
-        }
-    };
-
-
-    return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-sm">
-                <DialogHeader>
-                    <DialogTitle className="text-3xl text-center text-primary">{displayName}</DialogTitle>
-                     <div className="flex flex-row items-center justify-center pt-2 gap-2">
-                         {plant.baseImage && (
-                            <Button variant="outline" size="sm" className="text-xs h-7 px-2" onClick={() => setViewingBase(v => !v)}>
-                                <Sparkles className="mr-1 h-3 w-3" />
-                                {viewingBase ? 'View Evolved' : 'View Base Form'}
-                            </Button>
-                         )}
-                         {plant.form === 'Final' && (
-                             <>
-                                {plant.chatEnabled ? (
-                                    <Button variant="outline" size="sm" className="text-xs h-7 px-2" onClick={() => onOpenChat(plant)}>
-                                        <MessageCircle className="mr-1 h-3 w-3" />
-                                        Chat
-                                    </Button>
-                                ) : (
-                                    <Button variant="outline" size="sm" className="text-xs h-7 px-2" onClick={handleUnlockChat} disabled={isUnlockingChat || gameData.plantChatTokens < 1}>
-                                        {isUnlockingChat ? <Loader2 className="animate-spin" /> : <><Gem className="mr-1 h-3 w-3 text-red-500" /> Unlock Chat ({gameData.plantChatTokens})</>}
-                                    </Button>
-                                )}
-                             </>
-                         )}
-                         <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="outline" size="icon" className="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive h-7 w-7">
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                    <AlertDialogDescriptionComponent>
-                                        This will permanently delete {plant.name} from your collection. This action cannot be undone.
-                                    </AlertDialogDescriptionComponent>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleDeletePlant} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
-                                        {isDeleting ? <Loader2 className="animate-spin" /> : "Yes, delete it"}
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    </div>
-                </DialogHeader>
-                <div className="flex flex-col items-center gap-4 pt-4">
-                    <div className="w-64 h-64 relative">
-                        <div className="rounded-lg overflow-hidden border-4 border-primary/50 shadow-lg bg-green-100 flex items-center justify-center h-full">
-                            {displayImage && displayImage !== 'placeholder' ? (
-                                <Image src={displayImage} alt={plant.name} width={256} height={256} className="object-cover w-full h-full" data-ai-hint={plant.hint} />
-                            ) : (
-                                <Leaf className="w-24 h-24 text-muted-foreground/50" />
-                            )}
-                        </div>
-                        {plant.hasGlitter && !viewingBase && <GlitterAnimation />}
-                        {plant.hasRedGlitter && !viewingBase && <RedGlitterAnimation />}
-                        {plant.hasSheen && !viewingBase && <SheenAnimation />}
-                        {plant.hasRainbowGlitter && !viewingBase && <RainbowGlitterAnimation />}
-                        {isWatering && <WaterDropletAnimation />}
-                        {showReward === 'gold' && <GoldCoinAnimation />}
-                        {showReward === 'ruby' && <RubyAnimation />}
-                        {showReward && (
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-1 bg-yellow-400/80 text-white font-bold px-3 py-1 rounded-full shadow-lg animate-fade-out-fast pointer-events-none">
-                                {showReward === 'gold' ? <Coins className="w-5 h-5" /> : <Gem className="w-5 h-5 text-red-300" />}
-                                <span>+1</span>
-                            </div>
-                        )}
-                    </div>
-
-                    <p className="text-muted-foreground text-center mt-2 px-4">{plant.description}</p>
-                    
-                    <div className="w-full px-4 space-y-2">
-                        <div className="flex justify-between items-baseline">
-                            <p className="text-lg font-semibold text-primary">Level {plant.level}</p>
-                             <p className="text-sm text-muted-foreground">{visualXp} / {XP_PER_LEVEL} XP</p>
-                        </div>
-                        <Progress value={(visualXp / XP_PER_LEVEL) * 100} className="w-full" />
-                    </div>
-
-                </div>
-                <DialogFooter className="pt-2 flex-col sm:flex-col sm:space-x-0 gap-2">
-                    <Button onClick={handleWaterPlant} disabled={!canWater || isWatering || viewingBase} className="w-full bg-blue-500 hover:bg-blue-600">
-                        <Droplet className="mr-2 h-4 w-4" />
-                        {waterButtonText()}
-                    </Button>
-                    {!canWater && gameData.waterRefillCount > 0 && (
-                        <Button
-                            onClick={handleUseRefill}
-                            disabled={isRefilling || viewingBase}
-                            className="w-full"
-                            variant="secondary"
-                        >
-                           {isRefilling ? <Loader2 className="animate-spin" /> : <><RefreshCw className="mr-2 h-4 w-4" /> Use Refill ({gameData.waterRefillCount})</>}
-                        </Button>
-                    )}
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
-}
-
-function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlantOutput | null, open: boolean, onOpenChange: (open: boolean) => void }) {
-    if (!plant) return null;
-
-    return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-sm">
-                <DialogHeader>
-                    <DialogTitle className="text-3xl text-center text-primary">A new plant!</DialogTitle>
-                </DialogHeader>
-                <div className="flex flex-col items-center gap-4 py-4">
-                    <div className="w-64 h-64 rounded-lg overflow-hidden border-4 border-primary/50 shadow-lg bg-green-100">
-                        <Image src={plant.imageDataUri} alt={plant.name} width={256} height={256} className="object-cover w-full h-full" />
-                    </div>
-                    <h3 className="text-2xl font-semibold text-primary">{plant.name}</h3>
-                    <p className="text-muted-foreground text-center">{plant.description}</p>
-                </div>
-                <DialogFooter>
-                    <DialogClose asChild>
-                        <Button className="w-full text-lg">Collect</Button>
-                    </DialogClose>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
-}
-
-function PlantImageUI({ plant, image, canWater }: { plant: Plant, image: string | null, canWater: boolean }) {
-  return (
-    <div className={cn("flex items-center justify-center p-2 rounded-lg pointer-events-none w-full h-full", canWater && "animate-glow")}>
-      <div className="relative h-20 w-20 flex items-center justify-center">
-        {image && image !== 'placeholder' ? (
-            <Image 
-                src={image} 
-                alt={plant.name} 
-                fill 
-                sizes="80px" 
-                className="object-contain"
-                data-ai-hint={plant.hint} />
-        ) : (
-            <div className="w-full h-full flex items-center justify-center rounded-lg">
-              <Leaf className="w-12 h-12 text-transparent" />
-            </div>
-        )}
-        {plant.hasGlitter && <GlitterAnimation />}
-        {plant.hasRedGlitter && <RedGlitterAnimation />}
-        {plant.hasSheen && <SheenAnimation />}
-        {plant.hasRainbowGlitter && <RainbowGlitterAnimation />}
-      </div>
-    </div>
-  );
-}
 
 function PlantCardUI({ 
     plant,
-    canWater,
     onApplyGlitter, 
     canApplyGlitter,
     onApplySheen, 
@@ -622,7 +111,6 @@ function PlantCardUI({
     canApplyRedGlitter
 }: { 
     plant: Plant,
-    canWater: boolean,
     onApplyGlitter: (plantId: number) => void;
     canApplyGlitter: boolean;
     onApplySheen: (plantId: number) => void;
@@ -634,10 +122,7 @@ function PlantCardUI({
 }) {
     const hasAnyCosmetic = plant.hasGlitter || plant.hasSheen || plant.hasRainbowGlitter || plant.hasRedGlitter;
     return (
-        <Card className={cn(
-            "group overflow-hidden shadow-md w-full relative",
-            canWater && "animate-glow"
-        )}>
+        <Card className="group overflow-hidden shadow-md w-full relative">
             <div className="absolute top-1 left-1 z-10 flex flex-col gap-1">
                 {canApplyGlitter && !hasAnyCosmetic &&(
                     <Button
@@ -715,10 +200,10 @@ function PlantCardUI({
     );
 }
 
-function DraggablePlant({ plant, source, canWater, onApplyGlitter, canApplyGlitter, onApplySheen, canApplySheen, onApplyRainbowGlitter, canApplyRainbowGlitter, onApplyRedGlitter, canApplyRedGlitter, ...rest }: { plant: Plant; source: 'collection' | 'desk'; canWater: boolean; onApplyGlitter: (plantId: number) => void; canApplyGlitter: boolean; onApplySheen: (plantId: number) => void; canApplySheen: boolean; onApplyRainbowGlitter: (plantId: number) => void; canApplyRainbowGlitter: boolean; onApplyRedGlitter: (plantId: number) => void; canApplyRedGlitter: boolean; } & React.HTMLAttributes<HTMLDivElement>) {
+function DraggablePlantCard({ plant, onApplyGlitter, canApplyGlitter, onApplySheen, canApplySheen, onApplyRainbowGlitter, canApplyRainbowGlitter, onApplyRedGlitter, canApplyRedGlitter }: { plant: Plant; onApplyGlitter: (plantId: number) => void; canApplyGlitter: boolean; onApplySheen: (plantId: number) => void; canApplySheen: boolean; onApplyRainbowGlitter: (plantId: number) => void; canApplyRainbowGlitter: boolean; onApplyRedGlitter: (plantId: number) => void; canApplyRedGlitter: boolean; }) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-        id: `${source}:${plant.id}`,
-        data: { plant, source },
+        id: `collection:${plant.id}`,
+        data: { plant, source: 'collection' },
     });
 
     const style = {
@@ -727,148 +212,42 @@ function DraggablePlant({ plant, source, canWater, onApplyGlitter, canApplyGlitt
     };
 
     return (
-        <div ref={setNodeRef} style={style} {...listeners} {...attributes} {...rest}>
-            {source === 'collection' ? (
-                 <PlantCardUI 
-                    plant={plant} 
-                    canWater={canWater}
-                    onApplyGlitter={onApplyGlitter} 
-                    canApplyGlitter={canApplyGlitter}
-                    onApplySheen={onApplySheen}
-                    canApplySheen={canApplySheen}
-                    onApplyRainbowGlitter={onApplyRainbowGlitter}
-                    canApplyRainbowGlitter={canApplyRainbowGlitter}
-                    onApplyRedGlitter={onApplyRedGlitter}
-                    canApplyRedGlitter={canApplyRedGlitter}
-                />
-            ) : (
-                <PlantImageUI plant={plant} image={plant.image} canWater={canWater} />
-            )}
-        </div>
-    );
-}
-
-function DeskPot({ plant, index, onClickPlant, processedImage, canWater }: { plant: Plant | null, index: number, onClickPlant: (plant: Plant) => void, processedImage: string | null, canWater: boolean }) {
-    const { setNodeRef, isOver } = useDroppable({ id: `pot:${index}` });
-    const pos = useRef([0, 0]);
-
-    const onPointerDown = (e: React.PointerEvent) => {
-        pos.current = [e.clientX, e.clientY];
-    };
-
-    const onPointerUp = (e: React.PointerEvent) => {
-        if (!plant) return;
-        const [x, y] = pos.current;
-        const dist = Math.sqrt(Math.pow(e.clientX - x, 2) + Math.pow(e.clientY - y, 2));
-
-        if (dist < DRAG_CLICK_TOLERANCE) {
-             onClickPlant(plant);
-        }
-    };
-    
-    const EmptyPot = () => (
-        <div ref={setNodeRef} className={cn(
-            "relative w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center rounded-lg transition-colors",
-            isOver ? "bg-black/20" : "bg-black/10"
-        )} />
-    );
-
-    if (!plant) {
-        return <EmptyPot />;
-    }
-    
-    return (
-        <div 
-            className="relative w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center"
-            onPointerDown={onPointerDown}
-            onPointerUp={onPointerUp}
-        >
-            <DraggablePlant 
-                plant={{...plant, image: processedImage || plant.image}}
-                source="desk" 
-                canWater={canWater}
-                onApplyGlitter={() => {}}
-                canApplyGlitter={false}
-                onApplySheen={() => {}}
-                canApplySheen={false}
-                onApplyRainbowGlitter={() => {}}
-                canApplyRainbowGlitter={false}
-                onApplyRedGlitter={() => {}}
-                canApplyRedGlitter={false}
-                className="cursor-grab active:cursor-grabbing w-full h-full z-10" 
+        <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing">
+            <PlantCardUI 
+                plant={plant} 
+                onApplyGlitter={onApplyGlitter} 
+                canApplyGlitter={canApplyGlitter}
+                onApplySheen={onApplySheen}
+                canApplySheen={canApplySheen}
+                onApplyRainbowGlitter={onApplyRainbowGlitter}
+                canApplyRainbowGlitter={canApplyRainbowGlitter}
+                onApplyRedGlitter={onApplyRedGlitter}
+                canApplyRedGlitter={canApplyRedGlitter}
             />
-            <div ref={setNodeRef} className={cn("absolute inset-0 z-0", isOver && "bg-black/20 rounded-lg")} />
         </div>
     );
 }
 
-function EvolveConfirmationDialog({ plant, open, onConfirm, onCancel, isEvolving }: { plant: Plant | null, open: boolean, onConfirm: () => void, onCancel: () => void, isEvolving: boolean }) {
-    if (!plant) return null;
-
+function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
+    const { isOver, setNodeRef } = useDroppable({ id: 'collection:area' });
     return (
-        <AlertDialog open={open} onOpenChange={(isOpen) => !isOpen && onCancel()}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Your plant is growing!</AlertDialogTitle>
-                    <AlertDialogDescriptionComponent>
-                        {plant.name} is ready for a new form! Would you like to evolve it?
-                    </AlertDialogDescriptionComponent>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel onClick={onCancel} disabled={isEvolving}>Later</AlertDialogCancel>
-                    <AlertDialogAction onClick={onConfirm} disabled={isEvolving}>
-                        {isEvolving ? <Loader2 className="animate-spin" /> : 'Evolve'}
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+        <div
+            ref={setNodeRef}
+            className={cn("rounded-lg border bg-muted/10 p-2 min-h-24", isOver && "bg-primary/10 border-2 border-dashed border-primary/50")}
+        >
+            {children}
+        </div>
     );
 }
 
-function EvolvePreviewDialog({ plantName, newForm, newImageUri, open, onConfirm }: { plantName: string, newForm: string, newImageUri: string, open: boolean, onConfirm: () => void }) {
-    return (
-        <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onConfirm()}>
-            <DialogContent className="max-w-sm">
-                 <DialogHeader>
-                    <DialogTitle className="text-3xl text-center">Evolution Complete!</DialogTitle>
-                </DialogHeader>
-                <div className="flex flex-col items-center gap-4 py-4">
-                    <div className="w-64 h-64 rounded-lg overflow-hidden border-4 border-primary/50 shadow-lg bg-green-100">
-                        <Image src={newImageUri} alt={`Evolved ${plantName}`} width={256} height={256} className="object-cover w-full h-full" />
-                    </div>
-                    <h3 className="text-2xl font-semibold text-primary">{plantName} has evolved into its {newForm} form!</h3>
-                </div>
-                <DialogFooter>
-                    <Button onClick={onConfirm} className="w-full text-lg">Continue</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    )
-}
 
 export default function RoomPage() {
   const { user, gameData } = useAuth();
   const { toast } = useToast();
   const { playSfx } = useAudio();
   
-  const [deskPlantIds, setDeskPlantIds] = useState<(number | null)[]>(Array(NUM_POTS).fill(null));
   const [collectionPlantIds, setCollectionPlantIds] = useState<number[]>([]);
-
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [isWatering, setIsWatering] = useState(false);
-  const [drawnPlant, setDrawnPlant] = useState<DrawPlantOutput | null>(null);
-  const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
-  
-  const [currentEvolvingPlant, setCurrentEvolvingPlant] = useState<Plant | null>(null);
-  const [isEvolving, setIsEvolving] = useState(false);
-  const [evolvedPreviewData, setEvolvedPreviewData] = useState<{plantId: number; plantName: string; newForm: string, newImageUri: string, personality?: string } | null>(null);
-
-
-  const [processedDeskImages, setProcessedDeskImages] = useState<Record<number, string | null>>({});
-
-  // For Plant Chat
-  const [chattingPlant, setChattingPlant] = useState<Plant | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -886,149 +265,21 @@ export default function RoomPage() {
   
   useEffect(() => {
     if (gameData) {
-        setDeskPlantIds(gameData.deskPlantIds || Array(NUM_POTS).fill(null));
         setCollectionPlantIds(gameData.collectionPlantIds || []);
     }
   }, [gameData]);
 
   const allPlants = useMemo(() => gameData?.plants || {}, [gameData]);
-  const deskPlants = useMemo(() => deskPlantIds.map(id => id ? allPlants[id] : null), [deskPlantIds, allPlants]);
   const collectionPlants = useMemo(() => collectionPlantIds.map(id => allPlants[id]).filter(Boolean), [collectionPlantIds, allPlants]);
   
-  useEffect(() => {
-    const processImages = async () => {
-        const newImages: Record<number, string | null> = {};
-        for (const plant of deskPlants) {
-            if (plant && plant.image) {
-                if (!plant.image.startsWith('/')) { // Don't process local placeholder images
-                    try {
-                        const transparentImage = await makeBackgroundTransparent(plant.image);
-                        newImages[plant.id] = transparentImage;
-                    } catch (e) {
-                        console.error("Failed to process image for plant:", plant.id, e);
-                        newImages[plant.id] = plant.image; 
-                    }
-                } else {
-                    newImages[plant.id] = plant.image;
-                }
-            }
-        }
-        setProcessedDeskImages(newImages);
-    };
-    processImages();
-  }, [deskPlants]);
-
-
-  const activeDragData = useMemo(() => {
+  const activeDragPlant = useMemo(() => {
     if (!activeDragId) return null;
     const [source, idStr] = activeDragId.split(":");
     const id = parseInt(idStr, 10);
-    const plant = allPlants[id];
-    let image = plant?.image;
-    if(source === 'desk' && plant && processedDeskImages[plant.id]) {
-        image = processedDeskImages[plant.id] ?? plant.image;
-    }
-    return plant ? { plant, source, image } : null;
-  }, [activeDragId, allPlants, processedDeskImages]);
+    return allPlants[id] ?? null;
+  }, [activeDragId, allPlants]);
 
-  const handleDraw = async () => {
-    if (!user || !gameData || gameData.draws <= 0) {
-        toast({
-            variant: "destructive",
-            title: "No Draws Left",
-            description: "Visit the shop to get more draws or wait for your daily refill.",
-        });
-        return;
-    }
-    
-    setIsDrawing(true);
-    try {
-        await useDraw(user.uid);
 
-        const existingNames = gameData.plants ? Object.values(gameData.plants).map(p => p.name) : [];
-        const drawnPlantResult = await drawPlantAction(existingNames);
-        const compressedImageDataUri = await compressImage(drawnPlantResult.imageDataUri);
-        
-        playSfx('success');
-        setDrawnPlant({
-            ...drawnPlantResult,
-            imageDataUri: compressedImageDataUri,
-        });
-
-    } catch (e: any) {
-        console.error(e);
-        await refundDraw(user.uid);
-        if (e.message === 'Invalid API Key') {
-            toast({
-                variant: "destructive",
-                title: "Invalid API Key",
-                description: "Please check your GOOGLE_API_KEY. Your draw has been refunded.",
-            });
-        } else {
-            toast({
-                variant: "destructive",
-                title: "Failed to draw a plant",
-                description: "There was an issue with the AI. Your draw has been refunded.",
-            });
-        }
-    } finally {
-        setIsDrawing(false);
-    }
-  };
-
-  const handleCollect = async () => {
-    if (!drawnPlant || !user) return;
-
-    try {
-        const plainDrawnPlant = JSON.parse(JSON.stringify(drawnPlant));
-        await savePlant(user.uid, plainDrawnPlant);
-        await updateCollectionProgress(user.uid);
-    } catch (e) {
-        console.error("Failed to save plant to Firestore", e);
-        toast({
-            variant: "destructive",
-            title: "Storage Error",
-            description: "Could not save your new plant.",
-        });
-    }
-    
-    setDrawnPlant(null);
-  };
-
-    const handleUseSprinkler = async () => {
-        if (!user || !gameData) return;
-        setIsWatering(true);
-        try {
-            const result = await useSprinkler(user.uid);
-            if (result.plantsWatered > 0) {
-                playSfx('reward');
-                toast({
-                    title: "Plants Watered!",
-                    description: `Watered ${result.plantsWatered} plant(s) and gained ${result.goldGained} gold.`,
-                });
-                if (result.newlyEvolvablePlants.length > 0) {
-                   for (const plantId of result.newlyEvolvablePlants) {
-                     const plant = await getPlantById(user.uid, plantId);
-                     if (plant) {
-                       setCurrentEvolvingPlant(plant);
-                       break;
-                     }
-                   }
-                }
-            } else {
-                 toast({
-                    title: "All Set!",
-                    description: "All your plants are already watered for the day.",
-                });
-            }
-        } catch (e: any) {
-            console.error("Failed to use sprinkler", e);
-            toast({ variant: 'destructive', title: "Error", description: e.message || "Could not use sprinkler." });
-        } finally {
-            setIsWatering(false);
-        }
-    };
-  
   const handleDragStart = (event: DragStartEvent) => {
     playSfx('pickup');
     setActiveDragId(event.active.id as string);
@@ -1037,7 +288,7 @@ export default function RoomPage() {
   const handleDragEnd = async (event: DragEndEvent) => {
     setActiveDragId(null);
     playSfx('tap');
-    if (!user) return;
+    if (!user || !gameData) return;
 
     const { active, over } = event;
   
@@ -1045,126 +296,30 @@ export default function RoomPage() {
       return;
     }
   
-    const activePlant = active.data.current.plant as Plant;
-    const [activeSource] = (active.id as string).split(':');
-    
-    const [overType, overIdStr] = (over.id as string).split(':');
-    
-    let newDeskIds = [...deskPlantIds];
-    let newCollectionIds = [...collectionPlantIds];
-
-    // Dragging from collection
-    if (activeSource === 'collection') {
-      if (overType === 'pot') {
-        const potIndex = parseInt(overIdStr, 10);
-        const plantInPotId = newDeskIds[potIndex];
-
-        // Add dragged plant to pot
-        newDeskIds[potIndex] = activePlant.id;
-        // Remove from collection
-        newCollectionIds = newCollectionIds.filter(id => id !== activePlant.id);
-        // If a plant was in the pot, move it to collection
-        if (plantInPotId) {
-          newCollectionIds.push(plantInPotId);
-        }
-      }
+    // If an item from the collection is dropped onto something that's not a pot, do nothing.
+    const [overType] = (over.id as string).split(':');
+    if (overType !== 'pot') {
+      return;
     }
-    // Dragging from desk
-    else if (activeSource === 'desk') {
-      const sourcePotIndex = newDeskIds.findIndex(id => id === activePlant.id);
+  
+    const activePlant = active.data.current.plant as Plant;
+    const potIndex = parseInt((over.id as string).split(':')[1], 10);
+    
+    let newDeskIds = [...gameData.deskPlantIds];
+    let newCollectionIds = [...collectionPlantIds];
+    const plantInPotId = newDeskIds[potIndex];
 
-      if (sourcePotIndex === -1) return;
-
-      if (overType === 'pot') { // desk to desk
-        const targetPotIndex = parseInt(overIdStr, 10);
-        const plantInTargetPotId = newDeskIds[targetPotIndex];
-        
-        // Swap plants
-        newDeskIds[targetPotIndex] = activePlant.id;
-        newDeskIds[sourcePotIndex] = plantInTargetPotId;
-
-      } else if (overType === 'collection') { // desk to collection
-        newDeskIds[sourcePotIndex] = null;
-        if (!newCollectionIds.includes(activePlant.id)) {
-            newCollectionIds.push(activePlant.id);
-        }
-      }
+    // Add dragged plant to pot
+    newDeskIds[potIndex] = activePlant.id;
+    // Remove from collection
+    newCollectionIds = newCollectionIds.filter(id => id !== activePlant.id);
+    // If a plant was in the pot, move it to collection
+    if (plantInPotId) {
+      newCollectionIds.push(plantInPotId);
     }
   
     const finalCollectionIds = newCollectionIds.sort((a,b) => a - b);
-    setDeskPlantIds(newDeskIds);
-    setCollectionPlantIds(finalCollectionIds);
     await updatePlantArrangement(user.uid, finalCollectionIds, newDeskIds);
-  };
-  
-  const handleEvolve = async () => {
-    if (!currentEvolvingPlant || !user) return;
-    
-    setIsEvolving(true);
-    try {
-        const evolutionPlant = { ...currentEvolvingPlant };
-        
-        const { newImageDataUri, personality } = await evolvePlantAction({
-            name: evolutionPlant.name,
-            baseImageDataUri: evolutionPlant.baseImage || evolutionPlant.image,
-            form: evolutionPlant.form,
-        });
-
-        const isFirstEvolution = evolutionPlant.form === 'Base';
-        const newForm = isFirstEvolution ? 'Evolved' : 'Final';
-
-        setEvolvedPreviewData({ 
-            plantId: evolutionPlant.id,
-            plantName: evolutionPlant.name, 
-            newForm,
-            newImageUri: newImageDataUri,
-            personality
-        });
-
-    } catch (e) {
-        console.error("Evolution failed", e);
-        toast({ variant: 'destructive', title: "Evolution Failed", description: "Could not evolve your plant. Please try again." });
-    } finally {
-        setIsEvolving(false);
-        setCurrentEvolvingPlant(null);
-    }
-  };
-  
-  const handleConfirmEvolution = async () => {
-    if (!user || !evolvedPreviewData) return;
-    
-    try {
-        playSfx('success');
-        const plantToUpdateId = evolvedPreviewData.plantId;
-        const { newImageUri, newForm, personality } = evolvedPreviewData;
-        const compressedImage = await compressImage(newImageUri);
-        const currentPlant = allPlants[plantToUpdateId];
-
-        const updateData: Partial<Plant> = {
-            image: compressedImage,
-            form: newForm,
-            personality: personality || '',
-        };
-        
-        if (newForm === 'Evolved' && currentPlant && !currentPlant.baseImage) {
-            updateData.baseImage = currentPlant.image;
-        }
-
-        await updatePlant(user.uid, plantToUpdateId, updateData);
-        await updateEvolutionProgress(user.uid);
-        
-        toast({
-            title: "Evolution Complete!",
-            description: `${evolvedPreviewData.plantName} has evolved!`,
-        });
-
-    } catch (e) {
-        console.error("Failed to save evolution", e);
-        toast({ variant: 'destructive', title: "Save Failed", description: "Could not save your evolved plant." });
-    } finally {
-        setIsEvolving(false);
-        setEvolvedPreviewData(null);
-    }
   };
   
   const handleApplyGlitter = async (plantId: number) => {
@@ -1247,14 +402,14 @@ export default function RoomPage() {
         onDragEnd={handleDragEnd} 
         onDragCancel={() => setActiveDragId(null)}
     >
-      <div className="space-y-4 bg-white min-h-screen">
+      <div className="space-y-4 bg-white min-h-screen pb-24">
         <header className="flex flex-col items-center gap-4 p-4 text-center">
           <h1 className="text-3xl text-primary text-center">My Room</h1>
-          <p className="text-muted-foreground">Drag plants from your collection into the pots to display them. Tap a plant in a pot to water it.</p>
+          <p className="text-muted-foreground">Drag plants from your collection to your Garden to water them. Apply cosmetics here.</p>
         </header>
 
         <section className="px-4">
-            <div className="flex justify-center gap-4 text-sm text-muted-foreground mb-4 flex-wrap">
+             <div className="flex justify-center gap-4 text-sm text-muted-foreground mb-4 flex-wrap">
                 <div className="flex items-center gap-1.5 p-2 rounded-lg bg-muted/50">
                     <Sparkles className="w-5 h-5 text-yellow-400" />
                     <span>{gameData.glitterCount}</span>
@@ -1274,70 +429,21 @@ export default function RoomPage() {
                     </div>
                     <span>{gameData.rainbowGlitterCount}</span>
                 </div>
-                <div className="flex items-center gap-1.5 p-2 rounded-lg bg-muted/50">
-                    <RefreshCw className="w-5 h-5 text-green-500" />
-                    <span>{gameData.waterRefillCount}</span>
-                </div>
             </div>
-            <div className="relative aspect-video max-w-2xl mx-auto rounded-lg bg-cover bg-center" style={{backgroundImage: "url('/room-bg.png')"}}>
-                <div className="absolute inset-x-0 bottom-4 sm:bottom-8 flex justify-around">
-                    {deskPlants.map((plant, index) => {
-                        const canWater = plant ? (plant.lastWatered?.filter(isToday).length ?? 0) < MAX_WATERINGS_PER_DAY : false;
-                        return (
-                            <DeskPot
-                                key={plant?.id || `pot-${index}`}
-                                plant={plant}
-                                index={index}
-                                onClickPlant={(p) => setSelectedPlant(allPlants[p.id])}
-                                processedImage={plant ? processedDeskImages[plant.id] : null}
-                                canWater={canWater}
-                            />
-                        )
-                    })}
-                </div>
-            </div>
-        </section>
-
-        <section className="px-4 flex justify-center">
-            <Button className="font-semibold w-full max-w-xs" onClick={handleDraw} disabled={isDrawing || gameData.draws <= 0}>
-              {isDrawing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Drawing...
-                </>
-              ) : (
-                <>
-                  <Leaf className="mr-2 h-4 w-4" />
-                  Draw Plant ({gameData.draws} left)
-                </>
-              )}
-            </Button>
         </section>
 
         <section className="px-4 pb-4">
             <Card className="p-4">
               <div className="flex flex-col items-center gap-4">
                   <h2 className="text-xl text-primary">My Collection</h2>
-                    {gameData.sprinklerUnlocked && (
-                      <div className="pb-4">
-                        <Button onClick={handleUseSprinkler} disabled={isWatering}>
-                            <Droplets className="mr-2 h-4 w-4" />
-                            {isWatering ? 'Watering...' : `Use Sprinkler`}
-                        </Button>
-                      </div>
-                    )}
               </div>
               <DroppableCollectionArea>
                 <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5">
                     {collectionPlants.length > 0 ? (
-                      collectionPlants.map((plant) => {
-                          const canWater = (plant.lastWatered?.filter(isToday).length ?? 0) < MAX_WATERINGS_PER_DAY;
-                          return (
-                           <DraggablePlant
+                      collectionPlants.map((plant) => (
+                           <DraggablePlantCard
                               key={plant.id}
                                plant={plant}
-                               source="collection"
-                               canWater={canWater}
                                onApplyGlitter={handleApplyGlitter}
                                canApplyGlitter={gameData.glitterCount > 0}
                                onApplySheen={handleApplySheen}
@@ -1346,10 +452,8 @@ export default function RoomPage() {
                                canApplyRainbowGlitter={gameData.rainbowGlitterCount > 0}
                                onApplyRedGlitter={handleApplyRedGlitter}
                                canApplyRedGlitter={gameData.redGlitterCount > 0}
-                               className="cursor-grab active:cursor-grabbing"
                              />
-                          )
-                      })
+                          ))
                     ) : (
                       <div className="col-span-3 text-center text-muted-foreground py-8">
                           Your collection is empty. Go to the Home screen to draw a new plant!
@@ -1360,68 +464,16 @@ export default function RoomPage() {
             </Card>
         </section>
 
-        <PlantDetailDialog
-          plant={selectedPlant ? allPlants[selectedPlant.id] : null}
-          open={!!selectedPlant}
-          onOpenChange={(isOpen) => !isOpen && setSelectedPlant(null)}
-          onStartEvolution={(plant) => setCurrentEvolvingPlant(plant)}
-          onOpenChat={(plant) => setChattingPlant(plant)}
-          userId={user.uid}
-        />
-        
-        <PlantChatDialog
-            plant={chattingPlant}
-            open={!!chattingPlant}
-            onOpenChange={(isOpen) => {
-                if (!isOpen) setChattingPlant(null);
-            }}
-            userId={user.uid}
-        />
-
-        <NewPlantDialog
-          plant={drawnPlant}
-          open={!!drawnPlant}
-          onOpenChange={(isOpen) => {
-            if (!isOpen) {
-              handleCollect();
-            }
-          }}
-        />
-
-        <EvolveConfirmationDialog
-            plant={currentEvolvingPlant}
-            open={!!currentEvolvingPlant && !isEvolving}
-            onConfirm={handleEvolve}
-            onCancel={() => setCurrentEvolvingPlant(null)}
-            isEvolving={isEvolving}
-        />
-
-        {evolvedPreviewData && (
-            <EvolvePreviewDialog
-                plantName={evolvedPreviewData.plantName}
-                newForm={evolvedPreviewData.newForm}
-                newImageUri={evolvedPreviewData.newImageUri}
-                open={!!evolvedPreviewData}
-                onConfirm={handleConfirmEvolution}
-            />
-        )}
-
-
         <DragOverlay>
-            {activeDragData ? (
+            {activeDragPlant ? (
                 <div className="w-28">
-                    {activeDragData.source === 'desk' ? (
-                        <PlantImageUI plant={activeDragData.plant} image={activeDragData.image} canWater={false} />
-                    ) : (
-                        <PlantCardUI 
-                            plant={activeDragData.plant} 
-                            canWater={false}
-                            onApplyGlitter={() => {}} canApplyGlitter={false} 
-                            onApplySheen={() => {}} canApplySheen={false}
-                            onApplyRainbowGlitter={() => {}} canApplyRainbowGlitter={false}
-                            onApplyRedGlitter={() => {}} canApplyRedGlitter={false}
-                        />
-                    )}
+                    <PlantCardUI 
+                        plant={activeDragPlant} 
+                        onApplyGlitter={() => {}} canApplyGlitter={false} 
+                        onApplySheen={() => {}} canApplySheen={false}
+                        onApplyRainbowGlitter={() => {}} canApplyRainbowGlitter={false}
+                        onApplyRedGlitter={() => {}} canApplyRedGlitter={false}
+                    />
                 </div>
             ) : null}
         </DragOverlay>
@@ -1429,17 +481,3 @@ export default function RoomPage() {
     </DndContext>
   );
 }
-
-function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
-    const { isOver, setNodeRef } = useDroppable({ id: 'collection:area' });
-    return (
-        <div
-            ref={setNodeRef}
-            className={cn("rounded-lg border bg-muted/10 p-2 min-h-24", isOver && "bg-primary/10 border-2 border-dashed border-primary/50")}
-        >
-            {children}
-        </div>
-    );
-}
-
-    

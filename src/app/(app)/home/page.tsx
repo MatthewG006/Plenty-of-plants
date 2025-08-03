@@ -137,8 +137,8 @@ function ChallengeCard({ challenge, onClaim, isClaiming }: { challenge: Challeng
 }
 
 const gameTips = [
-    "Go to the Room to water your plants and help them grow.",
-    "Drag plants from your collection onto the pots in your room to display them.",
+    "Go to the Garden to water your plants and help them grow.",
+    "Drag plants from your collection onto the plots in your garden to display them.",
     "Complete daily challenges to earn extra gold.",
     "Visit the shop to get daily free draws or buy more with your gold.",
     "Show off your favorite plants on the community page by selecting them in your profile."
@@ -353,7 +353,7 @@ export default function HomePage() {
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center text-center min-h-[260px]">
             {latestPlant ? (
-              <Link href="/room" className="flex flex-col items-center gap-2 transition-transform hover:scale-105">
+              <Link href="/garden" className="flex flex-col items-center gap-2 transition-transform hover:scale-105">
                 <div className="w-48 h-48 rounded-lg overflow-hidden border-2 border-primary/30 shadow-md">
                   {latestPlant.image !== 'placeholder' ? (
                       <Image
@@ -488,7 +488,7 @@ export default function HomePage() {
 
       <CommunityInfoDialog open={showCommunityInfo} onOpenChange={handleCloseCommunityInfo} />
 
-       <Link href="/room">
+       <Link href="/garden">
         <Button
             size="icon"
             className="fixed bottom-24 right-4 h-16 w-16 rounded-full bg-green-500 hover:bg-green-600 shadow-lg animate-pulse-subtle"
@@ -500,4 +500,3 @@ export default function HomePage() {
   );
 }
 
-    
