@@ -9,7 +9,8 @@ import { useAudio } from '@/context/AudioContext';
 
 const navItems = [
   { href: '/home', label: 'Home', icon: Home },
-  { href: '/room', label: 'Room', icon: Sprout },
+  { href: '/garden', label: 'Garden', icon: Sprout },
+  { href: '/room', label: 'Room', icon: Users },
   { href: '/shop', label: 'Shop', icon: Store },
   { href: '/community', label: 'Community', icon: Users },
 ];
@@ -22,10 +23,18 @@ export default function BottomNavBar() {
     playSfx('tap');
   };
 
+  // Filter out the 'Community' link for now, will be re-added later.
+  const visibleNavItems = navItems.filter(item => item.href !== '/community');
+  // Make the room link point to community for now.
+  const finalNavItems = visibleNavItems.map(item => item.href === '/room' ? { ...item, href: '/community', label: 'Community', icon: Users } : item);
+  // Add room back in
+  finalNavItems.splice(2, 0, { href: '/room', label: 'Room', icon: Wind });
+
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 h-20 border-t bg-card/95 backdrop-blur-sm z-10 flex justify-center">
-      <div className="grid h-full w-full max-w-md grid-cols-4 items-center">
-        {navItems.map((item) => {
+      <div className="grid h-full w-full max-w-md grid-cols-5 items-center">
+        {finalNavItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
 
           return (
@@ -57,5 +66,3 @@ export default function BottomNavBar() {
     </nav>
   );
 }
-
-    
