@@ -154,16 +154,16 @@ export default function GardenPage() {
 
   return (
     <div className="min-h-screen">
-      <header className="flex flex-col items-center gap-2 p-4 text-center z-20 relative">
+      {/* Background Image */}
+      <div className="fixed inset-0 top-0 -z-10 h-screen w-full bg-cover bg-top bg-black" style={{ backgroundImage: "url('/garden-bg.png')" }} />
+      <div className="fixed inset-0 top-0 -z-10 h-screen w-full bg-contain bg-top bg-no-repeat backdrop-blur-sm" style={{ backgroundImage: "url('/garden-bg.png')" }} />
+      
+      <header className="flex flex-col items-center gap-2 p-4 text-center z-20 relative bg-background">
         <h1 className="text-3xl text-primary font-bold">My Garden</h1>
         <p className="text-muted-foreground">Water your plants to help them level up and evolve.</p>
       </header>
 
-      <div className="relative">
-        <div className="fixed inset-0 top-0 -z-10 h-screen w-full bg-cover bg-top bg-black" style={{ backgroundImage: "url('/garden-bg.png')" }} />
-        <div className="fixed inset-0 top-0 -z-10 h-screen w-full bg-contain bg-top bg-no-repeat backdrop-blur-sm" style={{ backgroundImage: "url('/garden-bg.png')" }} />
-       
-        <div className="relative z-10 p-4 space-y-4">
+      <div className="relative z-10 p-4 space-y-4">
           <section>
             {allPlants.length > 0 ? (
               <div className="grid grid-cols-3 gap-4">
@@ -186,7 +186,6 @@ export default function GardenPage() {
             )}
           </section>
         </div>
-      </div>
           
       <EvolveConfirmationDialog
           plant={currentEvolvingPlant}
