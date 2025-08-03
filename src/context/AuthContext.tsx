@@ -57,7 +57,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               gold: data.gold || 0,
               plants: data.plants || {},
               collectionPlantIds: data.collectionPlantIds || [],
-              deskPlantIds: data.deskPlantIds || [null, null, null],
+              deskPlantIds: data.deskPlantIds || Array(12).fill(null),
               draws: data.draws ?? MAX_DRAWS,
               lastDrawRefill: data.lastDrawRefill || Date.now(),
               lastFreeDrawClaimed: data.lastFreeDrawClaimed || 0,
@@ -143,3 +143,5 @@ export const useAuth = () => {
   }
   return context;
 };
+
+    
