@@ -1050,21 +1050,23 @@ export default function GardenPage() {
                     className="w-full h-auto rounded-lg"
                     priority
                 />
-                <div className="absolute inset-0 grid grid-cols-3 grid-rows-4 gap-x-6 gap-y-4 p-10 px-12">
-                    {deskPlants.map((plant, index) => {
-                        const canWater = plant ? (plant.lastWatered?.filter(isToday).length ?? 0) < MAX_WATERINGS_PER_DAY : false;
-                        return (
-                            <GardenPot
-                                key={plant?.id || `pot-${index}`}
-                                plant={plant}
-                                index={index}
-                                onClickPlant={(p) => setSelectedPlant(allPlants[p.id])}
-                                onAddPlant={handleOpenAddPlantDialog}
-                                processedImage={plant ? processedDeskImages[plant.id] : null}
-                                canWater={canWater}
-                            />
-                        )
-                    })}
+                <div className="absolute inset-0 p-10 px-12">
+                  <div className="grid grid-cols-3 grid-rows-4 gap-x-6 gap-y-4 h-full w-full">
+                      {deskPlants.map((plant, index) => {
+                          const canWater = plant ? (plant.lastWatered?.filter(isToday).length ?? 0) < MAX_WATERINGS_PER_DAY : false;
+                          return (
+                              <GardenPot
+                                  key={plant?.id || `pot-${index}`}
+                                  plant={plant}
+                                  index={index}
+                                  onClickPlant={(p) => setSelectedPlant(allPlants[p.id])}
+                                  onAddPlant={handleOpenAddPlantDialog}
+                                  processedImage={plant ? processedDeskImages[plant.id] : null}
+                                  canWater={canWater}
+                              />
+                          )
+                      })}
+                    </div>
                 </div>
             </div>
         </section>
@@ -1124,3 +1126,5 @@ export default function GardenPage() {
     </DndContext>
   );
 }
+
+    
