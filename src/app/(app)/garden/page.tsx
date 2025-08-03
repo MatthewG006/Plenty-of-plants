@@ -5,7 +5,7 @@ import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose, DialogDescription } from '@/components/ui/dialog';
-import { Leaf, Loader2, Droplet, Coins, Sparkles, Droplets, Trash2, GripVertical, Star, Pipette, RefreshCw, Gem, MessageCircle } from 'lucide-react';
+import { Leaf, Loader2, Droplet, Coins, Sparkles, Droplets, Trash2, GripVertical, Star, Pipette, RefreshCw, Gem, MessageCircle, Plus } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -555,31 +555,42 @@ function PlantDetailDialog({ plant, open, onOpenChange, onStartEvolution, onOpen
     );
 }
 
-function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlantOutput | null, open: boolean, onOpenChange: (open: boolean) => void }) {
-    if (!plant) return null;
-
+function AddPlantDialog({ open, onOpenChange, collectionPlants, onSelectPlant }: { open: boolean, onOpenChange: (open: boolean) => void, collectionPlants: Plant[], onSelectPlant: (plant: Plant) => void }) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-sm">
+            <DialogContent className="max-w-lg">
                 <DialogHeader>
-                    <DialogTitle className="text-3xl text-center text-primary">A new plant!</DialogTitle>
+                    <DialogTitle className="text-2xl text-center text-primary">Add a Plant to Your Garden</DialogTitle>
+                    <DialogDescription>Select a plant from your collection to place it in the empty pot.</DialogDescription>
                 </DialogHeader>
-                <div className="flex flex-col items-center gap-4 py-4">
-                    <div className="w-64 h-64 rounded-lg overflow-hidden border-4 border-primary/50 shadow-lg bg-green-100">
-                        <Image src={plant.imageDataUri} alt={plant.name} width={256} height={256} className="object-cover w-full h-full" />
-                    </div>
-                    <h3 className="text-2xl font-semibold text-primary">{plant.name}</h3>
-                    <p className="text-muted-foreground text-center">{plant.description}</p>
+                <div className="max-h-[60vh] overflow-y-auto p-1">
+                   {collectionPlants.length > 0 ? (
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                            {collectionPlants.map(plant => (
+                                <Card key={plant.id} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => onSelectPlant(plant)}>
+                                    <CardContent className="p-2 flex flex-col items-center gap-2">
+                                        <div className="w-24 h-24 relative">
+                                            <Image src={plant.image} alt={plant.name} fill className="object-cover rounded-md" />
+                                        </div>
+                                        <p className="text-sm font-medium text-center truncate w-full">{plant.name}</p>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                   ) : (
+                       <p className="text-center text-muted-foreground py-8">Your collection is empty.</p>
+                   )}
                 </div>
                 <DialogFooter>
                     <DialogClose asChild>
-                        <Button className="w-full text-lg">Collect</Button>
+                        <Button variant="outline">Close</Button>
                     </DialogClose>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
     );
 }
+
 
 function PlantImageUI({ plant, image, canWater }: { plant: Plant, image: string | null, canWater: boolean }) {
   return (
@@ -607,7 +618,7 @@ function PlantImageUI({ plant, image, canWater }: { plant: Plant, image: string 
   );
 }
 
-function GardenPot({ plant, index, onClickPlant, processedImage, canWater }: { plant: Plant | null, index: number, onClickPlant: (plant: Plant) => void, processedImage: string | null, canWater: boolean }) {
+function GardenPot({ plant, index, onClickPlant, onAddPlant, processedImage, canWater }: { plant: Plant | null, index: number, onClickPlant: (plant: Plant) => void, onAddPlant: (potIndex: number) => void, processedImage: string | null, canWater: boolean }) {
     const { setNodeRef, isOver } = useDroppable({ id: `pot:${index}` });
     const pos = useRef([0, 0]);
 
@@ -626,10 +637,16 @@ function GardenPot({ plant, index, onClickPlant, processedImage, canWater }: { p
     };
     
     const EmptyPot = () => (
-        <div ref={setNodeRef} className={cn(
-            "relative w-full h-full flex items-center justify-center rounded-lg transition-colors",
-            isOver ? "bg-black/20" : "bg-black/10"
-        )} />
+        <div 
+            ref={setNodeRef} 
+            className={cn(
+                "relative w-full h-full flex items-center justify-center rounded-lg transition-colors cursor-pointer",
+                isOver ? "bg-black/20" : "bg-black/10"
+            )}
+            onClick={() => onAddPlant(index)}
+        >
+            <Plus className="w-8 h-8 text-white/50" />
+        </div>
     );
 
     if (!plant) {
@@ -731,6 +748,9 @@ export default function GardenPage() {
 
   const [processedDeskImages, setProcessedDeskImages] = useState<Record<number, string | null>>({});
 
+  const [addPlantDialogOpen, setAddPlantDialogOpen] = useState(false);
+  const [selectedPotIndex, setSelectedPotIndex] = useState<number | null>(null);
+
   // For Plant Chat
   const [chattingPlant, setChattingPlant] = useState<Plant | null>(null);
 
@@ -756,6 +776,12 @@ export default function GardenPage() {
 
   const allPlants = useMemo(() => gameData?.plants || {}, [gameData]);
   const deskPlants = useMemo(() => deskPlantIds.map(id => id ? allPlants[id] : null), [deskPlantIds, allPlants]);
+  
+  const collectionPlants = useMemo(() => {
+    if (!gameData?.plants) return [];
+    const deskIdsSet = new Set(deskPlantIds.filter(id => id !== null));
+    return Object.values(gameData.plants).filter(p => !deskIdsSet.has(p.id));
+  }, [gameData, deskPlantIds]);
   
   useEffect(() => {
     const processImages = async () => {
@@ -957,6 +983,29 @@ export default function GardenPage() {
     }
   };
   
+  const handleOpenAddPlantDialog = (potIndex: number) => {
+    setSelectedPotIndex(potIndex);
+    setAddPlantDialogOpen(true);
+  };
+  
+  const handleSelectPlantToAdd = async (plant: Plant) => {
+    if (!user || selectedPotIndex === null) return;
+    
+    const newDeskIds = [...deskPlantIds];
+    const plantInPotId = newDeskIds[selectedPotIndex];
+
+    newDeskIds[selectedPotIndex] = plant.id;
+    
+    const newCollectionIds = (gameData?.collectionPlantIds || []).filter(id => id !== plant.id);
+    if (plantInPotId) {
+        newCollectionIds.push(plantInPotId);
+    }
+    
+    await updatePlantArrangement(user.uid, newCollectionIds, newDeskIds);
+
+    setAddPlantDialogOpen(false);
+    setSelectedPotIndex(null);
+  };
   
   if (!user || !gameData) {
     return (
@@ -1001,7 +1050,7 @@ export default function GardenPage() {
                     className="w-full h-auto rounded-lg"
                     priority
                 />
-                <div className="absolute inset-0 p-4 sm:p-6 md:p-8 grid grid-cols-3 grid-rows-4 gap-2">
+                <div className="absolute inset-0 p-4 sm:p-6 md:p-8 grid grid-cols-3 grid-rows-7 gap-2">
                     {deskPlants.map((plant, index) => {
                         const canWater = plant ? (plant.lastWatered?.filter(isToday).length ?? 0) < MAX_WATERINGS_PER_DAY : false;
                         return (
@@ -1010,6 +1059,7 @@ export default function GardenPage() {
                                 plant={plant}
                                 index={index}
                                 onClickPlant={(p) => setSelectedPlant(allPlants[p.id])}
+                                onAddPlant={handleOpenAddPlantDialog}
                                 processedImage={plant ? processedDeskImages[plant.id] : null}
                                 canWater={canWater}
                             />
@@ -1035,6 +1085,13 @@ export default function GardenPage() {
                 if (!isOpen) setChattingPlant(null);
             }}
             userId={user.uid}
+        />
+        
+        <AddPlantDialog
+            open={addPlantDialogOpen}
+            onOpenChange={setAddPlantDialogOpen}
+            collectionPlants={collectionPlants}
+            onSelectPlant={handleSelectPlantToAdd}
         />
 
         <EvolveConfirmationDialog
@@ -1066,16 +1123,4 @@ export default function GardenPage() {
       </div>
     </DndContext>
   );
-}
-
-function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
-    const { isOver, setNodeRef } = useDroppable({ id: 'collection:area' });
-    return (
-        <div
-            ref={setNodeRef}
-            className={cn("rounded-lg border bg-muted/10 p-2 min-h-24", isOver && "bg-primary/10 border-2 border-dashed border-primary/50")}
-        >
-            {children}
-        </div>
-    );
 }
