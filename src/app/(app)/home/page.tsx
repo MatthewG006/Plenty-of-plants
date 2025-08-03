@@ -137,8 +137,8 @@ function ChallengeCard({ challenge, onClaim, isClaiming }: { challenge: Challeng
 }
 
 const gameTips = [
-    "Drag plants from your collection onto the pots in your garden to display them.",
-    "Water your plants in the garden to gain XP and level them up. Evolve them at level 10!",
+    "Drag plants from your collection onto the pots in your room to display them.",
+    "Water your plants in the room to gain XP and level them up. Evolve them at level 10!",
     "Complete daily challenges to earn extra gold.",
     "Visit the shop to get daily free draws or buy more with your gold.",
     "Show off your favorite plants on the community page by selecting them in your profile."
@@ -163,8 +163,6 @@ export default function HomePage() {
 
   useEffect(() => {
     if (user && gameData) {
-        refillDraws(user.uid);
-        
         if (gameData.draws > 0) {
             toast({
                 title: "Draws Available!",
@@ -181,7 +179,7 @@ export default function HomePage() {
           setShowCommunityInfo(true);
         }
     }
-  }, [user, gameData]);
+  }, [user, gameData, toast]);
 
   const handleCloseCommunityInfo = (isOpen: boolean) => {
     if (!isOpen) {
@@ -489,15 +487,6 @@ export default function HomePage() {
       />
 
       <CommunityInfoDialog open={showCommunityInfo} onOpenChange={handleCloseCommunityInfo} />
-
-        <Link href="/garden" passHref>
-            <Button
-                size="icon"
-                className="fixed bottom-24 right-4 h-16 w-16 rounded-full bg-green-500 hover:bg-green-600 shadow-lg"
-            >
-                <Sprout className="h-8 w-8 text-white" />
-            </Button>
-        </Link>
     </div>
   );
 }
