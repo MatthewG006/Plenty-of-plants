@@ -50,7 +50,9 @@ function PlantCard({ plant, onSelectPlant, processedImage, className }: { plant:
                         <span className="text-white" style={{ textShadow: '1px 1px 1px black' }}>Lvl {plant.level}</span>
                     </div>
                 </div>
-                <Progress value={(plant.xp / 1000) * 100} className="h-1.5" />
+                <div className="px-2">
+                  <Progress value={(plant.xp / 1000) * 100} className="h-1.5" />
+                </div>
             </div>
         </div>
     );
@@ -215,7 +217,7 @@ export default function GardenPage() {
                         {'mt-[11px]': index < 3},
                         {'mt-4': index >= 3 && index < 6},
                         {'mt-5': index >= 6 && index < 9},
-                        {'mt-5': index >= 9},
+                        {'mt-2.5': index >= 9},
                         {'mb-4': index < 9}
                       )}
                     />
