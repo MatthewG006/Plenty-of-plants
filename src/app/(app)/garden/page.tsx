@@ -33,7 +33,7 @@ function PlantCard({ plant, onSelectPlant, processedImage, className }: { plant:
             className={cn("group w-full relative cursor-pointer hover:scale-105 transition-transform", className)}
             onClick={() => onSelectPlant(plant)}
         >
-            <div className="relative flex items-center justify-center h-[70px]">
+            <div className="relative flex items-center justify-center h-[65px]">
                 {imageToDisplay !== 'placeholder' ? (
                     <div className="h-full w-full relative">
                         <Image src={imageToDisplay} alt={plant.name} fill sizes="100px" className="object-contain" data-ai-hint={plant.hint} />
@@ -211,6 +211,7 @@ export default function GardenPage() {
                       onSelectPlant={handleSelectPlant}
                       processedImage={processedImages[plant.id]}
                       className={cn(
+                        'mt-4',
                         {'mt-[11px]': index < 3},
                         {'mt-4': index >= 3 && index < 6},
                         {'mt-4': index >= 6 && index < 9},
