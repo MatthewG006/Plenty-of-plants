@@ -211,8 +211,8 @@ export default function GardenPage() {
                       onSelectPlant={handleSelectPlant}
                       processedImage={processedImages[plant.id]}
                       className={cn(
-                        {'mt-4': index < 3},
-                        {'mt-[26px]': index >= 3 && index < 6},
+                        {'mt-[11px]': index < 3},
+                        {'mt-4': index >= 3 && index < 6},
                         {'mt-6': index >=6},
                         {'mb-4': index < 9}
                       )}
