@@ -203,7 +203,7 @@ export default function GardenPage() {
         <div className="relative z-10 p-4 space-y-4">
             <section>
               {allPlants.length > 0 ? (
-                <div className="grid grid-cols-3 gap-x-8">
+                <div className="grid grid-cols-3 gap-x-6">
                   {allPlants.map((plant, index) => (
                     <PlantCard
                       key={plant.id}
@@ -263,3 +263,5 @@ export default function GardenPage() {
     </div>
   );
 }
+
+    
