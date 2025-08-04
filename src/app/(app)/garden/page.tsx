@@ -212,7 +212,6 @@ export default function GardenPage() {
                       processedImage={processedImages[plant.id]}
                       className={cn(
                         "mt-4",
-                        index >= 3 && "mt-8",
                         index < 9 && "mb-4"
                       )}
                     />
