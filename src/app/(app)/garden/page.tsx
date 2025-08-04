@@ -210,7 +210,7 @@ export default function GardenPage() {
                       plant={plant}
                       onSelectPlant={handleSelectPlant}
                       processedImage={processedImages[plant.id]}
-                      className={cn(index >= 0 && 'mt-4')}
+                      className={cn(index >= 3 && 'mt-4')}
                     />
                   ))}
                 </div>
