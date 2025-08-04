@@ -203,14 +203,13 @@ export default function GardenPage() {
         <div className="relative z-10 p-4 space-y-4">
             <section>
               {allPlants.length > 0 ? (
-                <div className="grid grid-cols-3 gap-x-8">
+                <div className="grid grid-cols-3 gap-x-8 gap-y-8">
                   {allPlants.map((plant, index) => (
                     <PlantCard
                       key={plant.id}
                       plant={plant}
                       onSelectPlant={handleSelectPlant}
                       processedImage={processedImages[plant.id]}
-                      className={cn(index >= 3 && 'mt-4')}
                     />
                   ))}
                 </div>
