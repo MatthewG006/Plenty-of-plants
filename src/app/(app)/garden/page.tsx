@@ -213,7 +213,8 @@ export default function GardenPage() {
                       className={cn(
                         {'mt-[11px]': index < 3},
                         {'mt-4': index >= 3 && index < 6},
-                        {'mt-5': index >= 6},
+                        {'mt-4': index >= 6 && index < 9},
+                        {'mt-2.5': index >= 9},
                         {'mb-4': index < 9}
                       )}
                     />
