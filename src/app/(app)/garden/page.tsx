@@ -23,8 +23,8 @@ const NUM_GARDEN_PLOTS = 12;
 
 function PlantCard({ plant, onClick, processedImage }: { plant: Plant, onClick: (plant: Plant) => void, processedImage: string | null }) {
     return (
-        <Card className="group overflow-hidden shadow-md w-full relative cursor-pointer bg-white/70 backdrop-blur-sm" onClick={() => onClick(plant)}>
-            <CardContent className="p-0 aspect-square flex flex-col">
+        <Card className="group overflow-hidden shadow-md w-full h-[100px] sm:h-[120px] relative cursor-pointer bg-white/70 backdrop-blur-sm" onClick={() => onClick(plant)}>
+            <CardContent className="p-0 flex flex-col h-full">
                 <div className="flex-grow relative flex items-center justify-center bg-black/10">
                     {processedImage && processedImage !== 'placeholder' ? (
                         <Image src={processedImage} alt={plant.name} fill sizes="100px" className="object-contain p-1" data-ai-hint={plant.hint} />
@@ -46,8 +46,8 @@ function PlantCard({ plant, onClick, processedImage }: { plant: Plant, onClick: 
 
 function EmptyPlotCard({ onClick }: { onClick: () => void }) {
     return (
-        <Card className="group overflow-hidden shadow-md w-full relative cursor-pointer bg-black/10 backdrop-blur-sm" onClick={onClick}>
-            <CardContent className="p-0 aspect-square flex flex-col">
+        <Card className="group overflow-hidden shadow-md w-full h-[100px] sm:h-[120px] relative cursor-pointer bg-black/10 backdrop-blur-sm" onClick={onClick}>
+            <CardContent className="p-0 flex flex-col h-full">
                 <div className="flex-grow relative flex items-center justify-center border-2 border-dashed border-white/30">
                      <div className="text-center">
                         <Plus className="mx-auto h-8 w-8 text-white/70" />
@@ -186,7 +186,7 @@ export default function GardenPage() {
 
   return (
       <div 
-        className="min-h-screen bg-cover bg-bottom bg-no-repeat flex flex-col"
+        className="min-h-screen bg-contain bg-bottom bg-no-repeat flex flex-col"
         style={{backgroundImage: "url('/garden-bg-sky.png')"}}
       >
         <header className="flex flex-col items-center gap-2 p-4 text-center bg-background/80 backdrop-blur-sm shrink-0">
