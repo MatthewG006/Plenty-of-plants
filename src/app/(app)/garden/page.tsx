@@ -211,8 +211,13 @@ export default function GardenPage() {
       </header>
 
       <div className="flex-grow relative px-2">
-        <div className="absolute inset-0 -z-10 h-full w-full bg-cover bg-top" style={{ backgroundImage: "url('/garden-bg.png')" }} />
-        <div className="absolute inset-0 -z-10 h-full w-full bg-contain bg-top bg-no-repeat backdrop-blur-sm" style={{ backgroundImage: "url('/garden-bg.png')" }} />
+        <div 
+            className="absolute inset-0 -z-10 h-full w-full bg-top bg-no-repeat" 
+            style={{ 
+                backgroundImage: "url('/garden-bg.png')",
+                backgroundSize: '100% 100%',
+            }} 
+        />
         
         <div className="relative z-10 mx-auto max-w-lg w-full aspect-[9/12]">
             <section>
