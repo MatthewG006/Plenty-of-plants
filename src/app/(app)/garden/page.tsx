@@ -196,7 +196,7 @@ export default function GardenPage() {
             className="flex-grow bg-cover bg-bottom bg-no-repeat"
             style={{backgroundImage: "url('/garden-bg.png')"}}
         >
-          <section className="px-4 pt-4 mt-4">
+          <section className="px-4 pt-4 mt-6">
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-6">
                  {gardenPlants.map((plant, index) => (
                      plant ? (
