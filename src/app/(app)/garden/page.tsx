@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Leaf, Loader2, Sparkles, Star, GripVertical, Gem, MessageCircle, Trash2, Replace } from 'lucide-react';
+import { Leaf, Loader2, Sparkles, Star, GripVertical, Gem, MessageCircle, Trash2, Replace, Plus } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -47,9 +47,8 @@ function EmptyPlotCard({ onClick }: { onClick: () => void }) {
         <Card className="group overflow-hidden shadow-md w-full relative cursor-pointer bg-black/10 backdrop-blur-sm" onClick={onClick}>
             <CardContent className="p-0">
                 <div className="h-24 relative flex items-center justify-center border-2 border-dashed border-white/30">
-                     <div className="text-center text-white/70">
-                        <Replace className="mx-auto h-8 w-8" />
-                        <p className="text-xs mt-1">Add Plant</p>
+                     <div className="text-center">
+                        <Plus className="mx-auto h-8 w-8 text-white/70" />
                     </div>
                 </div>
                 <div className="p-2 text-center space-y-1 h-[60px]" />
