@@ -196,7 +196,7 @@ export default function GardenPage() {
         </header>
         
         <main className="p-4 pb-4">
-          <section className="mt-[6px]">
+          <section className="mt-[4px]">
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-6">
                  {gardenPlants.map((plant, index) => (
                      plant ? (
