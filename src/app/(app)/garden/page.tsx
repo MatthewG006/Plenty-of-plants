@@ -187,7 +187,7 @@ export default function GardenPage() {
 
   return (
       <div 
-        className="min-h-screen bg-cover bg-bottom bg-no-repeat"
+        className="min-h-screen bg-contain bg-bottom bg-no-repeat"
         style={{backgroundImage: "url('/garden-bg.png')"}}
       >
         <header className="flex flex-col items-center gap-2 p-4 text-center bg-background/80 backdrop-blur-sm">
@@ -196,7 +196,7 @@ export default function GardenPage() {
         </header>
         
         <main className="p-4 pb-4">
-          <section>
+          <section className="mt-4">
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-6">
                  {gardenPlants.map((plant, index) => (
                      plant ? (
