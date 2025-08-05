@@ -6,7 +6,7 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
-import { GameData, createUserDocument, NUM_POTS } from '@/lib/firestore';
+import { GameData, createUserDocument, NUM_POTS, NUM_GARDEN_PLOTS } from '@/lib/firestore';
 import { MAX_DRAWS } from '@/lib/draw-manager';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -58,6 +58,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               plants: data.plants || {},
               collectionPlantIds: data.collectionPlantIds || [],
               deskPlantIds: data.deskPlantIds || Array(NUM_POTS).fill(null),
+              gardenPlantIds: data.gardenPlantIds || Array(NUM_GARDEN_PLOTS).fill(null),
               draws: data.draws ?? MAX_DRAWS,
               lastDrawRefill: data.lastDrawRefill || Date.now(),
               lastFreeDrawClaimed: data.lastFreeDrawClaimed || 0,
@@ -143,3 +144,5 @@ export const useAuth = () => {
   }
   return context;
 };
+
+    
