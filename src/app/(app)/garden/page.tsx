@@ -159,13 +159,13 @@ export default function GardenPage() {
 
   return (
       <div className="min-h-screen flex flex-col pb-24 bg-white">
-        <header className="flex flex-col items-center gap-2 px-4 pt-4 text-center z-10 relative">
+        <header className="flex flex-col items-center gap-2 px-4 pt-4 text-center z-10 relative bg-white">
             <h1 className="text-3xl text-primary font-bold">My Garden</h1>
             <p className="text-muted-foreground">Water your plants to help them grow. Tap a plant to care for it, or tap an empty plot to add a new plant from your collection.</p>
         </header>
         
         <div 
-            className="flex-grow mt-4 bg-auto bg-no-repeat"
+            className="flex-grow mt-4 bg-contain bg-center bg-no-repeat"
             style={{backgroundImage: "url('/garden-bg.png')"}}
         >
           <section className="px-4 pt-4">
