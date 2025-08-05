@@ -137,6 +137,39 @@ function GameChangesInfoDialog({ open, onOpenChange }: { open: boolean; onOpenCh
   );
 }
 
+function GardenInfoDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const router = useRouter();
+
+  const handleGoToGarden = () => {
+    router.push('/garden');
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <div className="mx-auto bg-accent rounded-full p-3 mb-2">
+            <Sprout className="h-8 w-8 text-accent-foreground" />
+          </div>
+          <DialogTitle className="text-2xl text-center">Watering Has Moved!</DialogTitle>
+          <DialogDescription className="text-center pt-2">
+            All your plant care, including watering and evolution, now happens in the new **Garden** page. Visit your garden to help your plants grow!
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button variant="outline" onClick={handleGoToGarden}>
+            Go to Garden
+          </Button>
+          <DialogClose asChild>
+            <Button>Got it!</Button>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function ChallengeCard({ challenge, onClaim, isClaiming }: { challenge: Challenge, onClaim: (challengeId: string) => void, isClaiming: boolean }) {
     const isComplete = challenge.progress >= challenge.target;
 
@@ -182,6 +215,7 @@ export default function HomePage() {
   const [nextDrawTime, setNextDrawTime] = useState('');
   const [showCommunityInfo, setShowCommunityInfo] = useState(false);
   const [showGameChangesInfo, setShowGameChangesInfo] = useState(false);
+  const [showGardenInfo, setShowGardenInfo] = useState(false);
 
   const autoplayPlugin = useRef(
     Autoplay({ delay: 4000, stopOnInteraction: true })
@@ -209,6 +243,11 @@ export default function HomePage() {
         if (!hasSeenGameChangesInfo) {
             setShowGameChangesInfo(true);
         }
+
+        const hasSeenGardenInfo = localStorage.getItem('hasSeenGardenInfo_v1');
+        if (!hasSeenGardenInfo) {
+            setShowGardenInfo(true);
+        }
     }
   }, [user, gameData, toast]);
 
@@ -223,6 +262,13 @@ export default function HomePage() {
       if (!isOpen) {
           localStorage.setItem('hasSeenGameChangesInfo_v1', 'true');
           setShowGameChangesInfo(false);
+      }
+  }
+  
+  const handleCloseGardenInfo = (isOpen: boolean) => {
+      if (!isOpen) {
+          localStorage.setItem('hasSeenGardenInfo_v1', 'true');
+          setShowGardenInfo(false);
       }
   }
 
@@ -526,6 +572,7 @@ export default function HomePage() {
 
       <CommunityInfoDialog open={showCommunityInfo} onOpenChange={handleCloseCommunityInfo} />
       <GameChangesInfoDialog open={showGameChangesInfo} onOpenChange={handleCloseGameChangesInfo} />
+      <GardenInfoDialog open={showGardenInfo} onOpenChange={handleCloseGardenInfo} />
 
        <Link href="/garden">
         <Button
@@ -538,4 +585,3 @@ export default function HomePage() {
     </div>
   );
 }
-
