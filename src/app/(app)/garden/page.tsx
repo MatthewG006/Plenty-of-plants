@@ -197,7 +197,7 @@ export default function GardenPage() {
             style={{backgroundImage: "url('/garden-bg.png')"}}
         >
           <section className="px-4 pt-4">
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-6">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-6">
                  {gardenPlants.map((plant, index) => (
                      plant ? (
                          <PlantCard 
