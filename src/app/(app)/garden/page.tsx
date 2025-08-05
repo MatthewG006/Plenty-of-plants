@@ -187,33 +187,44 @@ export default function GardenPage() {
 
   return (
       <div 
-        className="min-h-screen bg-contain bg-bottom bg-no-repeat"
-        style={{backgroundImage: "url('/garden-bg.png')"}}
+        className="min-h-screen bg-cover bg-bottom bg-no-repeat flex flex-col"
+        style={{backgroundImage: "url('/garden-bg-sky.png')"}}
       >
-        <header className="flex flex-col items-center gap-2 p-4 text-center bg-background/80 backdrop-blur-sm">
+        <header className="flex flex-col items-center gap-2 p-4 text-center bg-background/80 backdrop-blur-sm shrink-0">
             <h1 className="text-3xl text-primary font-bold">My Garden</h1>
             <p className="text-muted-foreground">Water your plants to help them grow. Tap a plant to care for it, or tap an empty plot to add a new plant from your collection.</p>
         </header>
         
-        <main className="p-4 pt-[45px] pb-4">
-          <section className="mt-[9px] pt-4">
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-6 tall:gap-8">
-                 {gardenPlants.map((plant, index) => (
-                     plant ? (
-                         <PlantCard 
-                            key={plant.id} 
-                            plant={plant} 
-                            onClick={() => handleSelectPlantForCare(allPlants[plant.id])} 
-                            processedImage={plant ? processedGardenImages[plant.id] : null}
-                          />
-                     ) : (
-                         <EmptyPlotCard key={`empty-${index}`} onClick={() => handleOpenSwapDialog(null, index)} />
-                     )
-                 ))}
-              </div>
-          </section>
-        </main>
+        <main className="flex-grow flex flex-col justify-end p-2">
+            <div className="w-full max-w-4xl mx-auto relative">
+                {/* Dirt plots image */}
+                <Image 
+                    src="/garden-bg.png" 
+                    alt="Garden plots" 
+                    width={1024} 
+                    height={512} 
+                    className="w-full h-auto"
+                />
 
+                {/* Absolutely positioned grid for plants */}
+                <div className="absolute inset-0 top-[15%] left-[5%] right-[5%] bottom-[10%]">
+                    <div className="grid grid-cols-6 grid-rows-2 h-full w-full gap-x-[5%] gap-y-[10%]">
+                        {gardenPlants.map((plant, index) => (
+                             plant ? (
+                                 <PlantCard 
+                                    key={plant.id} 
+                                    plant={plant} 
+                                    onClick={() => handleSelectPlantForCare(allPlants[plant.id])} 
+                                    processedImage={plant ? processedGardenImages[plant.id] : null}
+                                  />
+                             ) : (
+                                 <EmptyPlotCard key={`empty-${index}`} onClick={() => handleOpenSwapDialog(null, index)} />
+                             )
+                         ))}
+                    </div>
+                </div>
+            </div>
+        </main>
 
         {activeCarePlant && (
           <PlantCareDialog
