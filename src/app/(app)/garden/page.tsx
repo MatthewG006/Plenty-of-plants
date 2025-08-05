@@ -158,28 +158,29 @@ export default function GardenPage() {
   }
 
   return (
-      <div 
-        className="min-h-screen flex flex-col pb-24 bg-cover bg-center"
-        style={{backgroundImage: "url('/garden-bg.jpg')"}}
-      >
+      <div className="min-h-screen flex flex-col pb-24 bg-white">
         <header className="flex flex-col items-center gap-2 px-4 pt-4 text-center z-10 relative">
-            <div className="bg-black/30 backdrop-blur-sm p-4 rounded-xl">
-              <h1 className="text-3xl text-white font-bold" style={{textShadow: '2px 2px 4px rgba(0,0,0,0.8)'}}>My Garden</h1>
-              <p className="text-white/90" style={{textShadow: '1px 1px 2px rgba(0,0,0,0.8)'}}>Water your plants to help them grow. Tap a plant to care for it, or tap an empty plot to add a new plant from your collection.</p>
-            </div>
+            <h1 className="text-3xl text-primary font-bold">My Garden</h1>
+            <p className="text-muted-foreground">Water your plants to help them grow. Tap a plant to care for it, or tap an empty plot to add a new plant from your collection.</p>
         </header>
+        
+        <div 
+            className="flex-grow mt-4 bg-cover bg-center"
+            style={{backgroundImage: "url('/garden-bg.jpg')"}}
+        >
+          <section className="px-4 pt-4">
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                 {gardenPlants.map((plant, index) => (
+                     plant ? (
+                         <PlantCard key={plant.id} plant={plant} onClick={handleSelectPlantForCare} />
+                     ) : (
+                         <EmptyPlotCard key={`empty-${index}`} onClick={() => handleOpenSwapDialog(null, index)} />
+                     )
+                 ))}
+              </div>
+          </section>
+        </div>
 
-        <section className="px-4 pt-4 flex-grow">
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-               {gardenPlants.map((plant, index) => (
-                   plant ? (
-                       <PlantCard key={plant.id} plant={plant} onClick={handleSelectPlantForCare} />
-                   ) : (
-                       <EmptyPlotCard key={`empty-${index}`} onClick={() => handleOpenSwapDialog(null, index)} />
-                   )
-               ))}
-            </div>
-        </section>
 
         {activeCarePlant && (
           <PlantCareDialog
