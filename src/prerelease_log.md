@@ -1,5 +1,10 @@
 # Prerelease Log
 
+## Version 0.17
+
+- **Feature:** Bonus Challenges & Info Pop-ups
+- **Description:** Added a new set of "Bonus Challenges" that appear after daily challenges are completed. Implemented one-time informational pop-ups on the home page to notify users about new game features, such as the bonus challenges and the relocation of plant watering to the Garden page.
+
 ## Version 0.16
 
 - **Revert:** Reverted the "Garden" page feature. All watering and plant care functionality has been returned to the main "Room" page to simplify the user experience.
