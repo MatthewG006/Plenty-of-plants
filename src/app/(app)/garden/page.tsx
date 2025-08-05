@@ -76,12 +76,14 @@ export default function GardenPage() {
   const { toast } = useToast();
   const { playSfx } = useAudio();
   
-  const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
+  const [selectedPlantId, setSelectedPlantId] = useState<number | null>(null);
   const [currentEvolvingPlant, setCurrentEvolvingPlant] = useState<Plant | null>(null);
   const [isEvolving, setIsEvolving] = useState(false);
   const [evolvedPreviewData, setEvolvedPreviewData] = useState<{plantId: number; plantName: string; newForm: string, newImageUri: string, personality?: string } | null>(null);
   const [processedImages, setProcessedImages] = useState<Record<number, string | null>>({});
 
+
+  const allPlantsMap = useMemo(() => gameData?.plants || {}, [gameData]);
 
   const allPlants = useMemo(() => {
     if (!gameData?.plants) return [];
@@ -113,16 +115,12 @@ export default function GardenPage() {
   }, [allPlants]);
 
   const handleSelectPlant = (plant: Plant) => {
-    const processedPlant = {
-      ...plant,
-      image: processedImages[plant.id] || plant.image,
-    };
-    setSelectedPlant(processedPlant);
+    setSelectedPlantId(plant.id);
     playSfx('tap');
   };
 
   const handleCloseDialog = () => {
-    setSelectedPlant(null);
+    setSelectedPlantId(null);
   };
   
   const handleEvolve = async () => {
@@ -194,6 +192,18 @@ export default function GardenPage() {
         setEvolvedPreviewData(null);
     }
   };
+  
+  const selectedPlant = useMemo(() => {
+      if (!selectedPlantId || !allPlantsMap) return null;
+      const plant = allPlantsMap[selectedPlantId];
+      if (!plant) return null;
+      
+      const processedImage = processedImages[plant.id];
+      if (processedImage) {
+          return { ...plant, image: processedImage };
+      }
+      return plant;
+  }, [selectedPlantId, allPlantsMap, processedImages]);
 
   if (!user || !gameData) {
     return (
@@ -270,7 +280,7 @@ export default function GardenPage() {
       {selectedPlant && (
         <PlantCareDialog
             plant={selectedPlant}
-            open={!!selectedPlant}
+            open={!!selectedPlantId}
             onOpenChange={(isOpen) => !isOpen && handleCloseDialog()}
             onStartEvolution={(plant) => setCurrentEvolvingPlant(plant)}
         />
