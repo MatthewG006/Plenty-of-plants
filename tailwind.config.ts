@@ -17,6 +17,9 @@ export default {
       },
     },
     extend: {
+      screens: {
+        'tall': { 'raw': '(min-aspect-ratio: 20/9)' },
+      },
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
