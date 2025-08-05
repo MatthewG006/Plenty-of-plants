@@ -187,7 +187,7 @@ export default function GardenPage() {
 
   return (
       <div 
-        className="min-h-screen bg-cover bg-bottom bg-no-repeat pb-24"
+        className="min-h-screen bg-cover bg-bottom bg-no-repeat"
         style={{backgroundImage: "url('/garden-bg.png')"}}
       >
         <header className="flex flex-col items-center gap-2 p-4 text-center bg-background/80 backdrop-blur-sm">
@@ -195,8 +195,8 @@ export default function GardenPage() {
             <p className="text-muted-foreground">Water your plants to help them grow. Tap a plant to care for it, or tap an empty plot to add a new plant from your collection.</p>
         </header>
         
-        <main className="p-4">
-          <section className="mt-4">
+        <main className="p-4 pt-[50px]">
+          <section>
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-6">
                  {gardenPlants.map((plant, index) => (
                      plant ? (
