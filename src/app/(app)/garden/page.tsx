@@ -166,7 +166,7 @@ export default function GardenPage() {
         
         <div 
             className="flex-grow mt-4 bg-cover bg-center"
-            style={{backgroundImage: "url('/garden-bg.jpg')"}}
+            style={{backgroundImage: "url('/garden-bg.png')"}}
         >
           <section className="px-4 pt-4">
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
