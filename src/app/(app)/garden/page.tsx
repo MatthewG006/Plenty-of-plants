@@ -23,17 +23,29 @@ import { makeBackgroundTransparent } from '@/lib/image-compression';
 const EVOLUTION_LEVEL = 10;
 const SECOND_EVOLUTION_LEVEL = 25;
 
+const plantPositions = [
+    // Row 1
+    { top: '16%', left: '19%' }, { top: '16%', left: '50%' }, { top: '16%', left: '81%' },
+    // Row 2
+    { top: '38%', left: '19%' }, { top: '38%', left: '50%' }, { top: '38%', left: '81%' },
+    // Row 3
+    { top: '60%', left: '19%' }, { top: '60%', left: '50%' }, { top: '60%', left: '81%' },
+    // Row 4
+    { top: '82%', left: '19%' }, { top: '82%', left: '50%' }, { top: '82%', left: '81%' },
+];
 
-function PlantCard({ plant, onSelectPlant, processedImage, className }: { plant: Plant; onSelectPlant: (plant: Plant) => void; processedImage: string | null; className?: string; }) {
+
+function PlantCard({ plant, onSelectPlant, processedImage, style }: { plant: Plant; onSelectPlant: (plant: Plant) => void; processedImage: string | null; style: React.CSSProperties }) {
     
     const imageToDisplay = processedImage || plant.image;
 
     return (
         <div 
-            className={cn("group w-full relative cursor-pointer hover:scale-105 transition-transform", className)}
+            className="group absolute w-1/4 cursor-pointer transition-transform hover:scale-110"
+            style={style}
             onClick={() => onSelectPlant(plant)}
         >
-            <div className="relative flex items-center justify-center h-[65px]">
+            <div className="relative flex items-center justify-center aspect-[3/4]">
                 {imageToDisplay !== 'placeholder' ? (
                     <div className="h-full w-full relative">
                         <Image src={imageToDisplay} alt={plant.name} fill sizes="100px" className="object-contain" data-ai-hint={plant.hint} />
@@ -198,33 +210,28 @@ export default function GardenPage() {
         <p className="text-muted-foreground">Water your plants to help them level up and evolve.</p>
       </header>
 
-      <div className="flex-grow relative">
+      <div className="flex-grow relative px-2">
         <div className="absolute inset-0 -z-10 h-full w-full bg-cover bg-top" style={{ backgroundImage: "url('/garden-bg.png')" }} />
         <div className="absolute inset-0 -z-10 h-full w-full bg-contain bg-top bg-no-repeat backdrop-blur-sm" style={{ backgroundImage: "url('/garden-bg.png')" }} />
         
-        <div className="relative z-10 p-4 space-y-4">
+        <div className="relative z-10 mx-auto max-w-lg w-full aspect-[9/12]">
             <section>
               {allPlants.length > 0 ? (
-                <div className="grid grid-cols-3 gap-x-6">
-                  {allPlants.map((plant, index) => (
+                  allPlants.map((plant, index) => (
                     <PlantCard
                       key={plant.id}
                       plant={plant}
                       onSelectPlant={handleSelectPlant}
                       processedImage={processedImages[plant.id]}
-                      className={cn(
-                        'mt-4',
-                        {'mt-[11px]': index < 3},
-                        {'mt-9': index >= 3 && index < 6},
-                        {'mt-10': index >= 6 && index < 9},
-                        {'mt-8': index >= 9},
-                        {'mb-4': index < 9}
-                      )}
+                      style={{
+                        top: plantPositions[index]?.top,
+                        left: plantPositions[index]?.left,
+                        transform: 'translate(-50%, -50%)',
+                      }}
                     />
-                  ))}
-                </div>
+                  ))
               ) : (
-                <Card className="text-center py-10 bg-white/70 backdrop-blur-sm">
+                <Card className="text-center py-10 bg-white/70 backdrop-blur-sm absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4/5">
                   <CardContent>
                     <p className="text-muted-foreground">
                       Your garden is empty. Go home to draw some new plants!
