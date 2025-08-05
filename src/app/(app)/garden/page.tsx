@@ -23,16 +23,16 @@ const NUM_GARDEN_PLOTS = 12;
 function PlantCard({ plant, onClick }: { plant: Plant, onClick: (plant: Plant) => void }) {
     const hasAnyCosmetic = plant.hasGlitter || plant.hasSheen || plant.hasRainbowGlitter || plant.hasRedGlitter;
     return (
-        <Card className="group overflow-hidden shadow-md w-full relative cursor-pointer" onClick={() => onClick(plant)}>
+        <Card className="group overflow-hidden shadow-md w-full relative cursor-pointer bg-white/70 backdrop-blur-sm" onClick={() => onClick(plant)}>
             <CardContent className="p-0">
-                <div className="aspect-square relative flex items-center justify-center bg-muted/30">
+                <div className="aspect-square relative flex items-center justify-center bg-black/10">
                     {plant.image !== 'placeholder' ? (
                         <Image src={plant.image} alt={plant.name} fill sizes="100px" className="object-cover" data-ai-hint={plant.hint} />
                     ) : (
                         <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
                     )}
                 </div>
-                <div className="p-2 text-center bg-white/50 space-y-1 -mt-2">
+                <div className="p-2 text-center space-y-1">
                     <p className="text-sm font-semibold text-primary truncate">{plant.name}</p>
                     <div className="text-xs text-muted-foreground">Lvl {plant.level}</div>
                     <Progress value={(plant.xp / 1000) * 100} className="h-1.5" />
@@ -44,15 +44,15 @@ function PlantCard({ plant, onClick }: { plant: Plant, onClick: (plant: Plant) =
 
 function EmptyPlotCard({ onClick }: { onClick: () => void }) {
     return (
-        <Card className="group overflow-hidden shadow-md w-full relative cursor-pointer" onClick={onClick}>
+        <Card className="group overflow-hidden shadow-md w-full relative cursor-pointer bg-black/10 backdrop-blur-sm" onClick={onClick}>
             <CardContent className="p-0">
-                <div className="aspect-square relative flex items-center justify-center bg-muted/20 border-2 border-dashed border-muted-foreground/20">
-                     <div className="text-center text-muted-foreground/50">
+                <div className="aspect-square relative flex items-center justify-center border-2 border-dashed border-white/30">
+                     <div className="text-center text-white/70">
                         <Replace className="mx-auto h-8 w-8" />
                         <p className="text-xs mt-1">Add Plant</p>
                     </div>
                 </div>
-                <div className="p-2 text-center bg-white/50 space-y-1 h-[60px]" />
+                <div className="p-2 text-center space-y-1 h-[60px]" />
             </CardContent>
         </Card>
     )
@@ -158,24 +158,27 @@ export default function GardenPage() {
   }
 
   return (
-      <div className="min-h-screen flex flex-col bg-white pb-24">
-        <header className="flex flex-col items-center gap-2 px-4 pt-4 text-center z-20 relative bg-background mb-4">
-          <h1 className="text-3xl text-primary font-bold">My Garden</h1>
-          <p className="text-muted-foreground">Water your plants to help them grow. Tap a plant to care for it, or tap an empty plot to add a new plant from your collection.</p>
+      <div 
+        className="min-h-screen flex flex-col pb-24 bg-cover bg-center"
+        style={{backgroundImage: "url('/garden-bg.jpg')"}}
+      >
+        <header className="flex flex-col items-center gap-2 px-4 pt-4 text-center z-10 relative">
+            <div className="bg-black/30 backdrop-blur-sm p-4 rounded-xl">
+              <h1 className="text-3xl text-white font-bold" style={{textShadow: '2px 2px 4px rgba(0,0,0,0.8)'}}>My Garden</h1>
+              <p className="text-white/90" style={{textShadow: '1px 1px 2px rgba(0,0,0,0.8)'}}>Water your plants to help them grow. Tap a plant to care for it, or tap an empty plot to add a new plant from your collection.</p>
+            </div>
         </header>
 
-        <section className="px-4 pt-4 bg-background">
-            <Card className="p-4">
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                   {gardenPlants.map((plant, index) => (
-                       plant ? (
-                           <PlantCard key={plant.id} plant={plant} onClick={handleSelectPlantForCare} />
-                       ) : (
-                           <EmptyPlotCard key={`empty-${index}`} onClick={() => handleOpenSwapDialog(null, index)} />
-                       )
-                   ))}
-                </div>
-            </Card>
+        <section className="px-4 pt-4 flex-grow">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+               {gardenPlants.map((plant, index) => (
+                   plant ? (
+                       <PlantCard key={plant.id} plant={plant} onClick={handleSelectPlantForCare} />
+                   ) : (
+                       <EmptyPlotCard key={`empty-${index}`} onClick={() => handleOpenSwapDialog(null, index)} />
+                   )
+               ))}
+            </div>
         </section>
 
         {activeCarePlant && (
@@ -199,5 +202,3 @@ export default function GardenPage() {
       </div>
   );
 }
-
-    
