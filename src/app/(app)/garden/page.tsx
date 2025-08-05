@@ -195,7 +195,7 @@ export default function GardenPage() {
             <p className="text-muted-foreground">Water your plants to help them grow. Tap a plant to care for it, or tap an empty plot to add a new plant from your collection.</p>
         </header>
         
-        <main className="p-4 pt-[50px]">
+        <main className="pt-[50px] px-[50px] pb-4">
           <section>
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-6">
                  {gardenPlants.map((plant, index) => (
