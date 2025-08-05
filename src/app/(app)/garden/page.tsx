@@ -25,7 +25,7 @@ function PlantCard({ plant, onClick }: { plant: Plant, onClick: (plant: Plant) =
     return (
         <Card className="group overflow-hidden shadow-md w-full relative cursor-pointer bg-white/70 backdrop-blur-sm" onClick={() => onClick(plant)}>
             <CardContent className="p-0">
-                <div className="aspect-square relative flex items-center justify-center bg-black/10">
+                <div className="h-24 relative flex items-center justify-center bg-black/10">
                     {plant.image !== 'placeholder' ? (
                         <Image src={plant.image} alt={plant.name} fill sizes="100px" className="object-cover" data-ai-hint={plant.hint} />
                     ) : (
@@ -46,7 +46,7 @@ function EmptyPlotCard({ onClick }: { onClick: () => void }) {
     return (
         <Card className="group overflow-hidden shadow-md w-full relative cursor-pointer bg-black/10 backdrop-blur-sm" onClick={onClick}>
             <CardContent className="p-0">
-                <div className="aspect-square relative flex items-center justify-center border-2 border-dashed border-white/30">
+                <div className="h-24 relative flex items-center justify-center border-2 border-dashed border-white/30">
                      <div className="text-center text-white/70">
                         <Replace className="mx-auto h-8 w-8" />
                         <p className="text-xs mt-1">Add Plant</p>
@@ -169,7 +169,7 @@ export default function GardenPage() {
             style={{backgroundImage: "url('/garden-bg.png')"}}
         >
           <section className="px-4 pt-4">
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-6">
                  {gardenPlants.map((plant, index) => (
                      plant ? (
                          <PlantCard key={plant.id} plant={plant} onClick={handleSelectPlantForCare} />
