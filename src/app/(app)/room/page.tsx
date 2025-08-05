@@ -27,7 +27,7 @@ import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { updatePlant, useSheen, useRainbowGlitter, useGlitter, useRedGlitter, updatePlantArrangement, unlockPlantChat, addConversationHistory, deletePlant } from '@/lib/firestore';
 import { makeBackgroundTransparent } from '@/lib/image-compression';
-import { updateApplyGlitterProgress } from '@/lib/challenge-manager';
+import { updateApplyGlitterProgress, updateApplySheenProgress } from '@/lib/challenge-manager';
 import { AlertDialog, AlertDialogTrigger, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription as AlertDialogDescriptionComponent } from '@/components/ui/alert-dialog';
 import { PlantDetailDialog, EvolveConfirmationDialog, EvolvePreviewDialog, PlantChatDialog } from '@/components/plant-dialogs';
 import { evolvePlantAction } from '@/app/actions/evolve-plant';
@@ -526,6 +526,7 @@ export default function RoomPage() {
     try {
         await useSheen(user.uid);
         await updatePlant(user.uid, plantId, { hasSheen: true });
+        await updateApplySheenProgress(user.uid);
         playSfx('chime');
         toast({
             title: "Sheen applied!",

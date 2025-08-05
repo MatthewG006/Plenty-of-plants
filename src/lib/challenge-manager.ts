@@ -52,30 +52,30 @@ export const secondaryChallenges: Record<string, Omit<Challenge, 'progress' | 'c
     waterEvolved: {
         id: 'waterEvolved',
         title: 'Advanced Care',
-        description: 'Water 10 evolved plants.',
-        target: 10,
-        reward: 30,
+        description: 'Water 5 evolved plants.',
+        target: 5,
+        reward: 15,
     },
     collectMorePlants: {
         id: 'collectMorePlants',
         title: 'Master Collector',
-        description: 'Add 5 more plants to your collection.',
-        target: 5,
-        reward: 35,
+        description: 'Add 2 more plants to your collection.',
+        target: 2,
+        reward: 15,
     },
     likePlayer: {
         id: 'likePlayer',
         title: 'Community Spirit',
         description: 'Like another player\'s collection.',
         target: 1,
-        reward: 40,
+        reward: 20,
     },
-    applyGlitter: {
-        id: 'applyGlitter',
-        title: 'Sparkle Specialist',
-        description: 'Apply a glitter pack to a plant.',
+    applySheen: {
+        id: 'applySheen',
+        title: 'Shine On',
+        description: 'Apply a sheen pack to a plant.',
         target: 1,
-        reward: 45,
+        reward: 25,
     },
 };
 
@@ -130,6 +130,8 @@ export const updateEvolutionProgress = (userId: string) => updateChallengeProgre
 export const updateWaterEvolvedProgress = (userId: string) => updateChallengeProgress(userId, 'waterEvolved');
 export const updateLikePlayerProgress = (userId: string) => updateChallengeProgress(userId, 'likePlayer');
 export const updateApplyGlitterProgress = (userId: string) => updateChallengeProgress(userId, 'applyGlitter');
+export const updateApplySheenProgress = (userId: string) => updateChallengeProgress(userId, 'applySheen');
+
 
 export const updateLoginProgress = async (userId: string) => {
     const gameData = await getUserGameData(userId);
