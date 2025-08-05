@@ -212,10 +212,11 @@ export default function GardenPage() {
 
       <div className="flex-grow relative px-2">
         <div 
-            className="absolute inset-0 -z-10 h-full w-full bg-top bg-no-repeat" 
+            className="absolute inset-0 -z-10 h-full w-full bg-no-repeat" 
             style={{ 
                 backgroundImage: "url('/garden-bg.png')",
-                backgroundSize: '100% 100%',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
             }} 
         />
         
