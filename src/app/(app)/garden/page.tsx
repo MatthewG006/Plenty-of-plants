@@ -22,11 +22,10 @@ import { makeBackgroundTransparent } from '@/lib/image-compression';
 const NUM_GARDEN_PLOTS = 12;
 
 function PlantCard({ plant, onClick, processedImage }: { plant: Plant, onClick: (plant: Plant) => void, processedImage: string | null }) {
-    const hasAnyCosmetic = plant.hasGlitter || plant.hasSheen || plant.hasRainbowGlitter || plant.hasRedGlitter;
     return (
         <Card className="group overflow-hidden shadow-md w-full relative cursor-pointer bg-white/70 backdrop-blur-sm" onClick={() => onClick(plant)}>
-            <CardContent className="p-0">
-                <div className="h-20 relative flex items-center justify-center bg-black/10">
+            <CardContent className="p-0 aspect-square flex flex-col">
+                <div className="flex-grow relative flex items-center justify-center bg-black/10">
                     {processedImage && processedImage !== 'placeholder' ? (
                         <Image src={processedImage} alt={plant.name} fill sizes="100px" className="object-contain p-1" data-ai-hint={plant.hint} />
                     ) : plant.image !== 'placeholder' ? (
@@ -35,7 +34,7 @@ function PlantCard({ plant, onClick, processedImage }: { plant: Plant, onClick: 
                         <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
                     )}
                 </div>
-                <div className="p-1 text-center space-y-0.5">
+                <div className="p-1 text-center space-y-0.5 shrink-0">
                     <p className="text-xs font-semibold text-primary truncate">{plant.name}</p>
                     <div className="text-[10px] text-muted-foreground">Lvl {plant.level}</div>
                     <Progress value={(plant.xp / 1000) * 100} className="h-1.5" />
@@ -48,13 +47,13 @@ function PlantCard({ plant, onClick, processedImage }: { plant: Plant, onClick: 
 function EmptyPlotCard({ onClick }: { onClick: () => void }) {
     return (
         <Card className="group overflow-hidden shadow-md w-full relative cursor-pointer bg-black/10 backdrop-blur-sm" onClick={onClick}>
-            <CardContent className="p-0">
-                <div className="h-20 relative flex items-center justify-center border-2 border-dashed border-white/30">
+            <CardContent className="p-0 aspect-square flex flex-col">
+                <div className="flex-grow relative flex items-center justify-center border-2 border-dashed border-white/30">
                      <div className="text-center">
                         <Plus className="mx-auto h-8 w-8 text-white/70" />
                     </div>
                 </div>
-                <div className="p-1 text-center">
+                <div className="p-1 text-center shrink-0">
                     <div className="h-[28px]"></div>
                 </div>
             </CardContent>
