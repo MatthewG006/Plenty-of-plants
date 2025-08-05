@@ -16,17 +16,20 @@ import { useAuth } from '@/context/AuthContext';
 import { updateGardenArrangement } from '@/lib/firestore';
 import { PlantCareDialog, PlantSwapDialog } from '@/components/plant-dialogs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { makeBackgroundTransparent } from '@/lib/image-compression';
 
 
 const NUM_GARDEN_PLOTS = 12;
 
-function PlantCard({ plant, onClick }: { plant: Plant, onClick: (plant: Plant) => void }) {
+function PlantCard({ plant, onClick, processedImage }: { plant: Plant, onClick: (plant: Plant) => void, processedImage: string | null }) {
     const hasAnyCosmetic = plant.hasGlitter || plant.hasSheen || plant.hasRainbowGlitter || plant.hasRedGlitter;
     return (
         <Card className="group overflow-hidden shadow-md w-full relative cursor-pointer bg-white/70 backdrop-blur-sm" onClick={() => onClick(plant)}>
             <CardContent className="p-0">
                 <div className="h-20 relative flex items-center justify-center bg-black/10">
-                    {plant.image !== 'placeholder' ? (
+                    {processedImage && processedImage !== 'placeholder' ? (
+                        <Image src={processedImage} alt={plant.name} fill sizes="100px" className="object-contain p-1" data-ai-hint={plant.hint} />
+                    ) : plant.image !== 'placeholder' ? (
                         <Image src={plant.image} alt={plant.name} fill sizes="100px" className="object-cover" data-ai-hint={plant.hint} />
                     ) : (
                         <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
@@ -69,6 +72,7 @@ export default function GardenPage() {
   const [swapState, setSwapState] = useState<{plantToReplaceId: number | null, gardenPlotIndex: number} | null>(null);
 
   const [sortOption, setSortOption] = useState<'level' | 'stage'>('level');
+  const [processedGardenImages, setProcessedGardenImages] = useState<Record<number, string | null>>({});
 
   useEffect(() => {
     if (gameData) {
@@ -84,6 +88,29 @@ export default function GardenPage() {
 
   const gardenPlants = useMemo(() => gardenPlantIds.map(id => id ? allPlants[id] : null), [gardenPlantIds, allPlants]);
   
+  useEffect(() => {
+    const processImages = async () => {
+        const newImages: Record<number, string | null> = {};
+        for (const plant of gardenPlants) {
+            if (plant && plant.image) {
+                if (!plant.image.startsWith('/')) { // Don't process local placeholder images
+                    try {
+                        const transparentImage = await makeBackgroundTransparent(plant.image);
+                        newImages[plant.id] = transparentImage;
+                    } catch (e) {
+                        console.error("Failed to process image for plant:", plant.id, e);
+                        newImages[plant.id] = plant.image; 
+                    }
+                } else {
+                    newImages[plant.id] = plant.image;
+                }
+            }
+        }
+        setProcessedGardenImages(newImages);
+    };
+    processImages();
+  }, [gardenPlants]);
+
   const collectionPlants = useMemo(() => {
     const formOrder: { [key: string]: number } = { 'Base': 0, 'Evolved': 1, 'Final': 2 };
 
@@ -171,7 +198,12 @@ export default function GardenPage() {
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-6">
                  {gardenPlants.map((plant, index) => (
                      plant ? (
-                         <PlantCard key={plant.id} plant={plant} onClick={() => handleSelectPlantForCare(allPlants[plant.id])} />
+                         <PlantCard 
+                            key={plant.id} 
+                            plant={plant} 
+                            onClick={() => handleSelectPlantForCare(allPlants[plant.id])} 
+                            processedImage={plant ? processedGardenImages[plant.id] : null}
+                          />
                      ) : (
                          <EmptyPlotCard key={`empty-${index}`} onClick={() => handleOpenSwapDialog(null, index)} />
                      )
