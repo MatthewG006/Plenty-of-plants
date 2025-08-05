@@ -25,13 +25,13 @@ const SECOND_EVOLUTION_LEVEL = 25;
 
 const plantPositions = [
     // Row 1
-    { top: '20%', left: '15%' }, { top: '20%', left: '50%' }, { top: '20%', left: '85%' },
+    { top: '17%', left: '15%' }, { top: '17%', left: '50%' }, { top: '17%', left: '85%' },
     // Row 2
-    { top: '55%', left: '15%' }, { top: '55%', left: '50%' }, { top: '55%', left: '85%' },
+    { top: '52%', left: '15%' }, { top: '52%', left: '50%' }, { top: '52%', left: '85%' },
     // Row 3
-    { top: '89%', left: '15%' }, { top: '89%', left: '50%' }, { top: '89%', left: '85%' },
+    { top: '86%', left: '15%' }, { top: '86%', left: '50%' }, { top: '86%', left: '85%' },
     // Row 4
-    { top: '123%', left: '15%' }, { top: '123%', left: '50%' }, { top: '123%', left: '85%' },
+    { top: '120%', left: '15%' }, { top: '120%', left: '50%' }, { top: '120%', left: '85%' },
 ];
 
 
