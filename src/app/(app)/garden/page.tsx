@@ -197,7 +197,7 @@ export default function GardenPage() {
         
         <main className="p-4 pt-[45px] pb-4">
           <section className="mt-[9px] pt-4">
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-6 tall:gap-8">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-[22px] tall:gap-[29px]">
                  {gardenPlants.map((plant, index) => (
                      plant ? (
                          <PlantCard 
