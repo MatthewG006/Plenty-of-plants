@@ -35,9 +35,9 @@ function PlantCard({ plant, onClick, processedImage }: { plant: Plant, onClick: 
                         <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
                     )}
                 </div>
-                <div className="p-2 text-center space-y-1">
-                    <p className="text-sm font-semibold text-primary truncate">{plant.name}</p>
-                    <div className="text-xs text-muted-foreground">Lvl {plant.level}</div>
+                <div className="p-1 text-center space-y-0.5">
+                    <p className="text-xs font-semibold text-primary truncate">{plant.name}</p>
+                    <div className="text-[10px] text-muted-foreground">Lvl {plant.level}</div>
                     <Progress value={(plant.xp / 1000) * 100} className="h-1.5" />
                 </div>
             </CardContent>
@@ -54,8 +54,8 @@ function EmptyPlotCard({ onClick }: { onClick: () => void }) {
                         <Plus className="mx-auto h-8 w-8 text-white/70" />
                     </div>
                 </div>
-                <div className="p-2 text-center">
-                    <div className="h-[34px]"></div>
+                <div className="p-1 text-center">
+                    <div className="h-[28px]"></div>
                 </div>
             </CardContent>
         </Card>
