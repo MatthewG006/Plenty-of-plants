@@ -20,6 +20,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { updateWaterEvolvedProgress, updateWateringProgress } from '@/lib/challenge-manager';
 import { ScrollArea } from './ui/scroll-area';
 import { evolvePlantAction } from '@/app/actions/evolve-plant';
+import { Card, CardContent } from '@/components/ui/card';
 
 
 const XP_PER_LEVEL = 1000;
