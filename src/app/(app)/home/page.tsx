@@ -112,6 +112,31 @@ function CommunityInfoDialog({ open, onOpenChange }: { open: boolean, onOpenChan
   );
 }
 
+function GameChangesInfoDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <div className="mx-auto bg-accent rounded-full p-3 mb-2">
+            <Award className="h-8 w-8 text-accent-foreground" />
+          </div>
+          <DialogTitle className="text-2xl text-center">New Game Updates!</DialogTitle>
+          <DialogDescription className="text-center pt-2">
+            Keep the streak going! After you complete all your daily challenges, a new set of **Bonus Challenges** will now appear.
+            <br/><br/>
+            Complete them for even more rewards!
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button className="w-full">Awesome!</Button>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function ChallengeCard({ challenge, onClaim, isClaiming }: { challenge: Challenge, onClaim: (challengeId: string) => void, isClaiming: boolean }) {
     const isComplete = challenge.progress >= challenge.target;
 
@@ -156,6 +181,7 @@ export default function HomePage() {
   const [isClaimingChallenge, setIsClaimingChallenge] = useState(false);
   const [nextDrawTime, setNextDrawTime] = useState('');
   const [showCommunityInfo, setShowCommunityInfo] = useState(false);
+  const [showGameChangesInfo, setShowGameChangesInfo] = useState(false);
 
   const autoplayPlugin = useRef(
     Autoplay({ delay: 4000, stopOnInteraction: true })
@@ -174,9 +200,14 @@ export default function HomePage() {
             updateLoginProgress(user.uid);
         });
 
-        const hasSeenInfo = localStorage.getItem('hasSeenCommunityInfo');
-        if (!hasSeenInfo) {
+        const hasSeenCommunityInfo = localStorage.getItem('hasSeenCommunityInfo');
+        if (!hasSeenCommunityInfo) {
           setShowCommunityInfo(true);
+        }
+
+        const hasSeenGameChangesInfo = localStorage.getItem('hasSeenGameChangesInfo_v1');
+        if (!hasSeenGameChangesInfo) {
+            setShowGameChangesInfo(true);
         }
     }
   }, [user, gameData, toast]);
@@ -186,6 +217,13 @@ export default function HomePage() {
       localStorage.setItem('hasSeenCommunityInfo', 'true');
       setShowCommunityInfo(false);
     }
+  }
+
+  const handleCloseGameChangesInfo = (isOpen: boolean) => {
+      if (!isOpen) {
+          localStorage.setItem('hasSeenGameChangesInfo_v1', 'true');
+          setShowGameChangesInfo(false);
+      }
   }
 
   useEffect(() => {
@@ -487,6 +525,7 @@ export default function HomePage() {
       />
 
       <CommunityInfoDialog open={showCommunityInfo} onOpenChange={handleCloseCommunityInfo} />
+      <GameChangesInfoDialog open={showGameChangesInfo} onOpenChange={handleCloseGameChangesInfo} />
 
        <Link href="/garden">
         <Button
