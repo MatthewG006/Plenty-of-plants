@@ -165,7 +165,7 @@ export default function GardenPage() {
         </header>
         
         <div 
-            className="flex-grow mt-4 bg-cover bg-center"
+            className="flex-grow mt-4 bg-auto bg-no-repeat"
             style={{backgroundImage: "url('/garden-bg.png')"}}
         >
           <section className="px-4 pt-4">
