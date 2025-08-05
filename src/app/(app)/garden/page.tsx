@@ -54,7 +54,7 @@ function EmptyPlotCard({ onClick }: { onClick: () => void }) {
                         <Plus className="mx-auto h-8 w-8 text-white/70" />
                     </div>
                 </div>
-                <div className="p-2 text-center space-y-1 h-[60px]" />
+                <div className="p-2 text-center space-y-1" />
             </CardContent>
         </Card>
     )
