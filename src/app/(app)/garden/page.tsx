@@ -209,17 +209,17 @@ export default function GardenPage() {
                 <div className="absolute inset-0 top-[5%] left-[5%] right-[5%] bottom-[10%]">
                     <div className="grid grid-cols-3 grid-rows-4 h-full w-full gap-x-[10%] gap-y-[10%]">
                         {gardenPlants.map((plant, index) => {
-                             const isFirstRow = index < 3;
+                             const isInFirstTwoRows = index < 6;
                              return plant ? (
                                  <PlantCard 
                                     key={plant.id} 
                                     plant={plant} 
                                     onClick={() => handleSelectPlantForCare(allPlants[plant.id])} 
                                     processedImage={plant ? processedGardenImages[plant.id] : null}
-                                    className={cn(isFirstRow && "mt-[-5px]")}
+                                    className={cn(isInFirstTwoRows && "mt-[-5px]")}
                                   />
                              ) : (
-                                 <EmptyPlotCard key={`empty-${index}`} onClick={() => handleOpenSwapDialog(null, index)} className={cn(isFirstRow && "mt-[-5px]")}/>
+                                 <EmptyPlotCard key={`empty-${index}`} onClick={() => handleOpenSwapDialog(null, index)} className={cn(isInFirstTwoRows && "mt-[-5px]")}/>
                              )
                          })}
                     </div>
