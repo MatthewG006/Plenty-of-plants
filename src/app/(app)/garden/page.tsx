@@ -29,9 +29,9 @@ const plantPositions = [
     // Row 2
     { top: '45%', left: '15%' }, { top: '45%', left: '50%' }, { top: '45%', left: '85%' },
     // Row 3
-    { top: '124%', left: '15%' }, { top: '124%', left: '50%' }, { top: '124%', left: '85%' },
+    { top: '84%', left: '15%' }, { top: '84%', left: '50%' }, { top: '84%', left: '85%' },
     // Row 4
-    { top: '148%', left: '15%' }, { top: '148%', left: '50%' }, { top: '148%', left: '85%' },
+    { top: '108%', left: '15%' }, { top: '108%', left: '50%' }, { top: '108%', left: '85%' },
 ];
 
 
