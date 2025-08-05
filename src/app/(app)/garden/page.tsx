@@ -206,7 +206,7 @@ export default function GardenPage() {
                 />
 
                 {/* Absolutely positioned grid for plants */}
-                <div className="absolute inset-0 top-[15%] left-[5%] right-[5%] bottom-[10%]">
+                <div className="absolute inset-0 top-[5%] left-[5%] right-[5%] bottom-[10%]">
                     <div className="grid grid-cols-3 grid-rows-4 h-full w-full gap-x-[9%] gap-y-[10%]">
                         {gardenPlants.map((plant, index) => (
                              plant ? (
@@ -246,5 +246,3 @@ export default function GardenPage() {
       </div>
   );
 }
-
-    
