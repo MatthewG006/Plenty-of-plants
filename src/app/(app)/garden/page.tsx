@@ -217,7 +217,7 @@ export default function GardenPage() {
                         {'mt-[11px]': index < 3},
                         {'mt-9': index >= 3 && index < 6},
                         {'mt-10': index >= 6 && index < 9},
-                        {'mt-9': index >= 9},
+                        {'mt-8': index >= 9},
                         {'mb-4': index < 9}
                       )}
                     />
