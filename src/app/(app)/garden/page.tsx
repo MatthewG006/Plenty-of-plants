@@ -23,7 +23,7 @@ const NUM_GARDEN_PLOTS = 12;
 
 function PlantCard({ plant, onClick, processedImage }: { plant: Plant, onClick: (plant: Plant) => void, processedImage: string | null }) {
     return (
-        <Card className="group overflow-hidden shadow-md w-full h-[130px] sm:h-[150px] relative cursor-pointer bg-white/70 backdrop-blur-sm" onClick={() => onClick(plant)}>
+        <Card className="group overflow-hidden shadow-md w-full h-[120px] sm:h-[140px] relative cursor-pointer bg-white/70 backdrop-blur-sm" onClick={() => onClick(plant)}>
             <CardContent className="p-0 flex flex-col h-full">
                 <div className="flex-grow relative flex items-center justify-center bg-black/10">
                     {processedImage && processedImage !== 'placeholder' ? (
@@ -46,7 +46,7 @@ function PlantCard({ plant, onClick, processedImage }: { plant: Plant, onClick: 
 
 function EmptyPlotCard({ onClick }: { onClick: () => void }) {
     return (
-        <Card className="group overflow-hidden shadow-md w-full h-[130px] sm:h-[150px] relative cursor-pointer bg-black/10 backdrop-blur-sm" onClick={onClick}>
+        <Card className="group overflow-hidden shadow-md w-full h-[120px] sm:h-[140px] relative cursor-pointer bg-black/10 backdrop-blur-sm" onClick={onClick}>
             <CardContent className="p-0 flex flex-col h-full">
                 <div className="flex-grow relative flex items-center justify-center border-2 border-dashed border-white/30">
                      <div className="text-center">
@@ -207,7 +207,7 @@ export default function GardenPage() {
 
                 {/* Absolutely positioned grid for plants */}
                 <div className="absolute inset-0 top-[5%] left-[5%] right-[5%] bottom-[10%]">
-                    <div className="grid grid-cols-3 grid-rows-4 h-full w-full gap-x-[9%] gap-y-[10%]">
+                    <div className="grid grid-cols-3 grid-rows-4 h-full w-full gap-x-[8%] gap-y-[10%]">
                         {gardenPlants.map((plant, index) => (
                              plant ? (
                                  <PlantCard 
