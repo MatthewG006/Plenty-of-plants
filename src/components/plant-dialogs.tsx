@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose, DialogDescription } from '@/components/ui/dialog';
-import { Leaf, Loader2, Sparkles, Gem, MessageCircle, Trash2, Droplet, Coins } from 'lucide-react';
+import { Leaf, Loader2, Sparkles, Gem, MessageCircle, Trash2, Droplet, Coins, Replace } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -13,11 +13,13 @@ import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { deletePlant, unlockPlantChat, addConversationHistory, updatePlant, updateUserGold, updateUserRubies } from '@/lib/firestore';
+import { deletePlant, unlockPlantChat, addConversationHistory, updatePlant, updateUserGold, updateUserRubies, useWaterRefill } from '@/lib/firestore';
 import { AlertDialog, AlertDialogTrigger, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription as AlertDialogDescriptionComponent } from '@/components/ui/alert-dialog';
 import { plantChatAction } from '@/app/actions/plant-chat';
 import { Textarea } from '@/components/ui/textarea';
 import { updateWaterEvolvedProgress, updateWateringProgress } from '@/lib/challenge-manager';
+import { ScrollArea } from './ui/scroll-area';
+import { evolvePlantAction } from '@/app/actions/evolve-plant';
 
 
 const XP_PER_LEVEL = 1000;
@@ -210,7 +212,7 @@ export function PlantChatDialog({ plant, open, onOpenChange, userId }: { plant: 
     );
 }
 
-export function PlantCareDialog({ plant, open, onOpenChange, onStartEvolution }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, onStartEvolution: (plant: Plant) => void }) {
+export function PlantCareDialog({ plant, open, onOpenChange, onStartEvolution, onSwapRequest }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, onStartEvolution: (plant: Plant) => void, onSwapRequest: (plantId: number, gardenPlotIndex: number) => void }) {
     const { playSfx } = useAudio();
     const { toast } = useToast();
     const { user, gameData } = useAuth();
@@ -222,18 +224,25 @@ export function PlantCareDialog({ plant, open, onOpenChange, onStartEvolution }:
     const timesWateredToday = lastWatered.filter(isToday).length;
     const canWater = timesWateredToday < MAX_WATERINGS_PER_DAY;
     const shouldEvolve = (plant.level >= EVOLUTION_LEVEL && plant.form === 'Base') || (plant.level >= SECOND_EVOLUTION_LEVEL && plant.form === 'Evolved');
+    const gardenPlotIndex = gameData.gardenPlantIds.findIndex(id => id === plant.id);
 
     const handleWaterPlant = async () => {
-        if (!user) return;
+        if (!user || !gameData) return;
         
         setIsWatering(true);
         playSfx('watering');
         
-        const isFinalForm = plant.form === 'Final';
+        const currentPlantData = gameData.plants[plant.id];
+        if (!currentPlantData) {
+            setIsWatering(false);
+            return;
+        }
+
+        const isFinalForm = currentPlantData.form === 'Final';
         
         const xpGained = XP_PER_WATERING;
-        let newXp = plant.xp + xpGained;
-        let newLevel = plant.level;
+        let newXp = currentPlantData.xp + xpGained;
+        let newLevel = currentPlantData.level;
     
         while(newXp >= XP_PER_LEVEL) {
             newXp -= XP_PER_LEVEL;
@@ -241,12 +250,12 @@ export function PlantCareDialog({ plant, open, onOpenChange, onStartEvolution }:
             playSfx('reward');
             toast({
                 title: "Level Up!",
-                description: `${plant.name} has reached level ${newLevel}!`,
+                description: `${currentPlantData.name} has reached level ${newLevel}!`,
             });
         }
     
         const now = Date.now();
-        let updatedLastWatered = [...(plant.lastWatered || []), now];
+        let updatedLastWatered = [...(currentPlantData.lastWatered || []), now];
     
         try {
             const updatedPlantData = {
@@ -255,7 +264,7 @@ export function PlantCareDialog({ plant, open, onOpenChange, onStartEvolution }:
                 lastWatered: updatedLastWatered,
             };
     
-            await updatePlant(user.uid, plant.id, updatedPlantData);
+            await updatePlant(user.uid, currentPlantData.id, updatedPlantData);
             
             if (isFinalForm) {
                 await updateUserRubies(user.uid, RUBIES_PER_WATERING);
@@ -263,15 +272,15 @@ export function PlantCareDialog({ plant, open, onOpenChange, onStartEvolution }:
                 await updateUserGold(user.uid, GOLD_PER_WATERING);
             }
             
-            if (plant.form === 'Evolved' || plant.form === 'Final') {
+            if (currentPlantData.form === 'Evolved' || currentPlantData.form === 'Final') {
                 await updateWaterEvolvedProgress(user.uid);
             } else {
                 await updateWateringProgress(user.uid);
             }
     
-            const isNowEvolvable = (newLevel >= EVOLUTION_LEVEL && plant.form === 'Base') || (newLevel >= SECOND_EVOLUTION_LEVEL && plant.form === 'Evolved');
+            const isNowEvolvable = (newLevel >= EVOLUTION_LEVEL && currentPlantData.form === 'Base') || (newLevel >= SECOND_EVOLUTION_LEVEL && currentPlantData.form === 'Evolved');
             if (isNowEvolvable) {
-                const fullPlant = { ...plant, ...updatedPlantData };
+                const fullPlant = { ...currentPlantData, ...updatedPlantData };
                 onOpenChange(false);
                 onStartEvolution(fullPlant);
             }
@@ -281,6 +290,17 @@ export function PlantCareDialog({ plant, open, onOpenChange, onStartEvolution }:
             toast({ variant: 'destructive', title: "Error", description: "Could not save watering progress."})
         } finally {
             setIsWatering(false);
+        }
+    };
+    
+    const handleUseRefill = async () => {
+        if (!user) return;
+        try {
+            await useWaterRefill(user.uid, plant.id);
+            playSfx('chime');
+            toast({ title: "Water Refilled!", description: `${plant.name} is thirsty again!`});
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: "Error", description: e.message || "Could not use water refill."});
         }
     };
 
@@ -312,24 +332,43 @@ export function PlantCareDialog({ plant, open, onOpenChange, onStartEvolution }:
                             <Progress value={(plant.xp / XP_PER_LEVEL) * 100} className="w-full" />
                         </div>
 
-                         <Button 
-                            className="w-full"
-                            onClick={handleWaterPlant}
-                            disabled={!canWater || isWatering}
-                        >
-                            <Droplet className="mr-1 h-4 w-4" />
-                            {isWatering ? "Watering..." : `Water (${timesWateredToday}/${MAX_WATERINGS_PER_DAY})`}
-                        </Button>
+                         <div className="flex gap-2">
+                            <Button 
+                                className="w-full"
+                                onClick={handleWaterPlant}
+                                disabled={!canWater || isWatering}
+                            >
+                                <Droplet className="mr-1 h-4 w-4" />
+                                {isWatering ? "Watering..." : `Water (${timesWateredToday}/${MAX_WATERINGS_PER_DAY})`}
+                            </Button>
+                            {!canWater && gameData.waterRefillCount > 0 && (
+                                <Button
+                                    variant="outline"
+                                    onClick={handleUseRefill}
+                                    className="shrink-0"
+                                >
+                                    Use Refill ({gameData.waterRefillCount})
+                                </Button>
+                            )}
+                         </div>
                     </div>
 
                 </div>
                 <DialogFooter className="pt-2 flex-col sm:flex-col sm:space-x-0 gap-2">
                     {shouldEvolve && (
-                         <Button onClick={() => { onStartEvolution(plant); onOpenChange(false); }} className="w-full">
+                         <Button onClick={() => { onOpenChange(false); onStartEvolution(plant); }} className="w-full">
                             <Sparkles className="mr-2 h-4 w-4" />
                             Evolve Plant
                         </Button>
                     )}
+                     <Button 
+                        onClick={() => { onOpenChange(false); onSwapRequest(plant.id, gardenPlotIndex); }} 
+                        className="w-full"
+                        variant="secondary"
+                    >
+                        <Replace className="mr-2 h-4 w-4" />
+                        Swap Plant
+                    </Button>
                     <DialogClose asChild>
                         <Button className="w-full" variant="outline">Close</Button>
                     </DialogClose>
@@ -339,149 +378,44 @@ export function PlantCareDialog({ plant, open, onOpenChange, onStartEvolution }:
     )
 }
 
-export function PlantDetailDialog({ plant, open, onOpenChange, onStartEvolution, onOpenChat, userId }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, onStartEvolution: (plant: Plant) => void, onOpenChat: (plant: Plant) => void, userId: string }) {
-    const { playSfx } = useAudio();
-    const { toast } = useToast();
-    const { gameData } = useAuth();
-    const [isDeleting, setIsDeleting] = useState(false);
-    const [viewingBase, setViewingBase] = useState(false);
-    const [isUnlockingChat, setIsUnlockingChat] = useState(false);
-
-    useEffect(() => {
-        // Reset view when dialog opens or plant changes
-        setViewingBase(false);
-    }, [plant, open]);
-
-    if (!plant || !gameData) return null;
+export function PlantSwapDialog({ open, onOpenChange, collectionPlants, onSelectPlant }: { open: boolean, onOpenChange: (open: boolean) => void, collectionPlants: Plant[], onSelectPlant: (plantId: number) => void }) {
     
-    const displayName = viewingBase ? `Base: ${plant.name}` : plant.name;
-    const displayImage = viewingBase ? plant.baseImage : plant.image;
-    
-    const shouldEvolve = (plant.level >= EVOLUTION_LEVEL && plant.form === 'Base') || (plant.level >= SECOND_EVOLUTION_LEVEL && plant.form === 'Evolved');
-
-    const handleDeletePlant = async () => {
-        if (!plant) return;
-        setIsDeleting(true);
-        try {
-            await deletePlant(userId, plant.id);
-            toast({
-                title: "Plant Deleted",
-                description: `${plant.name} has been removed from your collection.`,
-            });
-            onOpenChange(false);
-        } catch (e) {
-            console.error("Failed to delete plant", e);
-            toast({ variant: 'destructive', title: "Error", description: "Could not delete the plant." });
-        } finally {
-            setIsDeleting(false);
-        }
-    };
-    
-    const handleUnlockChat = async () => {
-        if (!plant) return;
-        setIsUnlockingChat(true);
-        try {
-            await unlockPlantChat(userId, plant.id);
-            playSfx('success');
-            toast({
-                title: "Chat Unlocked!",
-                description: `You can now chat with ${plant.name}.`
-            });
-        } catch (e: any) {
-            console.error("Failed to unlock chat", e);
-            toast({ variant: 'destructive', title: "Error", description: e.message || "Could not unlock chat." });
-        } finally {
-            setIsUnlockingChat(false);
-        }
-    };
-
-
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-sm">
+            <DialogContent className="max-w-md">
                 <DialogHeader>
-                    <DialogTitle className="text-3xl text-center text-primary">{displayName}</DialogTitle>
-                     <div className="flex flex-row items-center justify-center pt-2 gap-2">
-                         {plant.baseImage && (
-                            <Button variant="outline" size="sm" className="text-xs h-7 px-2" onClick={() => setViewingBase(v => !v)}>
-                                <Sparkles className="mr-1 h-3 w-3" />
-                                {viewingBase ? 'View Evolved' : 'View Base Form'}
-                            </Button>
-                         )}
-                         {plant.form === 'Final' && (
-                             <>
-                                {plant.chatEnabled ? (
-                                    <Button variant="outline" size="sm" className="text-xs h-7 px-2" onClick={() => onOpenChat(plant)}>
-                                        <MessageCircle className="mr-1 h-3 w-3" />
-                                        Chat
-                                    </Button>
-                                ) : (
-                                    <Button variant="outline" size="sm" className="text-xs h-7 px-2" onClick={handleUnlockChat} disabled={isUnlockingChat || gameData.plantChatTokens < 1}>
-                                        {isUnlockingChat ? <Loader2 className="animate-spin" /> : <><Gem className="mr-1 h-3 w-3 text-red-500" /> Unlock Chat ({gameData.plantChatTokens})</>}
-                                    </Button>
-                                )}
-                             </>
-                         )}
-                         <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="outline" size="icon" className="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive h-7 w-7">
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                    <AlertDialogDescriptionComponent>
-                                        This will permanently delete {plant.name} from your collection. This action cannot be undone.
-                                    </AlertDialogDescriptionComponent>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleDeletePlant} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
-                                        {isDeleting ? <Loader2 className="animate-spin" /> : "Yes, delete it"}
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    </div>
+                    <DialogTitle className="text-2xl text-center text-primary">Swap Plant</DialogTitle>
+                    <DialogDescription className="text-center">Select a plant from your collection to place in the garden.</DialogDescription>
                 </DialogHeader>
-                <div className="flex flex-col items-center gap-4 pt-4">
-                    <div className="w-64 h-64 relative">
-                        <div className="rounded-lg overflow-hidden border-4 border-primary/50 shadow-lg bg-green-100 flex items-center justify-center h-full">
-                            {displayImage && displayImage !== 'placeholder' ? (
-                                <Image src={displayImage} alt={plant.name} width={256} height={256} className="object-cover w-full h-full" data-ai-hint={plant.hint} />
-                            ) : (
-                                <Leaf className="w-24 h-24 text-muted-foreground/50" />
-                            )}
-                        </div>
-                        {plant.hasGlitter && !viewingBase && <GlitterAnimation />}
-                        {plant.hasRedGlitter && !viewingBase && <RedGlitterAnimation />}
-                        {plant.hasSheen && !viewingBase && <SheenAnimation />}
-                        {plant.hasRainbowGlitter && !viewingBase && <RainbowGlitterAnimation />}
+                
+                <ScrollArea className="h-96">
+                    <div className="p-4 grid grid-cols-3 gap-4">
+                        {collectionPlants.length > 0 ? (
+                            collectionPlants.map(plant => (
+                                <Card 
+                                    key={plant.id} 
+                                    className="cursor-pointer hover:scale-105 transition-transform" 
+                                    onClick={() => onSelectPlant(plant.id)}
+                                >
+                                    <CardContent className="p-0">
+                                        <div className="aspect-square relative flex items-center justify-center bg-muted/30">
+                                            {plant.image !== 'placeholder' ? (
+                                                <Image src={plant.image} alt={plant.name} fill sizes="100px" className="object-cover" data-ai-hint={plant.hint} />
+                                            ) : (
+                                                <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
+                                            )}
+                                        </div>
+                                        <div className="p-2 text-center bg-white/50">
+                                            <p className="text-xs font-semibold text-primary truncate">{plant.name}</p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))
+                        ) : (
+                            <p className="col-span-3 text-center text-muted-foreground">Your collection is empty.</p>
+                        )}
                     </div>
-
-                    <p className="text-muted-foreground text-center mt-2 px-4">{plant.description}</p>
-                    
-                    <div className="w-full px-4 space-y-2">
-                        <div className="flex justify-between items-baseline">
-                            <p className="text-lg font-semibold text-primary">Level {plant.level}</p>
-                             <p className="text-sm text-muted-foreground">{plant.xp} / {XP_PER_LEVEL} XP</p>
-                        </div>
-                        <Progress value={(plant.xp / XP_PER_LEVEL) * 100} className="w-full" />
-                    </div>
-
-                </div>
-                <DialogFooter className="pt-2 flex-col sm:flex-col sm:space-x-0 gap-2">
-                    {shouldEvolve && (
-                         <Button onClick={() => { onStartEvolution(plant); onOpenChange(false); }} className="w-full">
-                            <Sparkles className="mr-2 h-4 w-4" />
-                            Evolve Plant
-                        </Button>
-                    )}
-                    <DialogClose asChild>
-                        <Button className="w-full" variant="outline">Close</Button>
-                    </DialogClose>
-                </DialogFooter>
+                </ScrollArea>
             </DialogContent>
         </Dialog>
     );
@@ -530,3 +464,9 @@ export function EvolvePreviewDialog({ plantName, newForm, newImageUri, open, onC
         </Dialog>
     )
 }
+
+// Keeping this separate for now as it's more complex.
+// The RoomPage will have its own version of this.
+export function PlantDetailDialog() { return null; }
+
+    
