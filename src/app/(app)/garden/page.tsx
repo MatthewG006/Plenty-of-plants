@@ -21,9 +21,9 @@ import { makeBackgroundTransparent } from '@/lib/image-compression';
 
 const NUM_GARDEN_PLOTS = 12;
 
-function PlantCard({ plant, onClick, processedImage }: { plant: Plant, onClick: (plant: Plant) => void, processedImage: string | null }) {
+function PlantCard({ plant, onClick, processedImage, className }: { plant: Plant, onClick: (plant: Plant) => void, processedImage: string | null, className?: string }) {
     return (
-        <Card className="group overflow-hidden shadow-md w-full h-[120px] sm:h-[140px] relative cursor-pointer bg-white/70 backdrop-blur-sm" onClick={() => onClick(plant)}>
+        <Card className={cn("group overflow-hidden shadow-md w-full h-[120px] sm:h-[140px] relative cursor-pointer bg-white/70 backdrop-blur-sm", className)} onClick={() => onClick(plant)}>
             <CardContent className="p-0 flex flex-col h-full">
                 <div className="flex-grow relative flex items-center justify-center bg-black/10">
                     {processedImage && processedImage !== 'placeholder' ? (
@@ -44,9 +44,9 @@ function PlantCard({ plant, onClick, processedImage }: { plant: Plant, onClick: 
     );
 }
 
-function EmptyPlotCard({ onClick }: { onClick: () => void }) {
+function EmptyPlotCard({ onClick, className }: { onClick: () => void, className?: string }) {
     return (
-        <Card className="group overflow-hidden shadow-md w-full h-[120px] sm:h-[140px] relative cursor-pointer bg-black/10 backdrop-blur-sm" onClick={onClick}>
+        <Card className={cn("group overflow-hidden shadow-md w-full h-[120px] sm:h-[140px] relative cursor-pointer bg-black/10 backdrop-blur-sm", className)} onClick={onClick}>
             <CardContent className="p-0 flex flex-col h-full">
                 <div className="flex-grow relative flex items-center justify-center border-2 border-dashed border-white/30">
                      <div className="text-center">
@@ -207,19 +207,21 @@ export default function GardenPage() {
 
                 {/* Absolutely positioned grid for plants */}
                 <div className="absolute inset-0 top-[5%] left-[5%] right-[5%] bottom-[10%]">
-                    <div className="grid grid-cols-3 grid-rows-4 h-full w-full gap-x-[8%] gap-y-[10%]">
-                        {gardenPlants.map((plant, index) => (
-                             plant ? (
+                    <div className="grid grid-cols-3 grid-rows-4 h-full w-full gap-x-[10%] gap-y-[10%]">
+                        {gardenPlants.map((plant, index) => {
+                             const isFirstRow = index < 3;
+                             return plant ? (
                                  <PlantCard 
                                     key={plant.id} 
                                     plant={plant} 
                                     onClick={() => handleSelectPlantForCare(allPlants[plant.id])} 
                                     processedImage={plant ? processedGardenImages[plant.id] : null}
+                                    className={cn(isFirstRow && "mt-[-5px]")}
                                   />
                              ) : (
-                                 <EmptyPlotCard key={`empty-${index}`} onClick={() => handleOpenSwapDialog(null, index)} />
+                                 <EmptyPlotCard key={`empty-${index}`} onClick={() => handleOpenSwapDialog(null, index)} className={cn(isFirstRow && "mt-[-5px]")}/>
                              )
-                         ))}
+                         })}
                     </div>
                 </div>
             </div>
