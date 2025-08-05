@@ -7,6 +7,7 @@ import { User } from 'firebase/auth';
 import { MAX_DRAWS } from './draw-manager';
 
 export const NUM_POTS = 3;
+export const NUM_GARDEN_PLOTS = 6;
 const MAX_WATERINGS_PER_DAY = 4;
 const XP_PER_WATERING = 200;
 const XP_PER_LEVEL = 1000;
@@ -19,6 +20,7 @@ export interface GameData {
     plants: Record<string, Plant>;
     collectionPlantIds: number[];
     deskPlantIds: (number | null)[];
+    gardenPlantIds: (number | null)[];
     draws: number;
     lastDrawRefill: number;
     lastFreeDrawClaimed: number;
@@ -80,6 +82,7 @@ export async function getUserGameData(userId: string): Promise<GameData | null> 
             plants: data.plants || {},
             collectionPlantIds: data.collectionPlantIds || [],
             deskPlantIds: data.deskPlantIds || Array(NUM_POTS).fill(null),
+            gardenPlantIds: data.gardenPlantIds || Array(NUM_GARDEN_PLOTS).fill(null),
             draws: data.draws ?? MAX_DRAWS,
             lastDrawRefill: data.lastDrawRefill || Date.now(),
             lastFreeDrawClaimed: data.lastFreeDrawClaimed || 0,
@@ -176,6 +179,7 @@ export async function createUserDocument(user: User): Promise<GameData> {
             plants: { '1': startingPlant },
             collectionPlantIds: [],
             deskPlantIds: Array(NUM_POTS).fill(null),
+            gardenPlantIds: Array(NUM_GARDEN_PLOTS).fill(null),
             draws: MAX_DRAWS,
             lastDrawRefill: Date.now(),
             lastFreeDrawClaimed: 0,
@@ -272,6 +276,13 @@ export async function updatePlantArrangement(userId: string, collectionPlantIds:
     await updateDoc(doc(db, 'users', userId), { 
         collectionPlantIds: collectionPlantIds, 
         deskPlantIds: deskPlantIds
+    });
+}
+
+export async function updateGardenArrangement(userId: string, collectionPlantIds: number[], gardenPlantIds: (number | null)[]) {
+    await updateDoc(doc(db, 'users', userId), {
+        collectionPlantIds: collectionPlantIds,
+        gardenPlantIds: gardenPlantIds
     });
 }
 
@@ -504,6 +515,7 @@ export async function resetUserGameData(userId: string) {
         plants: { '1': startingPlant },
         collectionPlantIds: [],
         deskPlantIds: [1, null, null],
+        gardenPlantIds: Array(NUM_GARDEN_PLOTS).fill(null),
         gold: 0,
         draws: MAX_DRAWS,
         lastDrawRefill: Date.now(),
@@ -531,12 +543,14 @@ export async function deletePlant(userId: string, plantId: number) {
     const { [`${plantId}`]: deletedPlant, ...remainingPlants } = gameData.plants;
 
     const newDeskPlantIds = gameData.deskPlantIds.map(id => (id === plantId ? null : id));
+    const newGardenPlantIds = gameData.gardenPlantIds.map(id => (id === plantId ? null : id));
     const newCollectionPlantIds = gameData.collectionPlantIds.filter(id => id !== plantId);
     const newShowcasePlantIds = gameData.showcasePlantIds.filter(id => id !== plantId);
 
     await updateDoc(userDocRef, {
         plants: remainingPlants,
         deskPlantIds: newDeskPlantIds,
+        gardenPlantIds: newGardenPlantIds,
         collectionPlantIds: newCollectionPlantIds,
         showcasePlantIds: newShowcasePlantIds,
     });
@@ -660,3 +674,5 @@ export async function addConversationHistory(userId: string, plantId: number, us
         )
     });
 }
+
+    
