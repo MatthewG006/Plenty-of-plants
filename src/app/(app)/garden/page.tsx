@@ -41,7 +41,7 @@ function PlantCard({ plant, onSelectPlant, processedImage, style }: { plant: Pla
 
     return (
         <div 
-            className="group absolute w-1/4 cursor-pointer transition-transform hover:scale-110"
+            className="group absolute w-1/5 cursor-pointer transition-transform hover:scale-110"
             style={style}
             onClick={() => onSelectPlant(plant)}
         >
@@ -205,7 +205,7 @@ export default function GardenPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="flex flex-col items-center gap-2 px-4 pt-4 text-center z-20 relative bg-background mb-4">
+      <header className="flex flex-col items-center gap-2 px-4 pt-4 text-center z-20 relative bg-background mb-8">
         <h1 className="text-3xl text-primary font-bold">My Garden</h1>
         <p className="text-muted-foreground">Water your plants to help them level up and evolve.</p>
       </header>
