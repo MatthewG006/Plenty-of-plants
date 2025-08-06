@@ -11,13 +11,12 @@ import type { Plant } from '@/interfaces/plant';
 import { useAuth } from '@/context/AuthContext';
 import { findOrCreateContestSession } from '@/lib/contest-manager';
 import { useToast } from '@/hooks/use-toast';
+import { doc, onSnapshot, updateDoc, increment } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import type { ContestSession, ContestPlayer } from '@/lib/contest-manager';
 
-// Placeholder data - in a real implementation, this would come from Firestore.
-const placeholderPlants: (Plant | null)[] = [
-    { id: 101, name: "Glimmering Glower", image: "/fallback-plants/glowing-mushroom.png", description: "", hint: "glowing mushroom", hasSheen: true, level: 15, xp: 500, form: "Evolved", baseImage: "", lastWatered: [], hasGlitter: false, hasRainbowGlitter: false, hasRedGlitter: false, personality: "Bubbly", chatEnabled: false, conversationHistory: [] },
-    { id: 102, name: "Mystic Mangrove", image: "/fallback-plants/bonsai-tree.png", description: "", hint: "bonsai tree", hasGlitter: true, level: 12, xp: 200, form: "Evolved", baseImage: "", lastWatered: [], hasSheen: false, hasRainbowGlitter: false, hasRedGlitter: false, personality: "Wise", chatEnabled: false, conversationHistory: [] },
-    { id: 103, name: "Solaris Succulent", image: "/fallback-plants/succulent-1.png", description: "", hint: "succulent", hasRainbowGlitter: true, level: 20, xp: 800, form: "Final", baseImage: "", lastWatered: [], hasSheen: false, hasGlitter: false, hasRedGlitter: false, personality: "Sassy", chatEnabled: false, conversationHistory: [] }
-];
+const MAX_PLAYERS = 3;
+
 
 function SheenAnimation() {
     return (
@@ -64,28 +63,58 @@ function GlitterAnimation() {
 export default function ContestPage() {
     const { user, gameData } = useAuth();
     const { toast } = useToast();
-    const [status, setStatus] = useState<'waiting' | 'finding_session' | 'countdown' | 'voting' | 'finished'>('waiting');
+    
+    const [session, setSession] = useState<ContestSession | null>(null);
+    const [sessionId, setSessionId] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
     const [countdown, setCountdown] = useState(5);
-    const [winnerId, setWinnerId] = useState<number | null>(null);
 
     useEffect(() => {
-        if (status !== 'countdown' || countdown <= 0) return;
+        if (!sessionId) return;
+
+        setIsLoading(true);
+        const sessionDocRef = doc(db, 'contestSessions', sessionId);
+        const unsubscribe = onSnapshot(sessionDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+                setSession(docSnap.data() as ContestSession);
+                setIsLoading(false);
+            } else {
+                console.error("Contest session not found!");
+                toast({ variant: 'destructive', title: 'Session Error', description: 'The contest session could not be found.' });
+                setSessionId(null);
+                setSession(null);
+                setIsLoading(false);
+            }
+        });
+
+        return () => unsubscribe();
+    }, [sessionId, toast]);
+
+    useEffect(() => {
+        if (session?.status !== 'countdown') {
+            setCountdown(5); // Reset countdown if status changes
+            return;
+        }
+        
+        if (countdown <= 0) return;
+
         const timer = setTimeout(() => {
             setCountdown(prev => prev - 1);
         }, 1000);
 
-        if (countdown === 1) {
-            setTimeout(() => setStatus('voting'), 1000);
+        if (countdown === 1 && user && session.players[0].uid === user.uid) {
+            setTimeout(() => {
+                const sessionDocRef = doc(db, 'contestSessions', session.id);
+                updateDoc(sessionDocRef, { status: 'voting' });
+            }, 1000);
         }
 
         return () => clearTimeout(timer);
-    }, [status, countdown]);
+    }, [session, countdown, user]);
 
     const startContest = async () => {
         if (!user || !gameData) return;
-
-        // For now, we'll just use the user's first plant.
-        // A real implementation would let the user choose.
+        
         const playerPlant = Object.values(gameData.plants)[0];
 
         if (!playerPlant) {
@@ -97,23 +126,16 @@ export default function ContestPage() {
             return;
         }
 
-        setStatus('finding_session');
-        setWinnerId(null);
+        setIsLoading(true);
 
         try {
-            const session = await findOrCreateContestSession(
+            const id = await findOrCreateContestSession(
                 user.uid,
                 user.displayName || 'Player',
                 (gameData as any).avatarColor || '#ffffff',
                 playerPlant
             );
-            console.log('Joined or created contest session:', session);
-            
-            // For now, we'll go straight to a mock countdown.
-            // A real implementation would listen to Firestore for the session status to change.
-            setStatus('countdown');
-            setCountdown(5);
-
+            setSessionId(id);
         } catch (error) {
             console.error('Error joining contest session:', error);
             toast({
@@ -121,17 +143,29 @@ export default function ContestPage() {
                 title: 'Error Joining Contest',
                 description: 'Could not join a session. Please try again.',
             });
-            setStatus('waiting');
+            setIsLoading(false);
         }
     };
 
-    const handleVote = (plantId: number) => {
-        if (status !== 'voting') return;
-        // In a real app, this would record the vote in Firestore.
-        // Here, we'll just declare the winner immediately.
-        setStatus('finished');
-        setWinnerId(plantId);
+    const handleVote = async (plantId: number) => {
+        if (session?.status !== 'voting' || !sessionId) return;
+        
+        const sessionDocRef = doc(db, 'contestSessions', sessionId);
+        await updateDoc(sessionDocRef, {
+          [`votes.${plantId}`]: increment(1)
+        });
+
+        // Simplified win condition: first to vote decides.
+        // A real app would wait for all votes or a timer.
+        await updateDoc(sessionDocRef, {
+            status: 'finished',
+            winnerId: plantId,
+        });
     };
+    
+    const contestants = session ? session.players : [];
+    const status = session ? session.status : 'waiting';
+    const isJoined = session && user ? session.players.some(p => p.uid === user.uid) : false;
 
   return (
     <div
@@ -145,11 +179,15 @@ export default function ContestPage() {
                 <h1 className="text-4xl font-bold mb-2">Plant Beauty Contest</h1>
                 <p className="text-lg">Join a session and vote for the best-looking plant! The winner gets a special prize.</p>
             </div>
-            {status === 'waiting' && <Button onClick={startContest}>Join Contest</Button>}
-            {status === 'finding_session' && (
-                <Button disabled>
+            {status === 'waiting' && !isJoined && (
+                <Button onClick={startContest} disabled={isLoading}>
+                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Join Contest"}
+                </Button>
+            )}
+            {status === 'waiting' && isJoined && (
+                 <Button disabled>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Finding Session...
+                    Waiting for players... ({contestants.length}/{MAX_PLAYERS})
                 </Button>
             )}
             {status === 'countdown' && <p className="text-5xl font-bold animate-pulse">{countdown}</p>}
@@ -159,9 +197,9 @@ export default function ContestPage() {
 
         <div className="w-full h-1/2 absolute bottom-0 left-0 flex items-end justify-center pointer-events-none">
             <div className="grid grid-cols-3 gap-8 w-full max-w-3xl mb-[5%]">
-                {placeholderPlants.map((plant, index) => {
-                    if (!plant) return <div key={index} />;
-                    const isWinner = winnerId === plant.id;
+                {contestants.map((player) => {
+                    const plant = player.plant;
+                    const isWinner = session?.winnerId === plant.id;
                     return (
                         <div key={plant.id} className="relative flex flex-col items-center justify-end">
                             <div className={cn("relative w-32 h-32 sm:w-48 sm:h-48 transition-all duration-500", isWinner && "scale-125")}>
@@ -172,7 +210,7 @@ export default function ContestPage() {
                                 {plant.hasRainbowGlitter && <RainbowGlitterAnimation />}
                             </div>
                             <div className="text-center mt-2 bg-black/50 px-3 py-1 rounded-md">
-                                <p className="font-bold text-sm sm:text-base truncate">{plant.name}</p>
+                                <p className="font-bold text-sm sm:text-base truncate">{player.username}'s {plant.name}</p>
                                 {isWinner && <Crown className="w-6 h-6 text-yellow-400 mx-auto mt-1" />}
                             </div>
                             {status === 'voting' && (
@@ -181,6 +219,18 @@ export default function ContestPage() {
                         </div>
                     )
                 })}
+                {Array.from({ length: MAX_PLAYERS - contestants.length }).map((_, index) => (
+                    <div key={`placeholder-${index}`} className="relative flex flex-col items-center justify-end">
+                        <div className="relative w-32 h-32 sm:w-48 sm:h-48">
+                            <div className="w-full h-full bg-black/20 rounded-lg flex items-center justify-center">
+                                <Loader2 className="w-8 h-8 animate-spin" />
+                            </div>
+                        </div>
+                        <div className="text-center mt-2 bg-black/50 px-3 py-1 rounded-md">
+                            <p className="font-bold text-sm sm:text-base">Waiting...</p>
+                        </div>
+                    </div>
+                ))}
             </div>
         </div>
 
