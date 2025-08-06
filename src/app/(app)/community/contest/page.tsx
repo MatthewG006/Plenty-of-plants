@@ -8,6 +8,9 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import type { Plant } from '@/interfaces/plant';
+import { useAuth } from '@/context/AuthContext';
+import { findOrCreateContestSession } from '@/lib/contest-manager';
+import { useToast } from '@/hooks/use-toast';
 
 // Placeholder data - in a real implementation, this would come from Firestore.
 const placeholderPlants: (Plant | null)[] = [
@@ -59,7 +62,9 @@ function GlitterAnimation() {
 
 
 export default function ContestPage() {
-    const [status, setStatus] = useState<'waiting' | 'countdown' | 'voting' | 'finished'>('waiting');
+    const { user, gameData } = useAuth();
+    const { toast } = useToast();
+    const [status, setStatus] = useState<'waiting' | 'finding_session' | 'countdown' | 'voting' | 'finished'>('waiting');
     const [countdown, setCountdown] = useState(5);
     const [winnerId, setWinnerId] = useState<number | null>(null);
 
@@ -76,10 +81,48 @@ export default function ContestPage() {
         return () => clearTimeout(timer);
     }, [status, countdown]);
 
-    const startContest = () => {
-        setStatus('countdown');
-        setCountdown(5);
+    const startContest = async () => {
+        if (!user || !gameData) return;
+
+        // For now, we'll just use the user's first plant.
+        // A real implementation would let the user choose.
+        const playerPlant = Object.values(gameData.plants)[0];
+
+        if (!playerPlant) {
+            toast({
+                variant: 'destructive',
+                title: 'No Plant Found',
+                description: 'You need at least one plant to enter a contest.',
+            });
+            return;
+        }
+
+        setStatus('finding_session');
         setWinnerId(null);
+
+        try {
+            const session = await findOrCreateContestSession(
+                user.uid,
+                user.displayName || 'Player',
+                (gameData as any).avatarColor || '#ffffff',
+                playerPlant
+            );
+            console.log('Joined or created contest session:', session);
+            
+            // For now, we'll go straight to a mock countdown.
+            // A real implementation would listen to Firestore for the session status to change.
+            setStatus('countdown');
+            setCountdown(5);
+
+        } catch (error) {
+            console.error('Error joining contest session:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Error Joining Contest',
+                description: 'Could not join a session. Please try again.',
+            });
+            setStatus('waiting');
+        }
     };
 
     const handleVote = (plantId: number) => {
@@ -103,6 +146,12 @@ export default function ContestPage() {
                 <p className="text-lg">Join a session and vote for the best-looking plant! The winner gets a special prize.</p>
             </div>
             {status === 'waiting' && <Button onClick={startContest}>Join Contest</Button>}
+            {status === 'finding_session' && (
+                <Button disabled>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Finding Session...
+                </Button>
+            )}
             {status === 'countdown' && <p className="text-5xl font-bold animate-pulse">{countdown}</p>}
             {status === 'voting' && <p className="text-2xl font-bold">Vote for your favorite plant!</p>}
             {status === 'finished' && <p className="text-2xl font-bold">The winner has been chosen!</p>}
