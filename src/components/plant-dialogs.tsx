@@ -212,8 +212,6 @@ export function PlantCareDialog({ plant, open, onOpenChange, onStartEvolution, o
             
             if (isFinalForm) {
                 await updateUserRubies(user.uid, RUBIES_PER_WATERING);
-            } else {
-                await updateUserGold(user.uid, GOLD_PER_WATERING);
             }
 
             if(leveledUp) {
