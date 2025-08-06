@@ -3,13 +3,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, LayoutGrid, Users, Store } from 'lucide-react';
+import { Home, LayoutGrid, Users, Store, Sprout } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAudio } from '@/context/AudioContext';
 
 const navItems = [
   { href: '/home', label: 'Home', icon: Home },
   { href: '/room', label: 'Room', icon: LayoutGrid },
+  { href: '/garden', label: 'Garden', icon: Sprout },
   { href: '/community', label: 'Community', icon: Users },
   { href: '/shop', label: 'Shop', icon: Store },
 ];
@@ -24,7 +25,7 @@ export default function BottomNavBar() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 h-20 border-t bg-card/95 backdrop-blur-sm z-10 flex justify-center">
-      <div className="grid h-full w-full max-w-md grid-cols-4 items-center">
+      <div className="grid h-full w-full max-w-md grid-cols-5 items-center">
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
 

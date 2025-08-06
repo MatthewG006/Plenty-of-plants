@@ -4,19 +4,18 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Leaf, Loader2, Sparkles, Star, GripVertical, Gem, MessageCircle, Trash2, Replace, Plus, Droplets } from 'lucide-react';
+import { Leaf, Loader2, Plus, Droplets, Sprout, ChevronsRight } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import type { Plant } from '@/interfaces/plant';
 import { cn } from '@/lib/utils';
-import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { updateGardenArrangement, useSprinkler } from '@/lib/firestore';
 import { PlantCareDialog, PlantSwapDialog } from '@/components/plant-dialogs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { makeBackgroundTransparent } from '@/lib/image-compression';
+import Link from 'next/link';
 
 
 const NUM_GARDEN_PLOTS = 12;
@@ -37,7 +36,6 @@ function PlantCard({ plant, onClick, processedImage, className }: { plant: Plant
                 <div className="p-1 text-center space-y-0.5 shrink-0">
                     <p className="text-xs font-semibold text-primary truncate">{plant.name}</p>
                     <div className="text-[10px] text-muted-foreground">Lvl {plant.level}</div>
-                    <Progress value={(plant.xp / 1000) * 100} className="h-1.5" />
                 </div>
             </CardContent>
         </Card>
@@ -72,7 +70,6 @@ export default function GardenPage() {
   const [activeCarePlant, setActiveCarePlant] = useState<Plant | null>(null);
   const [swapState, setSwapState] = useState<{plantToReplaceId: number | null, gardenPlotIndex: number} | null>(null);
 
-  const [sortOption, setSortOption] = useState<'level' | 'stage'>('level');
   const [processedGardenImages, setProcessedGardenImages] = useState<Record<number, string | null>>({});
   const [isUsingSprinkler, setIsUsingSprinkler] = useState(false);
 
@@ -114,19 +111,11 @@ export default function GardenPage() {
   }, [gardenPlants]);
 
   const collectionPlants = useMemo(() => {
-    const formOrder: { [key: string]: number } = { 'Base': 0, 'Evolved': 1, 'Final': 2 };
-
     return collectionPlantIds
       .map(id => allPlants[id])
       .filter(Boolean)
-      .sort((a,b) => {
-          if (sortOption === 'level') {
-              return b.level - a.level;
-          } else {
-              return formOrder[b.form] - formOrder[a.form];
-          }
-      });
-  }, [collectionPlantIds, allPlants, sortOption]);
+      .sort((a,b) => b.level - a.level);
+  }, [collectionPlantIds, allPlants]);
 
   const handleSelectPlantForCare = (plant: Plant) => {
     setActiveCarePlant(allPlants[plant.id]);
@@ -225,7 +214,21 @@ export default function GardenPage() {
       >
         <header className="flex flex-col items-center gap-2 p-4 text-center bg-background/80 backdrop-blur-sm shrink-0">
             <h1 className="text-3xl text-primary font-bold">My Garden</h1>
-            <p className="text-muted-foreground">Water your plants to help them grow. Tap a plant to care for it, or tap an empty plot to add a new plant from your collection.</p>
+            <p className="text-muted-foreground">Water your plants to help them grow and earn seeds.</p>
+             <div className="flex gap-4 pt-2">
+                <Button variant="secondary" asChild>
+                    <Link href="/garden">
+                        <Sprout className="mr-2 h-4 w-4" />
+                        Plants
+                    </Link>
+                </Button>
+                <Button asChild>
+                    <Link href="/garden/seeds">
+                        Seeds
+                        <ChevronsRight className="ml-2 h-4 w-4" />
+                    </Link>
+                </Button>
+            </div>
             {gameData.sprinklerUnlocked && (
                 <div className="pt-2">
                     <Button onClick={handleUseSprinkler} disabled={isUsingSprinkler}>
@@ -238,7 +241,6 @@ export default function GardenPage() {
         
         <main className="flex-grow flex flex-col justify-end p-2">
             <div className="w-full max-w-4xl mx-auto relative">
-                {/* Dirt plots image */}
                 <Image 
                     src="/garden-bg.png" 
                     alt="Garden plots" 
@@ -247,7 +249,6 @@ export default function GardenPage() {
                     className="w-full h-auto"
                 />
 
-                {/* Absolutely positioned grid for plants */}
                 <div className="absolute inset-0 top-[5%] left-[4%] right-[4%] bottom-[10%]">
                     <div className="grid grid-cols-3 grid-rows-4 h-full w-full gap-x-[8%] gap-y-[10%]">
                         {gardenPlants.map((plant, index) => {
