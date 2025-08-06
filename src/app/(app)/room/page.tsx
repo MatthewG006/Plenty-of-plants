@@ -275,7 +275,7 @@ function DraggablePlant({ plant, source, ...rest }: { plant: Plant; source: 'des
     );
 }
 
-function DraggablePlantCard({ plant, onClick, onApplyGlitter, canApplyGlitter, onApplySheen, canApplySheen, onApplyRainbowGlitter, canApplyRainbowGlitter, onApplyRedGlitter, canApplyRedGlitter }: { plant: Plant; onClick: (plant: Plant) => void; onApplyGlitter: (plantId: number) => void; canApplyGlitter: boolean; onApplySheen: (plantId: number) => void; canApplySheen: boolean; onApplyRainbowGlitter: (plantId: number) => void; canApplyRainbowGlitter: boolean; onApplyRedGlitter: (plantId: number) => void; canApplyRedGlitter: boolean; }) {
+function DraggablePlantCard({ plant, onApplyGlitter, canApplyGlitter, onApplySheen, canApplySheen, onApplyRainbowGlitter, canApplyRainbowGlitter, onApplyRedGlitter, canApplyRedGlitter }: { plant: Plant; onApplyGlitter: (plantId: number) => void; canApplyGlitter: boolean; onApplySheen: (plantId: number) => void; canApplySheen: boolean; onApplyRainbowGlitter: (plantId: number) => void; canApplyRainbowGlitter: boolean; onApplyRedGlitter: (plantId: number) => void; canApplyRedGlitter: boolean; }) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: `collection:${plant.id}`,
         data: { plant, source: 'collection' },
@@ -290,7 +290,6 @@ function DraggablePlantCard({ plant, onClick, onApplyGlitter, canApplyGlitter, o
         <div 
             ref={setNodeRef} 
             style={style} 
-            onClick={() => onClick(plant)}
         >
             <PlantCardUI 
                 plant={plant} 
@@ -683,10 +682,9 @@ export default function RoomPage() {
                 <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5">
                     {collectionPlants.length > 0 ? (
                       collectionPlants.map((plant) => (
-                           <DraggablePlantCard
-                              key={plant.id}
+                           <div key={plant.id} onClick={() => setSelectedPlant(allPlants[plant.id])}>
+                             <DraggablePlantCard
                                plant={plant}
-                               onClick={(p) => setSelectedPlant(allPlants[p.id])}
                                onApplyGlitter={handleApplyGlitter}
                                canApplyGlitter={gameData.glitterCount > 0}
                                onApplySheen={handleApplySheen}
@@ -696,6 +694,7 @@ export default function RoomPage() {
                                onApplyRedGlitter={handleApplyRedGlitter}
                                canApplyRedGlitter={gameData.redGlitterCount > 0}
                              />
+                           </div>
                           ))
                     ) : (
                       <div className="col-span-3 text-center text-muted-foreground py-8">
@@ -766,3 +765,5 @@ export default function RoomPage() {
     </DndContext>
   );
 }
+
+    
