@@ -5,6 +5,7 @@ import type { Plant, Seed } from '@/interfaces/plant';
 import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 import { User } from 'firebase/auth';
 import { MAX_DRAWS } from './draw-manager';
+import { v4 as uuidv4 } from 'uuid';
 
 export const NUM_POTS = 3;
 export const NUM_GARDEN_PLOTS = 12;
@@ -32,6 +33,7 @@ export interface GameData {
     sheenCount: number;
     rainbowGlitterCount: number;
     redGlitterCount: number;
+    fertilizerCount: number;
     showcasePlantIds: number[];
     challenges: Record<string, { progress: number, claimed: boolean }>;
     challengesStartDate: number;
@@ -94,6 +96,7 @@ export async function getUserGameData(userId: string): Promise<GameData | null> 
             sheenCount: data.sheenCount || 0,
             rainbowGlitterCount: data.rainbowGlitterCount || 0,
             redGlitterCount: data.redGlitterCount || 0,
+            fertilizerCount: data.fertilizerCount || 0,
             showcasePlantIds: data.showcasePlantIds || [],
             challenges: data.challenges || {},
             challengesStartDate: data.challengesStartDate || 0,
@@ -192,6 +195,7 @@ export async function createUserDocument(user: User): Promise<GameData> {
             sheenCount: 0,
             rainbowGlitterCount: 0,
             redGlitterCount: 0,
+            fertilizerCount: 0,
             showcasePlantIds: [],
             challenges: {},
             challengesStartDate: Date.now(),
@@ -634,7 +638,7 @@ export async function addSeed(userId: string): Promise<void> {
     }
 
     const newSeed: Seed = {
-        id: `seed_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+        id: uuidv4(),
         startTime: Date.now(),
     };
 
@@ -653,5 +657,31 @@ export async function growSeed(userId: string, seedId: string): Promise<void> {
 
     await updateDoc(userDocRef, {
         seeds: arrayRemove(seedToRemove)
+    });
+}
+
+export async function useFertilizer(userId: string, seedId: string): Promise<void> {
+    const userDocRef = doc(db, 'users', userId);
+    const gameData = await getUserGameData(userId);
+
+    if (!gameData || gameData.fertilizerCount <= 0) {
+        throw new Error("No fertilizer available.");
+    }
+    
+    const seedToFertilize = gameData.seeds.find(s => s.id === seedId);
+    if (!seedToFertilize) {
+        throw new Error("Seed not found.");
+    }
+
+    const eightHoursInMs = 8 * 60 * 60 * 1000;
+    const newStartTime = seedToFertilize.startTime - eightHoursInMs;
+
+    const newSeeds = gameData.seeds.map(s => 
+        s.id === seedId ? { ...s, startTime: newStartTime } : s
+    );
+
+    await updateDoc(userDocRef, {
+        fertilizerCount: increment(-1),
+        seeds: newSeeds,
     });
 }

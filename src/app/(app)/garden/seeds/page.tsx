@@ -4,12 +4,12 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Clock, Sprout, ChevronsRight, Leaf } from 'lucide-react';
+import { Loader2, Clock, Sprout, ChevronsRight, Leaf, Zap } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { growSeed, savePlant } from '@/lib/firestore';
+import { growSeed, savePlant, useFertilizer } from '@/lib/firestore';
 import type { Seed } from '@/interfaces/plant';
 import { drawPlantAction } from '@/app/actions/draw-plant';
 import Link from 'next/link';
@@ -28,7 +28,7 @@ function getTimeRemaining(endTime: number) {
     return { hours, minutes, seconds };
 }
 
-function SeedCard({ seed, processedImage }: { seed: Seed, processedImage: string | null }) {
+function SeedCard({ seed, processedImage, onUseFertilizer, canUseFertilizer }: { seed: Seed, processedImage: string | null, onUseFertilizer: (seedId: string) => void, canUseFertilizer: boolean }) {
     const [time, setTime] = useState({ hours: 0, minutes: 0, seconds: 0 });
     const isReady = useMemo(() => Date.now() >= seed.startTime + GERMINATION_TIME_MS, [seed.startTime]);
 
@@ -50,7 +50,7 @@ function SeedCard({ seed, processedImage }: { seed: Seed, processedImage: string
 
     if (isReady) {
         return (
-            <Card className="flex flex-col items-center justify-center p-4 bg-primary/10 border-primary/50 text-center h-40">
+            <Card className="flex flex-col items-center justify-center p-4 bg-primary/10 border-primary/50 text-center h-48">
                 <CardContent className="p-0 flex flex-col items-center justify-center gap-2">
                     <div className="w-28 h-28 relative">
                         {processedImage ? (
@@ -66,7 +66,7 @@ function SeedCard({ seed, processedImage }: { seed: Seed, processedImage: string
     }
     
     return (
-        <Card className="flex flex-col items-center justify-center p-4 bg-muted/50 text-center h-40">
+        <Card className="flex flex-col items-center justify-center p-4 bg-muted/50 text-center h-48">
             <CardContent className="p-0 flex flex-col items-center justify-center gap-2">
                  <div className="w-24 h-24 relative">
                     {processedImage ? (
@@ -76,7 +76,15 @@ function SeedCard({ seed, processedImage }: { seed: Seed, processedImage: string
                     )}
                 </div>
                 <p className="text-xl font-bold text-primary tabular-nums">{`${String(time.hours).padStart(2, '0')}:${String(time.minutes).padStart(2, '0')}:${String(time.seconds).padStart(2, '0')}`}</p>
-                <p className="text-xs text-muted-foreground">Until Germination</p>
+                <div className="text-xs text-muted-foreground flex flex-col items-center gap-1">
+                    <span>Until Germination</span>
+                    {canUseFertilizer && (
+                        <Button variant="outline" size="sm" className="h-6 px-2 text-xs" onClick={() => onUseFertilizer(seed.id)}>
+                            <Zap className="w-3 h-3 mr-1" />
+                            Fertilize
+                        </Button>
+                    )}
+                </div>
             </CardContent>
         </Card>
     );
@@ -153,6 +161,21 @@ export default function SeedsPage() {
             setIsGrowing(null);
         }
     };
+    
+    const handleFertilizeSeed = async (seedId: string) => {
+        if (!user) return;
+        try {
+            await useFertilizer(user.uid, seedId);
+            playSfx('chime');
+            toast({
+                title: 'Fertilizer Used!',
+                description: 'Your seed will be ready 8 hours sooner.'
+            });
+        } catch (e: any) {
+            console.error("Failed to use fertilizer", e);
+            toast({ variant: 'destructive', title: 'Error', description: e.message });
+        }
+    };
 
     if (!user || !gameData) {
         return (
@@ -163,6 +186,7 @@ export default function SeedsPage() {
     }
 
     const seeds = gameData.seeds || [];
+    const canUseFertilizer = gameData.fertilizerCount > 0;
     
     return (
         <div 
@@ -195,7 +219,12 @@ export default function SeedsPage() {
                             const isReady = Date.now() >= seed.startTime + GERMINATION_TIME_MS;
                             return (
                                 <div key={seed.id} className="space-y-2">
-                                    <SeedCard seed={seed} processedImage={processedSeedImage} />
+                                    <SeedCard 
+                                        seed={seed} 
+                                        processedImage={processedSeedImage}
+                                        onUseFertilizer={handleFertilizeSeed}
+                                        canUseFertilizer={canUseFertilizer && !isReady}
+                                    />
                                     <Button 
                                         className="w-full" 
                                         disabled={!isReady || !!isGrowing}

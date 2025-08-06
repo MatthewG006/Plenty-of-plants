@@ -397,6 +397,15 @@ export default function ShopPage() {
                     $4.99
                 </Button>
             </div>
+            <div className="flex items-center justify-between p-3 rounded-lg bg-purple-50">
+                <div>
+                    <h4 className="font-semibold text-purple-800">Fertilizer</h4>
+                    <p className="text-sm text-purple-600">Reduces seed time by 8 hours.</p>
+                </div>
+                 <Button onClick={handlePremiumPurchase} className="bg-purple-500 hover:bg-purple-600">
+                    $0.50
+                </Button>
+            </div>
           </CardContent>
         </Card>
 
