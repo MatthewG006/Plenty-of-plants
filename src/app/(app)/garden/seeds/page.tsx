@@ -13,6 +13,9 @@ import { growSeed, savePlant } from '@/lib/firestore';
 import type { Seed } from '@/interfaces/plant';
 import { drawPlantAction } from '@/app/actions/draw-plant';
 import Link from 'next/link';
+import Image from 'next/image';
+import { cn } from '@/lib/utils';
+
 
 const GERMINATION_TIME_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -48,7 +51,10 @@ function SeedCard({ seed }: { seed: Seed }) {
         return (
             <Card className="flex flex-col items-center justify-center p-4 bg-primary/10 border-primary/50 text-center h-40">
                 <CardContent className="p-0 flex flex-col items-center justify-center gap-2">
-                    <p className="font-bold text-primary">Ready to Grow!</p>
+                    <div className="w-20 h-20 relative">
+                        <Image src="/seed.png" alt="Ready Seed" fill className="object-contain animate-glow brightness-125 saturate-150" data-ai-hint="seed icon" />
+                    </div>
+                    <p className="font-bold text-primary mt-2">Ready to Grow!</p>
                 </CardContent>
             </Card>
         );
@@ -57,8 +63,10 @@ function SeedCard({ seed }: { seed: Seed }) {
     return (
         <Card className="flex flex-col items-center justify-center p-4 bg-muted/50 text-center h-40">
             <CardContent className="p-0 flex flex-col items-center justify-center gap-2">
-                <Clock className="w-8 h-8 text-muted-foreground" />
-                <p className="text-xl font-bold text-primary">{`${String(time.hours).padStart(2, '0')}:${String(time.minutes).padStart(2, '0')}:${String(time.seconds).padStart(2, '0')}`}</p>
+                 <div className="w-16 h-16 relative">
+                    <Image src="/seed.png" alt="Germinating Seed" fill className="object-contain opacity-70" data-ai-hint="seed icon" />
+                </div>
+                <p className="text-xl font-bold text-primary tabular-nums">{`${String(time.hours).padStart(2, '0')}:${String(time.minutes).padStart(2, '0')}:${String(time.seconds).padStart(2, '0')}`}</p>
                 <p className="text-xs text-muted-foreground">Until Germination</p>
             </CardContent>
         </Card>
