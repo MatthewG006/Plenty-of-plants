@@ -212,31 +212,27 @@ export default function GardenPage() {
         className="min-h-screen bg-contain bg-bottom bg-no-repeat flex flex-col"
         style={{backgroundImage: "url('/garden-bg-sky.png')"}}
       >
-        <header className="flex flex-col items-center gap-2 p-4 text-center bg-background/80 backdrop-blur-sm shrink-0">
-            <h1 className="text-3xl text-primary font-bold">My Garden</h1>
-            <p className="text-muted-foreground">Water your plants to help them grow and earn seeds.</p>
-             <div className="flex gap-4 pt-2">
-                <Button variant="secondary" asChild>
+        <header className="flex flex-row items-center justify-between gap-2 p-2 sm:p-4 text-center bg-background/80 backdrop-blur-sm shrink-0 flex-wrap">
+            <h1 className="text-2xl text-primary font-bold">My Garden</h1>
+             <div className="flex items-center gap-2">
+                <Button variant="secondary" size="sm" asChild>
                     <Link href="/garden">
                         <Sprout className="mr-2 h-4 w-4" />
                         Plants
                     </Link>
                 </Button>
-                <Button asChild>
+                <Button size="sm" asChild>
                     <Link href="/garden/seeds">
                         Seeds
                         <ChevronsRight className="ml-2 h-4 w-4" />
                     </Link>
                 </Button>
-            </div>
-            {gameData.sprinklerUnlocked && (
-                <div className="pt-2">
-                    <Button onClick={handleUseSprinkler} disabled={isUsingSprinkler}>
+                 {gameData.sprinklerUnlocked && (
+                    <Button size="sm" onClick={handleUseSprinkler} disabled={isUsingSprinkler}>
                         {isUsingSprinkler ? <Loader2 className="animate-spin" /> : <Droplets />}
-                        {isUsingSprinkler ? 'Watering...' : 'Use Sprinkler'}
                     </Button>
-                </div>
-            )}
+                )}
+            </div>
         </header>
         
         <main className="flex-grow flex flex-col justify-end p-2">
@@ -290,4 +286,4 @@ export default function GardenPage() {
         )}
       </div>
   );
-}
+ 
