@@ -102,6 +102,30 @@
         "x-next-revalidate-tag-token"
       ]
     },
+    "/garden": {
+      "experimentalBypassFor": [
+        {
+          "type": "header",
+          "key": "Next-Action"
+        },
+        {
+          "type": "header",
+          "key": "content-type",
+          "value": "multipart/form-data;.*"
+        }
+      ],
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/garden",
+      "dataRoute": "/garden.rsc",
+      "allowHeader": [
+        "host",
+        "x-matched-path",
+        "x-prerender-revalidate",
+        "x-prerender-revalidate-if-generated",
+        "x-next-revalidated-tags",
+        "x-next-revalidate-tag-token"
+      ]
+    },
     "/community": {
       "experimentalBypassFor": [
         {
@@ -150,7 +174,7 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/garden": {
+    "/room": {
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -163,8 +187,8 @@
         }
       ],
       "initialRevalidateSeconds": false,
-      "srcRoute": "/garden",
-      "dataRoute": "/garden.rsc",
+      "srcRoute": "/room",
+      "dataRoute": "/room.rsc",
       "allowHeader": [
         "host",
         "x-matched-path",
@@ -189,30 +213,6 @@
       "initialRevalidateSeconds": false,
       "srcRoute": "/profile",
       "dataRoute": "/profile.rsc",
-      "allowHeader": [
-        "host",
-        "x-matched-path",
-        "x-prerender-revalidate",
-        "x-prerender-revalidate-if-generated",
-        "x-next-revalidated-tags",
-        "x-next-revalidate-tag-token"
-      ]
-    },
-    "/room": {
-      "experimentalBypassFor": [
-        {
-          "type": "header",
-          "key": "Next-Action"
-        },
-        {
-          "type": "header",
-          "key": "content-type",
-          "value": "multipart/form-data;.*"
-        }
-      ],
-      "initialRevalidateSeconds": false,
-      "srcRoute": "/room",
-      "dataRoute": "/room.rsc",
       "allowHeader": [
         "host",
         "x-matched-path",
@@ -274,8 +274,8 @@
   "dynamicRoutes": {},
   "notFoundRoutes": [],
   "preview": {
-    "previewModeId": "7c9df667e02fdccf5e4dc6c2fe402da5",
-    "previewModeSigningKey": "95d3ee0d7afb9725890accab9e2270b6510ee7076ad54162279b2102a71ab148",
-    "previewModeEncryptionKey": "aeb3066a421e7e03bf9ff90d52b6689bd800cc05eb03bd25e58d9072e91f3934"
+    "previewModeId": "3745e14c2eb0276ba9887d4369d805ff",
+    "previewModeSigningKey": "6d2587f417a1452829e824a2824c36a7a52e4437a9f288d5d8f2b2c2f4660493",
+    "previewModeEncryptionKey": "0de21f0ef49eb6970011cb45546dbce2d8d9a160ac9d9a7b7b9719de19f8083f"
   }
 }
