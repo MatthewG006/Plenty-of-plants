@@ -576,10 +576,11 @@ export default function HomePage() {
 
        <Link href="/garden">
         <Button
-            size="icon"
-            className="fixed bottom-24 right-4 h-16 w-16 rounded-full bg-green-500 hover:bg-green-600 shadow-lg animate-pulse-subtle"
+            size="lg"
+            className="fixed bottom-40 right-4 h-20 w-20 rounded-full bg-green-500 hover:bg-green-600 shadow-lg flex-col gap-1"
         >
-            <Sprout className="h-8 w-8 text-white" />
+            <Leaf className="h-8 w-8 text-white" />
+            <span className="text-xs text-white">Garden</span>
         </Button>
       </Link>
     </div>
