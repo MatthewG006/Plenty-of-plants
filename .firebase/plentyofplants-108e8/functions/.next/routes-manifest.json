@@ -46,6 +46,12 @@
       "namedRegex": "^/garden(?:/)?$"
     },
     {
+      "page": "/garden/seeds",
+      "regex": "^/garden/seeds(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/garden/seeds(?:/)?$"
+    },
+    {
       "page": "/home",
       "regex": "^/home(?:/)?$",
       "routeKeys": {},

@@ -6,6 +6,7 @@
   "/signup/page": "/signup",
   "/(app)/community/page": "/community",
   "/(app)/garden/page": "/garden",
+  "/(app)/garden/seeds/page": "/garden/seeds",
   "/(app)/home/page": "/home",
   "/(app)/profile/page": "/profile",
   "/(app)/room/page": "/room",

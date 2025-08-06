@@ -2,7 +2,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Users, Leaf, Sparkles, ShieldAlert, Heart, Star } from 'lucide-react';
+import { Loader2, Users, Leaf, Sparkles, ShieldAlert, Heart, Star, Trees } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { getCommunityUsers, likeUser, type CommunityUser } from '@/lib/firestore';
@@ -15,6 +15,7 @@ import { useAudio } from '@/context/AudioContext';
 import { cn } from '@/lib/utils';
 import { updateLikePlayerProgress } from '@/lib/challenge-manager';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import Link from 'next/link';
 
 function SheenAnimation() {
     return (
@@ -214,6 +215,12 @@ export default function CommunityPage() {
           Community Showcase
         </h1>
         <p className="text-muted-foreground">See what other players are growing! Like their showcase to give them 5 gold.</p>
+        <Button asChild variant="secondary" className="mt-2">
+            <Link href="/community/park">
+                <Trees className="mr-2 h-4 w-4" />
+                Visit the Park
+            </Link>
+        </Button>
       </header>
 
       {isLoading ? (

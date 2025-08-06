@@ -102,30 +102,6 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/garden": {
-      "experimentalBypassFor": [
-        {
-          "type": "header",
-          "key": "Next-Action"
-        },
-        {
-          "type": "header",
-          "key": "content-type",
-          "value": "multipart/form-data;.*"
-        }
-      ],
-      "initialRevalidateSeconds": false,
-      "srcRoute": "/garden",
-      "dataRoute": "/garden.rsc",
-      "allowHeader": [
-        "host",
-        "x-matched-path",
-        "x-prerender-revalidate",
-        "x-prerender-revalidate-if-generated",
-        "x-next-revalidated-tags",
-        "x-next-revalidate-tag-token"
-      ]
-    },
     "/community": {
       "experimentalBypassFor": [
         {
@@ -150,6 +126,54 @@
         "x-next-revalidate-tag-token"
       ]
     },
+    "/garden": {
+      "experimentalBypassFor": [
+        {
+          "type": "header",
+          "key": "Next-Action"
+        },
+        {
+          "type": "header",
+          "key": "content-type",
+          "value": "multipart/form-data;.*"
+        }
+      ],
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/garden",
+      "dataRoute": "/garden.rsc",
+      "allowHeader": [
+        "host",
+        "x-matched-path",
+        "x-prerender-revalidate",
+        "x-prerender-revalidate-if-generated",
+        "x-next-revalidated-tags",
+        "x-next-revalidate-tag-token"
+      ]
+    },
+    "/garden/seeds": {
+      "experimentalBypassFor": [
+        {
+          "type": "header",
+          "key": "Next-Action"
+        },
+        {
+          "type": "header",
+          "key": "content-type",
+          "value": "multipart/form-data;.*"
+        }
+      ],
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/garden/seeds",
+      "dataRoute": "/garden/seeds.rsc",
+      "allowHeader": [
+        "host",
+        "x-matched-path",
+        "x-prerender-revalidate",
+        "x-prerender-revalidate-if-generated",
+        "x-next-revalidated-tags",
+        "x-next-revalidate-tag-token"
+      ]
+    },
     "/home": {
       "experimentalBypassFor": [
         {
@@ -165,30 +189,6 @@
       "initialRevalidateSeconds": false,
       "srcRoute": "/home",
       "dataRoute": "/home.rsc",
-      "allowHeader": [
-        "host",
-        "x-matched-path",
-        "x-prerender-revalidate",
-        "x-prerender-revalidate-if-generated",
-        "x-next-revalidated-tags",
-        "x-next-revalidate-tag-token"
-      ]
-    },
-    "/room": {
-      "experimentalBypassFor": [
-        {
-          "type": "header",
-          "key": "Next-Action"
-        },
-        {
-          "type": "header",
-          "key": "content-type",
-          "value": "multipart/form-data;.*"
-        }
-      ],
-      "initialRevalidateSeconds": false,
-      "srcRoute": "/room",
-      "dataRoute": "/room.rsc",
       "allowHeader": [
         "host",
         "x-matched-path",
@@ -246,6 +246,30 @@
         "x-next-revalidate-tag-token"
       ]
     },
+    "/room": {
+      "experimentalBypassFor": [
+        {
+          "type": "header",
+          "key": "Next-Action"
+        },
+        {
+          "type": "header",
+          "key": "content-type",
+          "value": "multipart/form-data;.*"
+        }
+      ],
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/room",
+      "dataRoute": "/room.rsc",
+      "allowHeader": [
+        "host",
+        "x-matched-path",
+        "x-prerender-revalidate",
+        "x-prerender-revalidate-if-generated",
+        "x-next-revalidated-tags",
+        "x-next-revalidate-tag-token"
+      ]
+    },
     "/shop": {
       "experimentalBypassFor": [
         {
@@ -274,8 +298,8 @@
   "dynamicRoutes": {},
   "notFoundRoutes": [],
   "preview": {
-    "previewModeId": "3745e14c2eb0276ba9887d4369d805ff",
-    "previewModeSigningKey": "6d2587f417a1452829e824a2824c36a7a52e4437a9f288d5d8f2b2c2f4660493",
-    "previewModeEncryptionKey": "0de21f0ef49eb6970011cb45546dbce2d8d9a160ac9d9a7b7b9719de19f8083f"
+    "previewModeId": "62a5b96e615d712c954bedd94a666642",
+    "previewModeSigningKey": "9483d73df8bb980a0e2af0797e598acb9f744b49a7d3c6b703cdb23e78e63576",
+    "previewModeEncryptionKey": "459fd8aad86bba89df63f92ce19d5c6c79bf17ca409063a053c14eac217de6db"
   }
 }
