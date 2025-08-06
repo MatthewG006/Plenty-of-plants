@@ -559,6 +559,10 @@ export default function HomePage() {
             </CardContent>
         </Card>
       </main>
+
+      <footer className="text-center text-xs text-muted-foreground pt-4">
+        <p>&copy; 2025 Sky Mountain Graphics. All Rights Reserved.</p>
+      </footer>
       
       <NewPlantDialog
         plant={drawnPlant}
