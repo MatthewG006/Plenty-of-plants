@@ -1,5 +1,10 @@
 # Prerelease Log
 
+## Version 0.18
+
+- **Feature:** Plant Beauty Contest
+- **Description:** Implemented a real-time multiplayer Plant Beauty Contest. Players can join sessions, enter one of their plants, and vote for a winner. The winner receives a special "Red Glitter" cosmetic prize. This feature includes a new "Park" area as an entry point and uses Firestore for real-time session management.
+
 ## Version 0.17
 
 - **Feature:** Bonus Challenges & Info Pop-ups
