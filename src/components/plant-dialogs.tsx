@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { deletePlant, unlockPlantChat, addConversationHistory, updatePlant, updateUserGold, updateUserRubies, useWaterRefill } from '@/lib/firestore';
+import { deletePlant, unlockPlantChat, addConversationHistory, updatePlant, updateUserGold, updateUserRubies, useWaterRefill, addSeed } from '@/lib/firestore';
 import { AlertDialog, AlertDialogTrigger, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription as AlertDialogDescriptionComponent } from '@/components/ui/alert-dialog';
 import { plantChatAction } from '@/app/actions/plant-chat';
 import { Textarea } from '@/components/ui/textarea';
@@ -39,65 +39,6 @@ function isToday(timestamp: number): boolean {
            someDate.getMonth() === today.getMonth() &&
            someDate.getFullYear() === today.getFullYear();
 }
-
-
-function GlitterAnimation() {
-    return (
-        <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden">
-            {Array.from({ length: 7 }).map((_, i) => (
-                <Sparkles key={i} className="absolute text-yellow-300 animate-sparkle" style={{
-                    top: `${Math.random() * 100}%`,
-                    left: `${Math.random() * 100}%`,
-                    animationDelay: `${Math.random() * 1.5}s`,
-                    width: `${5 + Math.random() * 5}px`,
-                    height: `${5 + Math.random() * 5}px`,
-                }} />
-            ))}
-        </div>
-    );
-}
-
-function RedGlitterAnimation() {
-    return (
-        <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden">
-            {Array.from({ length: 7 }).map((_, i) => (
-                <Sparkles key={i} className="absolute text-red-500 animate-sparkle" style={{
-                    top: `${Math.random() * 100}%`,
-                    left: `${Math.random() * 100}%`,
-                    animationDelay: `${Math.random() * 1.5}s`,
-                    width: `${8 + Math.random() * 8}px`,
-                    height: `${8 + Math.random() * 8}px`,
-                }} />
-            ))}
-        </div>
-    );
-}
-
-function SheenAnimation() {
-    return (
-        <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden rounded-lg">
-            <div className="absolute -top-1/2 w-1/12 h-[200%] bg-white/30 animate-sheen" />
-        </div>
-    )
-}
-
-function RainbowGlitterAnimation() {
-    return (
-        <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden">
-            {Array.from({ length: 10 }).map((_, i) => (
-                <Sparkles key={i} className="absolute animate-sparkle" style={{
-                    top: `${Math.random() * 100}%`,
-                    left: `${Math.random() * 100}%`,
-                    animationDelay: `${Math.random() * 1.5}s`,
-                    color: `hsl(${Math.random() * 360}, 100%, 70%)`,
-                    width: `${5 + Math.random() * 5}px`,
-                    height: `${5 + Math.random() * 5}px`,
-                }} />
-            ))}
-        </div>
-    );
-}
-
 
 export function PlantChatDialog({ plant, open, onOpenChange, userId }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, userId: string }) {
     const [history, setHistory] = useState<{ role: 'user' | 'model'; content: string }[]>([]);
@@ -244,10 +185,12 @@ export function PlantCareDialog({ plant, open, onOpenChange, onStartEvolution, o
         const xpGained = XP_PER_WATERING;
         let newXp = currentPlantData.xp + xpGained;
         let newLevel = currentPlantData.level;
+        let leveledUp = false;
     
         while(newXp >= XP_PER_LEVEL) {
             newXp -= XP_PER_LEVEL;
             newLevel += 1;
+            leveledUp = true;
             playSfx('reward');
             toast({
                 title: "Level Up!",
@@ -271,6 +214,14 @@ export function PlantCareDialog({ plant, open, onOpenChange, onStartEvolution, o
                 await updateUserRubies(user.uid, RUBIES_PER_WATERING);
             } else {
                 await updateUserGold(user.uid, GOLD_PER_WATERING);
+            }
+
+            if(leveledUp) {
+                await addSeed(user.uid);
+                toast({
+                    title: "You got a seed!",
+                    description: `Check your seed tray in the garden.`,
+                });
             }
             
             if (currentPlantData.form === 'Evolved' || currentPlantData.form === 'Final') {
@@ -469,5 +420,3 @@ export function EvolvePreviewDialog({ plantName, newForm, newImageUri, open, onC
 // Keeping this separate for now as it's more complex.
 // The RoomPage will have its own version of this.
 export function PlantDetailDialog() { return null; }
-
-    

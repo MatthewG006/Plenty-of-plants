@@ -1,19 +1,20 @@
 
 import { doc, getDoc, setDoc, getFirestore, updateDoc, arrayUnion, DocumentData, writeBatch, increment, collection, getDocs, query, where, limit, deleteDoc, arrayRemove } from 'firebase/firestore';
 import { app, db, auth } from './firebase';
-import type { Plant } from '@/interfaces/plant';
+import type { Plant, Seed } from '@/interfaces/plant';
 import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 import { User } from 'firebase/auth';
 import { MAX_DRAWS } from './draw-manager';
 
 export const NUM_POTS = 3;
-export const NUM_GARDEN_PLOTS = 6;
+export const NUM_GARDEN_PLOTS = 12;
 const MAX_WATERINGS_PER_DAY = 4;
 const XP_PER_WATERING = 200;
 const XP_PER_LEVEL = 1000;
 const GOLD_PER_WATERING = 5;
 const EVOLUTION_LEVEL = 10;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const MAX_SEEDS = 9;
 
 export interface GameData {
     gold: number;
@@ -21,10 +22,10 @@ export interface GameData {
     collectionPlantIds: number[];
     deskPlantIds: (number | null)[];
     gardenPlantIds: (number | null)[];
+    seeds: Seed[];
     draws: number;
     lastDrawRefill: number;
     lastFreeDrawClaimed: number;
-
     lastLoginBonusClaimed: number;
     sprinklerUnlocked: boolean;
     glitterCount: number;
@@ -83,6 +84,7 @@ export async function getUserGameData(userId: string): Promise<GameData | null> 
             collectionPlantIds: data.collectionPlantIds || [],
             deskPlantIds: data.deskPlantIds || Array(NUM_POTS).fill(null),
             gardenPlantIds: data.gardenPlantIds || Array(NUM_GARDEN_PLOTS).fill(null),
+            seeds: data.seeds || [],
             draws: data.draws ?? MAX_DRAWS,
             lastDrawRefill: data.lastDrawRefill || Date.now(),
             lastFreeDrawClaimed: data.lastFreeDrawClaimed || 0,
@@ -180,6 +182,7 @@ export async function createUserDocument(user: User): Promise<GameData> {
             collectionPlantIds: [],
             deskPlantIds: Array(NUM_POTS).fill(null),
             gardenPlantIds: Array(NUM_GARDEN_PLOTS).fill(null),
+            seeds: [],
             draws: MAX_DRAWS,
             lastDrawRefill: Date.now(),
             lastFreeDrawClaimed: 0,
@@ -226,7 +229,6 @@ export async function savePlant(userId: string, plantData: DrawPlantOutput): Pro
         throw new Error("User data not found, cannot save plant.");
     }
     
-    // Sanitize the input object to ensure it's a plain JS object
     const plainPlantData = JSON.parse(JSON.stringify(plantData));
 
     const allPlantIds = Object.keys(gameData.plants).map(Number);
@@ -291,11 +293,9 @@ export async function updatePlant(userId: string, plantId: number, plantUpdateDa
     
     let updates: { [key: string]: any } = {};
     
-    // Handle the special case where plantId is 0 for bulk updates
     if (plantId === 0) {
         updates = { ...plantUpdateData };
     } else {
-        // Ensure we are only updating fields on the specific plant sub-document
         for (const [key, value] of Object.entries(plantUpdateData)) {
             updates[`plants.${plantId}.${key}`] = value;
         }
@@ -488,50 +488,6 @@ export async function useRedGlitter(userId: string) {
     });
 }
 
-export async function resetUserGameData(userId: string) {
-    const userDocRef = doc(db, 'users', userId);
-    
-    const startingPlant: Plant = {
-        id: 1,
-        name: "Friendly Fern",
-        description: "A happy little fern to start your collection.",
-        image: "/fern.png",
-        baseImage: '',
-        form: "Base",
-        hint: "fern plant",
-        level: 1,
-        xp: 0,
-        lastWatered: [],
-        hasGlitter: false,
-        hasSheen: false,
-        hasRainbowGlitter: false,
-        hasRedGlitter: false,
-        personality: '',
-        chatEnabled: false,
-        conversationHistory: [],
-    };
-
-    await updateDoc(userDocRef, {
-        plants: { '1': startingPlant },
-        collectionPlantIds: [],
-        deskPlantIds: [1, null, null],
-        gardenPlantIds: Array(NUM_GARDEN_PLOTS).fill(null),
-        gold: 0,
-        draws: MAX_DRAWS,
-        lastDrawRefill: Date.now(),
-        lastFreeDrawClaimed: 0,
-        sprinklerUnlocked: false,
-        glitterCount: 0,
-        sheenCount: 0,
-        rainbowGlitterCount: 0,
-        redGlitterCount: 0,
-        showcasePlantIds: [],
-        waterRefillCount: 0,
-        rubyCount: 0,
-        plantChatTokens: 0,
-    });
-}
-
 export async function deletePlant(userId: string, plantId: number) {
     const userDocRef = doc(db, 'users', userId);
     const gameData = await getUserGameData(userId);
@@ -586,13 +542,6 @@ export async function likeUser(likerUid: string, likedUid: string) {
         gold: increment(5)
     });
     await batch.commit();
-}
-
-export async function unequipSprinkler(userId: string) {
-    const userDocRef = doc(db, 'users', userId);
-    await updateDoc(userDocRef, {
-        sprinklerUnlocked: false
-    });
 }
 
 export async function purchaseWaterRefill(userId: string, cost: number): Promise<void> {
@@ -675,4 +624,34 @@ export async function addConversationHistory(userId: string, plantId: number, us
     });
 }
 
-    
+export async function addSeed(userId: string): Promise<void> {
+    const userDocRef = doc(db, 'users', userId);
+    const gameData = await getUserGameData(userId);
+    if (!gameData) return;
+
+    if (gameData.seeds && gameData.seeds.length >= MAX_SEEDS) {
+        return; // Seed tray is full
+    }
+
+    const newSeed: Seed = {
+        id: `seed_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+        startTime: Date.now(),
+    };
+
+    await updateDoc(userDocRef, {
+        seeds: arrayUnion(newSeed)
+    });
+}
+
+export async function growSeed(userId: string, seedId: string): Promise<void> {
+    const userDocRef = doc(db, 'users', userId);
+    const gameData = await getUserGameData(userId);
+    if (!gameData || !gameData.seeds) return;
+
+    const seedToRemove = gameData.seeds.find(s => s.id === seedId);
+    if (!seedToRemove) return;
+
+    await updateDoc(userDocRef, {
+        seeds: arrayRemove(seedToRemove)
+    });
+}

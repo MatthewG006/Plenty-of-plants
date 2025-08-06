@@ -19,3 +19,8 @@ export interface Plant {
   chatEnabled: boolean;
   conversationHistory: { role: 'user' | 'model', content: string }[];
 }
+
+export interface Seed {
+  id: string;
+  startTime: number;
+}
