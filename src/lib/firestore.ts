@@ -357,6 +357,7 @@ export async function useSprinkler(userId: string): Promise<{ plantsWatered: num
 
     let totalPlantsWatered = 0;
     const newlyEvolvablePlants: number[] = [];
+    let seedsToAdd: Seed[] = [];
     const updates: { [key: string]: any } = {};
 
     for (const plant of allPlants) {
@@ -378,6 +379,10 @@ export async function useSprinkler(userId: string): Promise<{ plantsWatered: num
             while(currentXp >= XP_PER_LEVEL) {
                 currentXp -= XP_PER_LEVEL;
                 currentLevel += 1;
+                // Add a seed if there's space
+                if ((gameData.seeds.length + seedsToAdd.length) < MAX_SEEDS) {
+                    seedsToAdd.push({ id: uuidv4(), startTime: Date.now() });
+                }
             }
         }
         
@@ -396,6 +401,9 @@ export async function useSprinkler(userId: string): Promise<{ plantsWatered: num
     }
 
     if (totalPlantsWatered > 0) {
+        if (seedsToAdd.length > 0) {
+            updates.seeds = arrayUnion(...seedsToAdd);
+        }
         await updateDoc(userDocRef, updates);
     }
     
@@ -680,3 +688,5 @@ export async function useFertilizer(userId: string, seedId: string): Promise<voi
         seeds: newSeeds,
     });
 }
+
+    
