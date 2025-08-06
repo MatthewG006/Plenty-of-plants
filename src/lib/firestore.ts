@@ -342,7 +342,7 @@ export async function purchaseSprinkler(userId: string, cost: number): Promise<v
     });
 }
 
-export async function useSprinkler(userId: string): Promise<{ plantsWatered: number; goldGained: number; newlyEvolvablePlants: number[] }> {
+export async function useSprinkler(userId: string): Promise<{ plantsWatered: number; seedsCollected: number; newlyEvolvablePlants: number[] }> {
     const userDocRef = doc(db, 'users', userId);
     const gameData = await getUserGameData(userId);
 
@@ -352,7 +352,7 @@ export async function useSprinkler(userId: string): Promise<{ plantsWatered: num
 
     const allPlants = Object.values(gameData.plants || {});
     if (allPlants.length === 0) {
-        return { plantsWatered: 0, goldGained: 0, newlyEvolvablePlants: [] };
+        return { plantsWatered: 0, seedsCollected: 0, newlyEvolvablePlants: [] };
     }
 
     let totalPlantsWatered = 0;
@@ -407,7 +407,7 @@ export async function useSprinkler(userId: string): Promise<{ plantsWatered: num
         await updateDoc(userDocRef, updates);
     }
     
-    return { plantsWatered: totalPlantsWatered, goldGained: 0, newlyEvolvablePlants };
+    return { plantsWatered: totalPlantsWatered, seedsCollected: seedsToAdd.length, newlyEvolvablePlants };
 }
 
 
@@ -688,5 +688,3 @@ export async function useFertilizer(userId: string, seedId: string): Promise<voi
         seeds: newSeeds,
     });
 }
-
-    

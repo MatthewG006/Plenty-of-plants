@@ -171,12 +171,18 @@ export default function GardenPage() {
     setIsUsingSprinkler(true);
     playSfx('watering');
     try {
-        const { plantsWatered, goldGained, newlyEvolvablePlants } = await useSprinkler(user.uid);
+        const { plantsWatered, seedsCollected, newlyEvolvablePlants } = await useSprinkler(user.uid);
         if (plantsWatered > 0) {
+            let description = `You watered ${plantsWatered} plant(s).`;
+            if (seedsCollected > 0) {
+                description += ` You collected ${seedsCollected} new seed(s)!`;
+            }
+
             toast({
                 title: "Sprinkler Used!",
-                description: `You watered ${plantsWatered} plant(s) and earned ${goldGained} gold.`,
+                description: description,
             });
+
             if (newlyEvolvablePlants.length > 0) {
                 setTimeout(() => {
                     toast({
