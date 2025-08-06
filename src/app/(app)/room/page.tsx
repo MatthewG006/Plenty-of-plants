@@ -395,9 +395,9 @@ export default function RoomPage() {
   const collectionPlants = useMemo(() => {
     const formOrder: { [key: string]: number } = { 'Base': 0, 'Evolved': 1, 'Final': 2 };
     
-    return collectionPlantIds
-      .map(id => allPlants[id])
-      .filter(Boolean)
+    // Display all plants except those on the desk.
+    return Object.values(allPlants)
+      .filter(plant => !deskPlantIds.includes(plant.id))
       .sort((a,b) => {
           if (sortOption === 'level') {
               return b.level - a.level;
@@ -405,7 +405,7 @@ export default function RoomPage() {
               return formOrder[b.form] - formOrder[a.form];
           }
       });
-  }, [collectionPlantIds, allPlants, sortOption]);
+  }, [allPlants, deskPlantIds, sortOption]);
 
   const deskPlants = useMemo(() => deskPlantIds.map(id => id ? allPlants[id] : null), [deskPlantIds, allPlants]);
   
@@ -803,3 +803,5 @@ export default function RoomPage() {
     </DndContext>
   );
 }
+
+    
