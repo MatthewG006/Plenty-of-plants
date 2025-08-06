@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Clock, Sprout, ChevronsRight } from 'lucide-react';
+import { Loader2, Clock, Sprout, ChevronsRight, Leaf } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAudio } from '@/context/AudioContext';
@@ -128,17 +128,17 @@ export default function SeedsPage() {
             <header className="flex flex-col items-center gap-2 p-4 text-center bg-background/80 backdrop-blur-sm shrink-0">
                 <h1 className="text-3xl text-primary font-bold">My Garden</h1>
                 <p className="text-muted-foreground">Earn seeds when your plants level up. Wait for them to germinate, then grow them!</p>
-                <div className="flex gap-4 pt-2">
+                <div className="flex gap-2 pt-2">
                     <Button asChild>
                         <Link href="/garden">
-                            <Sprout className="mr-2 h-4 w-4" />
+                            <Leaf className="mr-1.5 h-4 w-4" />
                             Plants
                         </Link>
                     </Button>
                     <Button variant="secondary" asChild>
                         <Link href="/garden/seeds">
+                            <Sprout className="mr-1.5 h-4 w-4" />
                             Seeds
-                            <ChevronsRight className="ml-2 h-4 w-4" />
                         </Link>
                     </Button>
                 </div>
@@ -177,4 +177,3 @@ export default function SeedsPage() {
         </div>
     );
 }
-
