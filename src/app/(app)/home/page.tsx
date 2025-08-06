@@ -409,186 +409,186 @@ export default function HomePage() {
   const userChallenges = gameData.challenges;
 
   return (
-    <div className="p-4 space-y-6 bg-white pb-24">
-      <header className="flex flex-col items-center space-y-2">
-        <h1 className="text-3xl text-primary font-bold text-center">
-          Plenty Of Plants
-        </h1>
-        <div className="flex w-full items-center justify-between">
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/settings">
-              <Settings className="mr-2 h-4 w-4" />
-              Settings
-            </Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/profile">
-              <User className="mr-2 h-4 w-4" />
-              Profile
-            </Link>
-          </Button>
-        </div>
-      </header>
-
-      <main className="space-y-6">
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-xl text-center">Your Latest Plant</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center justify-center text-center min-h-[260px]">
-            {latestPlant ? (
-              <Link href="/garden" className="flex flex-col items-center gap-2 transition-transform hover:scale-105">
-                <div className="w-48 h-48 rounded-lg overflow-hidden border-2 border-primary/30 shadow-md">
-                  {latestPlant.image !== 'placeholder' ? (
-                      <Image
-                        src={latestPlant.image}
-                        alt={latestPlant.name}
-                        width={192}
-                        height={192}
-                        className="object-cover w-full h-full"
-                        data-ai-hint={latestPlant.hint}
-                      />
-                  ) : (
-                      <div className="w-full h-full bg-muted flex items-center justify-center">
-                          <Leaf className="w-16 h-16 text-muted-foreground" />
-                      </div>
-                  )}
-                </div>
-                <h3 className="text-xl font-semibold text-primary">{latestPlant.name}</h3>
-                <div className="w-4/5">
-                    <Progress value={(latestPlant.xp / 1000) * 100} className="h-2" />
-                </div>
+    <>
+      <div className="p-4 space-y-6 bg-white pb-24">
+        <header className="flex flex-col items-center space-y-2">
+          <h1 className="text-3xl text-primary font-bold text-center">
+            Plenty Of Plants
+          </h1>
+          <div className="flex w-full items-center justify-between">
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/settings">
+                <Settings className="mr-2 h-4 w-4" />
+                Settings
               </Link>
-            ) : (
-              <p className="text-muted-foreground">
-                No plants collected yet. Time to draw one!
-              </p>
-            )}
-          </CardContent>
-        </Card>
-        
-        {userChallenges && (
-            <Card className="shadow-sm">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Award className="text-yellow-500" />
-                        {arePrimaryChallengesComplete ? "Bonus Challenges" : "Daily Challenges"}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                   {Object.values(currentChallenges).map(challengeDef => {
-                       const userChallengeData = userChallenges[challengeDef.id] || { progress: 0, claimed: false };
-                       const fullChallengeData = { ...challengeDef, ...userChallengeData };
-                       return <ChallengeCard key={challengeDef.id} challenge={fullChallengeData} onClaim={handleClaimChallenge} isClaiming={isClaimingChallenge} />
-                   })}
-                </CardContent>
-            </Card>
-        )}
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/profile">
+                <User className="mr-2 h-4 w-4" />
+                Profile
+              </Link>
+            </Button>
+          </div>
+        </header>
 
-        <Card className="shadow-sm">
-          <CardContent className="flex flex-col items-center gap-4 pt-6">
-            <div className="flex flex-col items-center gap-2">
-                <div className="flex items-center gap-3">
-                    {Array.from({ length: MAX_DRAWS }).map((_, index) => {
-                        const isAvailable = index < gameData.draws;
-                        return (
-                            <div key={index} className={cn(
-                                "h-8 w-8 rounded-full flex items-center justify-center text-white shadow-inner",
-                                isAvailable ? "bg-green-500" : "bg-red-500"
-                            )}>
-                                {isAvailable ? (
-                                    <Check className="h-5 w-5" />
-                                ) : (
-                                    <X className="h-5 w-5" />
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
-                <div className="text-sm text-muted-foreground text-center">
-                    <span>Draws Available</span>
-                     {gameData.draws < MAX_DRAWS && nextDrawTime && (
-                        <div className="text-xs text-muted-foreground flex items-center justify-center gap-1.5 pt-1">
-                            <Clock className="w-3 h-3" />
-                            <span>{nextDrawTime}</span>
+        <main className="space-y-6">
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-xl text-center">Your Latest Plant</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center justify-center text-center min-h-[260px]">
+              {latestPlant ? (
+                <Link href="/garden" className="flex flex-col items-center gap-2 transition-transform hover:scale-105">
+                  <div className="w-48 h-48 rounded-lg overflow-hidden border-2 border-primary/30 shadow-md">
+                    {latestPlant.image !== 'placeholder' ? (
+                        <Image
+                          src={latestPlant.image}
+                          alt={latestPlant.name}
+                          width={192}
+                          height={192}
+                          className="object-cover w-full h-full"
+                          data-ai-hint={latestPlant.hint}
+                        />
+                    ) : (
+                        <div className="w-full h-full bg-muted flex items-center justify-center">
+                            <Leaf className="w-16 h-16 text-muted-foreground" />
                         </div>
                     )}
-                </div>
-            </div>
-            <Button onClick={handleDraw} disabled={isDrawing || gameData.draws <= 0} size="lg" className="w-full rounded-full mt-2">
-              {isDrawing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Drawing...
-                </>
+                  </div>
+                  <h3 className="text-xl font-semibold text-primary">{latestPlant.name}</h3>
+                  <div className="w-4/5">
+                      <Progress value={(latestPlant.xp / 1000) * 100} className="h-2" />
+                  </div>
+                </Link>
               ) : (
-                'Draw New Plant'
+                <p className="text-muted-foreground">
+                  No plants collected yet. Time to draw one!
+                </p>
               )}
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-sm">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                    <Info className="text-primary" />
-                    Game Tips
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-                <Carousel
-                  plugins={[autoplayPlugin.current]}
-                  opts={{
-                    align: "start",
-                    loop: true,
-                  }}
-                  className="w-full"
-                  onMouseEnter={() => autoplayPlugin.current.stop()}
-                  onMouseLeave={() => autoplayPlugin.current.reset()}
-                >
-                  <CarouselContent>
-                    {gameTips.map((tip, index) => (
-                      <CarouselItem key={index}>
-                        <div className="p-1 h-16 flex items-center justify-center">
-                            <p className="text-sm text-muted-foreground text-center">{tip}</p>
-                        </div>
-                      </CarouselItem>
-                    ))}
-                  </CarouselContent>
-                </Carousel>
             </CardContent>
-        </Card>
-      </main>
+          </Card>
+          
+          {userChallenges && (
+              <Card className="shadow-sm">
+                  <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                          <Award className="text-yellow-500" />
+                          {arePrimaryChallengesComplete ? "Bonus Challenges" : "Daily Challenges"}
+                      </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                     {Object.values(currentChallenges).map(challengeDef => {
+                         const userChallengeData = userChallenges[challengeDef.id] || { progress: 0, claimed: false };
+                         const fullChallengeData = { ...challengeDef, ...userChallengeData };
+                         return <ChallengeCard key={challengeDef.id} challenge={fullChallengeData} onClaim={handleClaimChallenge} isClaiming={isClaimingChallenge} />
+                     })}
+                  </CardContent>
+              </Card>
+          )}
 
-      <footer className="text-center text-xs text-muted-foreground pt-4">
+          <Card className="shadow-sm">
+            <CardContent className="flex flex-col items-center gap-4 pt-6">
+              <div className="flex flex-col items-center gap-2">
+                  <div className="flex items-center gap-3">
+                      {Array.from({ length: MAX_DRAWS }).map((_, index) => {
+                          const isAvailable = index < gameData.draws;
+                          return (
+                              <div key={index} className={cn(
+                                  "h-8 w-8 rounded-full flex items-center justify-center text-white shadow-inner",
+                                  isAvailable ? "bg-green-500" : "bg-red-500"
+                              )}>
+                                  {isAvailable ? (
+                                      <Check className="h-5 w-5" />
+                                  ) : (
+                                      <X className="h-5 w-5" />
+                                  )}
+                              </div>
+                          );
+                      })}
+                  </div>
+                  <div className="text-sm text-muted-foreground text-center">
+                      <span>Draws Available</span>
+                       {gameData.draws < MAX_DRAWS && nextDrawTime && (
+                          <div className="text-xs text-muted-foreground flex items-center justify-center gap-1.5 pt-1">
+                              <Clock className="w-3 h-3" />
+                              <span>{nextDrawTime}</span>
+                          </div>
+                      )}
+                  </div>
+              </div>
+              <Button onClick={handleDraw} disabled={isDrawing || gameData.draws <= 0} size="lg" className="w-full rounded-full mt-2">
+                {isDrawing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Drawing...
+                  </>
+                ) : (
+                  'Draw New Plant'
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm">
+              <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                      <Info className="text-primary" />
+                      Game Tips
+                  </CardTitle>
+              </CardHeader>
+              <CardContent>
+                  <Carousel
+                    plugins={[autoplayPlugin.current]}
+                    opts={{
+                      align: "start",
+                      loop: true,
+                    }}
+                    className="w-full"
+                    onMouseEnter={() => autoplayPlugin.current.stop()}
+                    onMouseLeave={() => autoplayPlugin.current.reset()}
+                  >
+                    <CarouselContent>
+                      {gameTips.map((tip, index) => (
+                        <CarouselItem key={index}>
+                          <div className="p-1 h-16 flex items-center justify-center">
+                              <p className="text-sm text-muted-foreground text-center">{tip}</p>
+                          </div>
+                        </CarouselItem>
+                      ))}
+                    </CarouselContent>
+                  </Carousel>
+              </CardContent>
+          </Card>
+        </main>
+
+        
+        <NewPlantDialog
+          plant={drawnPlant}
+          open={!!drawnPlant}
+          onOpenChange={(isOpen) => {
+            if (!isOpen) {
+              handleCollect();
+            }
+          }}
+        />
+
+        <CommunityInfoDialog open={showCommunityInfo} onOpenChange={handleCloseCommunityInfo} />
+        <GameChangesInfoDialog open={showGameChangesInfo} onOpenChange={handleCloseGameChangesInfo} />
+        <GardenInfoDialog open={showGardenInfo} onOpenChange={handleCloseGardenInfo} />
+
+         <Link href="/garden">
+          <Button
+              size="lg"
+              className="fixed bottom-40 right-4 h-16 w-16 rounded-full bg-green-500 hover:bg-green-600 shadow-lg flex-col gap-1"
+          >
+              <Leaf className="h-6 w-6 text-white" />
+              <span className="text-xs text-white">Garden</span>
+          </Button>
+        </Link>
+      </div>
+      <footer className="text-center text-xs text-muted-foreground pb-20 pt-4">
         <p>&copy; 2025 Sky Mountain Graphics. All Rights Reserved.</p>
       </footer>
-      
-      <NewPlantDialog
-        plant={drawnPlant}
-        open={!!drawnPlant}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) {
-            handleCollect();
-          }
-        }}
-      />
-
-      <CommunityInfoDialog open={showCommunityInfo} onOpenChange={handleCloseCommunityInfo} />
-      <GameChangesInfoDialog open={showGameChangesInfo} onOpenChange={handleCloseGameChangesInfo} />
-      <GardenInfoDialog open={showGardenInfo} onOpenChange={handleCloseGardenInfo} />
-
-       <Link href="/garden">
-        <Button
-            size="lg"
-            className="fixed bottom-40 right-4 h-16 w-16 rounded-full bg-green-500 hover:bg-green-600 shadow-lg flex-col gap-1"
-        >
-            <Leaf className="h-6 w-6 text-white" />
-            <span className="text-xs text-white">Garden</span>
-        </Button>
-      </Link>
-    </div>
+    </>
   );
 }
-
-    
