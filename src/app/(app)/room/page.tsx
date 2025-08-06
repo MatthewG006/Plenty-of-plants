@@ -318,7 +318,7 @@ export default function RoomPage() {
   const [collectionPlantIds, setCollectionPlantIds] = useState<number[]>([]);
   const [deskPlantIds, setDeskPlantIds] = useState<(number | null)[]>([]);
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
-  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [activeDragPlant, setActiveDragPlant] = useState<Plant | null>(null);
   const [sortOption, setSortOption] = useState<'level' | 'stage'>('level');
 
   const [processedDeskImages, setProcessedDeskImages] = useState<Record<number, string | null>>({});
@@ -338,7 +338,7 @@ export default function RoomPage() {
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 100,
+        delay: 150,
         tolerance: 5,
       },
     })
@@ -395,24 +395,23 @@ export default function RoomPage() {
 
 
   const activeDragData = useMemo(() => {
-    if (!activeDragId) return null;
-    const [source, idStr] = activeDragId.split(":");
-    const id = parseInt(idStr, 10);
+    if (!activeDragPlant) return null;
+    const { id, source } = activeDragPlant as any;
     const plant = allPlants[id];
     let image = plant?.image;
     if(source === 'desk' && plant && processedDeskImages[plant.id]) {
         image = processedDeskImages[plant.id] ?? plant.image;
     }
     return plant ? { plant, source, image } : null;
-  }, [activeDragId, allPlants, processedDeskImages]);
+  }, [activeDragPlant, allPlants, processedDeskImages]);
   
   const handleDragStart = (event: DragStartEvent) => {
     playSfx('pickup');
-    setActiveDragId(event.active.id as string);
+    setActiveDragPlant(event.active.data.current?.plant);
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
-    setActiveDragId(null);
+    setActiveDragPlant(null);
     playSfx('tap');
     if (!user || !gameData) return;
 
@@ -613,7 +612,7 @@ export default function RoomPage() {
         sensors={sensors} 
         onDragStart={handleDragStart} 
         onDragEnd={handleDragEnd} 
-        onDragCancel={() => setActiveDragId(null)}
+        onDragCancel={() => setActiveDragPlant(null)}
     >
       <div className="space-y-4 bg-white min-h-screen">
         <header className="flex flex-col items-center gap-2 p-4 text-center">
@@ -742,23 +741,23 @@ export default function RoomPage() {
         )}
         
         <DragOverlay>
-            {activeDragData ? (
-                activeDragData.source === 'collection' ? (
-                    <div className="w-28">
-                        <PlantCardUI 
-                            plant={activeDragData.plant} 
-                            onApplyGlitter={() => {}} canApplyGlitter={false} 
-                            onApplySheen={() => {}} canApplySheen={false}
-                            onApplyRainbowGlitter={() => {}} canApplyRainbowGlitter={false}
-                            onApplyRedGlitter={() => {}} canApplyRedGlitter={false}
-                        />
-                    </div>
-                ) : (
-                    <div className="w-28 h-28">
-                       <PlantImageUI plant={activeDragData.plant} image={activeDragData.image} />
-                    </div>
-                )
-            ) : null}
+          {activeDragPlant ? (
+            activeDragPlant.source === 'collection' ? (
+              <div className="w-28">
+                <PlantCardUI
+                  plant={activeDragPlant}
+                  onApplyGlitter={() => {}} canApplyGlitter={false}
+                  onApplySheen={() => {}} canApplySheen={false}
+                  onApplyRainbowGlitter={() => {}} canApplyRainbowGlitter={false}
+                  onApplyRedGlitter={() => {}} canApplyRedGlitter={false}
+                />
+              </div>
+            ) : (
+              <div className="w-28 h-28">
+                <PlantImageUI plant={activeDragPlant} image={activeDragData?.image || null} />
+              </div>
+            )
+          ) : null}
         </DragOverlay>
       </div>
     </DndContext>
