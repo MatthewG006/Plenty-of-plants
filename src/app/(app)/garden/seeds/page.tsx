@@ -15,6 +15,7 @@ import { drawPlantAction } from '@/app/actions/draw-plant';
 import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { makeBackgroundTransparent } from '@/lib/image-compression';
 
 
 const GERMINATION_TIME_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -27,7 +28,7 @@ function getTimeRemaining(endTime: number) {
     return { hours, minutes, seconds };
 }
 
-function SeedCard({ seed }: { seed: Seed }) {
+function SeedCard({ seed, processedImage }: { seed: Seed, processedImage: string | null }) {
     const [time, setTime] = useState({ hours: 0, minutes: 0, seconds: 0 });
     const isReady = useMemo(() => Date.now() >= seed.startTime + GERMINATION_TIME_MS, [seed.startTime]);
 
@@ -52,7 +53,11 @@ function SeedCard({ seed }: { seed: Seed }) {
             <Card className="flex flex-col items-center justify-center p-4 bg-primary/10 border-primary/50 text-center h-40">
                 <CardContent className="p-0 flex flex-col items-center justify-center gap-2">
                     <div className="w-28 h-28 relative">
-                        <Image src="/seed.png" alt="Ready Seed" fill className="object-contain animate-glow brightness-125 saturate-150" data-ai-hint="seed icon" />
+                        {processedImage ? (
+                            <Image src={processedImage} alt="Ready Seed" fill className="object-contain animate-glow brightness-125 saturate-150" data-ai-hint="seed icon" />
+                        ) : (
+                             <Image src="/seed.png" alt="Ready Seed" fill className="object-contain animate-glow brightness-125 saturate-150" data-ai-hint="seed icon" />
+                        )}
                     </div>
                     <p className="font-bold text-primary mt-2">Ready to Grow!</p>
                 </CardContent>
@@ -64,7 +69,11 @@ function SeedCard({ seed }: { seed: Seed }) {
         <Card className="flex flex-col items-center justify-center p-4 bg-muted/50 text-center h-40">
             <CardContent className="p-0 flex flex-col items-center justify-center gap-2">
                  <div className="w-24 h-24 relative">
-                    <Image src="/seed.png" alt="Germinating Seed" fill className="object-contain opacity-70" data-ai-hint="seed icon" />
+                    {processedImage ? (
+                        <Image src={processedImage} alt="Germinating Seed" fill className="object-contain opacity-70" data-ai-hint="seed icon" />
+                    ) : (
+                        <Image src="/seed.png" alt="Germinating Seed" fill className="object-contain opacity-70" data-ai-hint="seed icon" />
+                    )}
                 </div>
                 <p className="text-xl font-bold text-primary tabular-nums">{`${String(time.hours).padStart(2, '0')}:${String(time.minutes).padStart(2, '0')}:${String(time.seconds).padStart(2, '0')}`}</p>
                 <p className="text-xs text-muted-foreground">Until Germination</p>
@@ -80,6 +89,41 @@ export default function SeedsPage() {
     const { playSfx } = useAudio();
 
     const [isGrowing, setIsGrowing] = useState<string | null>(null);
+    const [processedSeedImage, setProcessedSeedImage] = useState<string | null>(null);
+
+    useEffect(() => {
+        const imageToDataUri = (url: string): Promise<string> => {
+            return new Promise((resolve, reject) => {
+                const img = new window.Image();
+                img.crossOrigin = 'Anonymous';
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) return reject(new Error('Canvas context not found'));
+                    ctx.drawImage(img, 0, 0);
+                    resolve(canvas.toDataURL('image/png'));
+                };
+                img.onerror = reject;
+                img.src = url;
+            });
+        };
+
+        const processImage = async () => {
+            try {
+                const dataUri = await imageToDataUri('/seed.png');
+                const transparentImage = await makeBackgroundTransparent(dataUri);
+                setProcessedSeedImage(transparentImage);
+            } catch (error) {
+                console.error("Failed to process seed image:", error);
+                setProcessedSeedImage('/seed.png'); // Fallback to original image
+            }
+        };
+
+        processImage();
+    }, []);
+
 
     const handleGrowSeed = async (seed: Seed) => {
         if (!user || !gameData) return;
@@ -151,7 +195,7 @@ export default function SeedsPage() {
                             const isReady = Date.now() >= seed.startTime + GERMINATION_TIME_MS;
                             return (
                                 <div key={seed.id} className="space-y-2">
-                                    <SeedCard seed={seed} />
+                                    <SeedCard seed={seed} processedImage={processedSeedImage} />
                                     <Button 
                                         className="w-full" 
                                         disabled={!isReady || !!isGrowing}
