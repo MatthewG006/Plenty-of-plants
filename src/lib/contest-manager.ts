@@ -20,7 +20,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 const MAX_PLAYERS = 3;
 
-interface ContestPlayer {
+export interface ContestPlayer {
   uid: string;
   username: string;
   avatarColor: string;
@@ -35,6 +35,7 @@ export interface ContestSession {
   winnerId?: number | null;
   createdAt: FieldValue;
   votingEndsAt?: FieldValue;
+  playerCount: number;
 }
 
 // In a real, high-traffic application, this would be handled by a Cloud Function
@@ -44,7 +45,7 @@ export async function findOrCreateContestSession(
   username: string,
   avatarColor: string,
   playerPlant: Plant
-): Promise<ContestSession> {
+): Promise<string> {
   const sessionsRef = collection(db, 'contestSessions');
 
   // Query for an open session that isn't full and was created recently
@@ -56,15 +57,7 @@ export async function findOrCreateContestSession(
   );
 
   const querySnapshot = await getDocs(q);
-  let sessionToJoin: ContestSession | null = null;
-  let sessionId: string | null = null;
-
-  if (!querySnapshot.empty) {
-    const sessionDoc = querySnapshot.docs[0];
-    sessionToJoin = sessionDoc.data() as ContestSession;
-    sessionId = sessionDoc.id;
-  }
-
+  
   const newPlayer: ContestPlayer = {
     uid: userId,
     username,
@@ -72,19 +65,35 @@ export async function findOrCreateContestSession(
     plant: playerPlant,
   };
 
-  if (sessionToJoin && sessionId) {
-    // Join existing session
-    const sessionDocRef = doc(db, 'contestSessions', sessionId);
-    await updateDoc(sessionDocRef, {
+  if (!querySnapshot.empty) {
+    const sessionDoc = querySnapshot.docs[0];
+    const sessionData = sessionDoc.data() as ContestSession;
+    
+    // Prevent user from joining the same session twice
+    if(sessionData.players.some((p: ContestPlayer) => p.uid === userId)) {
+        return sessionDoc.id;
+    }
+
+    const sessionDocRef = doc(db, 'contestSessions', sessionDoc.id);
+    const newPlayerCount = sessionData.playerCount + 1;
+
+    const updates: any = {
       players: arrayUnion(newPlayer),
-      playerCount: (sessionToJoin.players.length || 0) + 1,
-    });
-    return { ...sessionToJoin, players: [...sessionToJoin.players, newPlayer] };
+      playerCount: newPlayerCount,
+    };
+    
+    // If the session is now full, update its status
+    if (newPlayerCount >= MAX_PLAYERS) {
+        updates.status = 'countdown';
+    }
+
+    await updateDoc(sessionDocRef, updates);
+    return sessionDoc.id;
+
   } else {
     // Create new session
     const newSessionId = uuidv4();
-    const newSession: ContestSession = {
-      id: newSessionId,
+    const newSession: Omit<ContestSession, 'id' | 'playerCount'> = {
       status: 'waiting',
       players: [newPlayer],
       votes: {},
@@ -92,8 +101,9 @@ export async function findOrCreateContestSession(
     };
     await setDoc(doc(db, 'contestSessions', newSessionId), {
         ...newSession,
-        playerCount: 1, // Add playerCount for querying
+        id: newSessionId,
+        playerCount: 1,
     });
-    return newSession;
+    return newSessionId;
   }
 }
