@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Leaf, Loader2, Sparkles, Star, GripVertical, Gem, MessageCircle, Trash2, Replace, Plus } from 'lucide-react';
+import { Leaf, Loader2, Sparkles, Star, GripVertical, Gem, MessageCircle, Trash2, Replace, Plus, Droplets } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { updateGardenArrangement } from '@/lib/firestore';
+import { updateGardenArrangement, useSprinkler } from '@/lib/firestore';
 import { PlantCareDialog, PlantSwapDialog } from '@/components/plant-dialogs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { makeBackgroundTransparent } from '@/lib/image-compression';
@@ -74,6 +74,7 @@ export default function GardenPage() {
 
   const [sortOption, setSortOption] = useState<'level' | 'stage'>('level');
   const [processedGardenImages, setProcessedGardenImages] = useState<Record<number, string | null>>({});
+  const [isUsingSprinkler, setIsUsingSprinkler] = useState(false);
 
   useEffect(() => {
     if (gameData) {
@@ -176,6 +177,39 @@ export default function GardenPage() {
     }
   };
 
+  const handleUseSprinkler = async () => {
+    if (!user) return;
+    setIsUsingSprinkler(true);
+    playSfx('watering');
+    try {
+        const { plantsWatered, goldGained, newlyEvolvablePlants } = await useSprinkler(user.uid);
+        if (plantsWatered > 0) {
+            toast({
+                title: "Sprinkler Used!",
+                description: `You watered ${plantsWatered} plant(s) and earned ${goldGained} gold.`,
+            });
+            if (newlyEvolvablePlants.length > 0) {
+                setTimeout(() => {
+                    toast({
+                        title: "Plants Ready to Evolve!",
+                        description: `${newlyEvolvablePlants.length} of your plants are now ready for evolution.`,
+                    });
+                }, 1000);
+            }
+        } else {
+            toast({
+                title: "All Plants Watered",
+                description: "Your plants have already been fully watered for the day.",
+            });
+        }
+    } catch (e: any) {
+        console.error("Failed to use sprinkler", e);
+        toast({ variant: 'destructive', title: "Error", description: e.message || "Could not use the sprinkler." });
+    } finally {
+        setIsUsingSprinkler(false);
+    }
+  };
+
   if (!user || !gameData) {
     return (
         <div className="flex h-screen w-full items-center justify-center bg-white">
@@ -192,6 +226,14 @@ export default function GardenPage() {
         <header className="flex flex-col items-center gap-2 p-4 text-center bg-background/80 backdrop-blur-sm shrink-0">
             <h1 className="text-3xl text-primary font-bold">My Garden</h1>
             <p className="text-muted-foreground">Water your plants to help them grow. Tap a plant to care for it, or tap an empty plot to add a new plant from your collection.</p>
+            {gameData.sprinklerUnlocked && (
+                <div className="pt-2">
+                    <Button onClick={handleUseSprinkler} disabled={isUsingSprinkler}>
+                        {isUsingSprinkler ? <Loader2 className="animate-spin" /> : <Droplets />}
+                        {isUsingSprinkler ? 'Watering...' : 'Use Sprinkler'}
+                    </Button>
+                </div>
+            )}
         </header>
         
         <main className="flex-grow flex flex-col justify-end p-2">
