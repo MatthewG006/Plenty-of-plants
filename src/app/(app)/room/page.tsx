@@ -161,6 +161,8 @@ function PlantCardUI({
     canApplyRainbowGlitter,
     onApplyRedGlitter,
     canApplyRedGlitter,
+    dragHandleListeners,
+    dragHandleAttributes
 }: { 
     plant: Plant,
     onApplyGlitter: (plantId: number) => void;
@@ -171,6 +173,8 @@ function PlantCardUI({
     canApplyRainbowGlitter: boolean;
     onApplyRedGlitter: (plantId: number) => void;
     canApplyRedGlitter: boolean;
+    dragHandleListeners?: any;
+    dragHandleAttributes?: any;
 }) {
     const hasAnyCosmetic = plant.hasGlitter || plant.hasSheen || plant.hasRainbowGlitter || plant.hasRedGlitter;
     return (
@@ -239,6 +243,15 @@ function PlantCardUI({
                     <div className="text-xs text-muted-foreground">Lvl {plant.level}</div>
                     <Progress value={(plant.xp / 1000) * 100} className="h-1.5" />
                 </div>
+                {dragHandleListeners && (
+                    <div 
+                        className="absolute bottom-1 right-1 p-1 cursor-grab active:cursor-grabbing"
+                        {...dragHandleListeners}
+                        {...dragHandleAttributes}
+                    >
+                        <GripVertical className="w-4 h-4 text-muted-foreground/50" />
+                    </div>
+                )}
             </CardContent>
         </Card>
     );
@@ -270,7 +283,6 @@ function DraggablePlantCard({ plant, onClick, onApplyGlitter, canApplyGlitter, o
 
     const style = {
         opacity: isDragging ? 0.4 : 1,
-        cursor: 'grab',
         touchAction: 'none',
     };
     
@@ -278,8 +290,6 @@ function DraggablePlantCard({ plant, onClick, onApplyGlitter, canApplyGlitter, o
         <div 
             ref={setNodeRef} 
             style={style} 
-            {...listeners} 
-            {...attributes}
             onClick={() => onClick(plant)}
         >
             <PlantCardUI 
@@ -292,6 +302,8 @@ function DraggablePlantCard({ plant, onClick, onApplyGlitter, canApplyGlitter, o
                 canApplyRainbowGlitter={canApplyRainbowGlitter}
                 onApplyRedGlitter={onApplyRedGlitter}
                 canApplyRedGlitter={canApplyRedGlitter}
+                dragHandleListeners={listeners}
+                dragHandleAttributes={attributes}
             />
         </div>
     );
@@ -331,17 +343,8 @@ export default function RoomPage() {
   const [chattingPlant, setChattingPlant] = useState<Plant | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 150,
-        tolerance: 5,
-      },
-    })
+    useSensor(PointerSensor),
+    useSensor(TouchSensor)
   );
   
   useEffect(() => {
