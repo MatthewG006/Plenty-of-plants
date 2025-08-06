@@ -230,7 +230,7 @@ export default function ContestPage() {
         <div className="relative z-10 w-full max-w-2xl mx-auto flex flex-col items-center gap-4 mt-6">
             <div className="text-center p-6 bg-black/60 rounded-lg backdrop-blur-sm">
                 <h1 className="text-4xl font-bold mb-2">Plant Beauty Contest</h1>
-                <p className="text-lg">Join a session and vote for the best-looking plant! The winner gets a special prize: a Red Glitter pack!</p>
+                <p className="text-lg">Join a session and vote for the best-looking plant! The winner gets 50 gold and a special Red Glitter pack!</p>
             </div>
             {status === 'waiting' && !isJoined && (
                 <Button onClick={startContest} disabled={isLoading}>
@@ -301,5 +301,7 @@ export default function ContestPage() {
     </div>
   );
 }
+
+    
 
     

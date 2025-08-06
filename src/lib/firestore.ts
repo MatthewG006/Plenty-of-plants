@@ -692,8 +692,11 @@ export async function useFertilizer(userId: string, seedId: string): Promise<voi
 export async function awardContestPrize(userId: string) {
     const userDocRef = doc(db, 'users', userId);
     await updateDoc(userDocRef, {
-        redGlitterCount: increment(1)
+        redGlitterCount: increment(1),
+        gold: increment(50)
     });
 }
+
+    
 
     
