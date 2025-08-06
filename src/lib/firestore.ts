@@ -355,7 +355,6 @@ export async function useSprinkler(userId: string): Promise<{ plantsWatered: num
         return { plantsWatered: 0, goldGained: 0, newlyEvolvablePlants: [] };
     }
 
-    let totalGoldGained = 0;
     let totalPlantsWatered = 0;
     const newlyEvolvablePlants: number[] = [];
     const updates: { [key: string]: any } = {};
@@ -391,20 +390,16 @@ export async function useSprinkler(userId: string): Promise<{ plantsWatered: num
             newlyEvolvablePlants.push(plant.id);
         }
         
-        if (plant.form !== 'Final') {
-            totalGoldGained += wateringsToApply * GOLD_PER_WATERING;
-        }
         if (wateringsToApply > 0) {
             totalPlantsWatered++;
         }
     }
 
     if (totalPlantsWatered > 0) {
-        updates['gold'] = increment(totalGoldGained);
         await updateDoc(userDocRef, updates);
     }
     
-    return { plantsWatered: totalPlantsWatered, goldGained: totalGoldGained, newlyEvolvablePlants };
+    return { plantsWatered: totalPlantsWatered, goldGained: 0, newlyEvolvablePlants };
 }
 
 
