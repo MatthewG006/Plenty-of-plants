@@ -124,21 +124,6 @@ function PlantImageUI({ plant, image }: { plant: Plant, image: string | null }) 
 
 function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant | null, index: number, onClickPlant: (plant: Plant) => void, processedImage: string | null }) {
     const { setNodeRef, isOver } = useDroppable({ id: `pot:${index}` });
-    const pos = useRef([0, 0]);
-
-    const onPointerDown = (e: React.PointerEvent) => {
-        pos.current = [e.clientX, e.clientY];
-    };
-
-    const onPointerUp = (e: React.PointerEvent) => {
-        if (!plant) return;
-        const [x, y] = pos.current;
-        const dist = Math.sqrt(Math.pow(e.clientX - x, 2) + Math.pow(e.clientY - y, 2));
-
-        if (dist < DRAG_CLICK_TOLERANCE) {
-             onClickPlant(plant);
-        }
-    };
     
     const EmptyPot = () => (
         <div ref={setNodeRef} className={cn(
@@ -154,8 +139,7 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
     return (
         <div 
             className="relative w-full h-full flex items-center justify-center"
-            onPointerDown={onPointerDown}
-            onPointerUp={onPointerUp}
+            onClick={() => onClickPlant(plant)}
         >
             <DraggablePlant 
                 plant={{...plant, image: processedImage || plant.image}}
@@ -196,7 +180,7 @@ function PlantCardUI({
                     <Button
                         size="icon"
                         className="h-7 w-7 bg-yellow-400/80 text-white hover:bg-yellow-500/90"
-                        onClick={() => onApplyGlitter(plant.id)}
+                        onClick={(e) => { e.stopPropagation(); onApplyGlitter(plant.id); }}
                     >
                         <Sparkles className="h-4 w-4" />
                     </Button>
@@ -205,7 +189,7 @@ function PlantCardUI({
                     <Button
                         size="icon"
                         className="h-7 w-7 bg-blue-400/80 text-white hover:bg-blue-500/90"
-                        onClick={() => onApplySheen(plant.id)}
+                        onClick={(e) => { e.stopPropagation(); onApplySheen(plant.id); }}
                     >
                         <Star className="h-4 w-4" />
                     </Button>
@@ -214,7 +198,7 @@ function PlantCardUI({
                     <Button
                         size="icon"
                         className="h-7 w-7 bg-gradient-to-r from-pink-500 to-yellow-500 text-white"
-                        onClick={() => onApplyRainbowGlitter(plant.id)}
+                        onClick={(e) => { e.stopPropagation(); onApplyRainbowGlitter(plant.id); }}
                     >
                         <Sparkles className="h-4 w-4" />
                     </Button>
@@ -223,7 +207,7 @@ function PlantCardUI({
                     <Button
                         size="icon"
                         className="h-7 w-7 bg-red-500/80 text-white hover:bg-red-600/90"
-                        onClick={() => onApplyRedGlitter(plant.id)}
+                        onClick={(e) => { e.stopPropagation(); onApplyRedGlitter(plant.id); }}
                     >
                         <Sparkles className="h-4 w-4" />
                     </Button>
@@ -289,21 +273,6 @@ function DraggablePlantCard({ plant, onClick, onApplyGlitter, canApplyGlitter, o
         cursor: 'grab',
         touchAction: 'none',
     };
-
-    const pos = useRef([0, 0]);
-
-    const onPointerDown = (e: React.PointerEvent) => {
-        pos.current = [e.clientX, e.clientY];
-    };
-
-    const onPointerUp = (e: React.PointerEvent) => {
-        const [x, y] = pos.current;
-        const dist = Math.sqrt(Math.pow(e.clientX - x, 2) + Math.pow(e.clientY - y, 2));
-
-        if (dist < DRAG_CLICK_TOLERANCE) {
-            onClick(plant);
-        }
-    };
     
     return (
         <div 
@@ -311,8 +280,7 @@ function DraggablePlantCard({ plant, onClick, onApplyGlitter, canApplyGlitter, o
             style={style} 
             {...listeners} 
             {...attributes}
-            onPointerDown={onPointerDown}
-            onPointerUp={onPointerUp}
+            onClick={() => onClick(plant)}
         >
             <PlantCardUI 
                 plant={plant} 
@@ -796,5 +764,3 @@ export default function RoomPage() {
     </DndContext>
   );
 }
-
-
