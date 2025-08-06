@@ -586,7 +586,7 @@ export default function HomePage() {
           </Button>
         </Link>
       </div>
-      <footer className="text-center text-xs text-muted-foreground pb-20 pt-4">
+      <footer className="text-center text-xs text-muted-foreground pb-2">
         <p>&copy; 2025 Sky Mountain Graphics. All Rights Reserved.</p>
       </footer>
     </>
