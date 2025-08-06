@@ -176,7 +176,8 @@ function PlantCardUI({
     onApplyRainbowGlitter,
     canApplyRainbowGlitter,
     onApplyRedGlitter,
-    canApplyRedGlitter
+    canApplyRedGlitter,
+    dragHandle
 }: { 
     plant: Plant,
     onApplyGlitter: (plantId: number) => void;
@@ -187,6 +188,7 @@ function PlantCardUI({
     canApplyRainbowGlitter: boolean;
     onApplyRedGlitter: (plantId: number) => void;
     canApplyRedGlitter: boolean;
+    dragHandle?: React.ReactNode;
 }) {
     const hasAnyCosmetic = plant.hasGlitter || plant.hasSheen || plant.hasRainbowGlitter || plant.hasRedGlitter;
     return (
@@ -197,7 +199,6 @@ function PlantCardUI({
                         size="icon"
                         className="h-7 w-7 bg-yellow-400/80 text-white hover:bg-yellow-500/90"
                         onClick={() => onApplyGlitter(plant.id)}
-                        onPointerDown={(e) => e.stopPropagation()}
                     >
                         <Sparkles className="h-4 w-4" />
                     </Button>
@@ -207,7 +208,6 @@ function PlantCardUI({
                         size="icon"
                         className="h-7 w-7 bg-blue-400/80 text-white hover:bg-blue-500/90"
                         onClick={() => onApplySheen(plant.id)}
-                        onPointerDown={(e) => e.stopPropagation()}
                     >
                         <Star className="h-4 w-4" />
                     </Button>
@@ -217,7 +217,6 @@ function PlantCardUI({
                         size="icon"
                         className="h-7 w-7 bg-gradient-to-r from-pink-500 to-yellow-500 text-white"
                         onClick={() => onApplyRainbowGlitter(plant.id)}
-                        onPointerDown={(e) => e.stopPropagation()}
                     >
                         <Sparkles className="h-4 w-4" />
                     </Button>
@@ -227,12 +226,17 @@ function PlantCardUI({
                         size="icon"
                         className="h-7 w-7 bg-red-500/80 text-white hover:bg-red-600/90"
                         onClick={() => onApplyRedGlitter(plant.id)}
-                        onPointerDown={(e) => e.stopPropagation()}
                     >
                         <Sparkles className="h-4 w-4" />
                     </Button>
                 )}
             </div>
+
+            {dragHandle && (
+                <div className="absolute top-1/2 -translate-y-1/2 right-1 z-10 text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {dragHandle}
+                </div>
+            )}
             
             <CardContent className="p-0">
                 <div className="aspect-square relative flex items-center justify-center bg-muted/30">
@@ -287,39 +291,24 @@ function DraggablePlantCard({ plant, onClick, onApplyGlitter, canApplyGlitter, o
         id: `collection:${plant.id}`,
         data: { plant, source: 'collection' },
     });
-    
-    const pos = useRef([0, 0]);
-
-    const onPointerDown = (e: React.PointerEvent) => {
-        pos.current = [e.clientX, e.clientY];
-        if (attributes.onPointerDown) {
-            attributes.onPointerDown(e);
-        }
-    };
-
-    const onPointerUp = (e: React.PointerEvent) => {
-        const [x, y] = pos.current;
-        const dist = Math.sqrt(Math.pow(e.clientX - x, 2) + Math.pow(e.clientY - y, 2));
-
-        if (dist < DRAG_CLICK_TOLERANCE) {
-             onClick(plant);
-        }
-    };
 
     const style = {
         opacity: isDragging ? 0.4 : 1,
         touchAction: 'none',
     };
 
+    const dragHandle = (
+        <div {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing p-1">
+            <GripVertical className="w-5 h-5" />
+        </div>
+    );
+
     return (
         <div 
             ref={setNodeRef} 
             style={style} 
-            {...listeners} 
-            {...attributes} 
-            onPointerDown={onPointerDown}
-            onPointerUp={onPointerUp}
-            className="cursor-grab active:cursor-grabbing"
+            className="relative"
+            onClick={() => onClick(plant)}
         >
             <PlantCardUI 
                 plant={plant} 
@@ -331,6 +320,7 @@ function DraggablePlantCard({ plant, onClick, onApplyGlitter, canApplyGlitter, o
                 canApplyRainbowGlitter={canApplyRainbowGlitter}
                 onApplyRedGlitter={onApplyRedGlitter}
                 canApplyRedGlitter={canApplyRedGlitter}
+                dragHandle={dragHandle}
             />
         </div>
     );
@@ -804,4 +794,3 @@ export default function RoomPage() {
   );
 }
 
-    
