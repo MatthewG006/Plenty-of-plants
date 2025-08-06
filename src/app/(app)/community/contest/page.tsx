@@ -11,9 +11,9 @@ import type { Plant } from '@/interfaces/plant';
 
 // Placeholder data - in a real implementation, this would come from Firestore.
 const placeholderPlants: (Plant | null)[] = [
-    { id: 101, name: "Glimmering Glower", image: "/fallback-plants/glowing-mushroom.png", hint: "glowing mushroom", hasSheen: true, level: 15, xp: 500, form: "Evolved", baseImage: "", lastWatered: [], hasGlitter: false, hasRainbowGlitter: false, hasRedGlitter: false, personality: "Bubbly", chatEnabled: false, conversationHistory: [] },
-    { id: 102, name: "Mystic Mangrove", image: "/fallback-plants/bonsai-tree.png", hint: "bonsai tree", hasGlitter: true, level: 12, xp: 200, form: "Evolved", baseImage: "", lastWatered: [], hasSheen: false, hasRainbowGlitter: false, hasRedGlitter: false, personality: "Wise", chatEnabled: false, conversationHistory: [] },
-    { id: 103, name: "Solaris Succulent", image: "/fallback-plants/succulent-1.png", hint: "succulent", hasRainbowGlitter: true, level: 20, xp: 800, form: "Final", baseImage: "", lastWatered: [], hasSheen: false, hasGlitter: false, hasRedGlitter: false, personality: "Sassy", chatEnabled: false, conversationHistory: [] }
+    { id: 101, name: "Glimmering Glower", image: "/fallback-plants/glowing-mushroom.png", description: "", hint: "glowing mushroom", hasSheen: true, level: 15, xp: 500, form: "Evolved", baseImage: "", lastWatered: [], hasGlitter: false, hasRainbowGlitter: false, hasRedGlitter: false, personality: "Bubbly", chatEnabled: false, conversationHistory: [] },
+    { id: 102, name: "Mystic Mangrove", image: "/fallback-plants/bonsai-tree.png", description: "", hint: "bonsai tree", hasGlitter: true, level: 12, xp: 200, form: "Evolved", baseImage: "", lastWatered: [], hasSheen: false, hasRainbowGlitter: false, hasRedGlitter: false, personality: "Wise", chatEnabled: false, conversationHistory: [] },
+    { id: 103, name: "Solaris Succulent", image: "/fallback-plants/succulent-1.png", description: "", hint: "succulent", hasRainbowGlitter: true, level: 20, xp: 800, form: "Final", baseImage: "", lastWatered: [], hasSheen: false, hasGlitter: false, hasRedGlitter: false, personality: "Sassy", chatEnabled: false, conversationHistory: [] }
 ];
 
 function SheenAnimation() {
