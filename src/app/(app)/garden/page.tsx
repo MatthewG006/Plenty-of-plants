@@ -117,6 +117,11 @@ export default function GardenPage() {
       .sort((a,b) => b.level - a.level);
   }, [collectionPlantIds, allPlants]);
 
+  const availableForSwap = useMemo(() => {
+    const gardenIds = new Set(gardenPlantIds.filter(id => id !== null));
+    return collectionPlants.filter(plant => !gardenIds.has(plant.id));
+  }, [collectionPlants, gardenPlantIds]);
+
   const handleSelectPlantForCare = (plant: Plant) => {
     setActiveCarePlant(allPlants[plant.id]);
     playSfx('tap');
@@ -288,7 +293,7 @@ export default function GardenPage() {
             <PlantSwapDialog
                 open={!!swapState}
                 onOpenChange={handleCloseSwapDialog}
-                collectionPlants={collectionPlants}
+                collectionPlants={availableForSwap}
                 onSelectPlant={handlePlantSwap}
             />
         )}
