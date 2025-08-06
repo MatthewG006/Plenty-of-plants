@@ -248,6 +248,24 @@ export default function ShopPage() {
           toast({ variant: "destructive", title: "Error", description: "Could not complete the purchase." });
       }
   };
+  
+    const handleBuyRedGlitter = async () => {
+      if (!user || !gameData) return;
+
+      if (gameData.gold < RED_GLITTER_COST_IN_GOLD) {
+          toast({ variant: "destructive", title: "Not Enough Gold", description: `You need ${RED_GLITTER_COST_IN_GOLD} gold.` });
+          return;
+      }
+
+      try {
+          await purchaseCosmetic(user.uid, 'redGlitterCount', 1, RED_GLITTER_COST_IN_GOLD);
+          playSfx('reward');
+          toast({ title: "Purchase Successful!", description: `You bought 1 Red Glitter Pack!` });
+      } catch (e: any) {
+          console.error("Failed to purchase red glitter", e);
+          toast({ variant: "destructive", title: "Error", description: "Could not complete the purchase." });
+      }
+  };
 
 
   const handleBuyDrawWithGold = async () => {
@@ -576,7 +594,7 @@ export default function ShopPage() {
             <Card className="shadow-sm">
               <CardHeader>
                 <div className="flex items-center gap-4">
-                  <Sparkles className="h-8 w-8 text-primary" />
+                  <Sparkles className="h-8 w-8 text-pink-500" />
                   <div>
                     <CardTitle className="text-xl">Rainbow Glitter</CardTitle>
                     <CardDescription>Make one of your plants sparkle with all the colors of the rainbow!</CardDescription>
@@ -596,6 +614,30 @@ export default function ShopPage() {
                 </p>
               </CardContent>
             </Card>
+
+            <Card className="shadow-sm">
+              <CardHeader>
+                <div className="flex items-center gap-4">
+                  <Sparkles className="h-8 w-8 text-red-500" />
+                  <div>
+                    <CardTitle className="text-xl">Red Glitter</CardTitle>
+                    <CardDescription>Make one of your plants sparkle with a fiery red glitter!</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="flex flex-col items-start gap-4">
+                <div className="flex items-center gap-2">
+                    <Coins className="h-6 w-6 text-yellow-500" />
+                    <p className="text-2xl font-bold text-yellow-600">{RED_GLITTER_COST_IN_GOLD}</p>
+                </div>
+                <Button onClick={handleBuyRedGlitter} className="w-full font-semibold" disabled={goldCount < RED_GLITTER_COST_IN_GOLD}>
+                    {goldCount < RED_GLITTER_COST_IN_GOLD ? "Not Enough Gold" : "Buy Glitter (+1)"}
+                </Button>
+                 <p className="text-xs text-muted-foreground text-center w-full">
+                    You have {gameData.redGlitterCount} pack(s)
+                </p>
+              </CardContent>
+            </Card>
         </div>
       </div>
       <VideoAdDialog
@@ -607,3 +649,5 @@ export default function ShopPage() {
     </div>
   );
 }
+
+    

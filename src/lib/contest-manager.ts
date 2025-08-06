@@ -32,6 +32,7 @@ export interface ContestSession {
   status: 'waiting' | 'countdown' | 'voting' | 'finished';
   players: ContestPlayer[];
   votes: Record<string, number>; // plant.id -> vote count
+  playerVotes: Record<string, boolean>; // uid -> hasVoted
   winnerId?: number | null;
   createdAt: FieldValue;
   votingEndsAt?: FieldValue;
@@ -97,6 +98,7 @@ export async function findOrCreateContestSession(
       status: 'waiting',
       players: [newPlayer],
       votes: {},
+      playerVotes: {},
       createdAt: serverTimestamp(),
     };
     await setDoc(doc(db, 'contestSessions', newSessionId), {
@@ -107,3 +109,5 @@ export async function findOrCreateContestSession(
     return newSessionId;
   }
 }
+
+    
