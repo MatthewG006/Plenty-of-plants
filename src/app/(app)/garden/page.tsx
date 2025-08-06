@@ -212,23 +212,24 @@ export default function GardenPage() {
         className="min-h-screen bg-contain bg-bottom bg-no-repeat flex flex-col"
         style={{backgroundImage: "url('/garden-bg-sky.png')"}}
       >
-        <header className="flex flex-row items-center justify-between gap-2 p-2 sm:p-4 text-center bg-background/80 backdrop-blur-sm shrink-0 flex-wrap">
-            <h1 className="text-2xl text-primary font-bold">My Garden</h1>
-             <div className="flex items-center gap-2">
-                <Button variant="secondary" size="sm" asChild>
+        <header className="flex flex-col items-center gap-2 p-4 text-center bg-background/80 backdrop-blur-sm shrink-0">
+            <h1 className="text-3xl text-primary font-bold">My Garden</h1>
+            <p className="text-muted-foreground">Water your plants to help them grow. They might even evolve!</p>
+            <div className="flex gap-4 pt-2">
+                <Button asChild>
                     <Link href="/garden">
                         <Sprout className="mr-2 h-4 w-4" />
                         Plants
                     </Link>
                 </Button>
-                <Button size="sm" asChild>
+                <Button variant="secondary" asChild>
                     <Link href="/garden/seeds">
                         Seeds
                         <ChevronsRight className="ml-2 h-4 w-4" />
                     </Link>
                 </Button>
-                 {gameData.sprinklerUnlocked && (
-                    <Button size="sm" onClick={handleUseSprinkler} disabled={isUsingSprinkler}>
+                {gameData.sprinklerUnlocked && (
+                    <Button onClick={handleUseSprinkler} disabled={isUsingSprinkler}>
                         {isUsingSprinkler ? <Loader2 className="animate-spin" /> : <Droplets />}
                     </Button>
                 )}
@@ -286,4 +287,4 @@ export default function GardenPage() {
         )}
       </div>
   );
- 
+}
