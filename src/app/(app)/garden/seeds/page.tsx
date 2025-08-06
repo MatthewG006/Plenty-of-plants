@@ -51,7 +51,7 @@ function SeedCard({ seed }: { seed: Seed }) {
         return (
             <Card className="flex flex-col items-center justify-center p-4 bg-primary/10 border-primary/50 text-center h-40">
                 <CardContent className="p-0 flex flex-col items-center justify-center gap-2">
-                    <div className="w-20 h-20 relative">
+                    <div className="w-28 h-28 relative">
                         <Image src="/seed.png" alt="Ready Seed" fill className="object-contain animate-glow brightness-125 saturate-150" data-ai-hint="seed icon" />
                     </div>
                     <p className="font-bold text-primary mt-2">Ready to Grow!</p>
@@ -63,7 +63,7 @@ function SeedCard({ seed }: { seed: Seed }) {
     return (
         <Card className="flex flex-col items-center justify-center p-4 bg-muted/50 text-center h-40">
             <CardContent className="p-0 flex flex-col items-center justify-center gap-2">
-                 <div className="w-16 h-16 relative">
+                 <div className="w-24 h-24 relative">
                     <Image src="/seed.png" alt="Germinating Seed" fill className="object-contain opacity-70" data-ai-hint="seed icon" />
                 </div>
                 <p className="text-xl font-bold text-primary tabular-nums">{`${String(time.hours).padStart(2, '0')}:${String(time.minutes).padStart(2, '0')}:${String(time.seconds).padStart(2, '0')}`}</p>
