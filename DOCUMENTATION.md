@@ -41,6 +41,11 @@ service cloud.firestore {
       // This is necessary for the Community Showcase feature.
       allow list: if request.auth != null;
     }
+    match /contestSessions/{sessionId} {
+      // Allow any authenticated user to read and write to contest sessions.
+      // In a production app, this would have more granular rules.
+      allow read, write: if request.auth != null;
+    }
   }
 }
 ```
@@ -48,6 +53,7 @@ service cloud.firestore {
 This rule allows:
 1.  A user to manage their own data.
 2.  Any logged-in user to view the list of users for the community page.
+3.  Any logged-in user to read and write to contest sessions for the beauty contest feature.
 
 ---
 
@@ -92,3 +98,17 @@ The "Room" page, located at `src/app/(app)/room/page.tsx`, is where users can vi
 - **Display**: The page displays the plants from the `desk` list in a series of "pots" and shows the rest of the `collection` in a grid below.
 
 - **Drag and Drop**: The page uses the `@dnd-kit` library to allow users to drag their plants. Users can drag plants from their collection into an empty pot on the desk, swap plants between pots, or move a plant from the desk back into the collection. After any change is made, the updated arrangement is immediately saved to the user's browser storage.
+
+### 4.6. Community & Contests
+
+The app includes several features that allow players to interact and compete with each other.
+
+- **Community Showcase**: Players can go to their Profile page to select up to five of their favorite plants for their "Showcase." These showcases are then displayed on the Community page, where other players can view them and "like" them, which awards the showcase owner 5 gold. This requires updated Firestore security rules (see Section 3.1).
+
+- **The Park & Contest Entry**: The Park is a small, tranquil area that serves as an entry point for the Plant Beauty Contest. When a player visits the park, their first plant is displayed. Interacting with the plant's chat bubble will prompt them to join a contest.
+
+- **Plant Beauty Contest**: This is a real-time multiplayer feature where three players are matched into a session.
+    - **Session Management**: A `contest-manager.ts` file handles the logic for finding an open session in the `contestSessions` Firestore collection or creating a new one. This logic runs on the client.
+    - **Real-Time Updates**: The contest page uses a real-time Firestore listener to update the UI as players join, when the countdown starts, and as votes are cast.
+    - **Voting**: Once the session is full, a countdown begins, after which voting opens. Players vote for their favorite plant.
+    - **Winner & Prize**: When all players have voted, a winner is determined. The winning plant is highlighted, and its owner is awarded a special "Red Glitter" cosmetic pack, which can be applied to a plant from the Room page.
