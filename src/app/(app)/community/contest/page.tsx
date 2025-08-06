@@ -12,11 +12,10 @@ import { useAuth } from '@/context/AuthContext';
 import { findOrCreateContestSession } from '@/lib/contest-manager';
 import { useToast } from '@/hooks/use-toast';
 import { doc, onSnapshot, updateDoc, increment } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, awardContestPrize } from '@/lib/firestore';
 import type { ContestSession, ContestPlayer } from '@/lib/contest-manager';
 
 const MAX_PLAYERS = 3;
-
 
 function SheenAnimation() {
     return (
@@ -37,6 +36,22 @@ function RainbowGlitterAnimation() {
                     color: `hsl(${Math.random() * 360}, 100%, 70%)`,
                     width: `${5 + Math.random() * 5}px`,
                     height: `${5 + Math.random() * 5}px`,
+                }} />
+            ))}
+        </div>
+    );
+}
+
+function RedGlitterAnimation() {
+    return (
+        <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden">
+            {Array.from({ length: 7 }).map((_, i) => (
+                <Sparkles key={i} className="absolute text-red-500 animate-sparkle" style={{
+                    top: `${Math.random() * 100}%`,
+                    left: `${Math.random() * 100}%`,
+                    animationDelay: `${Math.random() * 1.5}s`,
+                    width: `${8 + Math.random() * 8}px`,
+                    height: `${8 + Math.random() * 8}px`,
                 }} />
             ))}
         </div>
@@ -68,6 +83,7 @@ export default function ContestPage() {
     const [sessionId, setSessionId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [countdown, setCountdown] = useState(5);
+    const [hasVoted, setHasVoted] = useState(false);
 
     useEffect(() => {
         if (!sessionId) return;
@@ -76,7 +92,13 @@ export default function ContestPage() {
         const sessionDocRef = doc(db, 'contestSessions', sessionId);
         const unsubscribe = onSnapshot(sessionDocRef, (docSnap) => {
             if (docSnap.exists()) {
-                setSession(docSnap.data() as ContestSession);
+                const sessionData = docSnap.data() as ContestSession;
+                setSession(sessionData);
+
+                // Check if the current user has already voted in this session
+                const userVote = sessionData.playerVotes && user ? sessionData.playerVotes[user.uid] : undefined;
+                setHasVoted(!!userVote);
+
                 setIsLoading(false);
             } else {
                 console.error("Contest session not found!");
@@ -88,7 +110,7 @@ export default function ContestPage() {
         });
 
         return () => unsubscribe();
-    }, [sessionId, toast]);
+    }, [sessionId, toast, user]);
 
     useEffect(() => {
         if (session?.status !== 'countdown') {
@@ -112,10 +134,46 @@ export default function ContestPage() {
         return () => clearTimeout(timer);
     }, [session, countdown, user]);
 
+    // This effect checks if the voting is complete
+    useEffect(() => {
+        if (session?.status === 'voting' && user && session.players[0].uid === user.uid) {
+            const totalVotes = Object.keys(session.playerVotes || {}).length;
+            if (totalVotes >= session.players.length) {
+                // All players have voted, determine winner
+                const voteCounts = session.votes || {};
+                let winnerId: number | null = null;
+                let maxVotes = -1;
+
+                for (const plantId in voteCounts) {
+                    if (voteCounts[plantId] > maxVotes) {
+                        maxVotes = voteCounts[plantId];
+                        winnerId = parseInt(plantId, 10);
+                    }
+                }
+
+                if (winnerId) {
+                    const winnerPlayer = session.players.find(p => p.plant.id === winnerId);
+                    if (winnerPlayer) {
+                        awardContestPrize(winnerPlayer.uid).then(() => {
+                            console.log(`Prize awarded to ${winnerPlayer.username}`);
+                        }).catch(e => console.error("Failed to award prize", e));
+                    }
+                }
+                
+                const sessionDocRef = doc(db, 'contestSessions', session.id);
+                updateDoc(sessionDocRef, {
+                    status: 'finished',
+                    winnerId: winnerId,
+                });
+            }
+        }
+    }, [session, user]);
+
     const startContest = async () => {
         if (!user || !gameData) return;
         
-        const playerPlant = Object.values(gameData.plants)[0];
+        // Find a plant to enter - let's find the highest level one
+        const playerPlant = Object.values(gameData.plants).sort((a,b) => b.level - a.level)[0];
 
         if (!playerPlant) {
             toast({
@@ -148,18 +206,13 @@ export default function ContestPage() {
     };
 
     const handleVote = async (plantId: number) => {
-        if (session?.status !== 'voting' || !sessionId) return;
+        if (session?.status !== 'voting' || !sessionId || !user || hasVoted) return;
         
+        setHasVoted(true); // Optimistic update
         const sessionDocRef = doc(db, 'contestSessions', sessionId);
         await updateDoc(sessionDocRef, {
-          [`votes.${plantId}`]: increment(1)
-        });
-
-        // Simplified win condition: first to vote decides.
-        // A real app would wait for all votes or a timer.
-        await updateDoc(sessionDocRef, {
-            status: 'finished',
-            winnerId: plantId,
+          [`votes.${plantId}`]: increment(1),
+          [`playerVotes.${user.uid}`]: true
         });
     };
     
@@ -177,7 +230,7 @@ export default function ContestPage() {
         <div className="relative z-10 w-full max-w-2xl mx-auto flex flex-col items-center gap-4 mt-6">
             <div className="text-center p-6 bg-black/60 rounded-lg backdrop-blur-sm">
                 <h1 className="text-4xl font-bold mb-2">Plant Beauty Contest</h1>
-                <p className="text-lg">Join a session and vote for the best-looking plant! The winner gets a special prize.</p>
+                <p className="text-lg">Join a session and vote for the best-looking plant! The winner gets a special prize: a Red Glitter pack!</p>
             </div>
             {status === 'waiting' && !isJoined && (
                 <Button onClick={startContest} disabled={isLoading}>
@@ -206,6 +259,7 @@ export default function ContestPage() {
                                 {isWinner && <div className="absolute inset-0 bg-yellow-400/50 rounded-full animate-pulse blur-2xl" />}
                                 <Image src={plant.image} alt={plant.name} fill className="object-contain" data-ai-hint={plant.hint} />
                                 {plant.hasGlitter && <GlitterAnimation />}
+                                {plant.hasRedGlitter && <RedGlitterAnimation />}
                                 {plant.hasSheen && <SheenAnimation />}
                                 {plant.hasRainbowGlitter && <RainbowGlitterAnimation />}
                             </div>
@@ -214,7 +268,9 @@ export default function ContestPage() {
                                 {isWinner && <Crown className="w-6 h-6 text-yellow-400 mx-auto mt-1" />}
                             </div>
                             {status === 'voting' && (
-                                <Button size="sm" className="mt-2 pointer-events-auto" onClick={() => handleVote(plant.id)}>Vote</Button>
+                                <Button size="sm" className="mt-2 pointer-events-auto" onClick={() => handleVote(plant.id)} disabled={hasVoted}>
+                                    {hasVoted ? 'Voted' : 'Vote'}
+                                </Button>
                             )}
                         </div>
                     )
@@ -245,3 +301,5 @@ export default function ContestPage() {
     </div>
   );
 }
+
+    
