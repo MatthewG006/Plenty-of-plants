@@ -177,7 +177,6 @@ function PlantCardUI({
     canApplyRainbowGlitter,
     onApplyRedGlitter,
     canApplyRedGlitter,
-    dragHandle
 }: { 
     plant: Plant,
     onApplyGlitter: (plantId: number) => void;
@@ -188,7 +187,6 @@ function PlantCardUI({
     canApplyRainbowGlitter: boolean;
     onApplyRedGlitter: (plantId: number) => void;
     canApplyRedGlitter: boolean;
-    dragHandle?: React.ReactNode;
 }) {
     const hasAnyCosmetic = plant.hasGlitter || plant.hasSheen || plant.hasRainbowGlitter || plant.hasRedGlitter;
     return (
@@ -231,12 +229,6 @@ function PlantCardUI({
                     </Button>
                 )}
             </div>
-
-            {dragHandle && (
-                <div className="absolute top-1/2 -translate-y-1/2 right-1 z-10 text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {dragHandle}
-                </div>
-            )}
             
             <CardContent className="p-0">
                 <div className="aspect-square relative flex items-center justify-center bg-muted/30">
@@ -294,21 +286,33 @@ function DraggablePlantCard({ plant, onClick, onApplyGlitter, canApplyGlitter, o
 
     const style = {
         opacity: isDragging ? 0.4 : 1,
+        cursor: 'grab',
         touchAction: 'none',
     };
 
-    const dragHandle = (
-        <div {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing p-1">
-            <GripVertical className="w-5 h-5" />
-        </div>
-    );
+    const pos = useRef([0, 0]);
 
+    const onPointerDown = (e: React.PointerEvent) => {
+        pos.current = [e.clientX, e.clientY];
+    };
+
+    const onPointerUp = (e: React.PointerEvent) => {
+        const [x, y] = pos.current;
+        const dist = Math.sqrt(Math.pow(e.clientX - x, 2) + Math.pow(e.clientY - y, 2));
+
+        if (dist < DRAG_CLICK_TOLERANCE) {
+            onClick(plant);
+        }
+    };
+    
     return (
         <div 
             ref={setNodeRef} 
             style={style} 
-            className="relative"
-            onClick={() => onClick(plant)}
+            {...listeners} 
+            {...attributes}
+            onPointerDown={onPointerDown}
+            onPointerUp={onPointerUp}
         >
             <PlantCardUI 
                 plant={plant} 
@@ -320,7 +324,6 @@ function DraggablePlantCard({ plant, onClick, onApplyGlitter, canApplyGlitter, o
                 canApplyRainbowGlitter={canApplyRainbowGlitter}
                 onApplyRedGlitter={onApplyRedGlitter}
                 canApplyRedGlitter={canApplyRedGlitter}
-                dragHandle={dragHandle}
             />
         </div>
     );
