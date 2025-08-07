@@ -76,8 +76,8 @@ function GlitterAnimation() {
                     top: `${Math.random() * 100}%`,
                     left: `${Math.random() * 100}%`,
                     animationDelay: `${Math.random() * 1.5}s`,
-                    width: `${8 + Math.random() * 8}px`,
-                    height: `${8 + Math.random() * 8}px`,
+                    width: `${5 + Math.random() * 5}px`,
+                    height: `${5 + Math.random() * 5}px`,
                 }} />
             ))}
         </div>
@@ -281,6 +281,49 @@ export function PlantSwapDialog({ open, onOpenChange, collectionPlants, onSelect
                             ))
                         ) : (
                             <p className="col-span-3 text-center text-muted-foreground">Your collection is empty.</p>
+                        )}
+                    </div>
+                </ScrollArea>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+export function ContestPlantSelectionDialog({ open, onOpenChange, allPlants, onSelectPlant }: { open: boolean, onOpenChange: (open: boolean) => void, allPlants: Plant[], onSelectPlant: (plant: Plant) => void }) {
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-md">
+                <DialogHeader>
+                    <DialogTitle className="text-2xl text-center text-primary">Choose Your Contestant</DialogTitle>
+                    <DialogDescription className="text-center">Select a plant to enter into the beauty contest.</DialogDescription>
+                </DialogHeader>
+                
+                <ScrollArea className="h-96">
+                    <div className="p-4 grid grid-cols-3 gap-4">
+                        {allPlants.length > 0 ? (
+                            allPlants.map(plant => (
+                                <Card 
+                                    key={plant.id} 
+                                    className="cursor-pointer hover:scale-105 transition-transform" 
+                                    onClick={() => onSelectPlant(plant)}
+                                >
+                                    <CardContent className="p-0">
+                                        <div className="aspect-square relative flex items-center justify-center bg-muted/30">
+                                            {plant.image !== 'placeholder' ? (
+                                                <Image src={plant.image} alt={plant.name} fill sizes="100px" className="object-cover" data-ai-hint={plant.hint} />
+                                            ) : (
+                                                <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
+                                            )}
+                                        </div>
+                                        <div className="p-2 text-center bg-white/50">
+                                            <p className="text-xs font-semibold text-primary truncate">{plant.name}</p>
+                                            <p className="text-[10px] text-muted-foreground">Lvl {plant.level}</p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))
+                        ) : (
+                            <p className="col-span-3 text-center text-muted-foreground">You have no plants to enter.</p>
                         )}
                     </div>
                 </ScrollArea>

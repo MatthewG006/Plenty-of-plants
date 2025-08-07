@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { doc, onSnapshot, updateDoc, increment } from 'firebase/firestore';
 import { db, awardContestPrize } from '@/lib/firestore';
 import type { ContestSession, ContestPlayer } from '@/lib/contest-manager';
+import { ContestPlantSelectionDialog } from '@/components/plant-dialogs';
 
 const MAX_PLAYERS = 1;
 
@@ -82,8 +83,10 @@ export default function ContestPage() {
     const [session, setSession] = useState<ContestSession | null>(null);
     const [sessionId, setSessionId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [isJoining, setIsJoining] = useState(false);
     const [countdown, setCountdown] = useState(5);
     const [hasVoted, setHasVoted] = useState(false);
+    const [isSelectingPlant, setIsSelectingPlant] = useState(false);
 
     useEffect(() => {
         if (!sessionId) return;
@@ -95,7 +98,6 @@ export default function ContestPage() {
                 const sessionData = docSnap.data() as ContestSession;
                 setSession(sessionData);
 
-                // Check if the current user has already voted in this session
                 const userVote = sessionData.playerVotes && user ? sessionData.playerVotes[user.uid] : undefined;
                 setHasVoted(!!userVote);
 
@@ -134,12 +136,10 @@ export default function ContestPage() {
         return () => clearTimeout(timer);
     }, [session, countdown, user]);
 
-    // This effect checks if the voting is complete
     useEffect(() => {
         if (session?.status === 'voting' && user && session.players[0].uid === user.uid) {
             const totalVotes = Object.keys(session.playerVotes || {}).length;
             if (totalVotes >= session.players.length) {
-                // All players have voted, determine winner
                 const voteCounts = session.votes || {};
                 let winnerId: number | null = null;
                 let maxVotes = -1;
@@ -169,29 +169,18 @@ export default function ContestPage() {
         }
     }, [session, user]);
 
-    const startContest = async () => {
+    const handleSelectPlant = async (plant: Plant) => {
         if (!user || !gameData) return;
         
-        // Find a plant to enter - let's find the highest level one
-        const playerPlant = Object.values(gameData.plants).sort((a,b) => b.level - a.level)[0];
-
-        if (!playerPlant) {
-            toast({
-                variant: 'destructive',
-                title: 'No Plant Found',
-                description: 'You need at least one plant to enter a contest.',
-            });
-            return;
-        }
-
-        setIsLoading(true);
+        setIsSelectingPlant(false);
+        setIsJoining(true);
 
         try {
             const id = await findOrCreateContestSession(
                 user.uid,
                 user.displayName || 'Player',
                 (gameData as any).avatarColor || '#ffffff',
-                playerPlant
+                plant
             );
             setSessionId(id);
         } catch (error) {
@@ -201,9 +190,22 @@ export default function ContestPage() {
                 title: 'Error Joining Contest',
                 description: 'Could not join a session. Please try again.',
             });
-            setIsLoading(false);
+        } finally {
+            setIsJoining(false);
         }
     };
+    
+    const handleJoinClick = () => {
+        if (!gameData || !Object.values(gameData.plants).length) {
+             toast({
+                variant: 'destructive',
+                title: 'No Plant Found',
+                description: 'You need at least one plant to enter a contest.',
+            });
+            return;
+        }
+        setIsSelectingPlant(true);
+    }
 
     const handleVote = async (plantId: number) => {
         if (session?.status !== 'voting' || !sessionId || !user || hasVoted) return;
@@ -220,7 +222,10 @@ export default function ContestPage() {
     const status = session ? session.status : 'waiting';
     const isJoined = session && user ? session.players.some(p => p.uid === user.uid) : false;
 
+    const allPlants = gameData ? Object.values(gameData.plants) : [];
+
   return (
+    <>
     <div
       className="min-h-screen bg-cover bg-bottom flex flex-col items-center justify-between text-white p-4 relative"
       style={{ backgroundImage: "url('/contest.png')" }}
@@ -233,8 +238,8 @@ export default function ContestPage() {
                 <p className="text-lg">Join a session and vote for the best-looking plant! The winner gets 50 gold and a special Red Glitter pack!</p>
             </div>
             {status === 'waiting' && !isJoined && (
-                <Button onClick={startContest} disabled={isLoading}>
-                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Join Contest"}
+                <Button onClick={handleJoinClick} disabled={isJoining}>
+                    {isJoining ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Join Contest"}
                 </Button>
             )}
             {status === 'waiting' && isJoined && (
@@ -299,7 +304,12 @@ export default function ContestPage() {
             </Button>
         </div>
     </div>
+    <ContestPlantSelectionDialog
+        open={isSelectingPlant}
+        onOpenChange={setIsSelectingPlant}
+        allPlants={allPlants}
+        onSelectPlant={handleSelectPlant}
+    />
+    </>
   );
 }
-
-    
