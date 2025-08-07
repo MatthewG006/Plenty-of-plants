@@ -76,8 +76,8 @@ function GlitterAnimation() {
                     top: `${Math.random() * 100}%`,
                     left: `${Math.random() * 100}%`,
                     animationDelay: `${Math.random() * 1.5}s`,
-                    width: `${5 + Math.random() * 5}px`,
-                    height: `${5 + Math.random() * 5}px`,
+                    width: `${8 + Math.random() * 8}px`,
+                    height: `${8 + Math.random() * 8}px`,
                 }} />
             ))}
         </div>
@@ -297,39 +297,59 @@ export function PlantDetailDialog({ plant, open, onOpenChange, onStartEvolution,
     
     if (!plant || !userId || !gameData) return null;
 
-    const shouldEvolve = (plant.level >= EVOLUTION_LEVEL && plant.form === 'Base') || (plant.level >= SECOND_EVOLUTION_LEVEL && plant.form === 'Final');
+    const shouldEvolve = (plant.level >= EVOLUTION_LEVEL && plant.form === 'Base') || (plant.level >= SECOND_EVOLUTION_LEVEL && plant.form === 'Evolved');
     const isMaxLevel = plant.level >= MAX_LEVEL;
 
     const handleApplyGlitter = async () => {
-        if (gameData.glitterCount > 0 && !plant.hasGlitter) {
+        if (gameData.glitterCount > 0) {
             await useGlitter(userId);
-            await updatePlant(userId, plant.id, { hasGlitter: true });
+            await updatePlant(userId, plant.id, { 
+                hasGlitter: true,
+                hasSheen: false,
+                hasRainbowGlitter: false,
+                hasRedGlitter: false,
+            });
             await updateApplyGlitterProgress(userId);
             toast({ title: 'Sparkles!', description: `${plant.name} is now sparkling.`});
         }
     };
 
     const handleApplySheen = async () => {
-        if (gameData.sheenCount > 0 && !plant.hasSheen) {
+        if (gameData.sheenCount > 0) {
             await useSheen(userId);
-            await updatePlant(userId, plant.id, { hasSheen: true });
+            await updatePlant(userId, plant.id, {
+                hasGlitter: false,
+                hasSheen: true,
+                hasRainbowGlitter: false,
+                hasRedGlitter: false,
+            });
             await updateApplySheenProgress(userId);
             toast({ title: 'So Shiny!', description: `${plant.name} now has a beautiful sheen.`});
         }
     };
 
     const handleApplyRainbowGlitter = async () => {
-        if (gameData.rainbowGlitterCount > 0 && !plant.hasRainbowGlitter) {
+        if (gameData.rainbowGlitterCount > 0) {
             await useRainbowGlitter(userId);
-            await updatePlant(userId, plant.id, { hasRainbowGlitter: true });
+            await updatePlant(userId, plant.id, {
+                hasGlitter: false,
+                hasSheen: false,
+                hasRainbowGlitter: true,
+                hasRedGlitter: false,
+            });
             toast({ title: 'Rainbow Power!', description: `${plant.name} is sparkling with all the colors of the rainbow.`});
         }
     };
 
     const handleApplyRedGlitter = async () => {
-        if (gameData.redGlitterCount > 0 && !plant.hasRedGlitter) {
+        if (gameData.redGlitterCount > 0) {
             await useRedGlitter(userId);
-            await updatePlant(userId, plant.id, { hasRedGlitter: true });
+            await updatePlant(userId, plant.id, {
+                hasGlitter: false,
+                hasSheen: false,
+                hasRainbowGlitter: false,
+                hasRedGlitter: true,
+            });
             toast({ title: 'Fiery!', description: `${plant.name} is now sparkling with red glitter.`});
         }
     };
@@ -454,5 +474,3 @@ export function PlantDetailDialog({ plant, open, onOpenChange, onStartEvolution,
         </Dialog>
     )
 }
-
-    
