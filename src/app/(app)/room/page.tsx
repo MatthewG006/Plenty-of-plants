@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Leaf, Loader2, Sparkles, Star, Gem, MessageCircle } from 'lucide-react';
+import { Leaf, Loader2, Sparkles, Star, Gem, MessageCircle, Info } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -162,7 +162,7 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
     );
 }
 
-function PlantCardUI({ plant }: { plant: Plant }) {
+function PlantCardUI({ plant, onViewDetails }: { plant: Plant, onViewDetails: () => void }) {
     return (
         <Card className="group overflow-hidden shadow-md w-full relative">
             <CardContent className="p-0">
@@ -176,6 +176,17 @@ function PlantCardUI({ plant }: { plant: Plant }) {
                     {plant.hasRedGlitter && <RedGlitterAnimation />}
                     {plant.hasSheen && <SheenAnimation />}
                     {plant.hasRainbowGlitter && <RainbowGlitterAnimation />}
+                    <Button 
+                        size="icon" 
+                        variant="secondary"
+                        className="absolute top-1 right-1 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                        onClick={(e) => {
+                            e.stopPropagation(); // Prevent drag from starting
+                            onViewDetails();
+                        }}
+                    >
+                        <Info className="w-4 h-4" />
+                    </Button>
                 </div>
                 <div className="p-2 text-center bg-white/50 space-y-1">
                     <p className="text-sm font-semibold text-primary truncate">{plant.name}</p>
@@ -185,7 +196,7 @@ function PlantCardUI({ plant }: { plant: Plant }) {
     );
 }
 
-function DraggablePlantCard({ plant, ...props }: { plant: Plant } & React.HTMLAttributes<HTMLDivElement>) {
+function DraggablePlantCard({ plant, onSelect, ...props }: { plant: Plant, onSelect: (plant: Plant) => void } & React.HTMLAttributes<HTMLDivElement>) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: `collection:${plant.id}`,
         data: { plant, source: 'collection' },
@@ -199,7 +210,7 @@ function DraggablePlantCard({ plant, ...props }: { plant: Plant } & React.HTMLAt
 
     return (
         <div ref={setNodeRef} style={style} {...listeners} {...attributes} {...props} className={cn(props.className, "cursor-grab active:cursor-grabbing")}>
-            <PlantCardUI plant={plant} />
+            <PlantCardUI plant={plant} onViewDetails={() => onSelect(plant)} />
         </div>
     );
 }
@@ -437,7 +448,7 @@ export default function RoomPage() {
       <div className="space-y-4 bg-white min-h-screen">
         <header className="flex flex-col items-center gap-2 p-4 text-center">
           <h1 className="text-3xl text-primary text-center">My Room</h1>
-          <p className="text-muted-foreground text-sm">Click a plant to see its details. Drag it to move.</p>
+          <p className="text-muted-foreground text-sm">Use the info button to see plant details. Drag to move.</p>
         </header>
 
          <section className="px-4">
@@ -503,7 +514,7 @@ export default function RoomPage() {
                         <DraggablePlantCard 
                             key={plant.id} 
                             plant={plant}
-                            onClick={() => setSelectedPlant(allPlants[plant.id])}
+                            onSelect={() => setSelectedPlant(allPlants[plant.id])}
                         />
                       ))
                     ) : (
@@ -551,7 +562,7 @@ export default function RoomPage() {
         <DragOverlay>
           {activeDragPlant ? (
              <div className="w-28 h-28">
-                <PlantCardUI plant={activeDragPlant} />
+                <PlantCardUI plant={activeDragPlant} onViewDetails={() => {}} />
             </div>
           ) : null}
         </DragOverlay>
@@ -559,5 +570,3 @@ export default function RoomPage() {
     </DndContext>
   );
 }
-
-    
