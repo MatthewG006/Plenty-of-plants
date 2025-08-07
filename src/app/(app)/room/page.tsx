@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Leaf, Loader2, Sparkles, Star, GripVertical, Gem, MessageCircle, Trash2 } from 'lucide-react';
+import { Leaf, Loader2, Sparkles, Star, Gem, MessageCircle } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -24,7 +24,7 @@ import {
 } from '@dnd-kit/core';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { updatePlantArrangement } from '@/lib/firestore';
+import { updatePlantArrangement, updatePlant, doc, db } from '@/lib/firestore';
 import { makeBackgroundTransparent } from '@/lib/image-compression';
 import { PlantDetailDialog, EvolveConfirmationDialog, EvolvePreviewDialog, PlantChatDialog } from '@/components/plant-dialogs';
 import { evolvePlantAction } from '@/app/actions/evolve-plant';
@@ -229,26 +229,23 @@ export default function RoomPage() {
   
   const [processedDeskImages, setProcessedDeskImages] = useState<Record<number, string | null>>({});
 
-  // Using refs for dialogs to prevent re-render conflicts with dnd-kit
-  const selectedPlantRef = useRef<Plant | null>(null);
-  const currentEvolvingPlantRef = useRef<Plant | null>(null);
-  const chattingPlantRef = useRef<Plant | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false); // Used to force re-render for dialogs
-
+  // Dialog state management
+  const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
+  const [evolvingPlant, setEvolvingPlant] = useState<Plant | null>(null);
+  const [chattingPlant, setChattingPlant] = useState<Plant | null>(null);
   const [isEvolving, setIsEvolving] = useState(false);
   const [evolvedPreviewData, setEvolvedPreviewData] = useState<{plantId: number; plantName: string; newForm: string, newImageUri: string, personality?: string } | null>(null);
-
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 5, // Require a 5px drag to trigger, allows for clicks
+        distance: 5, 
       },
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 150, // Require a 150ms press
-        tolerance: 5, // Allow 5px of movement during the press
+        delay: 150, 
+        tolerance: 5,
       },
     })
   );
@@ -300,18 +297,6 @@ export default function RoomPage() {
     };
     processImages();
   }, [deskPlants]);
-
-
-  const activeDragData = useMemo(() => {
-    if (!activeDragPlant) return null;
-    const { id, source } = activeDragPlant as any;
-    const plant = allPlants[id];
-    let image = plant?.image;
-    if(source === 'desk' && plant && processedDeskImages[plant.id]) {
-        image = processedDeskImages[plant.id] ?? plant.image;
-    }
-    return plant ? { plant, source, image } : null;
-  }, [activeDragPlant, allPlants, processedDeskImages]);
   
   const handleDragStart = (event: DragStartEvent) => {
     setActiveDragPlant(event.active.data.current?.plant);
@@ -335,7 +320,7 @@ export default function RoomPage() {
     let newDeskIds = [...deskPlantIds];
     let newCollectionIds = [...collectionPlantIds];
 
-    if (overType === 'pot') { // desk to desk, or collection to desk
+    if (overType === 'pot') {
         const potIndex = parseInt(overIdStr, 10);
         const plantInPotId = newDeskIds[potIndex];
 
@@ -344,9 +329,9 @@ export default function RoomPage() {
         if (activeSource === 'desk') {
             const sourcePotIndex = deskPlantIds.findIndex(id => id === activePlant.id);
             if (sourcePotIndex !== -1 && sourcePotIndex !== potIndex) {
-                 newDeskIds[sourcePotIndex] = plantInPotId; // Swap
+                 newDeskIds[sourcePotIndex] = plantInPotId; 
             }
-        } else { // from collection
+        } else { 
              newCollectionIds = collectionPlantIds.filter(id => id !== activePlant.id);
              if (plantInPotId) {
                 newCollectionIds.push(plantInPotId);
@@ -354,7 +339,7 @@ export default function RoomPage() {
         }
          await updatePlantArrangement(user.uid, newCollectionIds, newDeskIds);
 
-    } else if (overType === 'collection' && activeSource === 'desk') { // desk to collection
+    } else if (overType === 'collection' && activeSource === 'desk') { 
         const sourcePotIndex = deskPlantIds.findIndex(id => id === activePlant.id);
         if (sourcePotIndex !== -1) {
              newDeskIds[sourcePotIndex] = null;
@@ -366,68 +351,37 @@ export default function RoomPage() {
     }
   };
     
-  const handleOpenDialog = (plant: Plant) => {
-    selectedPlantRef.current = plant;
-    setDialogOpen(prev => !prev);
-  }
-
-  const handleCloseDialog = () => {
-    selectedPlantRef.current = null;
-    setDialogOpen(prev => !prev);
-  }
-
   const handleStartEvolution = (plant: Plant) => {
-    selectedPlantRef.current = null;
-    currentEvolvingPlantRef.current = plant;
-    setDialogOpen(prev => !prev);
-  }
-
-  const handleCancelEvolution = () => {
-    currentEvolvingPlantRef.current = null;
-    setDialogOpen(prev => !prev);
-  }
-
-  const handleOpenChat = (plant: Plant) => {
-    selectedPlantRef.current = null;
-    chattingPlantRef.current = plant;
-    setDialogOpen(prev => !prev);
-  }
-
-  const handleCloseChat = () => {
-    chattingPlantRef.current = null;
-    setDialogOpen(prev => !prev);
+    setSelectedPlant(null);
+    setEvolvingPlant(plant);
   }
 
   const handleEvolve = async () => {
-    if (!currentEvolvingPlantRef.current || !user) return;
+    if (!evolvingPlant || !user) return;
     
     setIsEvolving(true);
     try {
-        const evolutionPlant = { ...currentEvolvingPlantRef.current };
-        
         const { newImageDataUri, personality } = await evolvePlantAction({
-            name: evolutionPlant.name,
-            baseImageDataUri: evolutionPlant.baseImage || evolutionPlant.image,
-            form: evolutionPlant.form,
+            name: evolvingPlant.name,
+            baseImageDataUri: evolvingPlant.baseImage || evolvingPlant.image,
+            form: evolvingPlant.form,
         });
 
-        const isFirstEvolution = evolutionPlant.form === 'Base';
-        const newForm = isFirstEvolution ? 'Evolved' : 'Final';
+        const newForm = evolvingPlant.form === 'Base' ? 'Evolved' : 'Final';
 
         setEvolvedPreviewData({ 
-            plantId: evolutionPlant.id,
-            plantName: evolutionPlant.name, 
+            plantId: evolvingPlant.id,
+            plantName: evolvingPlant.name, 
             newForm,
             newImageUri: newImageDataUri,
             personality
         });
-
+        setEvolvingPlant(null);
     } catch (e) {
         console.error("Evolution failed", e);
         toast({ variant: 'destructive', title: "Evolution Failed", description: "Could not evolve your plant. Please try again." });
-    } finally {
         setIsEvolving(false);
-        currentEvolvingPlantRef.current = null;
+        setEvolvingPlant(null);
     }
   };
   
@@ -435,10 +389,9 @@ export default function RoomPage() {
     if (!user || !evolvedPreviewData || !gameData) return;
     
     try {
-        const plantToUpdateId = evolvedPreviewData.plantId;
-        const { newImageUri, newForm, personality } = evolvedPreviewData;
+        const { plantId, newImageUri, newForm, personality } = evolvedPreviewData;
         
-        const currentPlant = allPlants[plantToUpdateId];
+        const currentPlant = allPlants[plantId];
 
         const updateData: Partial<Plant> = {
             image: newImageUri,
@@ -450,13 +403,7 @@ export default function RoomPage() {
             updateData.baseImage = currentPlant.image;
         }
 
-        // Direct update without using the complex updatePlant function
-        const userDocRef = doc(db, 'users', userId);
-        let updates: { [key: string]: any } = {};
-        for (const [key, value] of Object.entries(updateData)) {
-            updates[`plants.${plantToUpdateId}.${key}`] = value;
-        }
-        await updateDoc(userDocRef, updates);
+        await updatePlant(user.uid, plantId, updateData);
         
         toast({
             title: "Evolution Complete!",
@@ -469,7 +416,6 @@ export default function RoomPage() {
     } finally {
         setIsEvolving(false);
         setEvolvedPreviewData(null);
-        setDialogOpen(prev => !prev); // Force dialog check
     }
   };
 
@@ -526,7 +472,7 @@ export default function RoomPage() {
                             key={plant?.id || `pot-${index}`}
                             plant={plant}
                             index={index}
-                            onClickPlant={(p) => handleOpenDialog(allPlants[p.id])}
+                            onClickPlant={(p) => setSelectedPlant(allPlants[p.id])}
                             processedImage={plant ? processedDeskImages[plant.id] : null}
                         />
                     )
@@ -557,7 +503,7 @@ export default function RoomPage() {
                         <DraggablePlantCard 
                             key={plant.id} 
                             plant={plant}
-                            onClick={() => handleOpenDialog(allPlants[plant.id])}
+                            onClick={() => setSelectedPlant(allPlants[plant.id])}
                         />
                       ))
                     ) : (
@@ -571,40 +517,36 @@ export default function RoomPage() {
         </section>
 
         <PlantDetailDialog
-          plant={selectedPlantRef.current ? allPlants[selectedPlantRef.current.id] : null}
-          open={!!selectedPlantRef.current}
-          onOpenChange={(isOpen) => !isOpen && handleCloseDialog()}
-          onStartEvolution={(plant) => handleStartEvolution(plant)}
-          onOpenChat={(plant) => handleOpenChat(plant)}
+          plant={selectedPlant}
+          open={!!selectedPlant}
+          onOpenChange={(isOpen) => !isOpen && setSelectedPlant(null)}
+          onStartEvolution={handleStartEvolution}
+          onOpenChat={(plant) => setChattingPlant(plant)}
           userId={user.uid}
         />
         
         <PlantChatDialog
-            plant={chattingPlantRef.current}
-            open={!!chattingPlantRef.current}
-            onOpenChange={(isOpen) => {
-                if (!isOpen) handleCloseChat();
-            }}
+            plant={chattingPlant}
+            open={!!chattingPlant}
+            onOpenChange={(isOpen) => !isOpen && setChattingPlant(null)}
             userId={user.uid}
         />
 
         <EvolveConfirmationDialog
-            plant={currentEvolvingPlantRef.current}
-            open={!!currentEvolvingPlantRef.current && !isEvolving}
+            plant={evolvingPlant}
+            open={!!evolvingPlant && !isEvolving}
             onConfirm={handleEvolve}
-            onCancel={handleCancelEvolution}
+            onCancel={() => setEvolvingPlant(null)}
             isEvolving={isEvolving}
         />
 
-        {evolvedPreviewData && (
-            <EvolvePreviewDialog
-                plantName={evolvedPreviewData.plantName}
-                newForm={evolvedPreviewData.newForm}
-                newImageUri={evolvedPreviewData.newImageUri}
-                open={!!evolvedPreviewData}
-                onConfirm={handleConfirmEvolution}
-            />
-        )}
+        <EvolvePreviewDialog
+            plantName={evolvedPreviewData?.plantName}
+            newForm={evolvedPreviewData?.newForm}
+            newImageUri={evolvedPreviewData?.newImageUri}
+            open={!!evolvedPreviewData}
+            onConfirm={handleConfirmEvolution}
+        />
         
         <DragOverlay>
           {activeDragPlant ? (
@@ -617,3 +559,5 @@ export default function RoomPage() {
     </DndContext>
   );
 }
+
+    
