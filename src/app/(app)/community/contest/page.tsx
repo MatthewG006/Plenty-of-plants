@@ -232,7 +232,7 @@ export default function ContestPage() {
     >
         <div className="absolute inset-0 bg-black/50" />
       
-        <div className="relative z-10 w-full max-w-2xl mx-auto flex flex-col items-center gap-4 mt-6">
+        <div className="relative z-10 w-full max-w-2xl mx-auto flex flex-col items-center gap-4 mt-16">
             <div className="text-center p-6 bg-black/60 rounded-lg backdrop-blur-sm">
                 <h1 className="text-4xl font-bold mb-2">Plant Beauty Contest</h1>
                 <p className="text-lg">Join a session and vote for the best-looking plant! The winner gets 50 gold and a special Red Glitter pack!</p>
