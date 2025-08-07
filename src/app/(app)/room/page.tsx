@@ -139,12 +139,12 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
     return (
         <div 
             className="relative w-full h-full flex items-center justify-center"
-            onClick={() => onClickPlant(plant)}
         >
             <DraggablePlant 
                 plant={{...plant, image: processedImage || plant.image}}
                 source="desk" 
                 className="cursor-grab active:cursor-grabbing w-full h-full z-10" 
+                onClick={() => onClickPlant(plant)}
             />
             <div ref={setNodeRef} className={cn("absolute inset-0 z-0", isOver && "bg-black/20 rounded-lg")} />
         </div>
@@ -161,8 +161,7 @@ function PlantCardUI({
     canApplyRainbowGlitter,
     onApplyRedGlitter,
     canApplyRedGlitter,
-    dragHandleListeners,
-    dragHandleAttributes
+    onClick
 }: { 
     plant: Plant,
     onApplyGlitter: (plantId: number) => void;
@@ -173,12 +172,11 @@ function PlantCardUI({
     canApplyRainbowGlitter: boolean;
     onApplyRedGlitter: (plantId: number) => void;
     canApplyRedGlitter: boolean;
-    dragHandleListeners?: any;
-    dragHandleAttributes?: any;
+    onClick: () => void;
 }) {
     const hasAnyCosmetic = plant.hasGlitter || plant.hasSheen || plant.hasRainbowGlitter || plant.hasRedGlitter;
     return (
-        <Card className="group overflow-hidden shadow-md w-full relative">
+        <Card className="group overflow-hidden shadow-md w-full relative cursor-pointer" onClick={onClick}>
             <div className="absolute top-1 left-1 z-10 flex flex-col gap-1">
                 {canApplyGlitter && !hasAnyCosmetic &&(
                     <Button
@@ -243,15 +241,6 @@ function PlantCardUI({
                     <div className="text-xs text-muted-foreground">Lvl {plant.level}</div>
                     <Progress value={(plant.xp / 1000) * 100} className="h-1.5" />
                 </div>
-                {dragHandleListeners && (
-                    <div 
-                        className="absolute bottom-1 right-1 p-1 cursor-grab active:cursor-grabbing"
-                        {...dragHandleListeners}
-                        {...dragHandleAttributes}
-                    >
-                        <GripVertical className="w-4 h-4 text-muted-foreground/50" />
-                    </div>
-                )}
             </CardContent>
         </Card>
     );
@@ -275,7 +264,22 @@ function DraggablePlant({ plant, source, ...rest }: { plant: Plant; source: 'des
     );
 }
 
-function DraggablePlantCard({ plant, onApplyGlitter, canApplyGlitter, onApplySheen, canApplySheen, onApplyRainbowGlitter, canApplyRainbowGlitter, onApplyRedGlitter, canApplyRedGlitter }: { plant: Plant; onApplyGlitter: (plantId: number) => void; canApplyGlitter: boolean; onApplySheen: (plantId: number) => void; canApplySheen: boolean; onApplyRainbowGlitter: (plantId: number) => void; canApplyRainbowGlitter: boolean; onApplyRedGlitter: (plantId: number) => void; canApplyRedGlitter: boolean; }) {
+function DraggablePlantCard({ 
+    plant,
+    onClick,
+    ...props 
+}: { 
+    plant: Plant;
+    onClick: () => void;
+    onApplyGlitter: (plantId: number) => void;
+    canApplyGlitter: boolean;
+    onApplySheen: (plantId: number) => void;
+    canApplySheen: boolean;
+    onApplyRainbowGlitter: (plantId: number) => void;
+    canApplyRainbowGlitter: boolean;
+    onApplyRedGlitter: (plantId: number) => void;
+    canApplyRedGlitter: boolean;
+}) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: `collection:${plant.id}`,
         data: { plant, source: 'collection' },
@@ -283,27 +287,22 @@ function DraggablePlantCard({ plant, onApplyGlitter, canApplyGlitter, onApplyShe
 
     const style = {
         opacity: isDragging ? 0.4 : 1,
-        touchAction: 'none',
     };
     
     return (
-        <div 
-            ref={setNodeRef} 
-            style={style} 
-        >
+        <div ref={setNodeRef} style={style}>
             <PlantCardUI 
                 plant={plant} 
-                onApplyGlitter={onApplyGlitter} 
-                canApplyGlitter={canApplyGlitter}
-                onApplySheen={onApplySheen}
-                canApplySheen={canApplySheen}
-                onApplyRainbowGlitter={onApplyRainbowGlitter}
-                canApplyRainbowGlitter={canApplyRainbowGlitter}
-                onApplyRedGlitter={onApplyRedGlitter}
-                canApplyRedGlitter={canApplyRedGlitter}
-                dragHandleListeners={listeners}
-                dragHandleAttributes={attributes}
+                onClick={onClick}
+                {...props}
             />
+            <div 
+                className="absolute bottom-1 right-1 p-2 cursor-grab active:cursor-grabbing"
+                {...listeners}
+                {...attributes}
+            >
+                <GripVertical className="w-5 h-5 text-muted-foreground/60" />
+            </div>
         </div>
     );
 }
@@ -682,9 +681,10 @@ export default function RoomPage() {
                 <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5">
                     {collectionPlants.length > 0 ? (
                       collectionPlants.map((plant) => (
-                           <div key={plant.id} onClick={() => setSelectedPlant(allPlants[plant.id])}>
+                           <div key={plant.id} className="relative">
                              <DraggablePlantCard
                                plant={plant}
+                               onClick={() => setSelectedPlant(allPlants[plant.id])}
                                onApplyGlitter={handleApplyGlitter}
                                canApplyGlitter={gameData.glitterCount > 0}
                                onApplySheen={handleApplySheen}
@@ -752,6 +752,7 @@ export default function RoomPage() {
                   onApplySheen={() => {}} canApplySheen={false}
                   onApplyRainbowGlitter={() => {}} canApplyRainbowGlitter={false}
                   onApplyRedGlitter={() => {}} canApplyRedGlitter={false}
+                  onClick={() => {}}
                 />
               </div>
             ) : (
@@ -765,5 +766,7 @@ export default function RoomPage() {
     </DndContext>
   );
 }
+
+    
 
     
