@@ -177,8 +177,7 @@ function PlantCardUI({
     onApplyRainbowGlitter,
     canApplyRainbowGlitter,
     onApplyRedGlitter,
-    canApplyRedGlitter,
-    children
+    canApplyRedGlitter
 }: { 
     plant: Plant,
     onApplyGlitter: (plantId: number) => void;
@@ -189,7 +188,6 @@ function PlantCardUI({
     canApplyRainbowGlitter: boolean;
     onApplyRedGlitter: (plantId: number) => void;
     canApplyRedGlitter: boolean;
-    children?: React.ReactNode;
 }) {
     const hasAnyCosmetic = plant.hasGlitter || plant.hasSheen || plant.hasRainbowGlitter || plant.hasRedGlitter;
     return (
@@ -259,7 +257,6 @@ function PlantCardUI({
                     <Progress value={(plant.xp / 1000) * 100} className="h-1.5" />
                 </div>
             </CardContent>
-            {children}
         </Card>
     );
 }
@@ -282,6 +279,29 @@ function DragHandle({ plant }: { plant: Plant }) {
     </div>
   );
 }
+
+const PlantCard = ({ plant, onClick, ...props }: { plant: Plant; onClick: () => void } & Omit<React.ComponentProps<typeof PlantCardUI>, "plant">) => {
+    const tapStartRef = useRef<number | null>(null);
+
+    const handlePointerDown = () => {
+        tapStartRef.current = Date.now();
+    };
+
+    const handlePointerUp = () => {
+        if (tapStartRef.current && (Date.now() - tapStartRef.current) < 200) {
+            onClick();
+        }
+        tapStartRef.current = null;
+    };
+
+    return (
+        <div onPointerDown={handlePointerDown} onPointerUp={handlePointerUp}>
+            <PlantCardUI plant={plant} {...props}>
+                <DragHandle plant={plant} />
+            </PlantCardUI>
+        </div>
+    );
+};
 
 
 function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
@@ -658,21 +678,19 @@ export default function RoomPage() {
                 <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5">
                     {collectionPlants.length > 0 ? (
                       collectionPlants.map((plant) => (
-                        <div key={plant.id} className="cursor-pointer" onClick={() => setSelectedPlant(allPlants[plant.id])}>
-                            <PlantCardUI
-                               plant={plant}
-                               onApplyGlitter={handleApplyGlitter}
-                               canApplyGlitter={gameData.glitterCount > 0}
-                               onApplySheen={handleApplySheen}
-                               canApplySheen={gameData.sheenCount > 0}
-                               onApplyRainbowGlitter={handleApplyRainbowGlitter}
-                               canApplyRainbowGlitter={gameData.rainbowGlitterCount > 0}
-                               onApplyRedGlitter={handleApplyRedGlitter}
-                               canApplyRedGlitter={gameData.redGlitterCount > 0}
-                             >
-                                <DragHandle plant={plant} />
-                            </PlantCardUI>
-                        </div>
+                        <PlantCard 
+                           key={plant.id} 
+                           plant={plant}
+                           onClick={() => setSelectedPlant(allPlants[plant.id])}
+                           onApplyGlitter={handleApplyGlitter}
+                           canApplyGlitter={gameData.glitterCount > 0}
+                           onApplySheen={handleApplySheen}
+                           canApplySheen={gameData.sheenCount > 0}
+                           onApplyRainbowGlitter={handleApplyRainbowGlitter}
+                           canApplyRainbowGlitter={gameData.rainbowGlitterCount > 0}
+                           onApplyRedGlitter={handleApplyRedGlitter}
+                           canApplyRedGlitter={gameData.redGlitterCount > 0}
+                        />
                       ))
                     ) : (
                       <div className="col-span-3 text-center text-muted-foreground py-8">
