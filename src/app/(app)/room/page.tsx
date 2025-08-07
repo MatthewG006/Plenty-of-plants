@@ -129,11 +129,10 @@ function DraggableDeskPlant({ plant, ...rest }: { plant: Plant; } & React.HTMLAt
 
     const style = {
         opacity: isDragging ? 0.4 : 1,
-        touchAction: 'none',
     };
 
     return (
-        <div ref={setNodeRef} style={style} {...listeners} {...attributes} {...rest}>
+        <div ref={setNodeRef} style={style} {...listeners} {...attributes} {...rest} className={cn(rest.className, "cursor-grab active:cursor-grabbing")}>
             <PlantImageUI plant={plant} image={plant.image} />
         </div>
     );
@@ -156,80 +155,20 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
     return (
         <div 
             className="relative w-full h-full flex items-center justify-center"
+            onClick={() => onClickPlant(plant)}
         >
             <DraggableDeskPlant 
                 plant={{...plant, image: processedImage || plant.image}}
-                className="cursor-grab active:cursor-grabbing w-full h-full z-10" 
-                onClick={() => onClickPlant(plant)}
+                className="w-full h-full z-10" 
             />
             <div ref={setNodeRef} className={cn("absolute inset-0 z-0", isOver && "bg-black/20 rounded-lg")} />
         </div>
     );
 }
 
-function PlantCardUI({ 
-    plant,
-    onApplyGlitter, 
-    canApplyGlitter,
-    onApplySheen, 
-    canApplySheen,
-    onApplyRainbowGlitter,
-    canApplyRainbowGlitter,
-    onApplyRedGlitter,
-    canApplyRedGlitter,
-}: { 
-    plant: Plant,
-    onApplyGlitter: (plantId: number) => void;
-    canApplyGlitter: boolean;
-    onApplySheen: (plantId: number) => void;
-    canApplySheen: boolean;
-    onApplyRainbowGlitter: (plantId: number) => void;
-    canApplyRainbowGlitter: boolean;
-    onApplyRedGlitter: (plantId: number) => void;
-    canApplyRedGlitter: boolean;
-}) {
-    const hasAnyCosmetic = plant.hasGlitter || plant.hasSheen || plant.hasRainbowGlitter || plant.hasRedGlitter;
+function PlantCardUI({ plant }: { plant: Plant }) {
     return (
         <Card className="group overflow-hidden shadow-md w-full relative">
-            <div className="absolute top-1 left-1 z-10 flex flex-col gap-1">
-                {canApplyGlitter && !hasAnyCosmetic &&(
-                    <Button
-                        size="icon"
-                        className="h-7 w-7 bg-yellow-400/80 text-white hover:bg-yellow-500/90"
-                        onClick={(e) => { e.stopPropagation(); onApplyGlitter(plant.id); }}
-                    >
-                        <Sparkles className="h-4 w-4" />
-                    </Button>
-                )}
-                {canApplySheen && !hasAnyCosmetic &&(
-                    <Button
-                        size="icon"
-                        className="h-7 w-7 bg-blue-400/80 text-white hover:bg-blue-500/90"
-                        onClick={(e) => { e.stopPropagation(); onApplySheen(plant.id); }}
-                    >
-                        <Star className="h-4 w-4" />
-                    </Button>
-                )}
-                {canApplyRainbowGlitter && !hasAnyCosmetic && (
-                    <Button
-                        size="icon"
-                        className="h-7 w-7 bg-gradient-to-r from-pink-500 to-yellow-500 text-white"
-                        onClick={(e) => { e.stopPropagation(); onApplyRainbowGlitter(plant.id); }}
-                    >
-                        <Sparkles className="h-4 w-4" />
-                    </Button>
-                )}
-                 {canApplyRedGlitter && !hasAnyCosmetic && (
-                    <Button
-                        size="icon"
-                        className="h-7 w-7 bg-red-500/80 text-white hover:bg-red-600/90"
-                        onClick={(e) => { e.stopPropagation(); onApplyRedGlitter(plant.id); }}
-                    >
-                        <Sparkles className="h-4 w-4" />
-                    </Button>
-                )}
-            </div>
-
             <CardContent className="p-0">
                 <div className="aspect-square relative flex items-center justify-center bg-muted/30">
                     {plant.image !== 'placeholder' ? (
@@ -260,7 +199,7 @@ function PlantCardUI({
     );
 }
 
-function DraggablePlantCard({ plant, onClick }: { plant: Plant, onClick: () => void }) {
+function DraggablePlantCard({ plant, ...props }: { plant: Plant } & React.HTMLAttributes<HTMLDivElement>) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: `collection:${plant.id}`,
         data: { plant, source: 'collection' },
@@ -268,22 +207,13 @@ function DraggablePlantCard({ plant, onClick }: { plant: Plant, onClick: () => v
 
     const style = {
         opacity: isDragging ? 0.5 : 1,
-        touchAction: 'none'
+        touchAction: 'none',
+        ...props.style,
     };
 
     return (
-        <div ref={setNodeRef} style={style} {...listeners} {...attributes} onClick={onClick} className="cursor-grab active:cursor-grabbing">
-            <PlantCardUI
-                plant={plant}
-                onApplyGlitter={() => {}}
-                canApplyGlitter={false}
-                onApplySheen={() => {}}
-                canApplySheen={false}
-                onApplyRainbowGlitter={() => {}}
-                canApplyRainbowGlitter={false}
-                onApplyRedGlitter={() => {}}
-                canApplyRedGlitter={false}
-            />
+        <div ref={setNodeRef} style={style} {...listeners} {...attributes} {...props}>
+            <PlantCardUI plant={plant} />
         </div>
     );
 }
@@ -329,7 +259,7 @@ export default function RoomPage() {
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 250,
+        delay: 150,
         tolerance: 5,
       },
     })
@@ -729,13 +659,7 @@ export default function RoomPage() {
         <DragOverlay>
           {activeDragPlant ? (
              <div className="w-28 h-28">
-                <PlantCardUI 
-                    plant={activeDragPlant}
-                    onApplyGlitter={() => {}} canApplyGlitter={false}
-                    onApplySheen={() => {}} canApplySheen={false}
-                    onApplyRainbowGlitter={() => {}} canApplyRainbowGlitter={false}
-                    onApplyRedGlitter={() => {}} canApplyRedGlitter={false}
-                />
+                <PlantCardUI plant={activeDragPlant} />
             </div>
           ) : null}
         </DragOverlay>
