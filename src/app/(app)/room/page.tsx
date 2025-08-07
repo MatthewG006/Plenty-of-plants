@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Leaf, Loader2, Sparkles, Star } from 'lucide-react';
+import { Leaf, Loader2, Sparkles, Star, Eye } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -117,40 +117,58 @@ function PlantImageUI({ plant, image }: { plant: Plant, image: string | null }) 
   );
 }
 
-function DraggablePlant({ plant, source, ...rest }: { plant: Plant; source: 'desk' | 'collection'; } & React.HTMLAttributes<HTMLDivElement>) {
+function CollectionPlantCard({ plant, onViewDetails, ...rest }: { plant: Plant, onViewDetails: () => void } & React.HTMLAttributes<HTMLDivElement>) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-        id: `${source}:${plant.id}`,
-        data: { plant, source },
+        id: `collection:${plant.id}`,
+        data: { plant, source: 'collection' },
     });
 
-    const style = {
-        opacity: isDragging ? 0.4 : 1,
-    };
+    const handleViewClick = (e: React.MouseEvent) => {
+        e.stopPropagation(); // Prevent the drag listener from firing
+        onViewDetails();
+    }
 
     return (
-        <div ref={setNodeRef} style={style} {...listeners} {...attributes} {...rest} className={cn(rest.className, "cursor-grab active:cursor-grabbing touch-none")}>
-            {source === 'desk' ? (
-                 <PlantImageUI plant={plant} image={plant.image} />
-            ) : (
-                <Card className="group overflow-hidden shadow-md w-full relative">
-                    <CardContent className="p-0">
-                        <div className="aspect-square relative flex items-center justify-center bg-muted/30">
-                          {plant.image !== 'placeholder' ? (
-                            <Image src={plant.image} alt={plant.name} fill sizes="100px" className="object-cover" data-ai-hint={plant.hint} />
-                          ) : (
-                            <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
-                          )}
-                          {plant.hasGlitter && <GlitterAnimation />}
-                          {plant.hasRedGlitter && <RedGlitterAnimation />}
-                          {plant.hasSheen && <SheenAnimation />}
-                          {plant.hasRainbowGlitter && <RainbowGlitterAnimation />}
-                        </div>
-                        <div className="p-2 text-center bg-white/50 space-y-1">
-                          <p className="text-sm font-semibold text-primary truncate">{plant.name}</p>
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
+        <div ref={setNodeRef} style={{ opacity: isDragging ? 0.4 : 1 }} {...listeners} {...attributes} {...rest}>
+            <Card className="group overflow-hidden shadow-md w-full relative cursor-grab active:cursor-grabbing touch-none">
+                <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    className="absolute top-1 right-1 h-7 w-7 bg-black/20 hover:bg-black/50 text-white/80 hover:text-white z-10"
+                    onClick={handleViewClick}
+                >
+                    <Eye className="h-4 w-4" />
+                </Button>
+                <CardContent className="p-0">
+                    <div className="aspect-square relative flex items-center justify-center bg-muted/30">
+                      {plant.image !== 'placeholder' ? (
+                        <Image src={plant.image} alt={plant.name} fill sizes="100px" className="object-cover" data-ai-hint={plant.hint} />
+                      ) : (
+                        <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
+                      )}
+                      {plant.hasGlitter && <GlitterAnimation />}
+                      {plant.hasRedGlitter && <RedGlitterAnimation />}
+                      {plant.hasSheen && <SheenAnimation />}
+                      {plant.hasRainbowGlitter && <RainbowGlitterAnimation />}
+                    </div>
+                    <div className="p-2 text-center bg-white/50 space-y-1">
+                      <p className="text-sm font-semibold text-primary truncate">{plant.name}</p>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
+
+function DraggableDeskPlant({ plant, ...rest }: { plant: Plant } & React.HTMLAttributes<HTMLDivElement>) {
+    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+        id: `desk:${plant.id}`,
+        data: { plant, source: 'desk' },
+    });
+
+    return (
+        <div ref={setNodeRef} style={{ opacity: isDragging ? 0.4 : 1 }} {...listeners} {...attributes} {...rest} className={cn(rest.className, "cursor-grab active:cursor-grabbing touch-none w-full h-full z-10")}>
+            <PlantImageUI plant={plant} image={plant.image} />
         </div>
     );
 }
@@ -172,12 +190,10 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
     return (
         <div 
             className="relative w-full h-full flex items-center justify-center"
+            onClick={() => onClickPlant(plant)}
         >
-            <DraggablePlant 
+            <DraggableDeskPlant
                 plant={{...plant, image: processedImage || plant.image}}
-                source="desk"
-                onClick={() => onClickPlant(plant)}
-                className="w-full h-full z-10" 
             />
             <div ref={setNodeRef} className={cn("absolute inset-0 z-0", isOver && "bg-black/20 rounded-lg")} />
         </div>
@@ -219,7 +235,7 @@ export default function RoomPage() {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 5,
+        distance: 8,
       },
     }),
     useSensor(TouchSensor, {
@@ -420,7 +436,7 @@ export default function RoomPage() {
       <div className="space-y-4 bg-white min-h-screen">
         <header className="flex flex-col items-center gap-2 p-4 text-center">
           <h1 className="text-3xl text-primary text-center">My Room</h1>
-          <p className="text-muted-foreground text-sm">Click a plant to view its details. Grab the handle to drag.</p>
+          <p className="text-muted-foreground text-sm">Click a plant on the desk to view details. Grab plants to move them.</p>
         </header>
 
          <section className="px-4">
@@ -483,11 +499,10 @@ export default function RoomPage() {
                 <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5">
                     {collectionPlants.length > 0 ? (
                       collectionPlants.map((plant) => (
-                        <DraggablePlant 
+                        <CollectionPlantCard 
                             key={plant.id} 
                             plant={plant}
-                            source="collection"
-                            onClick={() => setSelectedPlant(allPlants[plant.id])}
+                            onViewDetails={() => setSelectedPlant(allPlants[plant.id])}
                         />
                       ))
                     ) : (
@@ -547,5 +562,3 @@ export default function RoomPage() {
     </DndContext>
   );
 }
-
-    
