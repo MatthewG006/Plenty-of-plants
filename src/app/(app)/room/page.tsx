@@ -168,7 +168,7 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
 
 function PlantCardUI({ plant }: { plant: Plant }) {
     return (
-        <Card className="group overflow-hidden shadow-md w-full relative cursor-pointer">
+        <Card className="group overflow-hidden shadow-md w-full relative">
             <CardContent className="p-0">
                 <div className="aspect-square relative flex items-center justify-center bg-muted/30">
                     {plant.image !== 'placeholder' ? (
@@ -180,19 +180,9 @@ function PlantCardUI({ plant }: { plant: Plant }) {
                     {plant.hasRedGlitter && <RedGlitterAnimation />}
                     {plant.hasSheen && <SheenAnimation />}
                     {plant.hasRainbowGlitter && <RainbowGlitterAnimation />}
-                    {(plant.form === 'Evolved' || plant.form === 'Final') && (
-                        <Badge 
-                            variant={plant.form === 'Final' ? "destructive" : "secondary"}
-                            className="absolute bottom-1 right-1"
-                        >
-                            {plant.form === 'Final' ? 'Max' : plant.form}
-                        </Badge>
-                    )}
                 </div>
                 <div className="p-2 text-center bg-white/50 space-y-1">
                     <p className="text-sm font-semibold text-primary truncate">{plant.name}</p>
-                    <div className="text-xs text-muted-foreground">Lvl {plant.level}</div>
-                    <Progress value={(plant.xp / 1000) * 100} className="h-1.5" />
                 </div>
             </CardContent>
         </Card>
@@ -212,7 +202,7 @@ function DraggablePlantCard({ plant, ...props }: { plant: Plant } & React.HTMLAt
     };
 
     return (
-        <div ref={setNodeRef} style={style} {...listeners} {...attributes} {...props}>
+        <div ref={setNodeRef} style={style} {...listeners} {...attributes} {...props} className={cn(props.className, "cursor-grab active:cursor-grabbing")}>
             <PlantCardUI plant={plant} />
         </div>
     );
@@ -667,5 +657,3 @@ export default function RoomPage() {
     </DndContext>
   );
 }
-
-    
