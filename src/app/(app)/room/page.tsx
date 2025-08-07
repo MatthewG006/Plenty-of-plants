@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Leaf, Loader2, Sparkles, Star, Eye } from 'lucide-react';
+import { Leaf, Loader2, Sparkles, Star, Eye, GripVertical } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -117,28 +117,30 @@ function PlantImageUI({ plant, image }: { plant: Plant, image: string | null }) 
   );
 }
 
-function CollectionPlantCard({ plant, onViewDetails, ...rest }: { plant: Plant, onViewDetails: () => void } & React.HTMLAttributes<HTMLDivElement>) {
+function CollectionPlantCard({ plant, onViewDetails }: { plant: Plant, onViewDetails: () => void }) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: `collection:${plant.id}`,
         data: { plant, source: 'collection' },
     });
 
-    const handleViewClick = (e: React.MouseEvent) => {
-        e.stopPropagation(); // Prevent the drag listener from firing
-        onViewDetails();
-    }
-
     return (
-        <div ref={setNodeRef} style={{ opacity: isDragging ? 0.4 : 1 }} {...listeners} {...attributes} {...rest}>
-            <Card className="group overflow-hidden shadow-md w-full relative cursor-grab active:cursor-grabbing touch-none">
-                <Button 
-                    size="icon" 
-                    variant="ghost" 
-                    className="absolute top-1 right-1 h-7 w-7 bg-black/20 hover:bg-black/50 text-white/80 hover:text-white z-10"
-                    onClick={handleViewClick}
+        <div 
+            style={{ opacity: isDragging ? 0.4 : 1 }}
+            className="touch-none"
+        >
+            <Card 
+                ref={setNodeRef}
+                onClick={onViewDetails}
+                className="group overflow-hidden shadow-md w-full relative cursor-pointer"
+            >
+                <div 
+                    {...listeners} 
+                    {...attributes} 
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute top-1/2 -translate-y-1/2 left-0 h-full w-6 flex items-center justify-center cursor-grab active:cursor-grabbing z-10"
                 >
-                    <Eye className="h-4 w-4" />
-                </Button>
+                   <GripVertical className="h-5 w-5 text-muted-foreground/50 group-hover:text-muted-foreground" />
+                </div>
                 <CardContent className="p-0">
                     <div className="aspect-square relative flex items-center justify-center bg-muted/30">
                       {plant.image !== 'placeholder' ? (
@@ -233,17 +235,8 @@ export default function RoomPage() {
   const [evolvedPreviewData, setEvolvedPreviewData] = useState<{plantId: number; plantName: string; newForm: string, newImageUri: string, personality?: string } | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 150,
-        tolerance: 5,
-      },
-    })
+    useSensor(PointerSensor),
+    useSensor(TouchSensor)
   );
   
   useEffect(() => {
@@ -436,7 +429,7 @@ export default function RoomPage() {
       <div className="space-y-4 bg-white min-h-screen">
         <header className="flex flex-col items-center gap-2 p-4 text-center">
           <h1 className="text-3xl text-primary text-center">My Room</h1>
-          <p className="text-muted-foreground text-sm">Click a plant on the desk to view details. Grab plants to move them.</p>
+          <p className="text-muted-foreground text-sm">Click a plant to view details. Grab the handle on the left to move them.</p>
         </header>
 
          <section className="px-4">
@@ -562,3 +555,5 @@ export default function RoomPage() {
     </DndContext>
   );
 }
+
+    
