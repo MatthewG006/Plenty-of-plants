@@ -15,6 +15,7 @@ import {
   arrayUnion,
   updateDoc,
   runTransaction,
+  documentId,
 } from 'firebase/firestore';
 import type { Plant } from '@/interfaces/plant';
 import { v4 as uuidv4 } from 'uuid';
@@ -52,41 +53,47 @@ export async function findOrCreateContestSession(
     const sessionsRef = collection(db, 'contestSessions');
     const newPlayer: ContestPlayer = { uid: userId, username, avatarColor, plant: playerPlant };
 
-    // 1. Check if the player is already in an active session
-    const playerInSessionQuery = query(sessionsRef, where('status', 'in', ['waiting', 'countdown', 'voting']));
+    // 1. Check if the player is already in an active session to allow re-joining.
+    const playerInSessionQuery = query(
+        sessionsRef, 
+        where('status', 'in', ['waiting', 'countdown', 'voting']),
+        where('players', 'array-contains', {uid: userId, username: username, avatarColor: avatarColor, plant: playerPlant})
+    );
     const playerInSessionSnapshot = await getDocs(playerInSessionQuery);
-
-    for (const docSnap of playerInSessionSnapshot.docs) {
-        const session = docSnap.data() as ContestSession;
-        if (session.players.some(p => p.uid === userId)) {
-            return docSnap.id; // Return existing session ID
+    if (!playerInSessionSnapshot.empty) {
+        return playerInSessionSnapshot.docs[0].id; // Player is already in a session, return it.
+    }
+     // More robust check if the simple one fails due to nested object comparison issues
+    const allActiveSessionsQuery = query(sessionsRef, where('status', 'in', ['waiting', 'countdown', 'voting']));
+    const allActiveSessionsSnapshot = await getDocs(allActiveSessionsQuery);
+    for (const doc of allActiveSessionsSnapshot.docs) {
+        const sessionData = doc.data() as ContestSession;
+        if (sessionData.players.some(p => p.uid === userId)) {
+            return doc.id;
         }
     }
 
-    // 2. Find an open session to join
+
+    // 2. Find an open session to join using a transaction to prevent race conditions.
     const openSessionQuery = query(sessionsRef, where('status', '==', 'waiting'), where('playerCount', '<', MAX_PLAYERS), limit(1));
     
     try {
-        const sessionDocRef = await runTransaction(db, async (transaction) => {
-            const openSessionSnapshot = await getDocs(openSessionQuery);
-            if (openSessionSnapshot.empty) {
-                return null; // No open session found, will proceed to create one.
-            }
-
-            const sessionDoc = openSessionSnapshot.docs[0];
-            const currentSessionDocRef = doc(db, 'contestSessions', sessionDoc.id);
-            const sfDoc = await transaction.get(currentSessionDocRef);
-
-            if (!sfDoc.exists()) {
-                throw new Error("Session no longer exists.");
+        const sessionId = await runTransaction(db, async (transaction) => {
+            const openSessionsSnapshot = await getDocs(openSessionQuery);
+            if (openSessionsSnapshot.empty) {
+                return null; // No open sessions, will create a new one.
             }
             
-            const sessionData = sfDoc.data() as ContestSession;
-            if (sessionData.players.some(p => p.uid === userId)) {
-                return currentSessionDocRef; // Already in this session
-            }
+            const sessionToJoinDoc = openSessionsSnapshot.docs[0];
+            const sessionRef = doc(db, 'contestSessions', sessionToJoinDoc.id);
 
-            const newPlayerCount = sessionData.playerCount + 1;
+            const sessionSnapshot = await transaction.get(sessionRef);
+            if (!sessionSnapshot.exists() || sessionSnapshot.data().playerCount >= MAX_PLAYERS) {
+                // Session filled up or was deleted between query and transaction
+                throw new Error("Session is no longer available.");
+            }
+            
+            const newPlayerCount = sessionSnapshot.data().playerCount + 1;
             const updates: any = {
                 players: arrayUnion(newPlayer),
                 playerCount: newPlayerCount,
@@ -95,17 +102,17 @@ export async function findOrCreateContestSession(
             if (newPlayerCount >= MAX_PLAYERS) {
                 updates.status = 'countdown';
             }
-
-            transaction.update(currentSessionDocRef, updates);
-            return currentSessionDocRef;
+            
+            transaction.update(sessionRef, updates);
+            return sessionRef.id;
         });
 
-        if (sessionDocRef) {
-            return sessionDocRef.id;
+        if (sessionId) {
+            return sessionId;
         }
 
-    } catch (e) {
-        console.error("Transaction failed, will attempt to create a new session.", e);
+    } catch (error) {
+        console.error("Transaction to join session failed. Will try creating a new one.", error);
     }
     
     // 3. If no open sessions or transaction failed, create a new one
