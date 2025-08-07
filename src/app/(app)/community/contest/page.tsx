@@ -301,5 +301,3 @@ export default function ContestPage() {
     </div>
   );
 }
-
-    

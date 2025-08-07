@@ -14,6 +14,7 @@ import {
   FieldValue,
   arrayUnion,
   updateDoc,
+  runTransaction,
 } from 'firebase/firestore';
 import type { Plant } from '@/interfaces/plant';
 import { v4 as uuidv4 } from 'uuid';
@@ -39,6 +40,7 @@ export interface ContestSession {
   playerCount: number;
 }
 
+
 // In a real, high-traffic application, this would be handled by a Cloud Function
 // to avoid race conditions. For this project, a client-side implementation is sufficient.
 export async function findOrCreateContestSession(
@@ -47,67 +49,69 @@ export async function findOrCreateContestSession(
   avatarColor: string,
   playerPlant: Plant
 ): Promise<string> {
-  const sessionsRef = collection(db, 'contestSessions');
+    const sessionsRef = collection(db, 'contestSessions');
+    const newPlayer: ContestPlayer = { uid: userId, username, avatarColor, plant: playerPlant };
 
-  // Query for an open session that isn't full and was created recently
-  const q = query(
-    sessionsRef,
-    where('status', '==', 'waiting'),
-    where('playerCount', '<', MAX_PLAYERS),
-    limit(1)
-  );
+    // 1. Check if the player is already in an active session
+    const playerInSessionQuery = query(sessionsRef, where('players', 'array-contains', newPlayer.uid), where('status', 'in', ['waiting', 'countdown']));
+    const playerInSessionSnapshot = await getDocs(playerInSessionQuery);
 
-  const querySnapshot = await getDocs(q);
-  
-  const newPlayer: ContestPlayer = {
-    uid: userId,
-    username,
-    avatarColor,
-    plant: playerPlant,
-  };
-
-  if (!querySnapshot.empty) {
-    const sessionDoc = querySnapshot.docs[0];
-    const sessionData = sessionDoc.data() as ContestSession;
-    
-    // Prevent user from joining the same session twice
-    if(sessionData.players.some((p: ContestPlayer) => p.uid === userId)) {
-        return sessionDoc.id;
+    if (!playerInSessionSnapshot.empty) {
+        // The user is already in a session, just return that session ID
+        return playerInSessionSnapshot.docs[0].id;
     }
 
-    const sessionDocRef = doc(db, 'contestSessions', sessionDoc.id);
-    const newPlayerCount = sessionData.playerCount + 1;
+    // 2. Find an open session to join
+    const openSessionQuery = query(sessionsRef, where('status', '==', 'waiting'), where('playerCount', '<', MAX_PLAYERS));
+    const openSessionSnapshot = await getDocs(openSessionQuery);
 
-    const updates: any = {
-      players: arrayUnion(newPlayer),
-      playerCount: newPlayerCount,
-    };
-    
-    // If the session is now full, update its status
-    if (newPlayerCount >= MAX_PLAYERS) {
-        updates.status = 'countdown';
+    if (!openSessionSnapshot.empty) {
+        const sessionDoc = openSessionSnapshot.docs[0];
+        const sessionDocRef = doc(db, 'contestSessions', sessionDoc.id);
+
+        try {
+            await runTransaction(db, async (transaction) => {
+                const sfDoc = await transaction.get(sessionDocRef);
+                if (!sfDoc.exists()) {
+                    throw "Session no longer exists.";
+                }
+
+                const sessionData = sfDoc.data() as ContestSession;
+                if (sessionData.players.some(p => p.uid === userId)) {
+                    // This case is unlikely due to the initial check, but good for safety
+                    return; 
+                }
+
+                const newPlayerCount = sessionData.playerCount + 1;
+                const updates: any = {
+                    players: arrayUnion(newPlayer),
+                    playerCount: newPlayerCount,
+                };
+
+                if (newPlayerCount >= MAX_PLAYERS) {
+                    updates.status = 'countdown';
+                }
+
+                transaction.update(sessionDocRef, updates);
+            });
+            return sessionDoc.id;
+        } catch (e) {
+            console.error("Transaction failed: ", e);
+            // If transaction fails, we'll proceed to create a new session.
+        }
     }
-
-    await updateDoc(sessionDocRef, updates);
-    return sessionDoc.id;
-
-  } else {
-    // Create new session
+    
+    // 3. If no open sessions, create a new one
     const newSessionId = uuidv4();
-    const newSession: Omit<ContestSession, 'id' | 'playerCount'> = {
+    const newSession: ContestSession = {
+      id: newSessionId,
       status: 'waiting',
       players: [newPlayer],
       votes: {},
       playerVotes: {},
       createdAt: serverTimestamp(),
+      playerCount: 1,
     };
-    await setDoc(doc(db, 'contestSessions', newSessionId), {
-        ...newSession,
-        id: newSessionId,
-        playerCount: 1,
-    });
+    await setDoc(doc(db, 'contestSessions', newSessionId), newSession);
     return newSessionId;
-  }
 }
-
-    
