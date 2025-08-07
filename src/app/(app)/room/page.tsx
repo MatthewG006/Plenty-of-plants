@@ -4,9 +4,9 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Leaf, Loader2, Sparkles, Star, Gem, MessageCircle, GripVertical } from 'lucide-react';
+import { Leaf, Loader2, Sparkles, Star, GripVertical } from 'lucide-react';
 import Image from 'next/image';
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import type { Plant } from '@/interfaces/plant';
 import { cn } from '@/lib/utils';
@@ -24,7 +24,7 @@ import {
 } from '@dnd-kit/core';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { updatePlantArrangement, updatePlant, doc, db } from '@/lib/firestore';
+import { updatePlantArrangement, updatePlant } from '@/lib/firestore';
 import { makeBackgroundTransparent } from '@/lib/image-compression';
 import { PlantDetailDialog, EvolveConfirmationDialog, EvolvePreviewDialog, PlantChatDialog } from '@/components/plant-dialogs';
 import { evolvePlantAction } from '@/app/actions/evolve-plant';
@@ -162,42 +162,50 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
     );
 }
 
-function CollectionPlantCard({ plant, onSelect }: { plant: Plant, onSelect: () => void }) {
-    const { attributes, listeners, setNodeRef } = useDraggable({
-        id: `collection:${plant.id}`,
-        data: { plant, source: 'collection' },
-    });
+function CollectionPlantCard({ plant, onSelect }: { plant: Plant; onSelect: () => void }) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `collection:${plant.id}`,
+    data: { plant, source: 'collection' },
+  });
 
-    return (
-        <Card 
-            className="group overflow-hidden shadow-md w-full relative touch-none"
-            onClick={onSelect}
-        >
-            <CardContent className="p-0">
-                <div className="aspect-square relative flex items-center justify-center bg-muted/30">
-                    {plant.image !== 'placeholder' ? (
-                        <Image src={plant.image} alt={plant.name} fill sizes="100px" className="object-cover" data-ai-hint={plant.hint} />
-                    ) : (
-                        <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
-                    )}
-                    {plant.hasGlitter && <GlitterAnimation />}
-                    {plant.hasRedGlitter && <RedGlitterAnimation />}
-                    {plant.hasSheen && <SheenAnimation />}
-                    {plant.hasRainbowGlitter && <RainbowGlitterAnimation />}
-                    
-                    <div ref={setNodeRef} {...listeners} {...attributes}
-                        className="absolute top-1 right-1 h-7 w-7 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-grab active:cursor-grabbing bg-secondary/70 rounded-md"
-                        onClick={(e) => e.stopPropagation()} // Prevent card click when grabbing handle
-                    >
-                        <GripVertical className="w-4 h-4 text-secondary-foreground" />
-                    </div>
-                </div>
-                <div className="p-2 text-center bg-white/50 space-y-1">
-                    <p className="text-sm font-semibold text-primary truncate">{plant.name}</p>
-                </div>
-            </CardContent>
-        </Card>
-    );
+  const style = {
+    opacity: isDragging ? 0.4 : 1,
+  };
+
+  return (
+    <Card
+      style={style}
+      ref={setNodeRef}
+      className="group overflow-hidden shadow-md w-full relative touch-none"
+      onClick={onSelect}
+    >
+      <CardContent className="p-0">
+        <div className="aspect-square relative flex items-center justify-center bg-muted/30">
+          {plant.image !== 'placeholder' ? (
+            <Image src={plant.image} alt={plant.name} fill sizes="100px" className="object-cover" data-ai-hint={plant.hint} />
+          ) : (
+            <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
+          )}
+          {plant.hasGlitter && <GlitterAnimation />}
+          {plant.hasRedGlitter && <RedGlitterAnimation />}
+          {plant.hasSheen && <SheenAnimation />}
+          {plant.hasRainbowGlitter && <RainbowGlitterAnimation />}
+
+          <div
+            {...listeners}
+            {...attributes}
+            className="absolute top-1 right-1 h-7 w-7 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-grab active:cursor-grabbing bg-secondary/70 rounded-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <GripVertical className="w-4 h-4 text-secondary-foreground" />
+          </div>
+        </div>
+        <div className="p-2 text-center bg-white/50 space-y-1">
+          <p className="text-sm font-semibold text-primary truncate">{plant.name}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 
@@ -234,8 +242,17 @@ export default function RoomPage() {
   const [evolvedPreviewData, setEvolvedPreviewData] = useState<{plantId: number; plantName: string; newForm: string, newImageUri: string, personality?: string } | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(TouchSensor)
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
+      },
+    })
   );
   
   useEffect(() => {
