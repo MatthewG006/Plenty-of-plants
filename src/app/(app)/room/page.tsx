@@ -168,7 +168,7 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
 
 function PlantCardUI({ plant }: { plant: Plant }) {
     return (
-        <Card className="group overflow-hidden shadow-md w-full relative">
+        <Card className="group overflow-hidden shadow-md w-full relative cursor-pointer">
             <CardContent className="p-0">
                 <div className="aspect-square relative flex items-center justify-center bg-muted/30">
                     {plant.image !== 'placeholder' ? (
@@ -667,3 +667,5 @@ export default function RoomPage() {
     </DndContext>
   );
 }
+
+    
