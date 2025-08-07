@@ -69,14 +69,18 @@ export default function ParkPage() {
         className="min-h-screen bg-cover bg-center flex flex-col items-center justify-between text-white p-4 relative"
         style={{ backgroundImage: "url('/park.png')" }}
       >
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 bg-black/50 p-8 rounded-lg text-center shadow-lg backdrop-blur-sm z-10">
+        <div className="absolute top-4 left-4 z-10">
+            <Button asChild>
+                <Link href="/community">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to Showcase
+                </Link>
+            </Button>
+        </div>
+        
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 bg-black/50 p-8 rounded-lg text-center shadow-lg backdrop-blur-sm z-0">
           <h1 className="text-4xl font-bold mb-4">Welcome to the Park</h1>
-          <Button asChild>
-            <Link href="/community">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Showcase
-            </Link>
-          </Button>
+           <p className="text-lg">A quiet place to relax before the contest.</p>
         </div>
 
         <div className="w-full h-1/3 absolute bottom-0 left-0 flex items-end justify-start p-4 pointer-events-none">
