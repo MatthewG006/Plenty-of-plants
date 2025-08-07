@@ -19,7 +19,7 @@ import {
 import type { Plant } from '@/interfaces/plant';
 import { v4 as uuidv4 } from 'uuid';
 
-const MAX_PLAYERS = 3;
+const MAX_PLAYERS = 1;
 
 export interface ContestPlayer {
   uid: string;
@@ -53,12 +53,14 @@ export async function findOrCreateContestSession(
     const newPlayer: ContestPlayer = { uid: userId, username, avatarColor, plant: playerPlant };
 
     // 1. Check if the player is already in an active session
-    const playerInSessionQuery = query(sessionsRef, where('players', 'array-contains', newPlayer.uid), where('status', 'in', ['waiting', 'countdown']));
+    const playerInSessionQuery = query(sessionsRef, where('status', 'in', ['waiting', 'countdown', 'voting']));
     const playerInSessionSnapshot = await getDocs(playerInSessionQuery);
 
-    if (!playerInSessionSnapshot.empty) {
-        // The user is already in a session, just return that session ID
-        return playerInSessionSnapshot.docs[0].id;
+    for (const docSnap of playerInSessionSnapshot.docs) {
+        const session = docSnap.data() as ContestSession;
+        if (session.players.some(p => p.uid === userId)) {
+            return docSnap.id; // Return existing session ID
+        }
     }
 
     // 2. Find an open session to join
@@ -96,7 +98,7 @@ export async function findOrCreateContestSession(
             });
             return sessionDoc.id;
         } catch (e) {
-            console.error("Transaction failed: ", e);
+            console.error("Transaction failed, creating new session: ", e);
             // If transaction fails, we'll proceed to create a new session.
         }
     }
@@ -112,6 +114,13 @@ export async function findOrCreateContestSession(
       createdAt: serverTimestamp(),
       playerCount: 1,
     };
+
+    if (newSession.playerCount >= MAX_PLAYERS) {
+        newSession.status = 'countdown';
+    }
+
     await setDoc(doc(db, 'contestSessions', newSessionId), newSession);
     return newSessionId;
 }
+
+    
