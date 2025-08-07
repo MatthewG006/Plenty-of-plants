@@ -161,7 +161,8 @@ function PlantCardUI({
     canApplyRainbowGlitter,
     onApplyRedGlitter,
     canApplyRedGlitter,
-    onClick
+    onClick,
+    children
 }: { 
     plant: Plant,
     onApplyGlitter: (plantId: number) => void;
@@ -173,6 +174,7 @@ function PlantCardUI({
     onApplyRedGlitter: (plantId: number) => void;
     canApplyRedGlitter: boolean;
     onClick: () => void;
+    children?: React.ReactNode;
 }) {
     const hasAnyCosmetic = plant.hasGlitter || plant.hasSheen || plant.hasRainbowGlitter || plant.hasRedGlitter;
     return (
@@ -242,6 +244,7 @@ function PlantCardUI({
                     <Progress value={(plant.xp / 1000) * 100} className="h-1.5" />
                 </div>
             </CardContent>
+            {children}
         </Card>
     );
 }
@@ -264,48 +267,28 @@ function DraggablePlant({ plant, source, ...rest }: { plant: Plant; source: 'des
     );
 }
 
-function DraggablePlantCard({ 
-    plant,
-    onClick,
-    ...props 
-}: { 
-    plant: Plant;
-    onClick: () => void;
-    onApplyGlitter: (plantId: number) => void;
-    canApplyGlitter: boolean;
-    onApplySheen: (plantId: number) => void;
-    canApplySheen: boolean;
-    onApplyRainbowGlitter: (plantId: number) => void;
-    canApplyRainbowGlitter: boolean;
-    onApplyRedGlitter: (plantId: number) => void;
-    canApplyRedGlitter: boolean;
-}) {
+function DragHandle({ plant }: { plant: Plant }) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: `collection:${plant.id}`,
         data: { plant, source: 'collection' },
     });
 
-    const style = {
-        opacity: isDragging ? 0.4 : 1,
-    };
-    
     return (
-        <div ref={setNodeRef} style={style}>
-            <PlantCardUI 
-                plant={plant} 
-                onClick={onClick}
-                {...props}
-            />
-            <div 
-                className="absolute bottom-1 right-1 p-2 cursor-grab active:cursor-grabbing"
-                {...listeners}
-                {...attributes}
-            >
-                <GripVertical className="w-5 h-5 text-muted-foreground/60" />
-            </div>
+        <div
+            ref={setNodeRef}
+            {...listeners}
+            {...attributes}
+            className={cn(
+                "absolute bottom-1 right-1 p-2 cursor-grab active:cursor-grabbing z-20",
+                isDragging && "opacity-50"
+            )}
+            onClick={(e) => e.stopPropagation()} // Prevent card click when using handle
+        >
+            <GripVertical className="w-5 h-5 text-muted-foreground/60" />
         </div>
     );
 }
+
 
 function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
     const { isOver, setNodeRef } = useDroppable({ id: 'collection:area' });
@@ -681,21 +664,22 @@ export default function RoomPage() {
                 <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5">
                     {collectionPlants.length > 0 ? (
                       collectionPlants.map((plant) => (
-                           <div key={plant.id} className="relative">
-                             <DraggablePlantCard
-                               plant={plant}
-                               onClick={() => setSelectedPlant(allPlants[plant.id])}
-                               onApplyGlitter={handleApplyGlitter}
-                               canApplyGlitter={gameData.glitterCount > 0}
-                               onApplySheen={handleApplySheen}
-                               canApplySheen={gameData.sheenCount > 0}
-                               onApplyRainbowGlitter={handleApplyRainbowGlitter}
-                               canApplyRainbowGlitter={gameData.rainbowGlitterCount > 0}
-                               onApplyRedGlitter={handleApplyRedGlitter}
-                               canApplyRedGlitter={gameData.redGlitterCount > 0}
-                             />
-                           </div>
-                          ))
+                        <PlantCardUI
+                           key={plant.id}
+                           plant={plant}
+                           onClick={() => setSelectedPlant(allPlants[plant.id])}
+                           onApplyGlitter={handleApplyGlitter}
+                           canApplyGlitter={gameData.glitterCount > 0}
+                           onApplySheen={handleApplySheen}
+                           canApplySheen={gameData.sheenCount > 0}
+                           onApplyRainbowGlitter={handleApplyRainbowGlitter}
+                           canApplyRainbowGlitter={gameData.rainbowGlitterCount > 0}
+                           onApplyRedGlitter={handleApplyRedGlitter}
+                           canApplyRedGlitter={gameData.redGlitterCount > 0}
+                         >
+                            <DragHandle plant={plant} />
+                        </PlantCardUI>
+                      ))
                     ) : (
                       <div className="col-span-3 text-center text-muted-foreground py-8">
                           Your collection is empty. Go to the Home screen to draw a new plant!
@@ -766,7 +750,3 @@ export default function RoomPage() {
     </DndContext>
   );
 }
-
-    
-
-    
