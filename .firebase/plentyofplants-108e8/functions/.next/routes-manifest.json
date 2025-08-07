@@ -34,6 +34,18 @@
       "namedRegex": "^/community(?:/)?$"
     },
     {
+      "page": "/community/contest",
+      "regex": "^/community/contest(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/community/contest(?:/)?$"
+    },
+    {
+      "page": "/community/park",
+      "regex": "^/community/park(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/community/park(?:/)?$"
+    },
+    {
       "page": "/favicon.ico",
       "regex": "^/favicon\\.ico(?:/)?$",
       "routeKeys": {},
