@@ -122,10 +122,10 @@ function PlantImageUI({ plant, image }: { plant: Plant, image: string | null }) 
   );
 }
 
-function DraggablePlant({ plant, source, ...rest }: { plant: Plant; source: 'desk' | 'collection'; } & React.HTMLAttributes<HTMLDivElement>) {
+function DraggableDeskPlant({ plant, ...rest }: { plant: Plant; } & React.HTMLAttributes<HTMLDivElement>) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-        id: `${source}:${plant.id}`,
-        data: { plant, source },
+        id: `desk:${plant.id}`,
+        data: { plant, source: 'desk' },
     });
 
     const style = {
@@ -158,9 +158,8 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
         <div 
             className="relative w-full h-full flex items-center justify-center"
         >
-            <DraggablePlant 
+            <DraggableDeskPlant 
                 plant={{...plant, image: processedImage || plant.image}}
-                source="desk" 
                 className="cursor-grab active:cursor-grabbing w-full h-full z-10" 
                 onClick={() => onClickPlant(plant)}
             />
@@ -266,22 +265,22 @@ function PlantCardUI({
 }
 
 function DragHandle({ plant }: { plant: Plant }) {
-    const { attributes, listeners, setNodeRef } = useDraggable({
-        id: `collection:${plant.id}`,
-        data: { plant, source: 'collection' },
-    });
+  const { attributes, listeners, setNodeRef } = useDraggable({
+    id: `collection:${plant.id}`,
+    data: { plant, source: 'collection' },
+  });
 
-    return (
-        <div
-            ref={setNodeRef}
-            {...listeners}
-            {...attributes}
-            className="absolute bottom-1 right-1 p-2 cursor-grab active:cursor-grabbing z-20"
-            onClick={(e) => e.stopPropagation()}
-        >
-            <GripVertical className="w-5 h-5 text-muted-foreground/60" />
-        </div>
-    );
+  return (
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      className="absolute bottom-1 right-1 p-2 cursor-grab active:cursor-grabbing z-20"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <GripVertical className="w-5 h-5 text-muted-foreground/60" />
+    </div>
+  );
 }
 
 
@@ -596,7 +595,7 @@ export default function RoomPage() {
       <div className="space-y-4 bg-white min-h-screen">
         <header className="flex flex-col items-center gap-2 p-4 text-center">
           <h1 className="text-3xl text-primary text-center">My Room</h1>
-          <p className="text-muted-foreground text-sm">Drag plants from your collection to your desk to display them.</p>
+          <p className="text-muted-foreground text-sm">Click a plant to see its details. Grab the handle to move it.</p>
         </header>
 
          <section className="px-4">
@@ -744,3 +743,5 @@ export default function RoomPage() {
     </DndContext>
   );
 }
+
+    
