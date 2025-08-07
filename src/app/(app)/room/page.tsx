@@ -228,12 +228,12 @@ export default function RoomPage() {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 5,
+        distance: 8,
       },
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 250,
+        delay: 150,
         tolerance: 5,
       },
     })
@@ -459,7 +459,7 @@ export default function RoomPage() {
 
         <section 
             className="relative h-48 max-w-lg mx-auto rounded-lg bg-cover bg-center" 
-            style={{backgroundImage: "url('/desk.jpg')"}}
+            style={{backgroundImage: "url('/desk.png')"}}
         >
             <div className="absolute inset-x-0 top-0 h-40 p-4 sm:p-6 md:p-8 grid grid-cols-3 grid-rows-1 gap-2">
                 {deskPlants.slice(0, 3).map((plant, index) => {
@@ -559,3 +559,5 @@ export default function RoomPage() {
     </DndContext>
   );
 }
+
+    
