@@ -122,6 +122,24 @@ function PlantImageUI({ plant, image }: { plant: Plant, image: string | null }) 
   );
 }
 
+function DraggablePlant({ plant, source, ...rest }: { plant: Plant; source: 'desk' | 'collection'; } & React.HTMLAttributes<HTMLDivElement>) {
+    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+        id: `${source}:${plant.id}`,
+        data: { plant, source },
+    });
+
+    const style = {
+        opacity: isDragging ? 0.4 : 1,
+        touchAction: 'none',
+    };
+
+    return (
+        <div ref={setNodeRef} style={style} {...listeners} {...attributes} {...rest}>
+            <PlantImageUI plant={plant} image={plant.image} />
+        </div>
+    );
+}
+
 function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant | null, index: number, onClickPlant: (plant: Plant) => void, processedImage: string | null }) {
     const { setNodeRef, isOver } = useDroppable({ id: `pot:${index}` });
     
@@ -161,7 +179,6 @@ function PlantCardUI({
     canApplyRainbowGlitter,
     onApplyRedGlitter,
     canApplyRedGlitter,
-    onClick,
     children
 }: { 
     plant: Plant,
@@ -173,12 +190,11 @@ function PlantCardUI({
     canApplyRainbowGlitter: boolean;
     onApplyRedGlitter: (plantId: number) => void;
     canApplyRedGlitter: boolean;
-    onClick: () => void;
     children?: React.ReactNode;
 }) {
     const hasAnyCosmetic = plant.hasGlitter || plant.hasSheen || plant.hasRainbowGlitter || plant.hasRedGlitter;
     return (
-        <Card className="group overflow-hidden shadow-md w-full relative cursor-pointer" onClick={onClick}>
+        <Card className="group overflow-hidden shadow-md w-full relative">
             <div className="absolute top-1 left-1 z-10 flex flex-col gap-1">
                 {canApplyGlitter && !hasAnyCosmetic &&(
                     <Button
@@ -249,26 +265,8 @@ function PlantCardUI({
     );
 }
 
-function DraggablePlant({ plant, source, ...rest }: { plant: Plant; source: 'desk' | 'collection'; } & React.HTMLAttributes<HTMLDivElement>) {
-    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-        id: `${source}:${plant.id}`,
-        data: { plant, source },
-    });
-
-    const style = {
-        opacity: isDragging ? 0.4 : 1,
-        touchAction: 'none',
-    };
-
-    return (
-        <div ref={setNodeRef} style={style} {...listeners} {...attributes} {...rest}>
-            <PlantImageUI plant={plant} image={plant.image} />
-        </div>
-    );
-}
-
 function DragHandle({ plant }: { plant: Plant }) {
-    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    const { attributes, listeners, setNodeRef } = useDraggable({
         id: `collection:${plant.id}`,
         data: { plant, source: 'collection' },
     });
@@ -278,11 +276,8 @@ function DragHandle({ plant }: { plant: Plant }) {
             ref={setNodeRef}
             {...listeners}
             {...attributes}
-            className={cn(
-                "absolute bottom-1 right-1 p-2 cursor-grab active:cursor-grabbing z-20",
-                isDragging && "opacity-50"
-            )}
-            onClick={(e) => e.stopPropagation()} // Prevent card click when using handle
+            className="absolute bottom-1 right-1 p-2 cursor-grab active:cursor-grabbing z-20"
+            onClick={(e) => e.stopPropagation()}
         >
             <GripVertical className="w-5 h-5 text-muted-foreground/60" />
         </div>
@@ -664,21 +659,21 @@ export default function RoomPage() {
                 <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5">
                     {collectionPlants.length > 0 ? (
                       collectionPlants.map((plant) => (
-                        <PlantCardUI
-                           key={plant.id}
-                           plant={plant}
-                           onClick={() => setSelectedPlant(allPlants[plant.id])}
-                           onApplyGlitter={handleApplyGlitter}
-                           canApplyGlitter={gameData.glitterCount > 0}
-                           onApplySheen={handleApplySheen}
-                           canApplySheen={gameData.sheenCount > 0}
-                           onApplyRainbowGlitter={handleApplyRainbowGlitter}
-                           canApplyRainbowGlitter={gameData.rainbowGlitterCount > 0}
-                           onApplyRedGlitter={handleApplyRedGlitter}
-                           canApplyRedGlitter={gameData.redGlitterCount > 0}
-                         >
-                            <DragHandle plant={plant} />
-                        </PlantCardUI>
+                        <div key={plant.id} className="cursor-pointer" onClick={() => setSelectedPlant(allPlants[plant.id])}>
+                            <PlantCardUI
+                               plant={plant}
+                               onApplyGlitter={handleApplyGlitter}
+                               canApplyGlitter={gameData.glitterCount > 0}
+                               onApplySheen={handleApplySheen}
+                               canApplySheen={gameData.sheenCount > 0}
+                               onApplyRainbowGlitter={handleApplyRainbowGlitter}
+                               canApplyRainbowGlitter={gameData.rainbowGlitterCount > 0}
+                               onApplyRedGlitter={handleApplyRedGlitter}
+                               canApplyRedGlitter={gameData.redGlitterCount > 0}
+                             >
+                                <DragHandle plant={plant} />
+                            </PlantCardUI>
+                        </div>
                       ))
                     ) : (
                       <div className="col-span-3 text-center text-muted-foreground py-8">
@@ -736,7 +731,6 @@ export default function RoomPage() {
                   onApplySheen={() => {}} canApplySheen={false}
                   onApplyRainbowGlitter={() => {}} canApplyRainbowGlitter={false}
                   onApplyRedGlitter={() => {}} canApplyRedGlitter={false}
-                  onClick={() => {}}
                 />
               </div>
             ) : (
