@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Leaf, Loader2, Sparkles, Star, GripVertical } from 'lucide-react';
+import { Leaf, Loader2, Sparkles, Star } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -117,10 +117,10 @@ function PlantImageUI({ plant, image }: { plant: Plant, image: string | null }) 
   );
 }
 
-function DraggableDeskPlant({ plant, ...rest }: { plant: Plant; } & React.HTMLAttributes<HTMLDivElement>) {
+function DraggablePlant({ plant, source, ...rest }: { plant: Plant; source: 'desk' | 'collection'; } & React.HTMLAttributes<HTMLDivElement>) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-        id: `desk:${plant.id}`,
-        data: { plant, source: 'desk' },
+        id: `${source}:${plant.id}`,
+        data: { plant, source },
     });
 
     const style = {
@@ -128,8 +128,29 @@ function DraggableDeskPlant({ plant, ...rest }: { plant: Plant; } & React.HTMLAt
     };
 
     return (
-        <div ref={setNodeRef} style={style} {...listeners} {...attributes} {...rest} className={cn(rest.className, "cursor-grab active:cursor-grabbing")}>
-            <PlantImageUI plant={plant} image={plant.image} />
+        <div ref={setNodeRef} style={style} {...listeners} {...attributes} {...rest} className={cn(rest.className, "cursor-grab active:cursor-grabbing touch-none")}>
+            {source === 'desk' ? (
+                 <PlantImageUI plant={plant} image={plant.image} />
+            ) : (
+                <Card className="group overflow-hidden shadow-md w-full relative">
+                    <CardContent className="p-0">
+                        <div className="aspect-square relative flex items-center justify-center bg-muted/30">
+                          {plant.image !== 'placeholder' ? (
+                            <Image src={plant.image} alt={plant.name} fill sizes="100px" className="object-cover" data-ai-hint={plant.hint} />
+                          ) : (
+                            <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
+                          )}
+                          {plant.hasGlitter && <GlitterAnimation />}
+                          {plant.hasRedGlitter && <RedGlitterAnimation />}
+                          {plant.hasSheen && <SheenAnimation />}
+                          {plant.hasRainbowGlitter && <RainbowGlitterAnimation />}
+                        </div>
+                        <div className="p-2 text-center bg-white/50 space-y-1">
+                          <p className="text-sm font-semibold text-primary truncate">{plant.name}</p>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
         </div>
     );
 }
@@ -150,62 +171,17 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
     
     return (
         <div 
-            className="relative w-full h-full flex items-center justify-center cursor-pointer"
-            onClick={() => onClickPlant(plant)}
+            className="relative w-full h-full flex items-center justify-center"
         >
-            <DraggableDeskPlant 
+            <DraggablePlant 
                 plant={{...plant, image: processedImage || plant.image}}
+                source="desk"
+                onClick={() => onClickPlant(plant)}
                 className="w-full h-full z-10" 
             />
             <div ref={setNodeRef} className={cn("absolute inset-0 z-0", isOver && "bg-black/20 rounded-lg")} />
         </div>
     );
-}
-
-function CollectionPlantCard({ plant, onSelect }: { plant: Plant; onSelect: () => void }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `collection:${plant.id}`,
-    data: { plant, source: 'collection' },
-  });
-
-  const style = {
-    opacity: isDragging ? 0.4 : 1,
-  };
-
-  return (
-    <Card
-      style={style}
-      ref={setNodeRef}
-      className="group overflow-hidden shadow-md w-full relative touch-none"
-      onClick={onSelect}
-    >
-      <CardContent className="p-0">
-        <div className="aspect-square relative flex items-center justify-center bg-muted/30">
-          {plant.image !== 'placeholder' ? (
-            <Image src={plant.image} alt={plant.name} fill sizes="100px" className="object-cover" data-ai-hint={plant.hint} />
-          ) : (
-            <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
-          )}
-          {plant.hasGlitter && <GlitterAnimation />}
-          {plant.hasRedGlitter && <RedGlitterAnimation />}
-          {plant.hasSheen && <SheenAnimation />}
-          {plant.hasRainbowGlitter && <RainbowGlitterAnimation />}
-
-          <div
-            {...listeners}
-            {...attributes}
-            className="absolute top-1 right-1 h-7 w-7 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-grab active:cursor-grabbing bg-secondary/70 rounded-md"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <GripVertical className="w-4 h-4 text-secondary-foreground" />
-          </div>
-        </div>
-        <div className="p-2 text-center bg-white/50 space-y-1">
-          <p className="text-sm font-semibold text-primary truncate">{plant.name}</p>
-        </div>
-      </CardContent>
-    </Card>
-  );
 }
 
 
@@ -226,7 +202,6 @@ export default function RoomPage() {
   const { user, gameData } = useAuth();
   const { toast } = useToast();
   
-  const [collectionPlantIds, setCollectionPlantIds] = useState<number[]>([]);
   const [deskPlantIds, setDeskPlantIds] = useState<(number | null)[]>([]);
   
   const [activeDragPlant, setActiveDragPlant] = useState<Plant | null>(null);
@@ -249,7 +224,7 @@ export default function RoomPage() {
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 250,
+        delay: 150,
         tolerance: 5,
       },
     })
@@ -257,7 +232,6 @@ export default function RoomPage() {
   
   useEffect(() => {
     if (gameData) {
-        setCollectionPlantIds(gameData.collectionPlantIds || []);
         setDeskPlantIds(gameData.deskPlantIds || Array(NUM_POTS).fill(null));
     }
   }, [gameData]);
@@ -323,7 +297,7 @@ export default function RoomPage() {
     const [overType, overIdStr] = (over.id as string).split(':');
     
     let newDeskIds = [...deskPlantIds];
-    let newCollectionIds = [...collectionPlantIds];
+    const currentCollectionIds = collectionPlants.map(p => p.id);
 
     if (overType === 'pot') {
         const potIndex = parseInt(overIdStr, 10);
@@ -331,14 +305,17 @@ export default function RoomPage() {
 
         newDeskIds[potIndex] = activePlant.id;
         
+        let newCollectionIds = [...currentCollectionIds];
         if (activeSource === 'desk') {
             const sourcePotIndex = deskPlantIds.findIndex(id => id === activePlant.id);
             if (sourcePotIndex !== -1 && sourcePotIndex !== potIndex) {
                  newDeskIds[sourcePotIndex] = plantInPotId; 
             }
         } else { 
-             newCollectionIds = collectionPlantIds.filter(id => id !== activePlant.id);
-             if (plantInPotId) {
+             newCollectionIds = currentCollectionIds.filter(id => id !== activePlant.id);
+        }
+        if (plantInPotId) {
+            if (!newCollectionIds.includes(plantInPotId)) {
                 newCollectionIds.push(plantInPotId);
             }
         }
@@ -349,7 +326,8 @@ export default function RoomPage() {
         if (sourcePotIndex !== -1) {
              newDeskIds[sourcePotIndex] = null;
         }
-        if (!collectionPlantIds.includes(activePlant.id)) {
+        let newCollectionIds = [...currentCollectionIds];
+        if (!newCollectionIds.includes(activePlant.id)) {
             newCollectionIds.push(activePlant.id);
         }
         await updatePlantArrangement(user.uid, newCollectionIds, newDeskIds);
@@ -505,10 +483,11 @@ export default function RoomPage() {
                 <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5">
                     {collectionPlants.length > 0 ? (
                       collectionPlants.map((plant) => (
-                        <CollectionPlantCard 
+                        <DraggablePlant 
                             key={plant.id} 
                             plant={plant}
-                            onSelect={() => setSelectedPlant(allPlants[plant.id])}
+                            source="collection"
+                            onClick={() => setSelectedPlant(allPlants[plant.id])}
                         />
                       ))
                     ) : (
@@ -546,9 +525,9 @@ export default function RoomPage() {
         />
 
         <EvolvePreviewDialog
-            plantName={evolvedPreviewData?.plantName}
-            newForm={evolvedPreviewData?.newForm}
-            newImageUri={evolvedPreviewData?.newImageUri}
+            plantName={evolvedPreviewData?.plantName || ''}
+            newForm={evolvedPreviewData?.newForm || ''}
+            newImageUri={evolvedPreviewData?.newImageUri || ''}
             open={!!evolvedPreviewData}
             onConfirm={handleConfirmEvolution}
         />
@@ -568,3 +547,5 @@ export default function RoomPage() {
     </DndContext>
   );
 }
+
+    
