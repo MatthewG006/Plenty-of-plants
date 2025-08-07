@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Leaf, Loader2, Sparkles, Star, Gem, MessageCircle, Info } from 'lucide-react';
+import { Leaf, Loader2, Sparkles, Star, Gem, MessageCircle, GripVertical } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -162,9 +162,17 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
     );
 }
 
-function PlantCardUI({ plant, onViewDetails }: { plant: Plant, onViewDetails: () => void }) {
+function CollectionPlantCard({ plant, onSelect }: { plant: Plant, onSelect: () => void }) {
+    const { attributes, listeners, setNodeRef } = useDraggable({
+        id: `collection:${plant.id}`,
+        data: { plant, source: 'collection' },
+    });
+
     return (
-        <Card className="group overflow-hidden shadow-md w-full relative">
+        <Card 
+            className="group overflow-hidden shadow-md w-full relative touch-none"
+            onClick={onSelect}
+        >
             <CardContent className="p-0">
                 <div className="aspect-square relative flex items-center justify-center bg-muted/30">
                     {plant.image !== 'placeholder' ? (
@@ -176,17 +184,13 @@ function PlantCardUI({ plant, onViewDetails }: { plant: Plant, onViewDetails: ()
                     {plant.hasRedGlitter && <RedGlitterAnimation />}
                     {plant.hasSheen && <SheenAnimation />}
                     {plant.hasRainbowGlitter && <RainbowGlitterAnimation />}
-                    <Button 
-                        size="icon" 
-                        variant="secondary"
-                        className="absolute top-1 right-1 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                        onClick={(e) => {
-                            e.stopPropagation(); // Prevent drag from starting
-                            onViewDetails();
-                        }}
+                    
+                    <div ref={setNodeRef} {...listeners} {...attributes}
+                        className="absolute top-1 right-1 h-7 w-7 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-grab active:cursor-grabbing bg-secondary/70 rounded-md"
+                        onClick={(e) => e.stopPropagation()} // Prevent card click when grabbing handle
                     >
-                        <Info className="w-4 h-4" />
-                    </Button>
+                        <GripVertical className="w-4 h-4 text-secondary-foreground" />
+                    </div>
                 </div>
                 <div className="p-2 text-center bg-white/50 space-y-1">
                     <p className="text-sm font-semibold text-primary truncate">{plant.name}</p>
@@ -196,24 +200,6 @@ function PlantCardUI({ plant, onViewDetails }: { plant: Plant, onViewDetails: ()
     );
 }
 
-function DraggablePlantCard({ plant, onSelect, ...props }: { plant: Plant, onSelect: (plant: Plant) => void } & React.HTMLAttributes<HTMLDivElement>) {
-    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-        id: `collection:${plant.id}`,
-        data: { plant, source: 'collection' },
-    });
-
-    const style = {
-        opacity: isDragging ? 0.5 : 1,
-        touchAction: 'none',
-        ...props.style,
-    };
-
-    return (
-        <div ref={setNodeRef} style={style} {...listeners} {...attributes} {...props} className={cn(props.className, "cursor-grab active:cursor-grabbing")}>
-            <PlantCardUI plant={plant} onViewDetails={() => onSelect(plant)} />
-        </div>
-    );
-}
 
 function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
     const { isOver, setNodeRef } = useDroppable({ id: 'collection:area' });
@@ -248,17 +234,8 @@ export default function RoomPage() {
   const [evolvedPreviewData, setEvolvedPreviewData] = useState<{plantId: number; plantName: string; newForm: string, newImageUri: string, personality?: string } | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 5, 
-      },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 150, 
-        tolerance: 5,
-      },
-    })
+    useSensor(PointerSensor),
+    useSensor(TouchSensor)
   );
   
   useEffect(() => {
@@ -448,7 +425,7 @@ export default function RoomPage() {
       <div className="space-y-4 bg-white min-h-screen">
         <header className="flex flex-col items-center gap-2 p-4 text-center">
           <h1 className="text-3xl text-primary text-center">My Room</h1>
-          <p className="text-muted-foreground text-sm">Use the info button to see plant details. Drag to move.</p>
+          <p className="text-muted-foreground text-sm">Click a plant to view its details. Grab the handle to drag.</p>
         </header>
 
          <section className="px-4">
@@ -511,7 +488,7 @@ export default function RoomPage() {
                 <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5">
                     {collectionPlants.length > 0 ? (
                       collectionPlants.map((plant) => (
-                        <DraggablePlantCard 
+                        <CollectionPlantCard 
                             key={plant.id} 
                             plant={plant}
                             onSelect={() => setSelectedPlant(allPlants[plant.id])}
@@ -561,9 +538,13 @@ export default function RoomPage() {
         
         <DragOverlay>
           {activeDragPlant ? (
-             <div className="w-28 h-28">
-                <PlantCardUI plant={activeDragPlant} onViewDetails={() => {}} />
-            </div>
+             <Card>
+                <CardContent className="p-0">
+                    <div className="w-28 h-28">
+                         <PlantImageUI plant={activeDragPlant} image={activeDragPlant.image} />
+                    </div>
+                </CardContent>
+             </Card>
           ) : null}
         </DragOverlay>
       </div>
