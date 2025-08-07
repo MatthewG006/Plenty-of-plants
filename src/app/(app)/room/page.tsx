@@ -4,9 +4,9 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Leaf, Loader2, Sparkles, Star, Eye, GripVertical } from 'lucide-react';
+import { Leaf, Loader2, Sparkles, Star } from 'lucide-react';
 import Image from 'next/image';
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import type { Plant } from '@/interfaces/plant';
 import { cn } from '@/lib/utils';
@@ -18,11 +18,10 @@ import {
   type DragEndEvent,
   type DragStartEvent,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
-  TouchSensor
 } from '@dnd-kit/core';
-import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { updatePlantArrangement, updatePlant } from '@/lib/firestore';
 import { makeBackgroundTransparent } from '@/lib/image-compression';
@@ -124,7 +123,7 @@ function CollectionPlantCard({ plant, onClick }: { plant: Plant, onClick: (plant
     });
 
     return (
-        <div 
+        <Card 
             ref={setNodeRef}
             style={{ opacity: isDragging ? 0.4 : 1 }}
             className="touch-none cursor-grab active:cursor-grabbing"
@@ -132,9 +131,7 @@ function CollectionPlantCard({ plant, onClick }: { plant: Plant, onClick: (plant
             {...listeners}
             onClick={() => onClick(plant)}
         >
-            <Card 
-                className="group overflow-hidden shadow-md w-full relative"
-            >
+            <div className="group overflow-hidden shadow-md w-full relative pointer-events-none">
                 <CardContent className="p-0">
                     <div className="aspect-square relative flex items-center justify-center bg-muted/30">
                       {plant.image !== 'placeholder' ? (
@@ -151,8 +148,8 @@ function CollectionPlantCard({ plant, onClick }: { plant: Plant, onClick: (plant
                       <p className="text-sm font-semibold text-primary truncate">{plant.name}</p>
                     </div>
                 </CardContent>
-            </Card>
-        </div>
+            </div>
+        </Card>
     );
 }
 
