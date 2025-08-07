@@ -154,7 +154,7 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
     
     return (
         <div 
-            className="relative w-full h-full flex items-center justify-center"
+            className="relative w-full h-full flex items-center justify-center cursor-pointer"
             onClick={() => onClickPlant(plant)}
         >
             <DraggableDeskPlant 
@@ -224,7 +224,6 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
 export default function RoomPage() {
   const { user, gameData } = useAuth();
   const { toast } = useToast();
-  const { playSfx } = useAudio();
   
   const [collectionPlantIds, setCollectionPlantIds] = useState<number[]>([]);
   const [deskPlantIds, setDeskPlantIds] = useState<(number | null)[]>([]);
@@ -244,13 +243,13 @@ export default function RoomPage() {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 5,
+        distance: 5, // Require a 5px drag to trigger, allows for clicks
       },
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 150,
-        tolerance: 5,
+        delay: 150, // Require a 150ms press
+        tolerance: 5, // Allow 5px of movement during the press
       },
     })
   );
@@ -317,13 +316,11 @@ export default function RoomPage() {
   }, [activeDragPlant, allPlants, processedDeskImages]);
   
   const handleDragStart = (event: DragStartEvent) => {
-    playSfx('pickup');
     setActiveDragPlant(event.active.data.current?.plant);
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
     setActiveDragPlant(null);
-    playSfx('tap');
     if (!user || !gameData) return;
 
     const { active, over } = event;
@@ -375,71 +372,6 @@ export default function RoomPage() {
     }
   };
     
-  const handleApplyGlitter = async (plantId: number) => {
-    if (!user) return;
-    try {
-        await useGlitter(user.uid);
-        await updatePlant(user.uid, plantId, { hasGlitter: true });
-        await updateApplyGlitterProgress(user.uid);
-        playSfx('chime');
-        toast({
-            title: "Sparkly!",
-            description: "Your plant is now shimmering.",
-        });
-    } catch (e: any) {
-        console.error("Failed to apply glitter", e);
-        toast({ variant: 'destructive', title: "Error", description: e.message || "Could not apply glitter." });
-    }
-  };
-
-  const handleApplySheen = async (plantId: number) => {
-    if (!user) return;
-    try {
-        await useSheen(user.uid);
-        await updatePlant(user.uid, plantId, { hasSheen: true });
-        await updateApplySheenProgress(user.uid);
-        playSfx('chime');
-        toast({
-            title: "Sheen applied!",
-            description: "Your plant is now shimmering beautifully.",
-        });
-    } catch (e: any) {
-        console.error("Failed to apply sheen", e);
-        toast({ variant: 'destructive', title: "Error", description: e.message || "Could not apply sheen." });
-    }
-  };
-  
-  const handleApplyRainbowGlitter = async (plantId: number) => {
-    if (!user) return;
-    try {
-        await useRainbowGlitter(user.uid);
-        await updatePlant(user.uid, plantId, { hasRainbowGlitter: true });
-        playSfx('chime');
-        toast({
-            title: "Rainbow Glitter applied!",
-            description: "Your plant is sparkling with all the colors.",
-        });
-    } catch (e: any) {
-        console.error("Failed to apply rainbow glitter", e);
-        toast({ variant: 'destructive', title: "Error", description: e.message || "Could not apply rainbow glitter." });
-    }
-  };
-
-  const handleApplyRedGlitter = async (plantId: number) => {
-    if (!user) return;
-    try {
-        await useRedGlitter(user.uid);
-        await updatePlant(user.uid, plantId, { hasRedGlitter: true });
-        playSfx('chime');
-        toast({
-            title: "Red Glitter applied!",
-            description: "Your plant is sparkling with a fiery red.",
-        });
-    } catch (e: any) {
-        console.error("Failed to apply red glitter", e);
-        toast({ variant: 'destructive', title: "Error", description: e.message || "Could not apply red glitter." });
-    }
-  };
   
   const handleEvolve = async () => {
     if (!currentEvolvingPlant || !user) return;
@@ -478,7 +410,6 @@ export default function RoomPage() {
     if (!user || !evolvedPreviewData || !gameData) return;
     
     try {
-        playSfx('success');
         const plantToUpdateId = evolvedPreviewData.plantId;
         const { newImageUri, newForm, personality } = evolvedPreviewData;
         
@@ -595,7 +526,6 @@ export default function RoomPage() {
                             key={plant.id} 
                             plant={plant}
                             onClick={() => {
-                                playSfx('tap');
                                 setSelectedPlant(allPlants[plant.id]);
                             }}
                         />
@@ -657,3 +587,5 @@ export default function RoomPage() {
     </DndContext>
   );
 }
+
+    
