@@ -117,7 +117,7 @@ function PlantImageUI({ plant, image }: { plant: Plant, image: string | null }) 
   );
 }
 
-function CollectionPlantCard({ plant }: { plant: Plant }) {
+function CollectionPlantCard({ plant, onClick }: { plant: Plant, onClick: (plant: Plant) => void }) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: `collection:${plant.id}`,
         data: { plant, source: 'collection' },
@@ -130,6 +130,7 @@ function CollectionPlantCard({ plant }: { plant: Plant }) {
             className="touch-none cursor-grab active:cursor-grabbing"
             {...attributes}
             {...listeners}
+            onClick={() => onClick(plant)}
         >
             <Card 
                 className="group overflow-hidden shadow-md w-full relative"
@@ -184,11 +185,11 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
     
     return (
         <div 
-            className="relative w-full h-full flex items-center justify-center cursor-pointer"
-            onClick={() => onClickPlant(plant)}
+            className="relative w-full h-full flex items-center justify-center"
         >
             <DraggableDeskPlant
                 plant={{...plant, image: processedImage || plant.image}}
+                onClick={() => onClickPlant(plant)}
             />
             <div ref={setNodeRef} className={cn("absolute inset-0 z-0", isOver && "bg-black/20 rounded-lg")} />
         </div>
@@ -228,8 +229,17 @@ export default function RoomPage() {
   const [evolvedPreviewData, setEvolvedPreviewData] = useState<{plantId: number; plantName: string; newForm: string, newImageUri: string, personality?: string } | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(TouchSensor)
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
+      },
+    })
   );
   
   useEffect(() => {
@@ -403,6 +413,10 @@ export default function RoomPage() {
         setEvolvedPreviewData(null);
     }
   };
+  
+  const handleSelectPlant = (plant: Plant) => {
+    setSelectedPlant(allPlants[plant.id]);
+  };
 
   if (!user || !gameData) {
     return (
@@ -457,7 +471,7 @@ export default function RoomPage() {
                             key={plant?.id || `pot-${index}`}
                             plant={plant}
                             index={index}
-                            onClickPlant={(p) => setSelectedPlant(allPlants[p.id])}
+                            onClickPlant={handleSelectPlant}
                             processedImage={plant ? processedDeskImages[plant.id] : null}
                         />
                     )
@@ -488,6 +502,7 @@ export default function RoomPage() {
                         <CollectionPlantCard 
                             key={plant.id} 
                             plant={plant}
+                            onClick={handleSelectPlant}
                         />
                       ))
                     ) : (
