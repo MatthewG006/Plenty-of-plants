@@ -78,8 +78,8 @@ export default function ParkPage() {
             </Button>
         </div>
         
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 bg-black/50 p-8 rounded-lg text-center shadow-lg backdrop-blur-sm z-0">
-          <h1 className="text-4xl font-bold mb-4">Welcome to the Park</h1>
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 bg-black/50 p-8 rounded-lg text-center shadow-lg backdrop-blur-sm z-0">
+          <h1 className="text-3xl font-bold mb-4">Welcome to the Park</h1>
            <p className="text-lg">A quiet place to relax before the contest.</p>
         </div>
 
