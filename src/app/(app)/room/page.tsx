@@ -117,7 +117,7 @@ function PlantImageUI({ plant, image }: { plant: Plant, image: string | null }) 
   );
 }
 
-function CollectionPlantCard({ plant, onViewDetails }: { plant: Plant, onViewDetails: () => void }) {
+function CollectionPlantCard({ plant }: { plant: Plant }) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: `collection:${plant.id}`,
         data: { plant, source: 'collection' },
@@ -125,22 +125,15 @@ function CollectionPlantCard({ plant, onViewDetails }: { plant: Plant, onViewDet
 
     return (
         <div 
+            ref={setNodeRef}
             style={{ opacity: isDragging ? 0.4 : 1 }}
-            className="touch-none"
+            className="touch-none cursor-grab active:cursor-grabbing"
+            {...attributes}
+            {...listeners}
         >
             <Card 
-                ref={setNodeRef}
-                onClick={onViewDetails}
-                className="group overflow-hidden shadow-md w-full relative cursor-pointer"
+                className="group overflow-hidden shadow-md w-full relative"
             >
-                <div 
-                    {...listeners} 
-                    {...attributes} 
-                    onClick={(e) => e.stopPropagation()}
-                    className="absolute top-1/2 -translate-y-1/2 left-0 h-full w-6 flex items-center justify-center cursor-grab active:cursor-grabbing z-10"
-                >
-                   <GripVertical className="h-5 w-5 text-muted-foreground/50 group-hover:text-muted-foreground" />
-                </div>
                 <CardContent className="p-0">
                     <div className="aspect-square relative flex items-center justify-center bg-muted/30">
                       {plant.image !== 'placeholder' ? (
@@ -191,7 +184,7 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
     
     return (
         <div 
-            className="relative w-full h-full flex items-center justify-center"
+            className="relative w-full h-full flex items-center justify-center cursor-pointer"
             onClick={() => onClickPlant(plant)}
         >
             <DraggableDeskPlant
@@ -429,7 +422,7 @@ export default function RoomPage() {
       <div className="space-y-4 bg-white min-h-screen">
         <header className="flex flex-col items-center gap-2 p-4 text-center">
           <h1 className="text-3xl text-primary text-center">My Room</h1>
-          <p className="text-muted-foreground text-sm">Click a plant to view details. Grab the handle on the left to move them.</p>
+          <p className="text-muted-foreground text-sm">Drag plants to your desk, then click them to view details or apply cosmetics.</p>
         </header>
 
          <section className="px-4">
@@ -495,7 +488,6 @@ export default function RoomPage() {
                         <CollectionPlantCard 
                             key={plant.id} 
                             plant={plant}
-                            onViewDetails={() => setSelectedPlant(allPlants[plant.id])}
                         />
                       ))
                     ) : (
