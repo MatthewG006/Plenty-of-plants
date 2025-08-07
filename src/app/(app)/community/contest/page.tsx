@@ -15,7 +15,7 @@ import { doc, onSnapshot, updateDoc, increment } from 'firebase/firestore';
 import { db, awardContestPrize } from '@/lib/firestore';
 import type { ContestSession, ContestPlayer } from '@/lib/contest-manager';
 
-const MAX_PLAYERS = 1;
+const MAX_PLAYERS = 3;
 
 function SheenAnimation() {
     return (
@@ -301,3 +301,5 @@ export default function ContestPage() {
     </div>
   );
 }
+
+    
