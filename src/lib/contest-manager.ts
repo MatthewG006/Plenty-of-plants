@@ -1,7 +1,7 @@
 
 'use client';
 
-import { db } from './firebase';
+import { db } from '@/lib/firebase';
 import {
   collection,
   query,
@@ -37,7 +37,6 @@ export interface ContestSession {
   playerVotes: Record<string, boolean>; // uid -> hasVoted
   winnerId?: number | null;
   createdAt: FieldValue;
-  votingEndsAt?: FieldValue;
   playerCount: number;
 }
 
