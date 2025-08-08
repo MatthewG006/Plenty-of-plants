@@ -189,7 +189,11 @@ export default function ContestPage() {
                 (gameData as any).avatarColor || '#ffffff',
                 plant
             );
-            setSessionId(id);
+            if (id) {
+                setSessionId(id);
+            } else {
+                throw new Error("Failed to get session ID");
+            }
         } catch (error) {
             console.error('Error joining contest session:', error);
             toast({
@@ -265,6 +269,7 @@ export default function ContestPage() {
                 {contestants.map((player) => {
                     const plant = player.plant;
                     const isWinner = session?.winnerId === plant.id;
+                    const isSelf = player.uid === user?.uid;
                     return (
                         <div key={plant.id} className="relative flex flex-col items-center justify-end">
                             <div className={cn("relative w-32 h-32 sm:w-48 sm:h-48 transition-all duration-500", isWinner && "scale-125")}>
@@ -280,7 +285,7 @@ export default function ContestPage() {
                                 {isWinner && <Crown className="w-6 h-6 text-yellow-400 mx-auto mt-1" />}
                             </div>
                             {status === 'voting' && (
-                                <Button size="sm" className="mt-2 pointer-events-auto" onClick={() => handleVote(plant.id)} disabled={hasVoted}>
+                                <Button size="sm" className="mt-2 pointer-events-auto" onClick={() => handleVote(plant.id)} disabled={hasVoted || isSelf}>
                                     {hasVoted ? 'Voted' : 'Vote'}
                                 </Button>
                             )}
