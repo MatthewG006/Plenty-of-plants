@@ -70,7 +70,7 @@ export default function ParkPage() {
         style={{ backgroundImage: "url('/park.png')" }}
       >
         <div className="absolute top-4 left-4 z-10">
-            <Button asChild>
+            <Button asChild variant="secondary">
                 <Link href="/community">
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Back to Showcase
