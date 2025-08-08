@@ -82,9 +82,9 @@ export async function findOrCreateContestSession(
             const sessionRef = doc(db, 'contestSessions', availableSessionDoc.id);
             const sessionData = availableSessionDoc.data();
 
+            // This check is important inside the transaction
             if (sessionData.playerCount >= MAX_PLAYERS) {
-                // Session filled up between query and transaction start
-                throw new Error("Session is no longer available.");
+                return null;
             }
             
             const newPlayerCount = sessionData.playerCount + 1;
