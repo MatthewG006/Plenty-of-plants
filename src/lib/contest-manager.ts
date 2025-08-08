@@ -43,7 +43,7 @@ export interface ContestSession {
 
 
 // In a real, high-traffic application, this would be handled by a Cloud Function
-// to avoid race conditions. For this project, a client-side implementation is sufficient.
+// to avoid race conditions. For this project, a client-side transaction is sufficient.
 export async function findOrCreateContestSession(
   userId: string,
   username: string,
