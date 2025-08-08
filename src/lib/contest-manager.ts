@@ -67,12 +67,11 @@ export async function findOrCreateContestSession(
     }
 
     // 2. Find an open session to join using a transaction to prevent race conditions.
-    // Query only for waiting sessions, then filter by player count on the client to avoid needing a composite index.
-    const openSessionQuery = query(sessionsRef, where('status', '==', 'waiting'), limit(10));
+    const openSessionQuery = query(sessionsRef, where('status', '==', 'waiting'));
     
     try {
         const sessionId = await runTransaction(db, async (transaction) => {
-            const openSessionsSnapshot = await getDocs(openSessionQuery);
+            const openSessionsSnapshot = await transaction.get(openSessionQuery);
             
             // Find the first session that is ACTUALLY not full
             const availableSessionDoc = openSessionsSnapshot.docs.find(doc => doc.data().playerCount < MAX_PLAYERS);
@@ -82,15 +81,14 @@ export async function findOrCreateContestSession(
             }
             
             const sessionRef = doc(db, 'contestSessions', availableSessionDoc.id);
+            const sessionData = availableSessionDoc.data();
 
-            // Re-fetch inside transaction to get latest data
-            const sessionSnapshot = await transaction.get(sessionRef);
-            if (!sessionSnapshot.exists() || sessionSnapshot.data().playerCount >= MAX_PLAYERS) {
-                // Session filled up or was deleted between query and transaction
+            if (sessionData.playerCount >= MAX_PLAYERS) {
+                // Session filled up between query and transaction start
                 throw new Error("Session is no longer available.");
             }
             
-            const newPlayerCount = sessionSnapshot.data().playerCount + 1;
+            const newPlayerCount = sessionData.playerCount + 1;
             const updates: any = {
                 players: arrayUnion(newPlayer),
                 playerUids: arrayUnion(userId),
@@ -110,7 +108,7 @@ export async function findOrCreateContestSession(
         }
 
     } catch (error) {
-        console.error("Transaction to join session failed. Will try creating a new one.", error);
+        console.error("Transaction to join session failed. Will create a new one.", error);
     }
     
     // 3. If no open sessions or transaction failed, create a new one
@@ -125,10 +123,6 @@ export async function findOrCreateContestSession(
       createdAt: serverTimestamp(),
       playerCount: 1,
     };
-
-    if (newSession.playerCount >= MAX_PLAYERS) {
-        newSession.status = 'countdown';
-    }
 
     await setDoc(doc(db, 'contestSessions', newSessionId), newSession);
     return newSessionId;
