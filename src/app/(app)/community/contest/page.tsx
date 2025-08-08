@@ -143,6 +143,7 @@ export default function ContestPage() {
     useEffect(() => {
         if (!session || session.status !== 'voting' || !user || !session.players.length) return;
 
+        // The first player to join the session becomes the "host" responsible for tallying votes
         if (session.players[0].uid === user.uid) {
             const totalVotes = Object.keys(session.playerVotes || {}).length;
             if (totalVotes >= session.players.length) {
