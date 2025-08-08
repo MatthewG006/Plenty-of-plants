@@ -32,6 +32,7 @@ export interface ContestSession {
   id: string;
   status: 'waiting' | 'countdown' | 'voting' | 'finished';
   players: ContestPlayer[];
+  playerUids: string[];
   votes: Record<string, number>; // plant.id -> vote count
   playerVotes: Record<string, boolean>; // uid -> hasVoted
   winnerId?: number | null;

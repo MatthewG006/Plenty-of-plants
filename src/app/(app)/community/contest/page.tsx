@@ -128,6 +128,7 @@ export default function ContestPage() {
 
         if (countdown === 1 && user && session.players[0].uid === user.uid) {
             setTimeout(() => {
+                if (!session.id) return;
                 const sessionDocRef = doc(db, 'contestSessions', session.id);
                 updateDoc(sessionDocRef, { status: 'voting' });
             }, 1000);
@@ -151,7 +152,7 @@ export default function ContestPage() {
                     }
                 }
 
-                if (winnerId) {
+                if (winnerId !== null) {
                     const winnerPlayer = session.players.find(p => p.plant.id === winnerId);
                     if (winnerPlayer) {
                         awardContestPrize(winnerPlayer.uid).then(() => {
@@ -160,6 +161,7 @@ export default function ContestPage() {
                     }
                 }
                 
+                if (!session.id) return;
                 const sessionDocRef = doc(db, 'contestSessions', session.id);
                 updateDoc(sessionDocRef, {
                     status: 'finished',
