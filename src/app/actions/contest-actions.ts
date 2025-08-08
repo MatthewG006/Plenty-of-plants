@@ -6,14 +6,12 @@ import {
   collection,
   query,
   where,
-  limit,
   getDocs,
   setDoc,
   doc,
   serverTimestamp,
   arrayUnion,
   runTransaction,
-  writeBatch,
 } from 'firebase/firestore';
 import type { Plant } from '@/interfaces/plant';
 import { v4 as uuidv4 } from 'uuid';
@@ -29,31 +27,35 @@ export async function findOrCreateContestSessionAction(
 ): Promise<string> {
   const sessionsRef = collection(db, 'contestSessions');
 
-  // Transactionally find and join a session
   try {
     const sessionId = await runTransaction(db, async (transaction) => {
-      // Query for sessions that are waiting for players
-      const openSessionQuery = query(
+      // Step 1: Query for waiting sessions (simple query, no index needed)
+      const waitingSessionsQuery = query(
         sessionsRef,
-        where('status', '==', 'waiting'),
-        where('playerCount', '<', MAX_PLAYERS),
-        limit(1)
+        where('status', '==', 'waiting')
       );
-      
-      const openSessionsSnapshot = await transaction.get(openSessionQuery);
+      const waitingSessionsSnapshot = await transaction.get(waitingSessionsQuery);
 
-      if (!openSessionsSnapshot.empty) {
-        // Found an open session, let's join it
-        const sessionDoc = openSessionsSnapshot.docs[0];
-        const sessionRef = sessionDoc.ref;
-        
-        // Ensure user is not already in this session to prevent duplicate joins
+      let sessionToJoinRef = null;
+
+      // Step 2: Find a session that isn't full
+      for (const sessionDoc of waitingSessionsSnapshot.docs) {
         const sessionData = sessionDoc.data() as ContestSession;
-        if (sessionData.playerUids.includes(userId)) {
-            // User is already in this session, return its ID
-            return sessionRef.id;
+        if (sessionData.playerCount < MAX_PLAYERS) {
+          // Found a spot, make sure we're not already in it
+          if (!sessionData.playerUids.includes(userId)) {
+              sessionToJoinRef = sessionDoc.ref;
+              break;
+          } else {
+              // User is already in this session, so just return its ID.
+              return sessionDoc.id;
+          }
         }
+      }
 
+      // Step 3: If we found a session, join it.
+      if (sessionToJoinRef) {
+        const sessionData = (await transaction.get(sessionToJoinRef)).data() as ContestSession;
         const newPlayer: ContestPlayer = { uid: userId, username, avatarColor, plant: playerPlant };
         const newPlayerCount = sessionData.playerCount + 1;
 
@@ -67,36 +69,32 @@ export async function findOrCreateContestSessionAction(
           updates.status = 'countdown';
         }
 
-        transaction.update(sessionRef, updates);
-        return sessionRef.id;
-      } else {
-        // No open sessions found, return null to signal creation of a new one
-        return null;
-      }
+        transaction.update(sessionToJoinRef, updates);
+        return sessionToJoinRef.id;
+      } 
+      
+      // Step 4: If no session was found, create a new one.
+      const newSessionId = uuidv4();
+      const newPlayer: ContestPlayer = { uid: userId, username, avatarColor, plant: playerPlant };
+      const newSession: ContestSession = {
+        id: newSessionId,
+        status: 'waiting',
+        players: [newPlayer],
+        playerUids: [userId],
+        votes: {},
+        playerVotes: {},
+        createdAt: serverTimestamp(),
+        playerCount: 1,
+      };
+      
+      const newSessionRef = doc(db, 'contestSessions', newSessionId);
+      transaction.set(newSessionRef, newSession);
+      return newSessionId;
     });
 
-    if (sessionId) {
-      return sessionId;
-    }
+    return sessionId;
   } catch (error) {
-    console.error("Transaction to find/join session failed. Will create a new one.", error);
-    // If transaction fails, we proceed to create a new session below.
+    console.error("Error in findOrCreateContestSession transaction: ", error);
+    throw new Error("Failed to find or create a contest session.");
   }
-
-  // If no open session was found or the transaction failed, create a new session.
-  const newSessionId = uuidv4();
-  const newPlayer: ContestPlayer = { uid: userId, username, avatarColor, plant: playerPlant };
-  const newSession: ContestSession = {
-    id: newSessionId,
-    status: 'waiting',
-    players: [newPlayer],
-    playerUids: [userId],
-    votes: {},
-    playerVotes: {},
-    createdAt: serverTimestamp(),
-    playerCount: 1,
-  };
-
-  await setDoc(doc(db, 'contestSessions', newSessionId), newSession);
-  return newSessionId;
 }
