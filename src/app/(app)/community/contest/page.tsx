@@ -118,7 +118,7 @@ export default function ContestPage() {
     }, [sessionId, user, toast]);
 
     useEffect(() => {
-        if (session?.status !== 'countdown') {
+        if (!session || session.status !== 'countdown' || !user || !session.players.length) {
             setCountdown(5); // Reset countdown if status changes
             return;
         }
@@ -129,7 +129,7 @@ export default function ContestPage() {
             setCountdown(prev => prev - 1);
         }, 1000);
 
-        if (countdown === 1 && user && session.players[0].uid === user.uid) {
+        if (countdown === 1 && session.players[0].uid === user.uid) {
             setTimeout(() => {
                 if (!session.id) return;
                 const sessionDocRef = doc(db, 'contestSessions', session.id);
@@ -141,7 +141,9 @@ export default function ContestPage() {
     }, [session, countdown, user]);
 
     useEffect(() => {
-        if (session?.status === 'voting' && user && session.players[0].uid === user.uid) {
+        if (!session || session.status !== 'voting' || !user || !session.players.length) return;
+
+        if (session.players[0].uid === user.uid) {
             const totalVotes = Object.keys(session.playerVotes || {}).length;
             if (totalVotes >= session.players.length) {
                 const voteCounts = session.votes || {};
