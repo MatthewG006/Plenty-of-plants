@@ -57,7 +57,8 @@ export async function findOrCreateContestSession(
     const playerInSessionQuery = query(
         sessionsRef, 
         where('status', 'in', ['waiting', 'countdown', 'voting']),
-        where('playerUids', 'array-contains', userId)
+        where('playerUids', 'array-contains', userId),
+        limit(1)
     );
 
     const playerInSessionSnapshot = await getDocs(playerInSessionQuery);
@@ -66,18 +67,23 @@ export async function findOrCreateContestSession(
     }
 
     // 2. Find an open session to join using a transaction to prevent race conditions.
-    const openSessionQuery = query(sessionsRef, where('status', '==', 'waiting'), where('playerCount', '<', MAX_PLAYERS), limit(1));
+    // Query only for waiting sessions, then filter by player count on the client to avoid needing a composite index.
+    const openSessionQuery = query(sessionsRef, where('status', '==', 'waiting'), limit(10));
     
     try {
         const sessionId = await runTransaction(db, async (transaction) => {
             const openSessionsSnapshot = await getDocs(openSessionQuery);
-            if (openSessionsSnapshot.empty) {
+            
+            // Find the first session that is ACTUALLY not full
+            const availableSessionDoc = openSessionsSnapshot.docs.find(doc => doc.data().playerCount < MAX_PLAYERS);
+
+            if (!availableSessionDoc) {
                 return null; // No open sessions, will create a new one.
             }
             
-            const sessionToJoinDoc = openSessionsSnapshot.docs[0];
-            const sessionRef = doc(db, 'contestSessions', sessionToJoinDoc.id);
+            const sessionRef = doc(db, 'contestSessions', availableSessionDoc.id);
 
+            // Re-fetch inside transaction to get latest data
             const sessionSnapshot = await transaction.get(sessionRef);
             if (!sessionSnapshot.exists() || sessionSnapshot.data().playerCount >= MAX_PLAYERS) {
                 // Session filled up or was deleted between query and transaction
@@ -118,7 +124,7 @@ export async function findOrCreateContestSession(
       playerVotes: {},
       createdAt: serverTimestamp(),
       playerCount: 1,
-    } as any;
+    };
 
     if (newSession.playerCount >= MAX_PLAYERS) {
         newSession.status = 'countdown';
