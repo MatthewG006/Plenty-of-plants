@@ -9,7 +9,7 @@ import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import type { Plant } from '@/interfaces/plant';
 import { useAuth } from '@/context/AuthContext';
-import { findOrCreateContestSession } from '@/lib/contest-manager';
+import { findOrCreateContestSessionAction } from '@/app/actions/contest-actions';
 import { useToast } from '@/hooks/use-toast';
 import { doc, onSnapshot, updateDoc, increment } from 'firebase/firestore';
 import { db, awardContestPrize } from '@/lib/firestore';
@@ -184,7 +184,7 @@ export default function ContestPage() {
         setIsJoining(true);
 
         try {
-            const id = await findOrCreateContestSession(
+            const id = await findOrCreateContestSessionAction(
                 user.uid,
                 user.displayName || 'Player',
                 (gameData as any).avatarColor || '#ffffff',
