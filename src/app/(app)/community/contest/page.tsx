@@ -16,7 +16,7 @@ import { db, awardContestPrize } from '@/lib/firestore';
 import type { ContestSession, ContestPlayer } from '@/lib/contest-manager';
 import { ContestPlantSelectionDialog } from '@/components/plant-dialogs';
 
-const MAX_PLAYERS = 1;
+const MAX_PLAYERS = 3;
 
 function SheenAnimation() {
     return (
@@ -89,7 +89,7 @@ export default function ContestPage() {
     const [isSelectingPlant, setIsSelectingPlant] = useState(false);
 
     useEffect(() => {
-        if (!sessionId) return;
+        if (!sessionId || !user) return;
 
         setIsLoading(true);
         const sessionDocRef = doc(db, 'contestSessions', sessionId);
@@ -100,7 +100,6 @@ export default function ContestPage() {
 
                 const userVote = sessionData.playerVotes && user ? sessionData.playerVotes[user.uid] : undefined;
                 setHasVoted(!!userVote);
-
                 setIsLoading(false);
             } else {
                 console.error("Contest session not found!");
@@ -109,10 +108,14 @@ export default function ContestPage() {
                 setSession(null);
                 setIsLoading(false);
             }
+        }, (error) => {
+            console.error("Firestore snapshot error:", error);
+            toast({ variant: 'destructive', title: 'Session Error', description: 'Could not connect to the contest session.' });
+            setIsLoading(false);
         });
 
         return () => unsubscribe();
-    }, [sessionId, toast, user]);
+    }, [sessionId, user, toast]);
 
     useEffect(() => {
         if (session?.status !== 'countdown') {

@@ -19,7 +19,7 @@ import {
 import type { Plant } from '@/interfaces/plant';
 import { v4 as uuidv4 } from 'uuid';
 
-const MAX_PLAYERS = 1;
+const MAX_PLAYERS = 3;
 
 export interface ContestPlayer {
   uid: string;
