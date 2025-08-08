@@ -15,7 +15,6 @@ import {
   arrayUnion,
   updateDoc,
   runTransaction,
-  documentId,
 } from 'firebase/firestore';
 import type { Plant } from '@/interfaces/plant';
 import { v4 as uuidv4 } from 'uuid';
@@ -57,22 +56,13 @@ export async function findOrCreateContestSession(
     const playerInSessionQuery = query(
         sessionsRef, 
         where('status', 'in', ['waiting', 'countdown', 'voting']),
-        where('players', 'array-contains', {uid: userId, username: username, avatarColor: avatarColor, plant: playerPlant})
+        where('playerUids', 'array-contains', userId)
     );
+
     const playerInSessionSnapshot = await getDocs(playerInSessionQuery);
     if (!playerInSessionSnapshot.empty) {
         return playerInSessionSnapshot.docs[0].id; // Player is already in a session, return it.
     }
-     // More robust check if the simple one fails due to nested object comparison issues
-    const allActiveSessionsQuery = query(sessionsRef, where('status', 'in', ['waiting', 'countdown', 'voting']));
-    const allActiveSessionsSnapshot = await getDocs(allActiveSessionsQuery);
-    for (const doc of allActiveSessionsSnapshot.docs) {
-        const sessionData = doc.data() as ContestSession;
-        if (sessionData.players.some(p => p.uid === userId)) {
-            return doc.id;
-        }
-    }
-
 
     // 2. Find an open session to join using a transaction to prevent race conditions.
     const openSessionQuery = query(sessionsRef, where('status', '==', 'waiting'), where('playerCount', '<', MAX_PLAYERS), limit(1));
@@ -96,6 +86,7 @@ export async function findOrCreateContestSession(
             const newPlayerCount = sessionSnapshot.data().playerCount + 1;
             const updates: any = {
                 players: arrayUnion(newPlayer),
+                playerUids: arrayUnion(userId),
                 playerCount: newPlayerCount,
             };
 
@@ -121,11 +112,12 @@ export async function findOrCreateContestSession(
       id: newSessionId,
       status: 'waiting',
       players: [newPlayer],
+      playerUids: [userId],
       votes: {},
       playerVotes: {},
       createdAt: serverTimestamp(),
       playerCount: 1,
-    };
+    } as any;
 
     if (newSession.playerCount >= MAX_PLAYERS) {
         newSession.status = 'countdown';
