@@ -6,12 +6,10 @@ import {
   collection,
   query,
   where,
-  getDocs,
-  setDoc,
   doc,
+  runTransaction,
   serverTimestamp,
   arrayUnion,
-  runTransaction,
 } from 'firebase/firestore';
 import type { Plant } from '@/interfaces/plant';
 import { v4 as uuidv4 } from 'uuid';
@@ -29,9 +27,8 @@ export async function findOrCreateContestSessionAction(
 
   try {
     const sessionId = await runTransaction(db, async (transaction) => {
-      // Step 1: Query for sessions that are waiting and not full.
-      // This is a more direct query but may require a composite index in Firestore.
-      // If permission errors occur, the rules need to allow this.
+      // Step 1: Query for sessions that are currently waiting for players.
+      // This is a simple query on one field, which does not require a composite index.
       const waitingSessionsQuery = query(
         sessionsRef,
         where('status', '==', 'waiting')
@@ -41,12 +38,13 @@ export async function findOrCreateContestSessionAction(
       
       let suitableSessionRef = null;
       
-      // Step 2: Iterate to find a session that is not full and the user is not already in.
+      // Step 2: Iterate through the waiting sessions to find one that is not full
+      // and that the current user is not already a part of.
       for (const doc of querySnapshot.docs) {
         const session = doc.data() as ContestSession;
         if (session.playerCount < MAX_PLAYERS && !session.playerUids.includes(userId)) {
           suitableSessionRef = doc.ref;
-          break;
+          break; // Found a suitable session, exit the loop.
         }
       }
 
@@ -62,7 +60,7 @@ export async function findOrCreateContestSessionAction(
           playerCount: newPlayerCount,
         };
 
-        // If the session is now full, start the countdown.
+        // If joining makes the session full, start the countdown.
         if (newPlayerCount >= MAX_PLAYERS) {
           updates.status = 'countdown';
         }
@@ -71,7 +69,7 @@ export async function findOrCreateContestSessionAction(
         return suitableSessionRef.id;
       }
 
-      // Step 4: If no suitable session is found, create a new one.
+      // Step 4: If no suitable session is found after checking all waiting ones, create a new session.
       const newSessionId = uuidv4();
       const newPlayer: ContestPlayer = { uid: userId, username, avatarColor, plant: playerPlant };
       const newSession: ContestSession = {
