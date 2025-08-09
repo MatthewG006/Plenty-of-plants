@@ -14,9 +14,7 @@ export interface ContestPlayer {
 export interface ContestSession {
   id: string;
   status: 'voting' | 'finished';
-  // Using a map of players for easier lookup and update
   players: Record<string, ContestPlayer>; // key is player uid
-  // Using a map of votes for easier lookup
   votes: Record<string, string>; // key is voter's uid, value is the uid of the player they voted for
   winnerId?: string | null;
   createdAt: FieldValue;

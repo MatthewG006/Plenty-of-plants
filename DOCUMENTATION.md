@@ -1,3 +1,4 @@
+
 # Plenty of Plants - Application Documentation
 
 ## 1. Introduction
@@ -113,10 +114,9 @@ The app includes several features that allow players to interact and compete wit
 
 - **The Park & Contest Entry**: The Park is a small, tranquil area that serves as an entry point for the Plant Beauty Contest. When a player visits the park, their first plant is displayed. Interacting with the plant's chat bubble will prompt them to join a contest.
 
-- **Plant Beauty Contest**: This is a real-time multiplayer feature where three players are matched into a session.
-    - **Session Management**: A server action in `src/app/actions/contest-actions.ts` handles the logic for finding an open session in the `contestSessions` Firestore collection or creating a new one. This logic runs securely on the server.
-    - **Real-Time Updates**: The contest page uses a real-time Firestore listener to update the UI as players join, when the countdown starts, and as votes are cast.
-    - **Voting**: Once the session is full, a countdown begins, after which voting opens. Players vote for their favorite plant.
-    - **Winner & Prize**: When all players have voted, a winner is determined. The winning plant is highlighted, and its owner is awarded a special "Red Glitter" cosmetic pack, which can be applied to a plant from the Room page.
-
-    
+- **Plant Beauty Contest**: This is a real-time multiplayer feature where players compete in timed rounds.
+    - **Session Management**: A server action in `src/app/actions/contest-actions.ts` handles the logic for joining the currently active contest session. If no session is active, joining starts a new one. This logic is much simpler and more robust than previous versions.
+    - **Timed Rounds**: Contests run for a fixed duration (e.g., 3 minutes). When the timer ends, a winner is determined.
+    - **Voting**: Players in the contest can vote for their favorite plant (but not their own).
+    - **Winner & Prize**: When the round ends, votes are tallied. The winning plant's owner is awarded a special "Red Glitter" cosmetic pack and 50 gold.
+    - **Real-Time Updates**: The contest page uses periodic polling to keep the UI up-to-date with new players and votes.
