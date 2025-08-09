@@ -72,7 +72,7 @@ The app uses Firebase Authentication for user signup and login. When a user crea
 
 ### 4.2. Audio System
 
-The audio system is managed globally to ensure music and sound effects are consistent across the entire app.
+The audio system is managed globally to ensure music and sound effects are consistent across all a pages of the app.
 
 - **Audio Context**: A central piece of logic, located in `src/context/AudioContext.tsx`, manages the state of the background music (if it's playing, its volume) and sound effects. It provides a function that other parts of the app can call to play specific sounds like a "tap" or "whoosh".
 
@@ -120,3 +120,4 @@ The app includes several features that allow players to interact and compete wit
     - **Voting**: Players in the contest can vote for their favorite plant (but not their own).
     - **Winner & Prize**: When the round ends, votes are tallied. The winning plant's owner is awarded a special "Red Glitter" cosmetic pack and 50 gold.
     - **Real-Time Updates**: The contest page uses periodic polling to keep the UI up-to-date with new players and votes.
+
