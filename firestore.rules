@@ -12,16 +12,16 @@ service cloud.firestore {
     }
 
     match /contestSessions/{sessionId} {
-      // This rule allows any authenticated user to get, update, or delete a *specific* session document by its ID.
-      // It also allows them to create a new session document.
+      // Allow any authenticated user to get, create, or update a specific session document.
       allow read, write: if request.auth != null;
     }
 
-    // THIS IS THE CRITICAL FIX:
-    // This rule allows any authenticated user to perform a query on the contestSessions collection.
-    // It is required for the findOrCreateContestSessionAction to find an open session.
+    // Allow any authenticated user to query the `contestSessions` collection.
+    // This is required to find an open session for the beauty contest.
     match /contestSessions/{document=**} {
       allow list: if request.auth != null;
     }
   }
 }
+
+    
