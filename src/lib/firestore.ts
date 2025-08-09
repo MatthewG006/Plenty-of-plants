@@ -1,4 +1,5 @@
 
+
 import { doc, getDoc, setDoc, getFirestore, updateDoc, arrayUnion, DocumentData, writeBatch, increment, collection, getDocs, query, where, limit, deleteDoc, arrayRemove } from 'firebase/firestore';
 import { app, db, auth } from './firebase';
 import type { Plant, Seed } from '@/interfaces/plant';
@@ -696,7 +697,3 @@ export async function awardContestPrize(userId: string) {
         gold: increment(50)
     });
 }
-
-    
-
-    

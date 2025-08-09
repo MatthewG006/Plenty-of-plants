@@ -118,3 +118,5 @@ The app includes several features that allow players to interact and compete wit
     - **Real-Time Updates**: The contest page uses a real-time Firestore listener to update the UI as players join, when the countdown starts, and as votes are cast.
     - **Voting**: Once the session is full, a countdown begins, after which voting opens. Players vote for their favorite plant.
     - **Winner & Prize**: When all players have voted, a winner is determined. The winning plant is highlighted, and its owner is awarded a special "Red Glitter" cosmetic pack, which can be applied to a plant from the Room page.
+
+    
