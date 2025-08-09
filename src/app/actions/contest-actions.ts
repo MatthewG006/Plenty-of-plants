@@ -10,6 +10,7 @@ import {
   runTransaction,
   serverTimestamp,
   arrayUnion,
+  getDocs,
 } from 'firebase/firestore';
 import type { Plant } from '@/interfaces/plant';
 import { v4 as uuidv4 } from 'uuid';
