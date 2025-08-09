@@ -11,6 +11,7 @@ import {
   serverTimestamp,
   arrayUnion,
   getDocs,
+  setDoc,
 } from 'firebase/firestore';
 import type { Plant } from '@/interfaces/plant';
 import { v4 as uuidv4 } from 'uuid';
@@ -28,7 +29,6 @@ export async function findOrCreateContestSessionAction(
 
   try {
     // Step 1: Query for sessions that are currently waiting for players.
-    // This is a simple query on one field, which does not require a composite index.
     const waitingSessionsQuery = query(
       sessionsRef,
       where('status', '==', 'waiting')
