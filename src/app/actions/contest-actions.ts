@@ -8,25 +8,22 @@ import {
   serverTimestamp,
   getDoc,
   setDoc,
-  WriteBatch,
+  collection,
+  query,
+  where,
+  getDocs,
   writeBatch,
 } from 'firebase/firestore';
 import type { Plant } from '@/interfaces/plant';
 import type { ContestSession, ContestPlayer } from '@/lib/contest-manager';
 import { awardContestPrize } from '@/lib/firestore';
 
-const CONTEST_SESSION_ID = "active_contest_v2";
-const CONTEST_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+const CONTEST_SESSION_ID = "active_contest_v3"; // New version to avoid old data conflicts
+const CONTEST_DURATION_MS = 3 * 60 * 1000; // 3 minutes for a round
+const MAX_PLAYERS = 6;
 
-interface JoinRequest {
-    uid: string;
-    username: string;
-    avatarColor: string;
-    plant?: Plant;
-}
-
-// Helper function to create a new session object
-function createNewSession(player: ContestPlayer | null): Omit<ContestSession, 'createdAt'> {
+// Helper to create a new session object
+function createNewSession(): Omit<ContestSession, 'createdAt'> {
     const now = new Date();
     const endsAt = new Date(now.getTime() + CONTEST_DURATION_MS);
     
@@ -38,113 +35,97 @@ function createNewSession(player: ContestPlayer | null): Omit<ContestSession, 'c
         endsAt: endsAt.toISOString(),
         duration: CONTEST_DURATION_MS,
     };
-    if (player) {
-        newSession.players[player.uid] = player;
-    }
     return newSession;
 }
 
-// Helper to finalize a finished session
+// Helper to finalize a finished session and prepare for a new one
 async function finalizeSession(sessionData: ContestSession, batch: WriteBatch): Promise<void> {
-    if (sessionData.status !== 'voting') return;
-
     const voteCounts: Record<string, number> = {};
     Object.values(sessionData.votes).forEach(votedForUid => {
         voteCounts[votedForUid] = (voteCounts[votedForUid] || 0) + 1;
     });
 
     let winnerId: string | null = null;
-    let maxVotes = 0; // Start at 0, not -1
+    let maxVotes = -1;
     for (const playerId in voteCounts) {
         if (voteCounts[playerId] > maxVotes) {
             maxVotes = voteCounts[playerId];
             winnerId = playerId;
         }
     }
-    
-    // In case of a tie, the first player to reach max votes wins (based on iteration order)
-    // A more complex tie-breaking rule could be implemented if needed.
 
     if (winnerId) {
         await awardContestPrize(winnerId);
         const sessionDocRef = doc(db, 'contestSessions', CONTEST_SESSION_ID);
         batch.update(sessionDocRef, { winnerId: winnerId, status: 'finished' });
+    } else {
+        // If no votes, just mark as finished without a winner
+        const sessionDocRef = doc(db, 'contestSessions', CONTEST_SESSION_ID);
+        batch.update(sessionDocRef, { status: 'finished' });
     }
 }
 
 
 export async function joinAndGetContestState(
-  { uid, username, avatarColor, plant }: JoinRequest
+  { uid, username, avatarColor, plant }: { uid: string; username: string; avatarColor: string; plant?: Plant; }
 ): Promise<{ session?: ContestSession; error?: string }> {
+    const sessionDocRef = doc(db, 'contestSessions', CONTEST_SESSION_ID);
+
     try {
-        const sessionDocRef = doc(db, 'contestSessions', CONTEST_SESSION_ID);
-        const player: ContestPlayer | null = plant ? { uid, username, avatarColor, plant } : null;
-
-        // --- Step 1: Get current session state ---
-        const sessionDoc = await getDoc(sessionDocRef);
-
-        // --- Step 2: Handle expired or non-existent session ---
-        if (!sessionDoc.exists() || Date.now() > new Date(sessionDoc.data().endsAt).getTime()) {
-            const batch = writeBatch(db);
-
-            // If a session exists and is expired, finalize it first.
-            if (sessionDoc.exists()) {
-                await finalizeSession(sessionDoc.data() as ContestSession, batch);
-            }
-            
-            // Create a new session for the current player
-            const newSessionData = createNewSession(player);
-            // Use set with merge:true to ensure we create or overwrite cleanly
-            batch.set(sessionDocRef, { ...newSessionData, createdAt: serverTimestamp() }, { merge: true });
-
-            await batch.commit();
-
-            // Return the newly created session data
-            const finalSessionDoc = await getDoc(sessionDocRef);
-            return { session: finalSessionDoc.data() as ContestSession };
-        }
-        
-        // --- Step 3: Handle active session ---
-        const sessionData = sessionDoc.data() as ContestSession;
-        
-        // If the user just wants to get the state without joining with a plant, return current state.
-        if (!player) {
-            return { session: sessionData };
-        }
-        
-        // If the player is already in, return current state.
-        if (sessionData.players[uid]) {
-            return { session: sessionData };
-        }
-        
-        // --- Step 4: Join the active session via Transaction ---
         const updatedSession = await runTransaction(db, async (transaction) => {
-            const freshSessionDoc = await transaction.get(sessionDocRef);
-            if (!freshSessionDoc.exists()) {
-                throw new Error("Session disappeared unexpectedly.");
-            }
-            const currentSessionData = freshSessionDoc.data() as ContestSession;
-            
-            // Double-check expiration inside transaction to avoid race conditions
-            if (Date.now() > new Date(currentSessionData.endsAt).getTime()) {
-                // If it expired between our initial check and now, we abort the transaction.
-                // The next call to this function will trigger the expiration logic from Step 2.
-                return null;
+            const sessionDoc = await transaction.get(sessionDocRef);
+
+            // Case 1: No session exists, or the previous one is finished. Create a new one.
+            if (!sessionDoc.exists() || (sessionDoc.data() as ContestSession).status === 'finished') {
+                if (plant) { // Only create a new session if a player is trying to join
+                    const newSessionData = createNewSession();
+                    newSessionData.players[uid] = { uid, username, avatarColor, plant };
+                    transaction.set(sessionDocRef, { ...newSessionData, createdAt: serverTimestamp() });
+                    return newSessionData as ContestSession;
+                }
+                return null; // Nothing to do if no one is joining
             }
 
-            // Add the new player
-            const updatedPlayers = { ...currentSessionData.players, [uid]: player };
-            transaction.update(sessionDocRef, { players: updatedPlayers });
+            const sessionData = sessionDoc.data() as ContestSession;
+
+            // Case 2: Session is expired. Finalize it and create a new one.
+            if (Date.now() > new Date(sessionData.endsAt).getTime()) {
+                const batch = writeBatch(db); // Use a batch for finalization
+                await finalizeSession(sessionData, batch);
+                await batch.commit(); // Commit finalization before proceeding
+
+                if (plant) { // Start a new session for the joining player
+                    const newSessionData = createNewSession();
+                    newSessionData.players[uid] = { uid, username, avatarColor, plant };
+                    transaction.set(sessionDocRef, { ...newSessionData, createdAt: serverTimestamp() });
+                    return newSessionData as ContestSession;
+                }
+                return { ...sessionData, status: 'finished' } as ContestSession; // Show the finished state
+            }
             
-            return { ...currentSessionData, players: updatedPlayers };
+            // Case 3: Active session. Join if there's a plant and space.
+            if (plant) {
+                 if (sessionData.players[uid]) {
+                    // Player is already in, just return current state
+                    return sessionData;
+                }
+                if (Object.keys(sessionData.players).length >= MAX_PLAYERS) {
+                    throw new Error("This contest round is full.");
+                }
+                const updatedPlayers = { ...sessionData.players, [uid]: { uid, username, avatarColor, plant } };
+                transaction.update(sessionDocRef, { players: updatedPlayers });
+                return { ...sessionData, players: updatedPlayers };
+            }
+            
+            // If just fetching state without joining, return current data
+            return sessionData;
         });
 
-        if (updatedSession === null) {
-            // This means the session expired mid-transaction. We can recall the function to reset.
-            return joinAndGetContestState({ uid, username, avatarColor, plant });
+        if (updatedSession) {
+            return { session: updatedSession };
         }
-
-        return { session: updatedSession };
+        // If transaction returns null (e.g., no session and not joining), return empty
+        return {}; 
 
     } catch (error: any) {
         console.error("Error in joinAndGetContestState: ", error);
@@ -153,20 +134,14 @@ export async function joinAndGetContestState(
 }
 
 
-interface VoteRequest {
-    sessionId: string;
-    voterUid: string;
-    votedForUid: string;
-}
-
 export async function voteForPlant(
-    { sessionId, voterUid, votedForUid }: VoteRequest
+    { sessionId, voterUid, votedForUid }: { sessionId: string; voterUid: string; votedForUid: string; }
 ): Promise<{ session?: ContestSession; error?: string }> {
     if (sessionId !== CONTEST_SESSION_ID) {
         return { error: 'Invalid session ID.' };
     }
+    const sessionDocRef = doc(db, 'contestSessions', sessionId);
     try {
-        const sessionDocRef = doc(db, 'contestSessions', sessionId);
         const updatedSession = await runTransaction(db, async (transaction) => {
             const sessionDoc = await transaction.get(sessionDocRef);
             if (!sessionDoc.exists()) {
@@ -177,6 +152,9 @@ export async function voteForPlant(
             
             if (sessionData.status !== 'voting') {
                 throw new Error("Voting is not currently active.");
+            }
+            if (Date.now() > new Date(sessionData.endsAt).getTime()) {
+                throw new Error("The voting period for this round has ended.");
             }
             if (sessionData.votes[voterUid]) {
                 throw new Error("You have already voted.");
