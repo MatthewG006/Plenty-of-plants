@@ -42,11 +42,10 @@ export async function joinAndGetContestState(
         const sessionDocRef = doc(db, 'contestSessions', CONTEST_SESSION_ID);
 
         const updatedSession = await runTransaction(db, async (transaction) => {
-            let sessionData: ContestSession | null = null;
             const sessionDoc = await transaction.get(sessionDocRef);
+            let sessionData: ContestSession;
 
             if (!sessionDoc.exists()) {
-                // No session exists, create a new one.
                 sessionData = await createNewSession();
             } else {
                 sessionData = sessionDoc.data() as ContestSession;
@@ -84,7 +83,7 @@ export async function joinAndGetContestState(
                 sessionData.players[uid] = newPlayer;
             }
 
-            transaction.set(sessionDocRef, sessionData, { merge: true });
+            transaction.set(sessionDocRef, sessionData);
             return sessionData;
         });
 
