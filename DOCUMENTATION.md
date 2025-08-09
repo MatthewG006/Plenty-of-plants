@@ -24,7 +24,7 @@ This application uses Firebase for authentication and Firestore for data storage
 
 ### 3.1. Firestore Security Rules Configuration
 
-The **Community Showcase** feature requires that authenticated users can read data from other users' documents. The default security rules are too restrictive for this.
+The **Community Showcase** and **Plant Beauty Contest** features require that authenticated users can read and write data across different collections. The default security rules are too restrictive for this.
 
 **Action Required:** Go to your Firebase project, navigate to **Firestore Database > Rules**, and replace the default rules with the following:
 
