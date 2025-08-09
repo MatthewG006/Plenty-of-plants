@@ -3,20 +3,17 @@
 
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Crown, Loader2, Sparkles } from 'lucide-react';
+import { ArrowLeft, Crown, Loader2, Sparkles, Trophy } from 'lucide-react';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import type { Plant } from '@/interfaces/plant';
 import { useAuth } from '@/context/AuthContext';
-import { findOrCreateContestSessionAction } from '@/app/actions/contest-actions';
+import { joinAndGetContestState, voteForPlant } from '@/app/actions/contest-actions';
 import { useToast } from '@/hooks/use-toast';
-import { doc, onSnapshot, updateDoc, increment } from 'firebase/firestore';
-import { db, awardContestPrize } from '@/lib/firestore';
-import type { ContestSession, ContestPlayer } from '@/lib/contest-manager';
+import type { ContestSession } from '@/lib/contest-manager';
 import { ContestPlantSelectionDialog } from '@/components/plant-dialogs';
-
-const MAX_PLAYERS = 3;
+import { Progress } from '@/components/ui/progress';
 
 function SheenAnimation() {
     return (
@@ -81,134 +78,94 @@ export default function ContestPage() {
     const { toast } = useToast();
     
     const [session, setSession] = useState<ContestSession | null>(null);
-    const [sessionId, setSessionId] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const [isJoining, setIsJoining] = useState(false);
-    const [countdown, setCountdown] = useState(5);
-    const [hasVoted, setHasVoted] = useState(false);
+    const [isVoting, setIsVoting] = useState(false);
     const [isSelectingPlant, setIsSelectingPlant] = useState(false);
+    const [timeLeft, setTimeLeft] = useState(0);
 
-    useEffect(() => {
-        if (!sessionId || !user) return;
+    const allPlants = gameData ? Object.values(gameData.plants) : [];
+    const hasEntered = user && session?.players[user.uid];
+    const hasVoted = user && session?.votes[user.uid];
 
-        setIsLoading(true);
-        const sessionDocRef = doc(db, 'contestSessions', sessionId);
-        const unsubscribe = onSnapshot(sessionDocRef, (docSnap) => {
-            if (docSnap.exists()) {
-                const sessionData = docSnap.data() as ContestSession;
-                setSession(sessionData);
-
-                const userVote = sessionData.playerVotes && user ? sessionData.playerVotes[user.uid] : undefined;
-                setHasVoted(!!userVote);
-                setIsLoading(false);
-            } else {
-                console.error("Contest session not found!");
-                toast({ variant: 'destructive', title: 'Session Error', description: 'The contest session could not be found.' });
-                setSessionId(null);
-                setSession(null);
-                setIsLoading(false);
-            }
-        }, (error) => {
-            console.error("Firestore snapshot error:", error);
-            toast({ variant: 'destructive', title: 'Session Error', description: 'Could not connect to the contest session.' });
-            setIsLoading(false);
-        });
-
-        return () => unsubscribe();
-    }, [sessionId, user, toast]);
-
-    useEffect(() => {
-        if (!session || session.status !== 'countdown' || !user || !session.players.length) {
-            setCountdown(5); // Reset countdown if status changes
-            return;
-        }
-        
-        if (countdown <= 0) return;
-
-        const timer = setTimeout(() => {
-            setCountdown(prev => prev - 1);
-        }, 1000);
-
-        if (countdown === 1 && session.players[0].uid === user.uid) {
-            setTimeout(() => {
-                if (!session.id) return;
-                const sessionDocRef = doc(db, 'contestSessions', session.id);
-                updateDoc(sessionDocRef, { status: 'voting' });
-            }, 1000);
-        }
-
-        return () => clearTimeout(timer);
-    }, [session, countdown, user]);
-
-    useEffect(() => {
-        if (!session || session.status !== 'voting' || !user || !session.players.length) return;
-
-        // The first player to join the session becomes the "host" responsible for tallying votes
-        if (session.players[0].uid === user.uid) {
-            const totalVotes = Object.keys(session.playerVotes || {}).length;
-            if (totalVotes >= session.players.length) {
-                const voteCounts = session.votes || {};
-                let winnerId: number | null = null;
-                let maxVotes = -1;
-
-                for (const plantId in voteCounts) {
-                    if (voteCounts[plantId] > maxVotes) {
-                        maxVotes = voteCounts[plantId];
-                        winnerId = parseInt(plantId, 10);
-                    }
-                }
-
-                if (winnerId !== null) {
-                    const winnerPlayer = session.players.find(p => p.plant.id === winnerId);
-                    if (winnerPlayer) {
-                        awardContestPrize(winnerPlayer.uid).then(() => {
-                            console.log(`Prize awarded to ${winnerPlayer.username}`);
-                        }).catch(e => console.error("Failed to award prize", e));
-                    }
-                }
-                
-                if (!session.id) return;
-                const sessionDocRef = doc(db, 'contestSessions', session.id);
-                updateDoc(sessionDocRef, {
-                    status: 'finished',
-                    winnerId: winnerId,
-                });
-            }
-        }
-    }, [session, user]);
-
-    const handleSelectPlant = async (plant: Plant) => {
+    const fetchContestState = useCallback(async (plantToEnter?: Plant) => {
         if (!user || !gameData) return;
         
-        setIsSelectingPlant(false);
-        setIsJoining(true);
+        if (!plantToEnter && !hasEntered) {
+            setIsJoining(false);
+            return;
+        }
 
         try {
-            const id = await findOrCreateContestSessionAction(
-                user.uid,
-                user.displayName || 'Player',
-                (gameData as any).avatarColor || '#ffffff',
-                plant
-            );
-            if (id) {
-                setSessionId(id);
-            } else {
-                throw new Error("Failed to get session ID");
+            const result = await joinAndGetContestState({
+                uid: user.uid,
+                username: user.displayName || "Player",
+                avatarColor: (gameData as any).avatarColor || '#ffffff',
+                plant: plantToEnter,
+            });
+
+            if (result.session) {
+                setSession(result.session);
+            } else if (result.error) {
+                throw new Error(result.error);
             }
-        } catch (error) {
-            console.error('Error joining contest session:', error);
+        } catch (error: any) {
+            console.error('Error with contest session:', error);
             toast({
                 variant: 'destructive',
-                title: 'Error Joining Contest',
-                description: 'Could not join a session. Please try again.',
+                title: 'Contest Error',
+                description: error.message || 'Could not connect to the contest. Please try again.',
             });
         } finally {
+            setIsLoading(false);
             setIsJoining(false);
         }
-    };
+    }, [user, gameData, toast, hasEntered]);
+
+    // Initial load
+    useEffect(() => {
+        setIsLoading(true);
+        fetchContestState();
+    }, [fetchContestState]);
     
+    // Timer and periodic fetching
+    useEffect(() => {
+        if (!session) return;
+        
+        const updateTimer = () => {
+            const endTime = new Date(session.endsAt).getTime();
+            const now = Date.now();
+            const remaining = Math.max(0, endTime - now);
+            setTimeLeft(remaining);
+
+            // If time is up and we were in voting, fetch state to get winner
+            if (remaining === 0 && session.status === 'voting') {
+                fetchContestState();
+            }
+        };
+        
+        updateTimer();
+        const interval = setInterval(updateTimer, 1000);
+        
+        // Also fetch every 15 seconds to get new players/votes
+        const fetchInterval = setInterval(fetchContestState, 15000);
+
+        return () => {
+            clearInterval(interval);
+            clearInterval(fetchInterval);
+        };
+
+    }, [session, fetchContestState]);
+
+
+    const handleSelectPlant = async (plant: Plant) => {
+        setIsJoining(true);
+        setIsSelectingPlant(false);
+        await fetchContestState(plant);
+    };
+
     const handleJoinClick = () => {
-        if (!gameData || !Object.values(gameData.plants).length) {
+        if (!allPlants.length) {
              toast({
                 variant: 'destructive',
                 title: 'No Plant Found',
@@ -218,23 +175,46 @@ export default function ContestPage() {
         }
         setIsSelectingPlant(true);
     }
-
-    const handleVote = async (plantId: number) => {
-        if (session?.status !== 'voting' || !sessionId || !user || hasVoted) return;
-        
-        setHasVoted(true); // Optimistic update
-        const sessionDocRef = doc(db, 'contestSessions', sessionId);
-        await updateDoc(sessionDocRef, {
-          [`votes.${plantId}`]: increment(1),
-          [`playerVotes.${user.uid}`]: true
-        });
-    };
     
-    const contestants = session ? session.players : [];
-    const status = session ? session.status : 'waiting';
-    const isJoined = session && user ? session.players.some(p => p.uid === user.uid) : false;
+    const handleVote = async (votedForPlayerUid: string) => {
+        if (!user || !session || session.status !== 'voting' || hasVoted) return;
 
-    const allPlants = gameData ? Object.values(gameData.plants) : [];
+        setIsVoting(true);
+        try {
+            const result = await voteForPlant({
+                sessionId: session.id,
+                voterUid: user.uid,
+                votedForUid: votedForPlayerUid,
+            });
+            if (result.session) {
+                setSession(result.session);
+                toast({ title: "Vote Cast!", description: "Your vote has been counted."});
+            } else if (result.error) {
+                throw new Error(result.error);
+            }
+        } catch (error: any) {
+             console.error('Error voting:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Vote Error',
+                description: error.message || 'Could not cast your vote.',
+            });
+        } finally {
+            setIsVoting(false);
+        }
+    }
+
+    const minutes = Math.floor(timeLeft / 60000);
+    const seconds = Math.floor((timeLeft % 60000) / 1000);
+    const progress = session ? (timeLeft / session.duration) * 100 : 0;
+    
+    const contestants = session ? Object.values(session.players) : [];
+    const status = session ? session.status : 'loading';
+
+    const getVoteCount = (playerUid: string) => {
+        if (!session) return 0;
+        return Object.values(session.votes).filter(vote => vote === playerUid).length;
+    };
 
   return (
     <>
@@ -244,67 +224,68 @@ export default function ContestPage() {
     >
         <div className="absolute inset-0 bg-black/50" />
       
-        <div className="relative z-10 w-full max-w-2xl mx-auto flex flex-col items-center gap-4 mt-24">
+        <header className="relative z-10 w-full max-w-2xl mx-auto flex flex-col items-center gap-4 mt-24">
             <div className="text-center p-6 bg-black/60 rounded-lg backdrop-blur-sm">
                 <h1 className="text-4xl font-bold mb-2">Plant Beauty Contest</h1>
-                <p className="text-lg">Join a session and vote for the best-looking plant! The winner gets 50 gold and a special Red Glitter pack!</p>
+                <p className="text-lg">Enter the running contest round and vote for the best plant! The winner gets 50 gold and a special cosmetic pack!</p>
             </div>
-            {status === 'waiting' && !isJoined && (
-                <Button onClick={handleJoinClick} disabled={isJoining}>
-                    {isJoining ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Join Contest"}
+            
+            {isLoading ? (
+                <Button disabled><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading Contest...</Button>
+            ) : !hasEntered ? (
+                 <Button onClick={handleJoinClick} disabled={isJoining}>
+                    {isJoining ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trophy className="mr-2 h-4 w-4" />}
+                    Enter Contest
                 </Button>
+            ) : (
+                 <p className="text-xl font-bold text-green-300">You have entered the contest!</p>
             )}
-            {status === 'waiting' && isJoined && (
-                 <Button disabled>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Waiting for players... ({contestants.length}/{MAX_PLAYERS})
-                </Button>
+
+            {session && (
+                 <div className="w-full max-w-md p-4 bg-black/50 rounded-lg">
+                    <div className="text-center mb-2">
+                        <p className="font-bold text-xl">{status === 'voting' ? 'Voting is Live!' : 'Contest in Progress'}</p>
+                        <p className="text-2xl font-mono">{`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`}</p>
+                    </div>
+                    <Progress value={progress} className="h-2 [&>div]:bg-green-400" />
+                 </div>
             )}
-            {status === 'countdown' && <p className="text-5xl font-bold animate-pulse">{countdown}</p>}
-            {status === 'voting' && <p className="text-2xl font-bold">Vote for your favorite plant!</p>}
-            {status === 'finished' && <p className="text-2xl font-bold">The winner has been chosen!</p>}
-        </div>
+             {status === 'finished' && (
+                <p className="text-3xl font-bold animate-pulse text-yellow-300">The Winner has been chosen!</p>
+            )}
+
+        </header>
 
         <div className="w-full h-1/2 absolute bottom-0 left-0 flex items-end justify-center pointer-events-none">
-            <div className="grid grid-cols-3 gap-8 w-full max-w-3xl mb-[5%]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 w-full max-w-5xl mb-[5%]">
                 {contestants.map((player) => {
                     const plant = player.plant;
-                    const isWinner = session?.winnerId === plant.id;
+                    const isWinner = session?.winnerId === player.uid;
                     const isSelf = player.uid === user?.uid;
+
                     return (
-                        <div key={plant.id} className="relative flex flex-col items-center justify-end">
-                            <div className={cn("relative w-32 h-32 sm:w-48 sm:h-48 transition-all duration-500", isWinner && "scale-125")}>
-                                {isWinner && <div className="absolute inset-0 bg-yellow-400/50 rounded-full animate-pulse blur-2xl" />}
-                                <Image src={plant.image} alt={plant.name} fill className="object-contain" data-ai-hint={plant.hint} />
+                        <div key={player.uid} className="relative flex flex-col items-center justify-end">
+                            {isWinner && <div className="absolute inset-0 bg-yellow-400/50 rounded-full animate-pulse blur-2xl -z-10" />}
+                             <div className={cn("relative w-32 h-32 sm:w-48 sm:h-48 transition-all duration-500", isWinner && "scale-125")}>
+                                <Image src={plant.image} alt={plant.name} fill className="object-contain drop-shadow-lg" data-ai-hint={plant.hint} />
                                 {plant.hasGlitter && <GlitterAnimation />}
                                 {plant.hasRedGlitter && <RedGlitterAnimation />}
                                 {plant.hasSheen && <SheenAnimation />}
                                 {plant.hasRainbowGlitter && <RainbowGlitterAnimation />}
                             </div>
-                            <div className="text-center mt-2 bg-black/50 px-3 py-1 rounded-md">
+                            <div className="text-center mt-2 bg-black/60 px-3 py-1 rounded-md min-w-[150px]">
                                 <p className="font-bold text-sm sm:text-base truncate">{player.username}'s {plant.name}</p>
+                                <p className="text-xs text-muted-foreground">Votes: {getVoteCount(player.uid)}</p>
                                 {isWinner && <Crown className="w-6 h-6 text-yellow-400 mx-auto mt-1" />}
                             </div>
-                            {status === 'voting' && (
-                                <Button size="sm" className="mt-2 pointer-events-auto" onClick={() => handleVote(plant.id)} disabled={hasVoted || isSelf}>
-                                    {hasVoted ? 'Voted' : 'Vote'}
+                            {status === 'voting' && hasEntered && (
+                                <Button size="sm" className="mt-2 pointer-events-auto" onClick={() => handleVote(player.uid)} disabled={isVoting || hasVoted || isSelf}>
+                                    {isVoting ? <Loader2 className="animate-spin"/> : hasVoted ? 'Voted' : 'Vote'}
                                 </Button>
                             )}
                         </div>
                     )
                 })}
-                {Array.from({ length: MAX_PLAYERS - contestants.length }).map((_, index) => (
-                    <div key={`placeholder-${index}`} className="relative flex flex-col items-center justify-end">
-                        <div className="relative w-32 h-32 sm:w-48 sm:h-48">
-                            <div className="w-full h-full bg-black/20 rounded-lg flex items-center justify-center">
-                                <Loader2 className="w-8 h-8 animate-spin" />
-                            </div>
-                        </div>
-                        <div className="text-center mt-2 bg-black/50 px-3 py-1 rounded-md">
-                            <p className="font-bold text-sm sm:text-base">Waiting...</p>
-                        </div>
-                    </div>
-                ))}
             </div>
         </div>
 

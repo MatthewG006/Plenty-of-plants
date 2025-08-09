@@ -690,10 +690,10 @@ export async function useFertilizer(userId: string, seedId: string): Promise<voi
     });
 }
 
-export async function awardContestPrize(userId: string) {
+export async function awardContestPrize(userId: string): Promise<void> {
     const userDocRef = doc(db, 'users', userId);
     await updateDoc(userDocRef, {
         redGlitterCount: increment(1),
-        gold: increment(50)
+        gold: increment(50),
     });
 }

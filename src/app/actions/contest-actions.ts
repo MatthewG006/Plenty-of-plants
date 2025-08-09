@@ -3,113 +3,139 @@
 
 import { db } from '@/lib/firebase';
 import {
-  collection,
-  query,
-  where,
   doc,
   runTransaction,
   serverTimestamp,
-  arrayUnion,
-  getDocs,
-  setDoc,
-  limit,
 } from 'firebase/firestore';
 import type { Plant } from '@/interfaces/plant';
-import { v4 as uuidv4 } from 'uuid';
-import type { ContestPlayer, ContestSession } from '@/lib/contest-manager';
+import type { ContestSession, ContestPlayer } from '@/lib/contest-manager';
+import { awardContestPrize } from '@/lib/firestore';
 
-const MAX_PLAYERS = 3;
+const CONTEST_SESSION_ID = "active_contest_v2";
+const CONTEST_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 
-export async function findOrCreateContestSessionAction(
-  userId: string,
-  username: string,
-  avatarColor: string,
-  playerPlant: Plant
-): Promise<string> {
-    const sessionsRef = collection(db, 'contestSessions');
-    
-    // First, check if the user is already in an active session to prevent duplicates
-    const playerAlreadyInSessionQuery = query(sessionsRef, where('playerUids', 'array-contains', userId), where('status', '!=', 'finished'), limit(1));
-    const existingSessionSnapshot = await getDocs(playerAlreadyInSessionQuery);
-    
-    if (!existingSessionSnapshot.empty) {
-        // User is already in a session, return that session's ID.
-        return existingSessionSnapshot.docs[0].id;
-    }
+interface JoinRequest {
+    uid: string;
+    username: string;
+    avatarColor: string;
+    plant?: Plant;
+}
 
-    // Now, look for a session that is waiting for players.
-    const waitingSessionsQuery = query(
-        sessionsRef,
-        where('status', '==', 'waiting'),
-        limit(10) // Limit to check a reasonable number of sessions
-    );
-
-    const querySnapshot = await getDocs(waitingSessionsQuery);
-    let suitableSessionId: string | null = null;
-
-    // Find a suitable session that is not full.
-    for (const doc of querySnapshot.docs) {
-        const session = doc.data() as ContestSession;
-        if (session.playerCount < MAX_PLAYERS) {
-            suitableSessionId = doc.id;
-            break;
-        }
-    }
-
-    // If we found a suitable session, try to join it transactionally.
-    if (suitableSessionId) {
-        try {
-            const sessionDocRef = doc(db, 'contestSessions', suitableSessionId);
-            await runTransaction(db, async (transaction) => {
-                const sessionDoc = await transaction.get(sessionDocRef);
-                if (!sessionDoc.exists()) {
-                    throw new Error("Session disappeared.");
-                }
-                const sessionData = sessionDoc.data() as ContestSession;
-
-                // Final check inside the transaction to prevent race conditions
-                if (sessionData.status === 'waiting' && sessionData.playerCount < MAX_PLAYERS) {
-                    const newPlayer: ContestPlayer = { uid: userId, username, avatarColor, plant: playerPlant };
-                    const newPlayerCount = sessionData.playerCount + 1;
-
-                    const updates: any = {
-                        players: arrayUnion(newPlayer),
-                        playerUids: arrayUnion(userId),
-                        playerCount: newPlayerCount,
-                    };
-
-                    if (newPlayerCount >= MAX_PLAYERS) {
-                        updates.status = 'countdown';
-                    }
-                    transaction.update(sessionDocRef, updates);
-                } else {
-                    // Session filled up while we were trying to join, throw an error to signal we should try again or create a new one.
-                    throw new Error("Session is no longer suitable.");
-                }
-            });
-            // If the transaction succeeded, we have joined the session.
-            return suitableSessionId;
-        } catch (error: any) {
-            console.warn(`Failed to join session ${suitableSessionId}, likely a race condition. A new session will be created.`, error.message);
-            // Fall through to create a new session if joining failed.
-        }
-    }
-
-    // If no suitable session was found OR joining failed, create a new one.
-    const newSessionId = uuidv4();
-    const newPlayer: ContestPlayer = { uid: userId, username, avatarColor, plant: playerPlant };
+async function createNewSession(): Promise<ContestSession> {
+    const now = Date.now();
     const newSession: ContestSession = {
-      id: newSessionId,
-      status: 'waiting',
-      players: [newPlayer],
-      playerUids: [userId],
-      votes: {},
-      playerVotes: {},
-      createdAt: serverTimestamp(),
-      playerCount: 1,
+        id: CONTEST_SESSION_ID,
+        status: 'voting',
+        players: {},
+        votes: {},
+        endsAt: new Date(now + CONTEST_DURATION_MS).toISOString(),
+        duration: CONTEST_DURATION_MS,
+        createdAt: serverTimestamp(),
     };
-    
-    const newSessionRef = doc(db, 'contestSessions', newSessionId);
-    await setDoc(newSessionRef, newSession);
-    return newSessionId;
+    return newSession;
+}
+
+export async function joinAndGetContestState(
+  { uid, username, avatarColor, plant }: JoinRequest
+): Promise<{ session?: ContestSession; error?: string }> {
+    try {
+        const sessionDocRef = doc(db, 'contestSessions', CONTEST_SESSION_ID);
+
+        const updatedSession = await runTransaction(db, async (transaction) => {
+            let sessionData: ContestSession | null = null;
+            const sessionDoc = await transaction.get(sessionDocRef);
+
+            if (!sessionDoc.exists()) {
+                // No session exists, create a new one.
+                sessionData = await createNewSession();
+            } else {
+                sessionData = sessionDoc.data() as ContestSession;
+                const endsAt = new Date(sessionData.endsAt).getTime();
+
+                // If the session has ended, create a new one.
+                if (Date.now() > endsAt) {
+                    if (sessionData.status === 'voting') {
+                         // Tally votes and award prize for the ended session before creating a new one.
+                        const voteCounts: Record<string, number> = {};
+                        Object.values(sessionData.votes).forEach(votedForUid => {
+                            voteCounts[votedForUid] = (voteCounts[votedForUid] || 0) + 1;
+                        });
+
+                        let winnerId: string | null = null;
+                        let maxVotes = -1;
+                        for (const playerId in voteCounts) {
+                            if (voteCounts[playerId] > maxVotes) {
+                                maxVotes = voteCounts[playerId];
+                                winnerId = playerId;
+                            }
+                        }
+
+                        if (winnerId) {
+                            await awardContestPrize(winnerId);
+                        }
+                    }
+                    sessionData = await createNewSession();
+                }
+            }
+
+            // If the user wants to join with a plant, add them to the session.
+            if (plant) {
+                const newPlayer: ContestPlayer = { uid, username, avatarColor, plant };
+                sessionData.players[uid] = newPlayer;
+            }
+
+            transaction.set(sessionDocRef, sessionData, { merge: true });
+            return sessionData;
+        });
+
+        return { session: updatedSession };
+    } catch (error: any) {
+        console.error("Error in joinAndGetContestState transaction: ", error);
+        return { error: 'Failed to interact with contest session.' };
+    }
+}
+
+interface VoteRequest {
+    sessionId: string;
+    voterUid: string;
+    votedForUid: string;
+}
+
+export async function voteForPlant(
+    { sessionId, voterUid, votedForUid }: VoteRequest
+): Promise<{ session?: ContestSession; error?: string }> {
+    if (sessionId !== CONTEST_SESSION_ID) {
+        return { error: 'Invalid session ID.' };
+    }
+    try {
+        const sessionDocRef = doc(db, 'contestSessions', sessionId);
+        const updatedSession = await runTransaction(db, async (transaction) => {
+            const sessionDoc = await transaction.get(sessionDocRef);
+            if (!sessionDoc.exists()) {
+                throw new Error("Contest session not found.");
+            }
+
+            const sessionData = sessionDoc.data() as ContestSession;
+            
+            if (sessionData.status !== 'voting') {
+                throw new Error("Voting is not currently active.");
+            }
+            if (sessionData.votes[voterUid]) {
+                throw new Error("You have already voted.");
+            }
+            if (!sessionData.players[votedForUid]) {
+                throw new Error("The player you voted for is not in the contest.");
+            }
+
+            sessionData.votes[voterUid] = votedForUid;
+            transaction.update(sessionDocRef, { votes: sessionData.votes });
+
+            return sessionData;
+        });
+        
+        return { session: updatedSession };
+    } catch (error: any) {
+        console.error("Error in voteForPlant transaction: ", error);
+        return { error: error.message || 'Failed to cast vote.' };
+    }
 }
