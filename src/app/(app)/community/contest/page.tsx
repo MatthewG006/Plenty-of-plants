@@ -92,6 +92,7 @@ export default function ContestPage() {
         if (!user || !gameData) return;
         
         if (!plantToEnter && !hasEntered) {
+            setIsLoading(false);
             setIsJoining(false);
             return;
         }
@@ -307,3 +308,5 @@ export default function ContestPage() {
     </>
   );
 }
+
+    
