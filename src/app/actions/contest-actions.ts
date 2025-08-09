@@ -27,72 +27,86 @@ export async function findOrCreateContestSessionAction(
   const sessionsRef = collection(db, 'contestSessions');
 
   try {
-    const sessionId = await runTransaction(db, async (transaction) => {
-      // Step 1: Query for sessions that are currently waiting for players.
-      // This is a simple query on one field, which does not require a composite index.
-      const waitingSessionsQuery = query(
-        sessionsRef,
-        where('status', '==', 'waiting')
-      );
-      
-      const querySnapshot = await transaction.get(waitingSessionsQuery);
-      
-      let suitableSessionRef = null;
-      
-      // Step 2: Iterate through the waiting sessions to find one that is not full
-      // and that the current user is not already a part of.
-      for (const doc of querySnapshot.docs) {
-        const session = doc.data() as ContestSession;
-        if (session.playerCount < MAX_PLAYERS && !session.playerUids.includes(userId)) {
-          suitableSessionRef = doc.ref;
-          break; // Found a suitable session, exit the loop.
-        }
+    // Step 1: Query for sessions that are currently waiting for players.
+    // This is a simple query on one field, which does not require a composite index.
+    const waitingSessionsQuery = query(
+      sessionsRef,
+      where('status', '==', 'waiting')
+    );
+    
+    const querySnapshot = await getDocs(waitingSessionsQuery);
+    
+    let suitableSessionId: string | null = null;
+    
+    // Step 2: Iterate through the waiting sessions to find one that is not full
+    // and that the current user is not already a part of.
+    for (const doc of querySnapshot.docs) {
+      const session = doc.data() as ContestSession;
+      if (session.playerCount < MAX_PLAYERS && !session.playerUids.includes(userId)) {
+        suitableSessionId = doc.id;
+        break; // Found a suitable session, exit the loop.
       }
+    }
 
-      // Step 3: If a suitable session is found, join it.
-      if (suitableSessionRef) {
-        const sessionData = (await transaction.get(suitableSessionRef)).data() as ContestSession;
-        const newPlayer: ContestPlayer = { uid: userId, username, avatarColor, plant: playerPlant };
-        const newPlayerCount = sessionData.playerCount + 1;
+    // Step 3: If a suitable session is found, try to join it within a transaction.
+    if (suitableSessionId) {
+      const sessionDocRef = doc(db, 'contestSessions', suitableSessionId);
+      try {
+        await runTransaction(db, async (transaction) => {
+          const sessionDoc = await transaction.get(sessionDocRef);
+          if (!sessionDoc.exists()) {
+            throw new Error("Session does not exist.");
+          }
+          const sessionData = sessionDoc.data() as ContestSession;
+          
+          // Double-check conditions within the transaction to prevent race conditions
+          if (sessionData.status === 'waiting' && sessionData.playerCount < MAX_PLAYERS && !sessionData.playerUids.includes(userId)) {
+            const newPlayer: ContestPlayer = { uid: userId, username, avatarColor, plant: playerPlant };
+            const newPlayerCount = sessionData.playerCount + 1;
 
-        const updates: any = {
-          players: arrayUnion(newPlayer),
-          playerUids: arrayUnion(userId),
-          playerCount: newPlayerCount,
-        };
+            const updates: any = {
+              players: arrayUnion(newPlayer),
+              playerUids: arrayUnion(userId),
+              playerCount: newPlayerCount,
+            };
 
-        // If joining makes the session full, start the countdown.
-        if (newPlayerCount >= MAX_PLAYERS) {
-          updates.status = 'countdown';
-        }
-
-        transaction.update(suitableSessionRef, updates);
-        return suitableSessionRef.id;
+            if (newPlayerCount >= MAX_PLAYERS) {
+              updates.status = 'countdown';
+            }
+            transaction.update(sessionDocRef, updates);
+          } else {
+             // If the session filled up before we could join, we'll let the logic fall through to create a new session.
+             throw new Error("Session is no longer suitable.");
+          }
+        });
+        return suitableSessionId; // Successfully joined the session.
+      } catch (e) {
+        // This catch block handles the transaction failure (e.g., race condition where session filled up).
+        // We will now proceed to create a new session.
+        console.log("Transaction to join session failed, creating a new one.", e);
       }
+    }
 
-      // Step 4: If no suitable session is found after checking all waiting ones, create a new session.
-      const newSessionId = uuidv4();
-      const newPlayer: ContestPlayer = { uid: userId, username, avatarColor, plant: playerPlant };
-      const newSession: ContestSession = {
-        id: newSessionId,
-        status: 'waiting',
-        players: [newPlayer],
-        playerUids: [userId],
-        votes: {},
-        playerVotes: {},
-        createdAt: serverTimestamp(),
-        playerCount: 1,
-      };
-      
-      const newSessionRef = doc(db, 'contestSessions', newSessionId);
-      transaction.set(newSessionRef, newSession);
-      return newSessionId;
-    });
-
-    return sessionId;
+    // Step 4: If no suitable session was found OR joining failed, create a new session.
+    const newSessionId = uuidv4();
+    const newPlayer: ContestPlayer = { uid: userId, username, avatarColor, plant: playerPlant };
+    const newSession: ContestSession = {
+      id: newSessionId,
+      status: 'waiting',
+      players: [newPlayer],
+      playerUids: [userId],
+      votes: {},
+      playerVotes: {},
+      createdAt: serverTimestamp(),
+      playerCount: 1,
+    };
+    
+    const newSessionRef = doc(db, 'contestSessions', newSessionId);
+    await setDoc(newSessionRef, newSession);
+    return newSessionId;
 
   } catch (error) {
-    console.error("Error in findOrCreateContestSession transaction: ", error);
+    console.error("Error in findOrCreateContestSessionAction: ", error);
     throw new Error("Failed to find or create a contest session.");
   }
 }

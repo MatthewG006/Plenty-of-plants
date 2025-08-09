@@ -7,19 +7,13 @@ service cloud.firestore {
       // Allow users to read and write their own data.
       allow read, write: if request.auth.uid == userId;
 
-      // Allow any authenticated user to list users for the community page.
+      // Allow any authenticated user to read the `users` collection for the community page.
       allow list: if request.auth != null;
     }
-    
-    // Allow any authenticated user to get a specific contest session document.
     match /contestSessions/{sessionId} {
+      // Allow any authenticated user to read, write, create, and list contest sessions.
+      // In a production app, this would have more granular rules.
       allow read, write: if request.auth != null;
-    }
-    
-    // Allow any authenticated user to query the contestSessions collection.
-    // This is required to find an open session.
-    match /contestSessions/{document=**} {
-      allow list: if request.auth != null;
     }
   }
 }
