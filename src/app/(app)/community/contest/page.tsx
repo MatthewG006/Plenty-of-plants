@@ -91,7 +91,7 @@ export default function ContestPage() {
     const fetchContestState = useCallback(async (plantToEnter?: Plant) => {
         if (!user || !gameData) return;
         
-        if (!plantToEnter && !hasEntered) {
+        if (!plantToEnter && !session?.players[user.uid]) {
             setIsLoading(false);
             setIsJoining(false);
             return;
@@ -121,7 +121,7 @@ export default function ContestPage() {
             setIsLoading(false);
             setIsJoining(false);
         }
-    }, [user, gameData, toast, hasEntered]);
+    }, [user, gameData, toast, session]);
 
     // Initial load
     useEffect(() => {
@@ -149,7 +149,7 @@ export default function ContestPage() {
         const interval = setInterval(updateTimer, 1000);
         
         // Also fetch every 15 seconds to get new players/votes
-        const fetchInterval = setInterval(fetchContestState, 15000);
+        const fetchInterval = setInterval(() => fetchContestState(), 15000);
 
         return () => {
             clearInterval(interval);
@@ -308,5 +308,3 @@ export default function ContestPage() {
     </>
   );
 }
-
-    

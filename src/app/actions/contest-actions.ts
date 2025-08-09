@@ -6,6 +6,8 @@ import {
   doc,
   runTransaction,
   serverTimestamp,
+  getDoc,
+  setDoc,
 } from 'firebase/firestore';
 import type { Plant } from '@/interfaces/plant';
 import type { ContestSession, ContestPlayer } from '@/lib/contest-manager';
@@ -21,7 +23,7 @@ interface JoinRequest {
     plant?: Plant;
 }
 
-async function createNewSession(): Promise<ContestSession> {
+async function createNewSession(player: ContestPlayer | null): Promise<ContestSession> {
     const now = Date.now();
     const newSession: ContestSession = {
         id: CONTEST_SESSION_ID,
@@ -32,6 +34,9 @@ async function createNewSession(): Promise<ContestSession> {
         duration: CONTEST_DURATION_MS,
         createdAt: serverTimestamp(),
     };
+    if (player) {
+        newSession.players[player.uid] = player;
+    }
     return newSession;
 }
 
@@ -40,59 +45,69 @@ export async function joinAndGetContestState(
 ): Promise<{ session?: ContestSession; error?: string }> {
     try {
         const sessionDocRef = doc(db, 'contestSessions', CONTEST_SESSION_ID);
+        const player: ContestPlayer | null = plant ? { uid, username, avatarColor, plant } : null;
 
-        const updatedSession = await runTransaction(db, async (transaction) => {
-            const sessionDoc = await transaction.get(sessionDocRef);
-            let sessionData: ContestSession;
+        // First, try to get the document
+        const sessionDoc = await getDoc(sessionDocRef);
 
-            if (!sessionDoc.exists()) {
-                sessionData = await createNewSession();
-            } else {
-                sessionData = sessionDoc.data() as ContestSession;
-                const endsAt = new Date(sessionData.endsAt).getTime();
-
-                // If the session has ended, create a new one.
-                if (Date.now() > endsAt) {
-                    if (sessionData.status === 'voting') {
-                         // Tally votes and award prize for the ended session before creating a new one.
-                        const voteCounts: Record<string, number> = {};
-                        Object.values(sessionData.votes).forEach(votedForUid => {
-                            voteCounts[votedForUid] = (voteCounts[votedForUid] || 0) + 1;
-                        });
-
-                        let winnerId: string | null = null;
-                        let maxVotes = -1;
-                        for (const playerId in voteCounts) {
-                            if (voteCounts[playerId] > maxVotes) {
-                                maxVotes = voteCounts[playerId];
-                                winnerId = playerId;
-                            }
-                        }
-
-                        if (winnerId) {
-                            await awardContestPrize(winnerId);
+        if (!sessionDoc.exists() || Date.now() > new Date((sessionDoc.data() as ContestSession).endsAt).getTime()) {
+             // If the session doesn't exist or is expired, we need to create a new one.
+             // If the old one is just expired, we should award prizes first.
+            if(sessionDoc.exists()) {
+                const oldSessionData = sessionDoc.data() as ContestSession;
+                if (oldSessionData.status === 'voting') {
+                    const voteCounts: Record<string, number> = {};
+                    Object.values(oldSessionData.votes).forEach(votedForUid => {
+                        voteCounts[votedForUid] = (voteCounts[votedForUid] || 0) + 1;
+                    });
+                    let winnerId: string | null = null;
+                    let maxVotes = -1;
+                    for (const playerId in voteCounts) {
+                        if (voteCounts[playerId] > maxVotes) {
+                            maxVotes = voteCounts[playerId];
+                            winnerId = playerId;
                         }
                     }
-                    sessionData = await createNewSession();
+                    if (winnerId) {
+                        await awardContestPrize(winnerId);
+                    }
                 }
             }
 
-            // If the user wants to join with a plant, add them to the session.
-            if (plant) {
-                const newPlayer: ContestPlayer = { uid, username, avatarColor, plant };
-                sessionData.players[uid] = newPlayer;
-            }
+            const newSession = await createNewSession(player);
+            await setDoc(sessionDocRef, newSession);
+            // We need to convert serverTimestamp to a client-readable format before returning
+            const finalSession = (await getDoc(sessionDocRef)).data() as ContestSession;
+            return { session: finalSession };
+        }
+        
+        // If the session exists and is active, try to join via transaction
+        if (player) {
+            const updatedSession = await runTransaction(db, async (transaction) => {
+                const freshSessionDoc = await transaction.get(sessionDocRef);
+                if (!freshSessionDoc.exists()) {
+                    throw new Error("Session disappeared unexpectedly.");
+                }
+                const sessionData = freshSessionDoc.data() as ContestSession;
+                
+                // Add the new player
+                sessionData.players[uid] = player;
+                
+                transaction.update(sessionDocRef, { players: sessionData.players });
+                return sessionData;
+            });
+             return { session: updatedSession };
+        } else {
+            // If just fetching state without joining, return the current data
+            return { session: sessionDoc.data() as ContestSession };
+        }
 
-            transaction.set(sessionDocRef, sessionData);
-            return sessionData;
-        });
-
-        return { session: updatedSession };
     } catch (error: any) {
-        console.error("Error in joinAndGetContestState transaction: ", error);
+        console.error("Error in joinAndGetContestState: ", error);
         return { error: 'Failed to interact with contest session.' };
     }
 }
+
 
 interface VoteRequest {
     sessionId: string;
