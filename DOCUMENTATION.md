@@ -41,10 +41,16 @@ service cloud.firestore {
       // This is necessary for the Community Showcase feature.
       allow list: if request.auth != null;
     }
+
     match /contestSessions/{sessionId} {
-      // Allow any authenticated user to read and write to contest sessions.
-      // In a production app, this would have more granular rules.
+      // Allow any authenticated user to get, create, or update a specific session document.
       allow read, write: if request.auth != null;
+    }
+
+    // Allow any authenticated user to query the `contestSessions` collection.
+    // This is required to find an open session for the beauty contest.
+    match /contestSessions/{document=**} {
+      allow list: if request.auth != null;
     }
   }
 }
@@ -53,7 +59,7 @@ service cloud.firestore {
 This rule allows:
 1.  A user to manage their own data.
 2.  Any logged-in user to view the list of users for the community page.
-3.  Any logged-in user to read and write to contest sessions for the beauty contest feature.
+3.  Any logged-in user to query for contest sessions and to read/write to individual session documents.
 
 ---
 
@@ -108,7 +114,7 @@ The app includes several features that allow players to interact and compete wit
 - **The Park & Contest Entry**: The Park is a small, tranquil area that serves as an entry point for the Plant Beauty Contest. When a player visits the park, their first plant is displayed. Interacting with the plant's chat bubble will prompt them to join a contest.
 
 - **Plant Beauty Contest**: This is a real-time multiplayer feature where three players are matched into a session.
-    - **Session Management**: A `contest-manager.ts` file handles the logic for finding an open session in the `contestSessions` Firestore collection or creating a new one. This logic runs on the client.
+    - **Session Management**: A server action in `src/app/actions/contest-actions.ts` handles the logic for finding an open session in the `contestSessions` Firestore collection or creating a new one. This logic runs securely on the server.
     - **Real-Time Updates**: The contest page uses a real-time Firestore listener to update the UI as players join, when the countdown starts, and as votes are cast.
     - **Voting**: Once the session is full, a countdown begins, after which voting opens. Players vote for their favorite plant.
     - **Winner & Prize**: When all players have voted, a winner is determined. The winning plant is highlighted, and its owner is awarded a special "Red Glitter" cosmetic pack, which can be applied to a plant from the Room page.
