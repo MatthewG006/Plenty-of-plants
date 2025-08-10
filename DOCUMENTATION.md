@@ -69,13 +69,11 @@ The app uses Firebase Authentication for user signup and login. When a user crea
 
 ### 4.2. Audio System
 
-The audio system is managed globally to ensure music and sound effects are consistent across all a pages of the app.
+The audio system is managed globally to ensure sound effects are consistent across all a pages of the app.
 
-- **Audio Context**: A central piece of logic, located in `src/context/AudioContext.tsx`, manages the state of the background music (if it's playing, its volume) and sound effects. It provides a function that other parts of the app can call to play specific sounds like a "tap" or "whoosh".
+- **Audio Context**: A central piece of logic, located in `src/context/AudioContext.tsx`, manages the state of the sound effects. It provides a function that other parts of the app can call to play specific sounds like a "tap" or "whoosh".
 
-- **Music Player**: A dedicated component in `src/components/music-player.tsx` handles the actual playback of the background music file. It's placed in the root layout of the app so it's always present.
-
-- **Button Sound Effects**: The standard `Button` component has been modified to automatically play a "tap" sound effect on every click, providing instant auditory feedback. This logic is built directly into the component file at `src/components/ui/button.tsx`. The first user interaction on the splash screen is used to start the music, complying with modern browser autoplay policies.
+- **Button Sound Effects**: The standard `Button` component has been modified to automatically play a "tap" sound effect on every click, providing instant auditory feedback. This logic is built directly into the component file at `src/components/ui/button.tsx`.
 
 ### 4.3. AI Plant Generation
 
