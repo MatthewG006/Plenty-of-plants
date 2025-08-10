@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -6,7 +7,7 @@ service cloud.firestore {
       // Allow users to read and write their own data.
       allow read, write: if request.auth.uid == userId;
 
-      // Allow any authenticated user to read the `users` collection.
+      // Allow any authenticated user to list the `users` collection.
       // This is necessary for the Community Showcase feature.
       allow list: if request.auth != null;
     }
