@@ -25,7 +25,7 @@ This application uses Firebase for authentication and Firestore for data storage
 
 ### 3.1. Firestore Security Rules Configuration
 
-The **Community Showcase** feature requires that authenticated users can read data from other user documents. The default security rules are too restrictive for this.
+The **Community Showcase** and **Plant Beauty Contest** features require that authenticated users can read data from other user documents and interact with a shared contest document. The default security rules are too restrictive for this.
 
 **Action Required:** Go to your Firebase project, navigate to **Firestore Database > Rules**, and replace the default rules with the following:
 
@@ -43,6 +43,13 @@ service cloud.firestore {
       // This is required for the Community Showcase feature.
       allow list: if request.auth != null;
     }
+
+    // Rules for the 'contestSessions' collection
+    match /contestSessions/{sessionId} {
+      // Allow any authenticated user to read and write to contest sessions.
+      // This is required for finding, joining, creating, and voting in the contest.
+      allow read, write: if request.auth != null;
+    }
   }
 }
 ```
@@ -50,6 +57,7 @@ service cloud.firestore {
 This rule allows:
 1.  A user to manage their own data.
 2.  Any logged-in user to view the list of users for the community page.
+3.  Any logged-in user to read and write to the shared contest data.
 
 ---
 
@@ -101,4 +109,6 @@ The app includes several features that allow players to interact with each other
 
 - **Community Showcase**: Players can go to their Profile page to select up to five of their favorite plants for their "Showcase." These showcases are then displayed on the Community page, where other players can view them and "like" them, which awards the showcase owner 5 gold. This requires updated Firestore security rules (see Section 3.1).
 
-- **The Park**: The Park is a small, tranquil area that serves as a place for players to relax and see one of their plants in a different environment.
+- **The Park**: The Park is a small, tranquil area that serves as a place for players to relax and see one of their plants in a different environment. It also serves as the entry point for the Plant Beauty Contest.
+
+- **Plant Beauty Contest**: A real-time multiplayer mini-game where players can enter their plants. The game proceeds in rounds, with players voting for the best-looking plant. The winner receives a special cosmetic prize. The feature uses a single Firestore document to manage the game state in real-time for all participants.

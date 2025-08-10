@@ -1,6 +1,6 @@
 
 
-import { doc, getDoc, setDoc, getFirestore, updateDoc, arrayUnion, DocumentData, writeBatch, increment, collection, getDocs, query, where, limit, deleteDoc, arrayRemove } from 'firebase/firestore';
+import { doc, getDoc, setDoc, getFirestore, updateDoc, arrayUnion, DocumentData, writeBatch, increment, collection, getDocs, query, where, limit, deleteDoc, arrayRemove, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { app, db, auth } from './firebase';
 import type { Plant, Seed } from '@/interfaces/plant';
 import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
@@ -54,6 +54,24 @@ export interface CommunityUser {
     showcasePlants: Plant[];
     likes: number;
 }
+
+export interface Contestant extends Plant {
+    votes: number;
+    voterIds: string[];
+    ownerId: string;
+    ownerName: string;
+}
+
+export interface ContestSession {
+    id: string;
+    status: 'waiting' | 'voting' | 'finished';
+    createdAt: string; // ISO string
+    expiresAt: string; // ISO string
+    round: number;
+    contestants: Contestant[];
+    winner?: Contestant;
+}
+
 
 // Helper to check if a timestamp is from the current day
 function isToday(timestamp: number): boolean {
