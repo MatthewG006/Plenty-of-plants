@@ -121,3 +121,4 @@ The app includes several features that allow players to interact and compete wit
     - **Winner & Prize**: When the round ends, votes are tallied. The winning plant's owner is awarded a special "Red Glitter" cosmetic pack and 50 gold.
     - **Real-Time Updates**: The contest page uses periodic polling to keep the UI up-to-date with new players and votes.
 
+
