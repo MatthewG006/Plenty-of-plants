@@ -5,7 +5,6 @@ import { db } from '@/lib/firebase';
 import {
   doc,
   runTransaction,
-  serverTimestamp,
 } from 'firebase/firestore';
 import type { Plant } from '@/interfaces/plant';
 import type { ContestSession, ContestPlayer } from '@/lib/contest-manager';
@@ -27,7 +26,7 @@ function createNewSession(player: ContestPlayer): ContestSession {
         votes: {},
         endsAt: endsAt.toISOString(),
         duration: CONTEST_DURATION_MS,
-        createdAt: now.toISOString(), // Use ISO string for serializability
+        createdAt: now.toISOString(),
     };
     return newSession;
 }
@@ -48,15 +47,17 @@ async function finalizeSession(transaction: any, sessionDocRef: any, sessionData
             maxVotes = voteCounts[playerId];
             winnerId = playerId;
             isTie = false;
-        } else if (voteCounts[playerId] === maxVotes) {
+        } else if (voteCounts[playerId] === maxVotes && maxVotes > 0) {
             isTie = true;
         }
     }
     
+    // If there's a tie for the highest score, there's no winner.
     if (isTie) {
-      winnerId = null; // No winner in case of a tie
+      winnerId = null;
     }
 
+    // Only award a prize if there is a single, non-tied winner.
     if (winnerId) {
         await awardContestPrize(winnerId);
     }
@@ -81,57 +82,59 @@ export async function joinAndGetContestState(
         const resultSession = await runTransaction(db, async (transaction) => {
             const sessionDoc = await transaction.get(sessionDocRef);
 
-            // Case 1: No session exists. Create a new one if attempting to join.
+            // Case 1: No session exists. Create one if joining, otherwise do nothing.
             if (!sessionDoc.exists()) {
                 if (plant) {
-                    const newSession = createNewSession({ uid, username, avatarColor, plant });
+                    const player: ContestPlayer = { uid, username, avatarColor, plant };
+                    const newSession = createNewSession(player);
                     transaction.set(sessionDocRef, newSession);
                     return newSession;
                 }
-                return null; // No session, and not trying to join.
+                return null; 
             }
 
             let sessionData = sessionDoc.data() as ContestSession;
+            const isExpired = new Date(sessionData.endsAt).getTime() < Date.now();
 
-            // Case 2: Session has expired. Finalize it.
-            const isExpired = Date.now() > new Date(sessionData.endsAt).getTime();
+            // Case 2: Session is expired and needs finalizing.
             if (isExpired && sessionData.status === 'voting') {
-                const finalized = await finalizeSession(transaction, sessionDocRef, sessionData);
-                // If player was trying to join, start a new session immediately after finalizing.
+                const finalizedSession = await finalizeSession(transaction, sessionDocRef, sessionData);
+                // If the player was trying to join, immediately start a new session for them.
                 if (plant) {
-                    const newSession = createNewSession({ uid, username, avatarColor, plant });
-                    transaction.set(sessionDocRef, newSession);
-                    return newSession;
+                     const player: ContestPlayer = { uid, username, avatarColor, plant };
+                     const newSession = createNewSession(player);
+                     transaction.set(sessionDocRef, newSession);
+                     return newSession;
                 }
-                return finalized;
+                // Otherwise, just return the finalized session results.
+                return finalizedSession;
             }
             
-            // Case 3: Player is just fetching state, return current session data.
-            if (!plant) {
-                return sessionData;
+            // Case 3: A finished session exists, and player wants to join. Start a new one.
+            if (sessionData.status === 'finished' && plant) {
+                 const player: ContestPlayer = { uid, username, avatarColor, plant };
+                 const newSession = createNewSession(player);
+                 transaction.set(sessionDocRef, newSession);
+                 return newSession;
             }
 
-            // Case 4: Player is trying to join an active or finished session.
-            if (sessionData.status === 'finished') {
-                const newSession = createNewSession({ uid, username, avatarColor, plant });
-                transaction.set(sessionDocRef, newSession);
-                return newSession;
+            // Case 4: An active session exists.
+            if (plant) { // Player is trying to join.
+                if (sessionData.players[uid]) {
+                    return sessionData; // Already in the contest.
+                }
+                if (Object.keys(sessionData.players).length >= MAX_PLAYERS) {
+                    throw new Error("This contest round is full.");
+                }
+                // Add player to the active session.
+                const player: ContestPlayer = { uid, username, avatarColor, plant };
+                const updatedPlayers = { ...sessionData.players, [uid]: player };
+                transaction.update(sessionDocRef, { players: updatedPlayers });
+                return { ...sessionData, players: updatedPlayers };
             }
 
-            // Player is already in the contest
-            if (sessionData.players[uid]) {
-                return sessionData;
-            }
-            
-            if (Object.keys(sessionData.players).length >= MAX_PLAYERS) {
-                throw new Error("This contest round is full.");
-            }
-            
-            // Add player to the active session
-            const updatedPlayers = { ...sessionData.players, [uid]: { uid, username, avatarColor, plant } };
-            transaction.update(sessionDocRef, { players: updatedPlayers });
-            
-            return { ...sessionData, players: updatedPlayers };
+            // Case 5: Just fetching state of an active/finished session.
+            return sessionData;
         });
 
         return { session: resultSession || undefined };
