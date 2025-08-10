@@ -6,12 +6,9 @@ import {
   doc,
   runTransaction,
   serverTimestamp,
-  setDoc,
-  writeBatch,
-  getDoc,
 } from 'firebase/firestore';
 import type { Plant } from '@/interfaces/plant';
-import type { ContestSession } from '@/lib/contest-manager';
+import type { ContestSession, ContestPlayer } from '@/lib/contest-manager';
 import { awardContestPrize } from '@/lib/firestore';
 
 const CONTEST_SESSION_ID = "active_contest_v3";
@@ -19,23 +16,24 @@ const CONTEST_DURATION_MS = 3 * 60 * 1000; // 3 minutes for a round
 const MAX_PLAYERS = 6;
 
 // Helper to create a new session object
-function createNewSession(player: { uid: string; username: string; avatarColor: string; plant: Plant; }): Omit<ContestSession, 'createdAt'> {
+function createNewSession(player: ContestPlayer): ContestSession {
     const now = new Date();
     const endsAt = new Date(now.getTime() + CONTEST_DURATION_MS);
     
-    const newSession: Omit<ContestSession, 'createdAt'> = {
+    const newSession: ContestSession = {
         id: CONTEST_SESSION_ID,
         status: 'voting',
         players: { [player.uid]: player },
         votes: {},
         endsAt: endsAt.toISOString(),
         duration: CONTEST_DURATION_MS,
+        createdAt: now.toISOString(), // Use ISO string for serializability
     };
     return newSession;
 }
 
 // Helper to finalize a finished session
-async function finalizeSession(sessionData: ContestSession): Promise<ContestSession> {
+async function finalizeSession(transaction: any, sessionDocRef: any, sessionData: ContestSession): Promise<ContestSession> {
     const voteCounts: Record<string, number> = {};
     Object.values(sessionData.votes).forEach(votedForUid => {
         voteCounts[votedForUid] = (voteCounts[votedForUid] || 0) + 1;
@@ -43,26 +41,33 @@ async function finalizeSession(sessionData: ContestSession): Promise<ContestSess
 
     let winnerId: string | null = null;
     let maxVotes = 0;
+    let isTie = false;
+
     for (const playerId in voteCounts) {
         if (voteCounts[playerId] > maxVotes) {
             maxVotes = voteCounts[playerId];
             winnerId = playerId;
+            isTie = false;
         } else if (voteCounts[playerId] === maxVotes) {
-            winnerId = null; // Tie results in no winner
+            isTie = true;
         }
+    }
+    
+    if (isTie) {
+      winnerId = null; // No winner in case of a tie
     }
 
     if (winnerId) {
         await awardContestPrize(winnerId);
     }
     
-    const sessionDocRef = doc(db, 'contestSessions', CONTEST_SESSION_ID);
     const finalizedSession: ContestSession = {
         ...sessionData,
         winnerId: winnerId || null,
         status: 'finished'
     };
-    await setDoc(sessionDocRef, finalizedSession);
+    
+    transaction.set(sessionDocRef, finalizedSession);
     return finalizedSession;
 }
 
@@ -73,61 +78,66 @@ export async function joinAndGetContestState(
     const sessionDocRef = doc(db, 'contestSessions', CONTEST_SESSION_ID);
 
     try {
-        const sessionDoc = await getDoc(sessionDocRef);
+        const resultSession = await runTransaction(db, async (transaction) => {
+            const sessionDoc = await transaction.get(sessionDocRef);
 
-        // Case 1: No session exists. Create a new one if attempting to join.
-        if (!sessionDoc.exists()) {
-            if (plant) {
-                const newSessionData = createNewSession({ uid, username, avatarColor, plant });
-                await setDoc(sessionDocRef, { ...newSessionData, createdAt: serverTimestamp() });
-                return { session: newSessionData as ContestSession };
+            // Case 1: No session exists. Create a new one if attempting to join.
+            if (!sessionDoc.exists()) {
+                if (plant) {
+                    const newSession = createNewSession({ uid, username, avatarColor, plant });
+                    transaction.set(sessionDocRef, newSession);
+                    return newSession;
+                }
+                return null; // No session, and not trying to join.
             }
-            return {}; // No session, not trying to join.
-        }
 
-        let sessionData = sessionDoc.data() as ContestSession;
+            let sessionData = sessionDoc.data() as ContestSession;
 
-        // Case 2: Session has expired. Finalize it.
-        if (Date.now() > new Date(sessionData.endsAt).getTime() && sessionData.status === 'voting') {
-            sessionData = await finalizeSession(sessionData);
-
-            // If the player was trying to join, start a new session for them immediately after finalizing the old one.
-            if (plant) {
-                 const newSessionData = createNewSession({ uid, username, avatarColor, plant });
-                await setDoc(sessionDocRef, { ...newSessionData, createdAt: serverTimestamp() });
-                return { session: newSessionData as ContestSession };
+            // Case 2: Session has expired. Finalize it.
+            const isExpired = Date.now() > new Date(sessionData.endsAt).getTime();
+            if (isExpired && sessionData.status === 'voting') {
+                const finalized = await finalizeSession(transaction, sessionDocRef, sessionData);
+                // If player was trying to join, start a new session immediately after finalizing.
+                if (plant) {
+                    const newSession = createNewSession({ uid, username, avatarColor, plant });
+                    transaction.set(sessionDocRef, newSession);
+                    return newSession;
+                }
+                return finalized;
             }
-        }
-        
-        // Case 3: Player is just fetching state, return current session data.
-        if (!plant) {
-            return { session: sessionData };
-        }
-
-        // Case 4: Player is trying to join an active session.
-        if (sessionData.players[uid]) {
-            return { session: sessionData }; // Already in.
-        }
-        if (Object.keys(sessionData.players).length >= MAX_PLAYERS) {
-            return { error: "This contest round is full." };
-        }
-        
-        // Use a transaction to safely add the player.
-        const updatedSession = await runTransaction(db, async (transaction) => {
-            const freshSessionDoc = await transaction.get(sessionDocRef);
-            if (!freshSessionDoc.exists()) {
-                throw new Error("Contest session disappeared.");
+            
+            // Case 3: Player is just fetching state, return current session data.
+            if (!plant) {
+                return sessionData;
             }
-            const freshSessionData = freshSessionDoc.data() as ContestSession;
-            const updatedPlayers = { ...freshSessionData.players, [uid]: { uid, username, avatarColor, plant } };
+
+            // Case 4: Player is trying to join an active or finished session.
+            if (sessionData.status === 'finished') {
+                const newSession = createNewSession({ uid, username, avatarColor, plant });
+                transaction.set(sessionDocRef, newSession);
+                return newSession;
+            }
+
+            // Player is already in the contest
+            if (sessionData.players[uid]) {
+                return sessionData;
+            }
+            
+            if (Object.keys(sessionData.players).length >= MAX_PLAYERS) {
+                throw new Error("This contest round is full.");
+            }
+            
+            // Add player to the active session
+            const updatedPlayers = { ...sessionData.players, [uid]: { uid, username, avatarColor, plant } };
             transaction.update(sessionDocRef, { players: updatedPlayers });
-            return { ...freshSessionData, players: updatedPlayers };
+            
+            return { ...sessionData, players: updatedPlayers };
         });
 
-        return { session: updatedSession };
+        return { session: resultSession || undefined };
 
     } catch (error: any) {
-        console.error("Error in joinAndGetContestState: ", error);
+        console.error("Error in joinAndGetContestState transaction: ", error);
         return { error: error.message || 'Failed to interact with contest session.' };
     }
 }
