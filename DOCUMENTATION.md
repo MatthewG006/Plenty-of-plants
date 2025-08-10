@@ -25,7 +25,7 @@ This application uses Firebase for authentication and Firestore for data storage
 
 ### 3.1. Firestore Security Rules Configuration
 
-The **Community Showcase** and **Plant Beauty Contest** features require that authenticated users can read and write data across different collections. The default security rules are too restrictive for this.
+The **Community Showcase** feature requires that authenticated users can read data from other user documents. The default security rules are too restrictive for this.
 
 **Action Required:** Go to your Firebase project, navigate to **Firestore Database > Rules**, and replace the default rules with the following:
 
@@ -43,13 +43,6 @@ service cloud.firestore {
       // This is required for the Community Showcase feature.
       allow list: if request.auth != null;
     }
-
-    // Rules for the 'contestSessions' collection
-    match /contestSessions/{sessionId} {
-      // Allow any authenticated user to read and write to contest sessions.
-      // This is required for finding, joining, creating, and voting in the contest.
-      allow read, write: if request.auth != null;
-    }
   }
 }
 ```
@@ -57,7 +50,6 @@ service cloud.firestore {
 This rule allows:
 1.  A user to manage their own data.
 2.  Any logged-in user to view the list of users for the community page.
-3.  Any logged-in user to query for contest sessions and to read/write to individual session documents.
 
 ---
 
@@ -103,17 +95,10 @@ The "Room" page, located at `src/app/(app)/room/page.tsx`, is where users can vi
 
 - **Drag and Drop**: The page uses the `@dnd-kit` library to allow users to drag their plants. Users can drag plants from their collection into an empty pot on the desk, swap plants between pots, or move a plant from the desk back into the collection. After any change is made, the updated arrangement is immediately saved to the user's browser storage.
 
-### 4.6. Community & Contests
+### 4.6. Community & Park
 
-The app includes several features that allow players to interact and compete with each other.
+The app includes several features that allow players to interact with each other.
 
 - **Community Showcase**: Players can go to their Profile page to select up to five of their favorite plants for their "Showcase." These showcases are then displayed on the Community page, where other players can view them and "like" them, which awards the showcase owner 5 gold. This requires updated Firestore security rules (see Section 3.1).
 
-- **The Park & Contest Entry**: The Park is a small, tranquil area that serves as an entry point for the Plant Beauty Contest. When a player visits the park, their first plant is displayed. Interacting with the plant's chat bubble will prompt them to join a contest.
-
-- **Plant Beauty Contest**: This is a real-time multiplayer feature where players compete in timed rounds.
-    - **Session Management**: A server action in `src/app/actions/contest-actions.ts` handles the logic for joining the currently active contest session. If no session is active, joining starts a new one. This logic is much simpler and more robust than previous versions.
-    - **Timed Rounds**: Contests run for a fixed duration (e.g., 3 minutes). When the timer ends, a winner is determined.
-    - **Voting**: Players in the contest can vote for their favorite plant (but not their own).
-    - **Winner & Prize**: When the round ends, votes are tallied. The winning plant's owner is awarded a special "Red Glitter" cosmetic pack and 50 gold.
-    - **Real-Time Updates**: The contest page uses periodic polling to keep the UI up-to-date with new players and votes.
+- **The Park**: The Park is a small, tranquil area that serves as a place for players to relax and see one of their plants in a different environment.

@@ -3,34 +3,23 @@
 
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useEffect, useState } from 'react';
 import type { Plant } from '@/interfaces/plant';
 import { makeBackgroundTransparent } from '@/lib/image-compression';
 import Image from 'next/image';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { useRouter } from 'next/navigation';
 import { useAudio } from '@/context/AudioContext';
+import { useToast } from '@/hooks/use-toast';
 
 export default function ParkPage() {
   const { gameData } = useAuth();
   const { playSfx } = useAudio();
-  const router = useRouter();
+  const { toast } = useToast();
 
   const [displayPlant, setDisplayPlant] = useState<Plant | null>(null);
   const [processedImage, setProcessedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [showContestDialog, setShowContestDialog] = useState(false);
 
   useEffect(() => {
     async function setupPlant() {
@@ -55,12 +44,10 @@ export default function ParkPage() {
 
   const handleChatBubbleClick = () => {
     playSfx('tap');
-    setShowContestDialog(true);
-  };
-  
-  const handleGoToContest = () => {
-    playSfx('whoosh');
-    router.push('/community/contest');
+    toast({
+        title: 'A Quiet Moment',
+        description: `${displayPlant?.name || 'Your plant'} seems to be enjoying the peacefulness of the park.`
+    });
   };
 
   return (
@@ -81,7 +68,7 @@ export default function ParkPage() {
         <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-4 mt-16">
           <div className="bg-black/50 p-6 rounded-lg text-center shadow-lg backdrop-blur-sm z-0">
             <h1 className="text-4xl font-bold mb-2">Welcome to<br />the Park</h1>
-             <p className="text-lg">A quiet place to relax<br />before the contest.</p>
+             <p className="text-lg">A quiet place to relax.</p>
           </div>
         </div>
 
@@ -94,7 +81,7 @@ export default function ParkPage() {
                 className="absolute -top-8 left-1/2 -translate-x-1/4 w-24 h-12 bg-white rounded-full flex items-center justify-center cursor-pointer pointer-events-auto shadow-lg animate-pulse-subtle"
                 onClick={handleChatBubbleClick}
               >
-                <p className="text-black font-bold text-xl tracking-widest">...</p>
+                 <MessageSquare className="w-8 h-8 text-black" />
               </div>
               <Image 
                   src={processedImage} 
@@ -107,22 +94,6 @@ export default function ParkPage() {
           ) : null}
         </div>
       </div>
-      <AlertDialog open={showContestDialog} onOpenChange={setShowContestDialog}>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-            <AlertDialogTitle>Enter the Plant Beauty Contest?</AlertDialogTitle>
-            <AlertDialogDescription>
-                A new contest is starting soon. Would you like to check it out?
-            </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-            <AlertDialogCancel>Maybe later</AlertDialogCancel>
-            <AlertDialogAction onClick={handleGoToContest}>
-                Yes, let's go!
-            </AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }
