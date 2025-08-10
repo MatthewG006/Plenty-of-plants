@@ -98,16 +98,16 @@ export async function joinAndGetContestState(
 
             // Case 2: Session is expired and needs finalizing.
             if (isExpired && sessionData.status === 'voting') {
-                const finalizedSession = await finalizeSession(transaction, sessionDocRef, sessionData);
-                // If the player was trying to join, immediately start a new session for them.
+                await finalizeSession(transaction, sessionDocRef, sessionData);
+                // After finalizing, if the player was trying to join, immediately start a new session.
                 if (plant) {
                      const player: ContestPlayer = { uid, username, avatarColor, plant };
                      const newSession = createNewSession(player);
                      transaction.set(sessionDocRef, newSession);
                      return newSession;
                 }
-                // Otherwise, just return the finalized session results.
-                return finalizedSession;
+                // Otherwise, signal that the session is over and there's no new one yet.
+                return null; 
             }
             
             // Case 3: A finished session exists, and player wants to join. Start a new one.
