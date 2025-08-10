@@ -11,7 +11,7 @@ import { Loader2 } from 'lucide-react';
 import { useEffect } from 'react';
 
 export default function SplashPage() {
-  const { isPlaying, togglePlay, playSfx } = useAudio();
+  const { playSfx } = useAudio();
   const { user, loading } = useAuth();
   const router = useRouter();
 
@@ -25,9 +25,6 @@ export default function SplashPage() {
 
 
   const handleEnter = () => {
-    if (!isPlaying) {
-      togglePlay();
-    }
     playSfx('whoosh');
     router.push(user ? '/home' : '/login');
   };

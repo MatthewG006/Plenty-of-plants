@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Megaphone, Loader2 } from 'lucide-react';
-import { useAudio } from '@/context/AudioContext';
 import { useToast } from '@/hooks/use-toast';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
@@ -43,8 +42,6 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentUpdate, setCurrentUpdate] = useState(updateMessages[0]);
   
-  const { isPlaying, togglePlay } = useAudio();
-
   useEffect(() => {
     // Select a random update message on component mount
     const randomIndex = Math.floor(Math.random() * updateMessages.length);
@@ -54,10 +51,6 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
-    if (!isPlaying) {
-      togglePlay();
-    }
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
