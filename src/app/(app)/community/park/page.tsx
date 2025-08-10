@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Loader2, MessageSquare, Trophy } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useEffect, useState } from 'react';
 import type { Plant } from '@/interfaces/plant';
@@ -68,7 +68,13 @@ export default function ParkPage() {
         <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-4 mt-16">
           <div className="bg-black/50 p-6 rounded-lg text-center shadow-lg backdrop-blur-sm z-0">
             <h1 className="text-4xl font-bold mb-2">Welcome to<br />the Park</h1>
-             <p className="text-lg">A quiet place to relax.</p>
+             <p className="text-lg mb-4">A quiet place to relax... or compete!</p>
+             <Button asChild>
+                <Link href="/community/contest">
+                    <Trophy className="mr-2 h-4 w-4" />
+                    Enter Plant Beauty Contest
+                </Link>
+             </Button>
           </div>
         </div>
 
