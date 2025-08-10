@@ -43,15 +43,10 @@ service cloud.firestore {
       allow list: if request.auth != null;
     }
 
-    match /contestSessions/{sessionId} {
-      // Allow any authenticated user to get, create, or update a specific session document.
-      allow read, write: if request.auth != null;
-    }
-
-    // Allow any authenticated user to query the `contestSessions` collection.
-    // This is required to find an open session for the beauty contest.
     match /contestSessions/{document=**} {
-      allow list: if request.auth != null;
+      // Allow any authenticated user to perform any action on the contest sessions.
+      // This is required for finding, joining, creating, and voting in the beauty contest.
+      allow read, write: if request.auth != null;
     }
   }
 }
