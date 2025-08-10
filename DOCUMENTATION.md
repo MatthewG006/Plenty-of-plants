@@ -122,3 +122,6 @@ The app includes several features that allow players to interact and compete wit
     - **Real-Time Updates**: The contest page uses periodic polling to keep the UI up-to-date with new players and votes.
 
 
+
+
+    

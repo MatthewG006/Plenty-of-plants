@@ -697,3 +697,5 @@ export async function awardContestPrize(userId: string): Promise<void> {
         gold: increment(50),
     });
 }
+
+    
