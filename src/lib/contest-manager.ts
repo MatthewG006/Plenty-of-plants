@@ -2,7 +2,6 @@
 'use client';
 
 import type { Plant } from '@/interfaces/plant';
-import type { FieldValue } from 'firebase/firestore';
 
 export interface ContestPlayer {
   uid: string;
@@ -17,7 +16,7 @@ export interface ContestSession {
   players: Record<string, ContestPlayer>; // key is player uid
   votes: Record<string, string>; // key is voter's uid, value is the uid of the player they voted for
   winnerId?: string | null;
-  createdAt: FieldValue;
+  createdAt: string; // ISO string for dates
   endsAt: string; // ISO string for dates
   duration: number; // in milliseconds
 }
