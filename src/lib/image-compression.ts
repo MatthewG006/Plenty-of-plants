@@ -1,6 +1,6 @@
 
 // Helper function to compress an image
-export async function compressImage(dataUri: string, maxSize = 128): Promise<string> {
+export async function compressImage(dataUri: string, maxSize = 1024): Promise<string> {
     return new Promise((resolve, reject) => {
         const img = new window.Image();
         img.crossOrigin = 'anonymous'; // Fix for tainted canvas error
@@ -28,7 +28,7 @@ export async function compressImage(dataUri: string, maxSize = 128): Promise<str
             }
             ctx.drawImage(img, 0, 0, width, height);
             // Use JPEG with a lower quality setting for better compression
-            resolve(canvas.toDataURL('image/jpeg', 0.8));
+            resolve(canvas.toDataURL('image/jpeg', 0.2));
         };
         img.onerror = reject;
         img.src = dataUri;
