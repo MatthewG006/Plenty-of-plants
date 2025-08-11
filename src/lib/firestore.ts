@@ -260,21 +260,21 @@ export async function savePlant(userId: string, plantData: DrawPlantOutput): Pro
     const newPlant: Plant = {
         id: lastId + 1,
         name: plainPlantData.name || 'Mysterious Sprout',
-        form: 'Base',
-        image: plainPlantData.imageDataUri || '',
-        baseImage: '',
-        hint: (plainPlantData.name || '').toLowerCase().split(' ').slice(0, 2).join(' '),
         description: plainPlantData.description || 'A new plant has arrived.',
+        image: plainPlantData.imageDataUri || '',
+        baseImage: '', // Always start with no base image
+        form: 'Base', // All new plants start at base form
+        hint: (plainPlantData.name || '').toLowerCase().split(' ').slice(0, 2).join(' '),
         level: 1,
         xp: 0,
-        lastWatered: [],
+        lastWatered: [], // Initialize as empty array
         hasGlitter: false,
         hasSheen: false,
         hasRainbowGlitter: false,
         hasRedGlitter: false,
-        personality: '',
+        personality: '', // Initialize as empty string
         chatEnabled: false,
-        conversationHistory: [],
+        conversationHistory: [], // Initialize as empty array
     };
 
     const firstEmptyPotIndex = gameData.deskPlantIds.findIndex(id => id === null);
@@ -285,7 +285,7 @@ export async function savePlant(userId: string, plantData: DrawPlantOutput): Pro
     
     if (firstEmptyPotIndex !== -1) {
         const newDeskPlantIds = [...gameData.deskPlantIds];
-        newDeskPlantIds[firstEmptyPotIndex] = newPlant.id;
+        newDeskPlantIds[firstEmptyPot_index] = newPlant.id;
         updatePayload.deskPlantIds = newDeskPlantIds;
     } else {
         updatePayload.collectionPlantIds = arrayUnion(newPlant.id);
@@ -715,3 +715,5 @@ export async function awardContestPrize(userId: string): Promise<void> {
         gold: increment(50),
     });
 }
+
+    
