@@ -259,12 +259,12 @@ export async function savePlant(userId: string, plantData: DrawPlantOutput): Pro
 
     const newPlant: Plant = {
         id: lastId + 1,
-        name: plainPlantData.name,
+        name: plainPlantData.name || 'Mysterious Sprout',
         form: 'Base',
-        image: plainPlantData.imageDataUri,
+        image: plainPlantData.imageDataUri || '',
         baseImage: '',
-        hint: plainPlantData.name.toLowerCase().split(' ').slice(0, 2).join(' '),
-        description: plainPlantData.description,
+        hint: (plainPlantData.name || '').toLowerCase().split(' ').slice(0, 2).join(' '),
+        description: plainPlantData.description || 'A new plant has arrived.',
         level: 1,
         xp: 0,
         lastWatered: [],
