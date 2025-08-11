@@ -24,7 +24,7 @@ import {
 } from '@dnd-kit/core';
 import { useAuth } from '@/context/AuthContext';
 import { updatePlantArrangement, updatePlant } from '@/lib/firestore';
-import { makeBackgroundTransparent } from '@/lib/image-compression';
+import { makeBackgroundTransparent, compressImage } from '@/lib/image-compression';
 import { PlantDetailDialog, EvolveConfirmationDialog, EvolvePreviewDialog, PlantChatDialog } from '@/components/plant-dialogs';
 import { evolvePlantAction } from '@/app/actions/evolve-plant';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -360,12 +360,14 @@ export default function RoomPage() {
         });
 
         const newForm = evolvingPlant.form === 'Base' ? 'Evolved' : 'Final';
+        
+        const compressedImage = await compressImage(newImageDataUri);
 
         setEvolvedPreviewData({ 
             plantId: evolvingPlant.id,
             plantName: evolvingPlant.name, 
             newForm,
-            newImageUri: newImageDataUri,
+            newImageUri: compressedImage,
             personality
         });
         setEvolvingPlant(null);
@@ -380,6 +382,7 @@ export default function RoomPage() {
   const handleConfirmEvolution = async () => {
     if (!user || !evolvedPreviewData || !gameData) return;
     
+    setIsEvolving(true);
     try {
         const { plantId, newImageUri, newForm, personality } = evolvedPreviewData;
         
