@@ -272,7 +272,7 @@ export async function savePlant(userId: string, plantData: DrawPlantOutput): Pro
         hasSheen: false,
         hasRainbowGlitter: false,
         hasRedGlitter: false,
-        personality: '', // Initialize as empty string
+        personality: plainPlantData.personality || '', // Ensure personality is defined
         chatEnabled: false,
         conversationHistory: [], // Initialize as empty array
     };
@@ -285,7 +285,7 @@ export async function savePlant(userId: string, plantData: DrawPlantOutput): Pro
     
     if (firstEmptyPotIndex !== -1) {
         const newDeskPlantIds = [...gameData.deskPlantIds];
-        newDeskPlantIds[firstEmptyPot_index] = newPlant.id;
+        newDeskPlantIds[firstEmptyPotIndex] = newPlant.id;
         updatePayload.deskPlantIds = newDeskPlantIds;
     } else {
         updatePayload.collectionPlantIds = arrayUnion(newPlant.id);
