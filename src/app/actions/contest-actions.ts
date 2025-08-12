@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { doc, runTransaction } from 'firebase/firestore';
+import { doc, runTransaction, getDoc } from 'firebase/firestore';
 import type { Plant, ContestSession, Contestant } from '@/lib/firestore';
 import { awardContestPrize } from '@/lib/firestore';
 
