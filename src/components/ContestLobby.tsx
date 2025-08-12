@@ -48,14 +48,24 @@ export default function ContestLobby({
       <div className="mt-4 flex gap-2">
         <button
           onClick={handleJoin}
-          className="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600"
+          className={`px-4 py-1 rounded text-white ${
+            currentUser
+              ? "bg-blue-500 hover:bg-blue-600"
+              : "bg-gray-400 cursor-not-allowed"
+          }`}
+          disabled={!currentUser}
         >
           Join
         </button>
         {session.hostId === currentUser?.uid && (
           <button
             onClick={handleStartVoting}
-            className="bg-green-500 text-white px-4 py-1 rounded hover:bg-green-600"
+            className={`px-4 py-1 rounded text-white ${
+              currentUser
+                ? "bg-green-500 hover:bg-green-600"
+                : "bg-gray-400 cursor-not-allowed"
+            }`}
+            disabled={!currentUser}
           >
             Start Voting
           </button>
