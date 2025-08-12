@@ -1,4 +1,4 @@
-// lib/contestApi.ts
+// src/lib/contestApi.ts
 import { db } from "./firebaseClient";
 import {
   doc,
