@@ -11,7 +11,7 @@ const WAITING_TIME_SEC = 30;
 const VOTE_TIME_SEC = 20;
 
 // Helper to create a new, empty contest session
-function createNewSession(): ContestSession {
+function createNewSession(plant: Contestant): ContestSession {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + WAITING_TIME_SEC * 1000);
     return {
@@ -20,133 +20,101 @@ function createNewSession(): ContestSession {
         createdAt: now.toISOString(),
         expiresAt: expiresAt.toISOString(),
         round: 1,
-        contestants: [],
+        contestants: [plant],
     };
 }
-
-async function finalizeExpiredSession(session: ContestSession | null): Promise<ContestSession | null> {
-    if (!session || new Date(session.expiresAt) > new Date()) {
-        return session; // Session is not expired or doesn't exist
-    }
-
-    if (session.status === 'waiting') {
-        // Not enough players joined in time. The session is void.
-        const sessionRef = doc(db, 'contestSessions', CONTEST_SESSION_ID);
-        await runTransaction(db, async (transaction) => {
-            transaction.delete(sessionRef);
-        });
-        return null;
-    }
-    
-    if (session.status === 'voting') {
-        // Voting round ended. Find winners.
-        let maxVotes = -1;
-        let winners: Contestant[] = [];
-        session.contestants.forEach(c => {
-            if (c.votes > maxVotes) {
-                maxVotes = c.votes;
-                winners = [c];
-            } else if (c.votes === maxVotes) {
-                winners.push(c);
-            }
-        });
-
-        // Reset votes for the next round for all contestants
-        const nextContestants = session.contestants.map(c => ({...c, votes: 0, voterIds: []}));
-
-        if (winners.length <= 1) { // We have a final winner or no one voted
-            const finalWinner = winners[0];
-            session.status = 'finished';
-            session.winner = finalWinner;
-            if (finalWinner) {
-                // Awarding the prize is a separate operation now.
-                await awardContestPrize(finalWinner.ownerId);
-            }
-        } else { // Tie, proceed to the next round with the winners
-            session.status = 'voting';
-            session.round += 1;
-            session.contestants = nextContestants.filter(c => winners.some(w => w.id === c.id));
-            const now = new Date();
-            const expiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
-            session.expiresAt = expiresAt.toISOString();
-        }
-        
-        const sessionRef = doc(db, 'contestSessions', CONTEST_SESSION_ID);
-        await runTransaction(db, async (transaction) => {
-            transaction.set(sessionRef, session);
-        });
-        return session;
-    }
-    
-    if (session.status === 'finished') {
-        // The contest is over, it can be cleared for a new one to start.
-        const sessionRef = doc(db, 'contestSessions', CONTEST_SESSION_ID);
-        await runTransaction(db, async (transaction) => {
-            transaction.delete(sessionRef);
-        });
-        return null;
-    }
-
-    return session;
-}
-
 
 export async function joinAndGetContestState({ userId, username, plant }: { userId: string, username: string, plant?: Plant }): Promise<{ session?: ContestSession | null, error?: string }> {
     try {
         const sessionRef = doc(db, 'contestSessions', CONTEST_SESSION_ID);
 
-        // --- I. HANDLE EXPIRED SESSIONS ---
-        // First, check if there's an existing session and if it needs to be finalized.
-        const initialSessionDoc = await getDoc(sessionRef);
-        let currentSession: ContestSession | null = initialSessionDoc.exists() ? initialSessionDoc.data() as ContestSession : null;
-        currentSession = await finalizeExpiredSession(currentSession);
-
-
-        // --- II. JOIN OR CREATE SESSION ---
         const finalSession = await runTransaction(db, async (transaction) => {
             const liveSessionDoc = await transaction.get(sessionRef);
-            let liveSession: ContestSession | null = liveSessionDoc.exists() ? liveSessionDoc.data() as ContestSession : null;
+            let session: ContestSession | null = liveSessionDoc.exists() ? liveSessionDoc.data() as ContestSession : null;
 
-            // If a session exists, use it. If not, and we're trying to join, create one.
-            if (!liveSession) {
-                if (plant) { // User wants to join, so we create a new session.
-                    liveSession = createNewSession();
-                } else { // User is just checking, not creating. No active session.
-                    return null;
+            // --- I. Handle Session State & Expiration ---
+            if (session && new Date(session.expiresAt) <= new Date()) {
+                if (session.status === 'waiting') {
+                    // Not enough players joined. The session is void.
+                    transaction.delete(sessionRef);
+                    session = null;
+                } else if (session.status === 'voting') {
+                    // Voting ended. Find winner(s).
+                    let maxVotes = -1;
+                    let winners: Contestant[] = [];
+                    session.contestants.forEach(c => {
+                        if (c.votes > maxVotes) {
+                            maxVotes = c.votes;
+                            winners = [c];
+                        } else if (c.votes === maxVotes) {
+                            winners.push(c);
+                        }
+                    });
+
+                    if (winners.length <= 1) { // Final winner
+                        session.status = 'finished';
+                        session.winner = winners[0]; // Can be undefined if no votes
+                        if (session.winner) {
+                           await awardContestPrize(session.winner.ownerId);
+                        }
+                    } else { // Tie, go to next round
+                        session.status = 'voting';
+                        session.round += 1;
+                        session.contestants = winners.map(c => ({...c, votes: 0, voterIds: [] }));
+                        const now = new Date();
+                        const expiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
+                        session.expiresAt = expiresAt.toISOString();
+                    }
+                } else if (session.status === 'finished') {
+                    // Contest is over and being viewed. It can be cleared for a new one.
+                    transaction.delete(sessionRef);
+                    session = null;
                 }
             }
             
-            // Add player if they are joining and it's the waiting phase
-            if (plant && liveSession.status === 'waiting') {
-                const alreadyExists = liveSession.contestants.some(c => c.ownerId === userId);
-                if (!alreadyExists) {
-                    const newContestant: Contestant = {
-                        ...plant,
-                        votes: 0,
-                        voterIds: [],
-                        ownerId: userId,
-                        ownerName: username,
-                    };
-                    liveSession.contestants.push(newContestant);
+            // --- II. Handle Joining ---
+            if (plant) { // User wants to join
+                const newContestant: Contestant = {
+                    ...plant,
+                    votes: 0,
+                    voterIds: [],
+                    ownerId: userId,
+                    ownerName: username,
+                };
+                if (!session) { // No session, create one
+                    session = createNewSession(newContestant);
+                } else if (session.status === 'waiting') { // Add to existing session
+                    const alreadyExists = session.contestants.some(c => c.ownerId === userId);
+                    if (!alreadyExists) {
+                        session.contestants.push(newContestant);
+                    }
+                }
+                
+                // --- III. Start Voting If Ready ---
+                if (session && session.status === 'waiting' && session.contestants.length >= 2) {
+                    session.status = 'voting';
+                    const now = new Date();
+                    const expiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
+                    session.expiresAt = expiresAt.toISOString();
                 }
             }
-            
-            // Start voting if ready
-            if (liveSession.status === 'waiting' && liveSession.contestants.length >= 2) {
-                liveSession.status = 'voting';
-                const now = new Date();
-                const expiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
-                liveSession.expiresAt = expiresAt.toISOString();
+
+            // Write changes back to Firestore
+            if (session) {
+                transaction.set(sessionRef, session);
             }
 
-            transaction.set(sessionRef, liveSession);
-            return liveSession;
+            return session;
         });
 
         return { session: finalSession };
 
     } catch (e: any) {
-        console.error("Transaction failed: ", e);
+        console.error("Contest transaction failed: ", e);
+        // Translate Firestore permission errors into a user-friendly message
+        if (e.code === 'permission-denied') {
+             return { error: 'Missing or insufficient permissions. Please check your Firestore security rules as per the documentation.' };
+        }
         return { error: e.message || 'Failed to communicate with contest service.' };
     }
 }
