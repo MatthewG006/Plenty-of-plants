@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { ContestPlantSelectionDialog } from '@/components/plant-dialogs';
-import { joinAndGetContestState, voteForContestant } from '@/app/actions/contest-actions';
+import { joinAndGetContestState, voteForContestant, finalizeContest } from '@/app/actions/contest-actions';
 import type { ContestSession, Contestant } from '@/lib/firestore';
 import Link from 'next/link';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -113,6 +113,14 @@ export default function ContestPage() {
 
     useEffect(() => {
         if (!user) return;
+        
+        // Finalize any expired contest before setting up the listener
+        finalizeContest().then(finalizedSession => {
+            if (finalizedSession) {
+                setSession(finalizedSession);
+            }
+        });
+
         const unsub = onSnapshot(doc(db, "contestSessions", "active"), (doc) => {
             if (doc.exists()) {
                 const sessionData = doc.data() as ContestSession;
@@ -139,6 +147,17 @@ export default function ContestPage() {
         setIsJoining(true);
         setError(null);
         try {
+            // It's safer to finalize any potentially expired contest before joining
+            const finalizedSession = await finalizeContest();
+             if (finalizedSession) {
+                setSession(finalizedSession);
+                // If the contest just finished, don't try to join.
+                if (finalizedSession.status === 'finished') {
+                    setIsJoining(false);
+                    return;
+                }
+            }
+
             const result = await joinAndGetContestState({
                 userId: user.uid,
                 username: user.displayName || 'Player',
@@ -150,7 +169,6 @@ export default function ContestPage() {
             } else if (result.error) {
                 throw new Error(result.error);
             } else {
-                // No session and no error means there are no active contests
                 setSession(null);
             }
         } catch (e: any) {

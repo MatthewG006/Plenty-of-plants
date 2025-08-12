@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { doc, runTransaction, getDoc } from 'firebase/firestore';
+import { doc, runTransaction, getDoc, writeBatch } from 'firebase/firestore';
 import type { Plant, ContestSession, Contestant } from '@/lib/firestore';
 import { awardContestPrize } from '@/lib/firestore';
 
@@ -24,25 +24,25 @@ function createNewSession(plant: Contestant): ContestSession {
     };
 }
 
-export async function joinAndGetContestState({ userId, username, plant }: { userId: string, username: string, plant?: Plant }): Promise<{ session?: ContestSession | null, error?: string }> {
+export async function finalizeContest(): Promise<ContestSession | null> {
+    const sessionRef = doc(db, "contestSessions", CONTEST_SESSION_ID);
     try {
-        const sessionRef = doc(db, 'contestSessions', CONTEST_SESSION_ID);
-
-        const finalSession = await runTransaction(db, async (transaction) => {
+        const session = await runTransaction(db, async (transaction) => {
             const liveSessionDoc = await transaction.get(sessionRef);
-            let session: ContestSession | null = liveSessionDoc.exists() ? liveSessionDoc.data() as ContestSession : null;
+            if (!liveSessionDoc.exists()) return null;
 
-            // --- I. Handle Session State & Expiration ---
-            if (session && new Date(session.expiresAt) <= new Date()) {
-                if (session.status === 'waiting') {
-                    // Not enough players joined. The session is void.
+            let sessionData = liveSessionDoc.data() as ContestSession;
+            const now = new Date();
+            const expires = new Date(sessionData.expiresAt);
+
+            if (now > expires) {
+                 if (sessionData.status === 'waiting') {
                     transaction.delete(sessionRef);
-                    session = null;
-                } else if (session.status === 'voting') {
-                    // Voting ended. Find winner(s).
+                    return null;
+                } else if (sessionData.status === 'voting') {
                     let maxVotes = -1;
                     let winners: Contestant[] = [];
-                    session.contestants.forEach(c => {
+                    sessionData.contestants.forEach(c => {
                         if (c.votes > maxVotes) {
                             maxVotes = c.votes;
                             winners = [c];
@@ -52,28 +52,42 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                     });
 
                     if (winners.length <= 1) { // Final winner
-                        session.status = 'finished';
-                        session.winner = winners[0]; // Can be undefined if no votes
-                        if (session.winner) {
-                           await awardContestPrize(session.winner.ownerId);
+                        sessionData.status = 'finished';
+                        sessionData.winner = winners[0];
+                        if (sessionData.winner) {
+                           await awardContestPrize(sessionData.winner.ownerId);
                         }
                     } else { // Tie, go to next round
-                        session.status = 'voting';
-                        session.round += 1;
-                        session.contestants = winners.map(c => ({...c, votes: 0, voterIds: [] }));
-                        const now = new Date();
-                        const expiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
-                        session.expiresAt = expiresAt.toISOString();
+                        sessionData.status = 'voting';
+                        sessionData.round += 1;
+                        sessionData.contestants = winners.map(c => ({...c, votes: 0, voterIds: [] }));
+                        const newExpiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
+                        sessionData.expiresAt = newExpiresAt.toISOString();
                     }
-                } else if (session.status === 'finished') {
-                    // Contest is over and being viewed. It can be cleared for a new one.
-                    transaction.delete(sessionRef);
-                    session = null;
+                    transaction.set(sessionRef, sessionData);
+                    return sessionData;
                 }
             }
+            return sessionData;
+        });
+        return session;
+    } catch (e) {
+        console.error("Failed to finalize contest:", e);
+        return null;
+    }
+}
+
+
+export async function joinAndGetContestState({ userId, username, plant }: { userId: string, username: string, plant?: Plant }): Promise<{ session?: ContestSession | null, error?: string }> {
+    try {
+        const sessionRef = doc(db, 'contestSessions', CONTEST_SESSION_ID);
+
+        const finalSession = await runTransaction(db, async (transaction) => {
+            const liveSessionDoc = await transaction.get(sessionRef);
+            let session: ContestSession | null = liveSessionDoc.exists() ? liveSessionDoc.data() as ContestSession : null;
             
-            // --- II. Handle Joining ---
-            if (plant) { // User wants to join
+            // Handle Joining or Creating a session
+            if (plant) { 
                 const newContestant: Contestant = {
                     ...plant,
                     votes: 0,
@@ -90,7 +104,7 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                     }
                 }
                 
-                // --- III. Start Voting If Ready ---
+                // If adding a player makes it ready, start the voting
                 if (session && session.status === 'waiting' && session.contestants.length >= 2) {
                     session.status = 'voting';
                     const now = new Date();
@@ -99,7 +113,6 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                 }
             }
 
-            // Write changes back to Firestore
             if (session) {
                 transaction.set(sessionRef, session);
             }
@@ -111,7 +124,6 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
 
     } catch (e: any) {
         console.error("Contest transaction failed: ", e);
-        // Translate Firestore permission errors into a user-friendly message
         if (e.code === 'permission-denied') {
              return { error: 'Missing or insufficient permissions. Please check your Firestore security rules as per the documentation.' };
         }
