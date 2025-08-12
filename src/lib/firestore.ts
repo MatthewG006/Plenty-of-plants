@@ -251,30 +251,28 @@ export async function savePlant(userId: string, plantData: DrawPlantOutput): Pro
     if (!gameData) {
         throw new Error("User data not found, cannot save plant.");
     }
-    
-    const plainPlantData = JSON.parse(JSON.stringify(plantData));
 
     const allPlantIds = Object.keys(gameData.plants).map(Number);
     const lastId = allPlantIds.length > 0 ? Math.max(...allPlantIds) : 0;
 
     const newPlant: Plant = {
         id: lastId + 1,
-        name: plainPlantData.name || 'Mysterious Sprout',
-        description: plainPlantData.description || 'A new plant has arrived.',
-        image: plainPlantData.imageDataUri || '',
-        baseImage: '', // Always start with no base image
-        form: 'Base', // All new plants start at base form
-        hint: (plainPlantData.name || '').toLowerCase().split(' ').slice(0, 2).join(' '),
+        name: plantData.name || 'Mysterious Sprout',
+        description: plantData.description || 'A new plant has arrived.',
+        image: plantData.imageDataUri || '',
+        baseImage: '',
+        form: 'Base',
+        hint: (plantData.name || '').toLowerCase().split(' ').slice(0, 2).join(' '),
         level: 1,
         xp: 0,
-        lastWatered: [], // Initialize as empty array
+        lastWatered: [],
         hasGlitter: false,
         hasSheen: false,
         hasRainbowGlitter: false,
         hasRedGlitter: false,
-        personality: plainPlantData.personality || '', // Ensure personality is defined
+        personality: '',
         chatEnabled: false,
-        conversationHistory: [], // Initialize as empty array
+        conversationHistory: [],
     };
 
     const firstEmptyPotIndex = gameData.deskPlantIds.findIndex(id => id === null);
@@ -715,5 +713,3 @@ export async function awardContestPrize(userId: string): Promise<void> {
         gold: increment(50),
     });
 }
-
-    
