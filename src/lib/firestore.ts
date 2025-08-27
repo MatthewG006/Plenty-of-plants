@@ -56,11 +56,14 @@ export interface CommunityUser {
     gold: number;
 }
 
+// The Contestant interface combines a player's plant with information about who owns it.
+// This is done so the contest document has a self-contained copy of all necessary data,
+// which prevents the need for extra database lookups.
 export interface Contestant extends Plant {
     votes: number;
     voterIds: string[];
-    ownerId: string;
-    ownerName: string;
+    ownerId: string; // The UID of the user who owns this plant.
+    ownerName: string; // The display name of the user.
     lastSeen: string; // ISO string
 }
 
