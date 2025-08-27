@@ -35,12 +35,20 @@ async function finalizeContest(transaction: FirebaseFirestore.Transaction, sessi
 
     if (now > expires) {
             if (sessionData.status === 'waiting') {
-            // If the waiting room expired, just delete the session.
-            transaction.delete(sessionRef);
-            return null;
+            // If waiting room expired and not enough players, start voting anyway.
+            if (sessionData.contestants.length >= 2) {
+                sessionData.status = 'voting';
+                const newExpiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
+                sessionData.expiresAt = newExpiresAt.toISOString();
+                transaction.set(sessionRef, sessionData);
+                return sessionData;
+            } else {
+                // If not enough players, just delete the session.
+                transaction.delete(sessionRef);
+                return null;
+            }
         } else if (sessionData.status === 'voting') {
             // --- HANDLE WINNER LOGIC ---
-            // If voting ended, determine the winner by finding the contestant with the most votes.
             let maxVotes = -1;
             let winners: Contestant[] = [];
             sessionData.contestants.forEach(c => {
@@ -52,11 +60,10 @@ async function finalizeContest(transaction: FirebaseFirestore.Transaction, sessi
                 }
             });
 
-            if (winners.length <= 1) { // A single winner was found.
+            if (winners.length <= 1) { // A single winner was found (or no one voted).
                 sessionData.status = 'finished';
-                sessionData.winner = winners[0];
+                sessionData.winner = winners[0]; // Could be undefined if no one voted, which is fine.
                 if (sessionData.winner) {
-                    // Award the prize to the winner's user document.
                     await awardContestPrize(sessionData.winner.ownerId);
                 }
             } else { // It's a tie, so start a new round with the tied players.
@@ -66,7 +73,6 @@ async function finalizeContest(transaction: FirebaseFirestore.Transaction, sessi
                 const newExpiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
                 sessionData.expiresAt = newExpiresAt.toISOString();
             }
-            // Save the updated session data back to the same document in Firestore.
             transaction.set(sessionRef, sessionData);
             return sessionData;
         }
@@ -81,19 +87,19 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
         const sessionRef = doc(db, 'contestSessions', CONTEST_SESSION_ID);
 
         const finalSession = await runTransaction(db, async (transaction) => {
-            // Step 1: Finalize any expired contest first. This is now handled within the transaction.
+            // Step 1: Finalize any expired contest first.
             let session = await finalizeContest(transaction, sessionRef);
 
             // Step 2: Player Timeout Cleanup
             if (session && session.status === 'waiting') {
                 const now = new Date();
                 const activeContestants = session.contestants.filter(c => {
-                    if (!c.lastSeen) return true; // Keep players if lastSeen is missing (for backward compatibility)
+                    if (!c.lastSeen) return true;
                     const lastSeen = new Date(c.lastSeen);
                     return (now.getTime() - lastSeen.getTime()) < (PLAYER_TIMEOUT_SEC * 1000);
                 });
 
-                if (activeContestants.length === 0) {
+                if (session.contestants.length > 0 && activeContestants.length === 0) {
                     transaction.delete(sessionRef);
                     session = null;
                 } else {
@@ -199,26 +205,22 @@ export async function sendHeartbeat(userId: string) {
     const sessionRef = doc(db, 'contestSessions', CONTEST_SESSION_ID);
 
     try {
-        const sessionDoc = await getDoc(sessionRef);
-        if (!sessionDoc.exists()) return;
+        await runTransaction(db, async (transaction) => {
+            const sessionDoc = await transaction.get(sessionRef);
+            if (!sessionDoc.exists()) return;
 
-        const sessionData = sessionDoc.data() as ContestSession;
-        if (sessionData.status !== 'waiting') return;
+            const sessionData = sessionDoc.data() as ContestSession;
+            if (sessionData.status !== 'waiting') return;
 
-        const contestantIndex = sessionData.contestants.findIndex(c => c.ownerId === userId);
-        if (contestantIndex !== -1) {
-            const updatePath = `contestants.${contestantIndex}.lastSeen`;
-            await updateDoc(sessionRef, {
-                [updatePath]: new Date().toISOString()
-            });
-        }
+            const contestantIndex = sessionData.contestants.findIndex(c => c.ownerId === userId);
+            if (contestantIndex !== -1) {
+                sessionData.contestants[contestantIndex].lastSeen = new Date().toISOString();
+                transaction.set(sessionRef, sessionData);
+            }
+        });
     } catch (error) {
-        // It's possible the session ends while a heartbeat is in flight.
-        // We can safely ignore "document not found" errors here.
-        if ((error as any).code !== 'not-found') {
+        if ((error as any).code !== 'not-found' && (error as any).code !== 'aborted') {
             console.error("Failed to send heartbeat:", error);
         }
     }
 }
-
-    
