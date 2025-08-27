@@ -60,6 +60,7 @@ export interface Contestant extends Plant {
     voterIds: string[];
     ownerId: string;
     ownerName: string;
+    lastSeen: string; // ISO string
 }
 
 export interface ContestSession {
@@ -170,10 +171,10 @@ export async function getPlantById(userId: string, plantId: number): Promise<Pla
     return gameData.plants[plantId] || null;
 }
 
+// This function creates a personal document for each new user in the 'users' collection.
+// The document's ID is the user's unique authentication ID (user.uid).
+// This document holds all the persistent data for that specific player.
 export async function createUserDocument(user: User): Promise<GameData> {
-    // This function creates a personal document for each new user in the 'users' collection.
-    // The document's ID is the user's unique authentication ID (user.uid).
-    // This document holds all the persistent data for that specific player.
     const docRef = doc(db, 'users', user.uid);
     const docSnap = await getDoc(docRef);
 
