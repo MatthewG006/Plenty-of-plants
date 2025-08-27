@@ -10,20 +10,6 @@ import {
 } from "firebase/firestore";
 
 /**
- * Host creates a new contest session
- */
-export async function createSession(hostId: string) {
-  const sessionRef = doc(collection(db, "contestSessions"));
-  await setDoc(sessionRef, {
-    hostId,
-    status: "lobby",
-    createdAt: serverTimestamp(),
-    round: 0,
-  });
-  return sessionRef.id;
-}
-
-/**
  * Join the contest as a participant
  */
 export async function joinSession(
