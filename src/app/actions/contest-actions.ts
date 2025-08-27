@@ -48,7 +48,8 @@ export async function finalizeContest(): Promise<ContestSession | null> {
                     transaction.delete(sessionRef);
                     return null;
                 } else if (sessionData.status === 'voting') {
-                    // If voting ended, determine the winner.
+                    // --- HANDLE WINNER LOGIC ---
+                    // If voting ended, determine the winner by finding the contestant with the most votes.
                     let maxVotes = -1;
                     let winners: Contestant[] = [];
                     sessionData.contestants.forEach(c => {
@@ -169,7 +170,8 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
 
 export async function voteForContestant(userId: string, plantId: number): Promise<{ success: boolean; error?: string }> {
     try {
-        // This transaction ensures that a user can only vote once and that their vote is counted correctly.
+        // --- HANDLE VOTE LOGIC ---
+        // This transaction ensures that a user can only vote once per round and that their vote is counted correctly.
         await runTransaction(db, async (transaction) => {
             const sessionRef = doc(db, 'contestSessions', CONTEST_SESSION_ID);
             const sessionDoc = await transaction.get(sessionRef);
