@@ -134,14 +134,20 @@ export default function ContestPage() {
 
 
     useEffect(() => {
-        if (!user) return;
+        if (!user) {
+            setIsLoading(false);
+            return;
+        }
         
+        setIsLoading(true);
         const unsub = onSnapshot(doc(db, "contestSessions", "active"), (doc) => {
             if (doc.exists()) {
                 const sessionData = doc.data() as ContestSession;
                 // Basic validation
                 if (sessionData.id && sessionData.status) {
                     setSession(sessionData);
+                } else {
+                    setSession(null);
                 }
             } else {
                 setSession(null);
@@ -156,30 +162,6 @@ export default function ContestPage() {
         return () => unsub();
     }, [user]);
 
-    const findContest = useCallback(async () => {
-        if (!user) return;
-        setIsJoining(true);
-        setError(null);
-        try {
-            const { session: currentSession, error } = await joinAndGetContestState({ userId: user.uid, username: user.displayName || 'Player' });
-            if (error) throw new Error(error);
-            setSession(currentSession ?? null);
-        } catch (e: any) {
-             console.error(e);
-            setError(e.message || "Failed to find a contest session.");
-            toast({ variant: 'destructive', title: 'Contest Error', description: e.message });
-        } finally {
-            setIsJoining(false);
-        }
-    }, [user, toast]);
-
-    // Initial load effect
-    useEffect(() => {
-        if (user) {
-            findContest();
-        }
-    }, [user, findContest]);
-    
     const handleStartNewContest = () => {
         if (!user) return;
         setShowPlantSelection(true);
@@ -245,7 +227,7 @@ export default function ContestPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Button onClick={() => findContest()}>
+                    <Button onClick={() => window.location.reload()}>
                         Try Again
                     </Button>
                 </CardContent>
@@ -366,7 +348,7 @@ export default function ContestPage() {
                         <div className="text-center mt-4 space-y-2">
                             <p>Congratulations to <span className="font-bold text-primary">{session.winner.ownerName}</span>!</p>
                              <p className="text-muted-foreground text-sm">They have been awarded 50 gold and a special Red Glitter cosmetic!</p>
-                             <Button onClick={() => findContest()} className="mt-4">
+                             <Button onClick={() => window.location.reload()} className="mt-4">
                                 Find a New Contest
                             </Button>
                         </div>
@@ -383,5 +365,3 @@ export default function ContestPage() {
         </div>
     )
 }
-
-    
