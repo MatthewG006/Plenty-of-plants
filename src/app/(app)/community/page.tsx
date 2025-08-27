@@ -2,7 +2,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Users, Leaf, Sparkles, ShieldAlert, Heart, Star, Trees } from 'lucide-react';
+import { Loader2, Users, Leaf, Sparkles, ShieldAlert, Heart, Star, Trees, Coins } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { getCommunityUsers, likeUser, type CommunityUser } from '@/lib/firestore';
@@ -141,6 +141,7 @@ export default function CommunityPage() {
   const { user, gameData } = useAuth();
   const { playSfx } = useAudio();
   const [users, setUsers] = useState<CommunityUser[]>([]);
+  const [totalGold, setTotalGold] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [permissionError, setPermissionError] = useState(false);
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
@@ -153,6 +154,8 @@ export default function CommunityPage() {
       try {
         const communityUsers = await getCommunityUsers();
         setUsers(communityUsers);
+        const total = communityUsers.reduce((sum, u) => sum + (u.gold || 0), 0);
+        setTotalGold(total);
       } catch (e: any) {
         console.error(e);
         if (e.code === 'permission-denied') {
@@ -184,9 +187,10 @@ export default function CommunityPage() {
       // Optimistically update the UI
       setUsers(prevUsers => 
         prevUsers.map(u => 
-          u.uid === likedUser.uid ? { ...u, likes: u.likes + 1 } : u
+          u.uid === likedUser.uid ? { ...u, likes: u.likes + 1, gold: (u.gold || 0) + 5 } : u
         ).sort((a,b) => b.likes - a.likes)
       );
+      setTotalGold(prev => prev + 5);
     } catch (e: any) {
         console.error("Failed to like user", e);
         if (e.message) {
@@ -244,64 +248,90 @@ export default function CommunityPage() {
             </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {users.length > 0 ? (
-            users.map((communityUser) => {
-              const likedTimestamp = gameData?.likedUsers?.[communityUser.uid];
-              const canLikeAgain = !likedTimestamp || (Date.now() - likedTimestamp > 24 * 60 * 60 * 1000);
-              const hasLiked = !!likedTimestamp;
-              const isSelf = user?.uid === communityUser.uid;
-
-              return (
-              <Card key={communityUser.uid} className="shadow-md">
-                <CardHeader className="flex flex-row items-start gap-3 space-y-0">
-                  <Avatar className="h-12 w-12">
-                    <AvatarFallback style={{ backgroundColor: communityUser.avatarColor }} className="text-xl font-bold text-primary/70">
-                      {communityUser.username.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-grow">
-                    <CardTitle className="text-xl">{communityUser.username}</CardTitle>
-                     <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <Heart className={cn("w-4 h-4", communityUser.likes > 0 ? "text-red-500 fill-current" : "")} />
-                        <span className="text-sm font-medium">{communityUser.likes}</span>
+        <>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-lg">Game World Stats</CardTitle>
+                </CardHeader>
+                <CardContent className="flex items-center gap-4">
+                     <div className="flex items-center gap-2">
+                        <Users className="text-muted-foreground" />
+                        <span className="font-bold">{users.length}</span>
+                        <span className="text-muted-foreground">Players</span>
                     </div>
-                  </div>
-                   <Button 
-                    size="icon" 
-                    variant="outline" 
-                    onClick={() => handleLike(communityUser)}
-                    disabled={!canLikeAgain || isSelf}
-                    className={cn(hasLiked && !canLikeAgain && "border-red-500 text-red-500")}
-                    >
-                    <Heart className={cn("w-5 h-5", hasLiked && !canLikeAgain && "fill-current")} />
-                  </Button>
+                     <div className="flex items-center gap-2">
+                        <Coins className="text-yellow-500" />
+                        <span className="font-bold">{totalGold}</span>
+                        <span className="text-muted-foreground">Total Gold</span>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <div className="space-y-4">
+            {users.length > 0 ? (
+                users.map((communityUser) => {
+                const likedTimestamp = gameData?.likedUsers?.[communityUser.uid];
+                const canLikeAgain = !likedTimestamp || (Date.now() - likedTimestamp > 24 * 60 * 60 * 1000);
+                const hasLiked = !!likedTimestamp;
+                const isSelf = user?.uid === communityUser.uid;
+
+                return (
+                <Card key={communityUser.uid} className="shadow-md">
+                    <CardHeader className="flex flex-row items-start gap-3 space-y-0">
+                    <Avatar className="h-12 w-12">
+                        <AvatarFallback style={{ backgroundColor: communityUser.avatarColor }} className="text-xl font-bold text-primary/70">
+                        {communityUser.username.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-grow">
+                        <CardTitle className="text-xl">{communityUser.username}</CardTitle>
+                        <div className="flex items-center gap-4 text-muted-foreground">
+                            <div className="flex items-center gap-1.5">
+                                <Heart className={cn("w-4 h-4", communityUser.likes > 0 ? "text-red-500 fill-current" : "")} />
+                                <span className="text-sm font-medium">{communityUser.likes}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <Coins className="w-4 h-4 text-yellow-500" />
+                                <span className="text-sm font-medium">{communityUser.gold}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <Button 
+                        size="icon" 
+                        variant="outline" 
+                        onClick={() => handleLike(communityUser)}
+                        disabled={!canLikeAgain || isSelf}
+                        className={cn(hasLiked && !canLikeAgain && "border-red-500 text-red-500")}
+                        >
+                        <Heart className={cn("w-5 h-5", hasLiked && !canLikeAgain && "fill-current")} />
+                    </Button>
+                    </CardHeader>
+                    <CardContent>
+                    {communityUser.showcasePlants.length > 0 ? (
+                        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                        {communityUser.showcasePlants.map(plant => (
+                            <ShowcasePlant key={plant.id} plant={plant} onSelectPlant={handleSelectPlant} />
+                        ))}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-muted-foreground">This user hasn't selected a showcase yet.</p>
+                    )}
+                    </CardContent>
+                </Card>
+                )})
+            ) : (
+                <Card className="text-center py-10">
+                <CardHeader>
+                    <CardTitle>The Community is Growing!</CardTitle>
+                    <CardDescription>No other players found. Be the first to get your friends to join!</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {communityUser.showcasePlants.length > 0 ? (
-                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                      {communityUser.showcasePlants.map(plant => (
-                        <ShowcasePlant key={plant.id} plant={plant} onSelectPlant={handleSelectPlant} />
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">This user hasn't selected a showcase yet.</p>
-                  )}
+                    <p className="text-muted-foreground">Go to your Profile page to select your showcase plants.</p>
                 </CardContent>
-              </Card>
-            )})
-          ) : (
-            <Card className="text-center py-10">
-              <CardHeader>
-                <CardTitle>The Community is Growing!</CardTitle>
-                <CardDescription>No one has set up a showcase yet. Be the first!</CardDescription>
-              </CardHeader>
-              <CardContent>
-                 <p className="text-muted-foreground">Go to your Profile page to select your showcase plants.</p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+                </Card>
+            )}
+            </div>
+        </>
       )}
       <PlantDetailDialog
         plant={selectedPlant}
