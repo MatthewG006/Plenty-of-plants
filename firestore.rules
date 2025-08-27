@@ -2,20 +2,16 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Rules for the 'users' collection
+    // A user can read and write to their own user document.
     match /users/{userId} {
-      // Allow users to read and write to their own document.
       allow read, write: if request.auth != null && request.auth.uid == userId;
-
-      // Allow any authenticated user to view the list of users.
-      // This is required for the Community Showcase feature.
+      
+      // Any authenticated user can view the list of users for the community page.
       allow list: if request.auth != null;
     }
 
-    // Rules for the 'contestSessions' collection
+    // Any authenticated user can read and write to the shared contest data.
     match /contestSessions/{sessionId} {
-      // Allow any authenticated user to read and write to contest sessions.
-      // This is required for finding, joining, creating, and voting in the contest.
       allow read, write: if request.auth != null;
     }
   }
