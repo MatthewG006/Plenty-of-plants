@@ -195,6 +195,12 @@ export default function ContestPage() {
         }
     }, [user, toast]);
 
+    const handleStartNewContest = () => {
+        if (!user) return;
+        // This will open the plant selection dialog. The actual session creation happens in `handleSelectPlant`.
+        setShowPlantSelection(true);
+    };
+
     const handleSelectPlant = async (plant: Plant) => {
         setShowPlantSelection(false);
         if (!user) return;
@@ -262,7 +268,7 @@ export default function ContestPage() {
                         <CardDescription>There isn't a contest running right now. Why not start one?</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Button onClick={() => setShowPlantSelection(true)}>Start a New Contest</Button>
+                        <Button onClick={handleStartNewContest}>Start a New Contest</Button>
                     </CardContent>
                 </Card>
                 <ContestPlantSelectionDialog
@@ -363,3 +369,5 @@ export default function ContestPage() {
         </div>
     )
 }
+
+    
