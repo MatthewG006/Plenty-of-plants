@@ -24,6 +24,14 @@ const WAITING_TIME = 30; // seconds
 const VOTING_TIME = 20; // seconds
 const HEARTBEAT_INTERVAL = 10000; // 10 seconds
 
+// Predefined positions for contestants in the lobby view.
+const playerPositions = [
+  { top: '20%', left: '15%' },
+  { top: '20%', left: '65%' },
+  { top: '55%', left: '15%' },
+  { top: '55%', left: '65%' },
+];
+
 function GlitterAnimation() {
     return (
         <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden">
@@ -197,14 +205,12 @@ export default function ContestPage() {
 
     const handleStartNewContest = () => {
         if (!user) return;
-        // This will open the plant selection dialog. The actual session creation happens in `handleSelectPlant`.
         setShowPlantSelection(true);
     };
 
     const handleSelectPlant = async (plant: Plant) => {
         setShowPlantSelection(false);
         if (!user) return;
-
         await fetchContestState(plant);
     };
     
@@ -294,7 +300,7 @@ export default function ContestPage() {
             <Card className="text-center p-4 bg-muted/50">
                 <h2 className="text-lg font-semibold text-primary">Round {session.round}</h2>
                 <p className="text-sm text-muted-foreground">
-                    {session.status === 'waiting' && 'Waiting for players...'}
+                    {session.status === 'waiting' && `Waiting for players... (${session.contestants.length}/${playerPositions.length})`}
                     {session.status === 'voting' && 'Vote for your favorite!'}
                     {session.status === 'finished' && 'Contest Over!'}
                 </p>
@@ -302,21 +308,29 @@ export default function ContestPage() {
             </Card>
 
             {session.status === 'waiting' && (
-                <Card>
+                <Card className="relative min-h-[400px]">
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Users /> Contestants ({session.contestants.length})</CardTitle>
+                        <CardTitle className="flex items-center gap-2"><Users /> Contest Lobby</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <ul className="space-y-2">
-                            {session.contestants.map(c => (
-                                <li key={c.id} className="text-muted-foreground">
-                                    {c.ownerName}{c.ownerId === user?.uid && <span className="text-primary font-bold"> (You)</span>} entered with <span className="font-semibold text-primary">{c.name}</span>
-                                </li>
-                            ))}
-                        </ul>
-
-                        {!hasEntered && (
-                            <div className="mt-4 pt-4 border-t">
+                        <div className="absolute inset-0">
+                             {session.contestants.map((c, index) => {
+                                const position = playerPositions[index % playerPositions.length];
+                                return (
+                                    <div key={c.id} className="absolute w-1/4" style={{ top: position.top, left: position.left }}>
+                                        <div className="relative aspect-square">
+                                            <Image src={c.image} alt={c.name} fill sizes="100px" className="object-contain" />
+                                        </div>
+                                        <p className="text-center text-xs font-bold text-primary truncate -mt-2">
+                                            {c.ownerName}
+                                            {c.ownerId === user?.uid && <span className="text-muted-foreground"> (You)</span>}
+                                        </p>
+                                    </div>
+                                )
+                             })}
+                        </div>
+                         {!hasEntered && session.contestants.length < playerPositions.length && (
+                            <div className="absolute bottom-4 left-4 right-4">
                                 <Button className="w-full" onClick={() => setShowPlantSelection(true)}>
                                     <Trophy className="mr-2" />
                                     Enter Your Plant!
