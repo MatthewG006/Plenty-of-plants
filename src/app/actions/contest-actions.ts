@@ -92,7 +92,7 @@ export async function finalizeContest(): Promise<ContestSession | null> {
 
 export async function joinAndGetContestState({ userId, username, plant }: { userId: string, username: string, plant?: Plant }): Promise<{ session?: ContestSession | null, error?: string }> {
     try {
-        // Just like before, we get a reference to the single 'active' contest document.
+        // This gets a reference to the single 'active' contest document.
         const sessionRef = doc(db, 'contestSessions', CONTEST_SESSION_ID);
 
         // This transaction safely handles creating a session if one doesn't exist,
@@ -139,7 +139,7 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                 }
                 
                 // If there are now enough players, automatically start the voting round.
-                if (session && session.status === 'waiting' && session.contestants.length >= 2) {
+                if (session && session.status === 'waiting' && session.contestants.length >= 3) {
                     session.status = 'voting';
                     const now = new Date();
                     const expiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
