@@ -25,8 +25,13 @@ function createNewSession(plant: Contestant): ContestSession {
 }
 
 export async function finalizeContest(): Promise<ContestSession | null> {
+    // This function checks if the current contest has expired and finalizes the results if it has.
+    // It creates a "reference" to the specific document in Firestore that holds the contest state.
+    // Think of this as getting a direct pointer to the 'active' contest document in the 'contestSessions' collection.
     const sessionRef = doc(db, "contestSessions", CONTEST_SESSION_ID);
     try {
+        // A "transaction" is used to safely read and write data. This prevents race conditions
+        // where multiple players might try to update the contest at the same time.
         const session = await runTransaction(db, async (transaction) => {
             const liveSessionDoc = await transaction.get(sessionRef);
             if (!liveSessionDoc.exists()) return null;
@@ -35,11 +40,14 @@ export async function finalizeContest(): Promise<ContestSession | null> {
             const now = new Date();
             const expires = new Date(sessionData.expiresAt);
 
+            // Check if the session's time has run out.
             if (now > expires) {
                  if (sessionData.status === 'waiting') {
+                    // If no one joined, just delete the session.
                     transaction.delete(sessionRef);
                     return null;
                 } else if (sessionData.status === 'voting') {
+                    // If voting ended, determine the winner.
                     let maxVotes = -1;
                     let winners: Contestant[] = [];
                     sessionData.contestants.forEach(c => {
@@ -51,23 +59,26 @@ export async function finalizeContest(): Promise<ContestSession | null> {
                         }
                     });
 
-                    if (winners.length <= 1) { // Final winner
+                    if (winners.length <= 1) { // A single winner was found.
                         sessionData.status = 'finished';
                         sessionData.winner = winners[0];
                         if (sessionData.winner) {
+                           // Award the prize to the winner's user document.
                            await awardContestPrize(sessionData.winner.ownerId);
                         }
-                    } else { // Tie, go to next round
+                    } else { // It's a tie, so start a new round with the tied players.
                         sessionData.status = 'voting';
                         sessionData.round += 1;
                         sessionData.contestants = winners.map(c => ({...c, votes: 0, voterIds: [] }));
                         const newExpiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
                         sessionData.expiresAt = newExpiresAt.toISOString();
                     }
+                    // Save the updated session data back to the same document in Firestore.
                     transaction.set(sessionRef, sessionData);
                     return sessionData;
                 }
             }
+            // If the session hasn't expired, just return the current data.
             return sessionData;
         });
         return session;
@@ -80,13 +91,16 @@ export async function finalizeContest(): Promise<ContestSession | null> {
 
 export async function joinAndGetContestState({ userId, username, plant }: { userId: string, username: string, plant?: Plant }): Promise<{ session?: ContestSession | null, error?: string }> {
     try {
+        // Just like before, we get a reference to the single 'active' contest document.
         const sessionRef = doc(db, 'contestSessions', CONTEST_SESSION_ID);
 
+        // This transaction safely handles creating a session if one doesn't exist,
+        // or adding a player to the existing one.
         const finalSession = await runTransaction(db, async (transaction) => {
             const liveSessionDoc = await transaction.get(sessionRef);
             let session: ContestSession | null = liveSessionDoc.exists() ? liveSessionDoc.data() as ContestSession : null;
             
-            // Handle Joining or Creating a session
+            // This logic handles a player entering the contest with a plant.
             if (plant) { 
                 const newContestant: Contestant = {
                     ...plant,
@@ -95,16 +109,16 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                     ownerId: userId,
                     ownerName: username,
                 };
-                if (!session) { // No session, create one
+                if (!session) { // If no contest is active, create a new one with this player.
                     session = createNewSession(newContestant);
-                } else if (session.status === 'waiting') { // Add to existing session
+                } else if (session.status === 'waiting') { // If the contest is waiting for players, add them.
                     const alreadyExists = session.contestants.some(c => c.ownerId === userId);
                     if (!alreadyExists) {
                         session.contestants.push(newContestant);
                     }
                 }
                 
-                // If adding a player makes it ready, start the voting
+                // If there are now enough players, automatically start the voting round.
                 if (session && session.status === 'waiting' && session.contestants.length >= 2) {
                     session.status = 'voting';
                     const now = new Date();
@@ -114,6 +128,7 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
             }
 
             if (session) {
+                // This command writes the new session state back to the Firestore document.
                 transaction.set(sessionRef, session);
             }
 
@@ -134,6 +149,7 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
 
 export async function voteForContestant(userId: string, plantId: number): Promise<{ success: boolean; error?: string }> {
     try {
+        // This transaction ensures that a user can only vote once and that their vote is counted correctly.
         await runTransaction(db, async (transaction) => {
             const sessionRef = doc(db, 'contestSessions', CONTEST_SESSION_ID);
             const sessionDoc = await transaction.get(sessionRef);
@@ -147,6 +163,7 @@ export async function voteForContestant(userId: string, plantId: number): Promis
             if (session.status !== 'voting') {
                 throw new Error("Voting is not active.");
             }
+            // Check if the user has already voted in this round.
             if (session.contestants.some(c => c.voterIds?.includes(userId))) {
                 throw new Error("You have already voted in this round.");
             }
@@ -161,12 +178,14 @@ export async function voteForContestant(userId: string, plantId: number): Promis
                 throw new Error("You cannot vote for your own plant.");
             }
 
+            // Increment the vote count and record that this user has voted.
             session.contestants[contestantIndex].votes += 1;
             if (!session.contestants[contestantIndex].voterIds) {
                 session.contestants[contestantIndex].voterIds = [];
             }
             session.contestants[contestantIndex].voterIds.push(userId);
             
+            // Save the changes back to Firestore.
             transaction.set(sessionRef, session);
         });
 
