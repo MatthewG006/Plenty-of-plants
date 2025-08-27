@@ -24,3 +24,12 @@ export interface Seed {
   id: string;
   startTime: number;
 }
+
+export interface CommunityUser {
+    uid: string;
+    username: string;
+    avatarColor: string;
+    showcasePlants: Plant[];
+    likes: number;
+    gold: number;
+}

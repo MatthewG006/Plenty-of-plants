@@ -53,6 +53,7 @@ export interface CommunityUser {
     avatarColor: string;
     showcasePlants: Plant[];
     likes: number;
+    gold: number;
 }
 
 export interface Contestant extends Plant {
@@ -135,8 +136,7 @@ export async function getUserGameData(userId: string): Promise<GameData | null> 
 
 export async function getCommunityUsers(): Promise<CommunityUser[]> {
     const usersCollection = collection(db, 'users');
-    const q = query(usersCollection, where('showcasePlantIds', '!=', []), limit(20));
-    const querySnapshot = await getDocs(q);
+    const querySnapshot = await getDocs(usersCollection);
 
     const communityUsers: CommunityUser[] = [];
 
@@ -149,15 +149,14 @@ export async function getCommunityUsers(): Promise<CommunityUser[]> {
             .map((id: number) => allPlants[id])
             .filter(Boolean);
 
-        if (showcasePlants.length > 0) {
-            communityUsers.push({
-                uid: docSnap.id,
-                username: data.username || 'Anonymous',
-                avatarColor: data.avatarColor || 'hsl(120, 70%, 85%)',
-                showcasePlants: showcasePlants,
-                likes: data.likes || 0,
-            });
-        }
+        communityUsers.push({
+            uid: docSnap.id,
+            username: data.username || 'Anonymous',
+            avatarColor: data.avatarColor || 'hsl(120, 70%, 85%)',
+            showcasePlants: showcasePlants,
+            likes: data.likes || 0,
+            gold: data.gold || 0,
+        });
     });
 
     return communityUsers.sort((a, b) => b.likes - a.likes);
@@ -173,7 +172,8 @@ export async function getPlantById(userId: string, plantId: number): Promise<Pla
 
 // This function creates a personal document for each new user in the 'users' collection.
 // The document's ID is the user's unique authentication ID (user.uid).
-// This document holds all the persistent data for that specific player.
+// This document holds all the persistent data for that specific player. Each player is
+// its own document, rather than being a "node" in a larger tree.
 export async function createUserDocument(user: User): Promise<GameData> {
     const docRef = doc(db, 'users', user.uid);
     const docSnap = await getDoc(docRef);
