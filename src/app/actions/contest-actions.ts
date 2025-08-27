@@ -2,13 +2,14 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { doc, runTransaction, getDoc, writeBatch } from 'firebase/firestore';
+import { doc, runTransaction, getDoc, writeBatch, updateDoc } from 'firebase/firestore';
 import type { Plant, ContestSession, Contestant } from '@/lib/firestore';
 import { awardContestPrize } from '@/lib/firestore';
 
 const CONTEST_SESSION_ID = 'active'; // There is only one contest session at a time
 const WAITING_TIME_SEC = 30;
 const VOTE_TIME_SEC = 20;
+const PLAYER_TIMEOUT_SEC = 15; // A player is considered disconnected after this many seconds of inactivity
 
 // Helper to create a new, empty contest session
 function createNewSession(plant: Contestant): ContestSession {
@@ -100,6 +101,24 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
             const liveSessionDoc = await transaction.get(sessionRef);
             let session: ContestSession | null = liveSessionDoc.exists() ? liveSessionDoc.data() as ContestSession : null;
             
+            // --- Player Timeout Cleanup ---
+            // Before making changes, check for and remove any inactive players.
+            if (session && session.status === 'waiting') {
+                const now = new Date();
+                const activeContestants = session.contestants.filter(c => {
+                    const lastSeen = new Date(c.lastSeen);
+                    return (now.getTime() - lastSeen.getTime()) < (PLAYER_TIMEOUT_SEC * 1000);
+                });
+
+                // If players were removed and the lobby is now empty, end the contest.
+                if (activeContestants.length === 0) {
+                    transaction.delete(sessionRef);
+                    return null;
+                }
+                session.contestants = activeContestants;
+            }
+            // --- End Cleanup ---
+
             // This logic handles a player entering the contest with a plant.
             if (plant) { 
                 const newContestant: Contestant = {
@@ -108,6 +127,7 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                     voterIds: [],
                     ownerId: userId,
                     ownerName: username,
+                    lastSeen: new Date().toISOString(), // Set initial timestamp
                 };
                 if (!session) { // If no contest is active, create a new one with this player.
                     session = createNewSession(newContestant);
@@ -193,5 +213,27 @@ export async function voteForContestant(userId: string, plantId: number): Promis
     } catch (e: any) {
         console.error("Vote transaction failed: ", e);
         return { success: false, error: e.message || 'Failed to cast vote.' };
+    }
+}
+
+
+export async function sendHeartbeat(userId: string) {
+    // This is an optimized write that only updates the `lastSeen` field
+    // for a specific user without needing a full transaction.
+    const sessionRef = doc(db, 'contestSessions', CONTEST_SESSION_ID);
+
+    // We still need to read the document first to find the correct contestant in the array.
+    const sessionDoc = await getDoc(sessionRef);
+    if (!sessionDoc.exists()) return;
+
+    const sessionData = sessionDoc.data() as ContestSession;
+    if (sessionData.status !== 'waiting') return;
+
+    const contestantIndex = sessionData.contestants.findIndex(c => c.ownerId === userId);
+    if (contestantIndex !== -1) {
+        // Using dot notation to update a specific field in an array element
+        await updateDoc(sessionRef, {
+            [`contestants.${contestantIndex}.lastSeen`]: new Date().toISOString()
+        });
     }
 }

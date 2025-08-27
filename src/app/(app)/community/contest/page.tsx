@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { ContestPlantSelectionDialog } from '@/components/plant-dialogs';
-import { joinAndGetContestState, voteForContestant, finalizeContest } from '@/app/actions/contest-actions';
+import { joinAndGetContestState, voteForContestant, finalizeContest, sendHeartbeat } from '@/app/actions/contest-actions';
 import type { ContestSession, Contestant } from '@/lib/firestore';
 import Link from 'next/link';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -22,6 +22,7 @@ import confetti from 'canvas-confetti';
 
 const WAITING_TIME = 30; // seconds
 const VOTING_TIME = 20; // seconds
+const HEARTBEAT_INTERVAL = 10000; // 10 seconds
 
 function GlitterAnimation() {
     return (
@@ -86,6 +87,20 @@ export default function ContestPage() {
 
     const hasEntered = user && session?.contestants.some(c => c.ownerId === user.uid);
     const hasVoted = user && session?.contestants.some(c => c.voterIds?.includes(user.uid));
+
+    // Heartbeat effect
+    useEffect(() => {
+        if (user && hasEntered && session?.status === 'waiting') {
+            const interval = setInterval(() => {
+                sendHeartbeat(user.uid);
+            }, HEARTBEAT_INTERVAL);
+
+            // Send an immediate heartbeat on joining
+            sendHeartbeat(user.uid);
+
+            return () => clearInterval(interval);
+        }
+    }, [user, hasEntered, session?.status]);
 
     useEffect(() => {
         if (!session || session.status === 'finished') return;
