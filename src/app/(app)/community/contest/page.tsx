@@ -18,6 +18,7 @@ import Link from 'next/link';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import confetti from 'canvas-confetti';
+import { ContestPlantSelectionDialog } from '@/components/plant-dialogs';
 
 const WAITING_TIME = 30; // seconds
 const VOTING_TIME = 20; // seconds
