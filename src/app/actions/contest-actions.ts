@@ -87,10 +87,10 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
         const sessionRef = doc(db, 'contestSessions', CONTEST_SESSION_ID);
 
         const finalSession = await runTransaction(db, async (transaction) => {
-            // Step 1: Finalize any expired contest first.
-            let session = await finalizeContest(transaction, sessionRef);
+            const liveSessionDoc = await transaction.get(sessionRef);
+            let session: ContestSession | null = liveSessionDoc.exists() ? liveSessionDoc.data() as ContestSession : null;
 
-            // Step 2: Player Timeout Cleanup
+            // Step 1: Player Timeout Cleanup
             if (session && session.status === 'waiting') {
                 const now = new Date();
                 const activeContestants = session.contestants.filter(c => {
@@ -102,13 +102,13 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                 if (session.contestants.length > 0 && activeContestants.length === 0) {
                     transaction.delete(sessionRef);
                     session = null;
-                } else {
+                } else if (session) {
                     session.contestants = activeContestants;
                 }
             }
             // End Cleanup
 
-            // Step 3: Handle the player's action (joining or creating)
+            // Step 2: Handle the player's action (joining or creating)
             if (plant) { 
                 const newContestant: Contestant = {
                     ...plant,
@@ -120,14 +120,17 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                 };
 
                 if (!session || session.status === 'finished') {
+                    // Create a new session if one doesn't exist or is finished
                     session = createNewSession(newContestant);
                 } else if (session.status === 'waiting') {
+                    // Join an existing session if possible
                     const alreadyExists = session.contestants.some(c => c.ownerId === userId);
                     if (!alreadyExists && session.contestants.length < 4) {
                         session.contestants.push(newContestant);
                     }
                 }
                 
+                // If the lobby is now full, automatically start the voting
                 if (session && session.status === 'waiting' && session.contestants.length >= 3) {
                     session.status = 'voting';
                     const now = new Date();
@@ -136,8 +139,13 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                 }
             }
 
+            // Step 3: Write changes to Firestore
             if (session) {
+                // Use transaction.set() which works for both creating and overwriting.
                 transaction.set(sessionRef, session);
+            } else if (liveSessionDoc.exists()) {
+                // If we determined the session should be deleted (e.g. timeout with no players)
+                transaction.delete(sessionRef);
             }
 
             return session;
