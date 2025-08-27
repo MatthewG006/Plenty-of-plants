@@ -12,7 +12,7 @@ import type { Plant } from '@/interfaces/plant';
 import { cn } from '@/lib/utils';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { joinAndGetContestState, voteForContestant, finalizeContest, sendHeartbeat } from '@/app/actions/contest-actions';
+import { joinAndGetContestState, voteForContestant, sendHeartbeat } from '@/app/actions/contest-actions';
 import type { ContestSession, Contestant } from '@/lib/firestore';
 import Link from 'next/link';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -88,7 +88,6 @@ export default function ContestPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [session, setSession] = useState<ContestSession | null>(null);
-    const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
     const [showPlantSelection, setShowPlantSelection] = useState(false);
     const [isJoining, setIsJoining] = useState(false);
     const [timeRemaining, setTimeRemaining] = useState(0);
@@ -137,13 +136,6 @@ export default function ContestPage() {
     useEffect(() => {
         if (!user) return;
         
-        // Finalize any expired contest before setting up the listener
-        finalizeContest().then(finalizedSession => {
-            if (finalizedSession) {
-                setSession(finalizedSession);
-            }
-        });
-
         const unsub = onSnapshot(doc(db, "contestSessions", "active"), (doc) => {
             if (doc.exists()) {
                 const sessionData = doc.data() as ContestSession;
@@ -169,14 +161,9 @@ export default function ContestPage() {
         setIsJoining(true);
         setError(null);
         try {
-            const finalizedSession = await finalizeContest();
-            if (finalizedSession) {
-                setSession(finalizedSession);
-            } else {
-                const { session: currentSession, error } = await joinAndGetContestState({ userId: user.uid, username: user.displayName || 'Player' });
-                if (error) throw new Error(error);
-                setSession(currentSession ?? null);
-            }
+            const { session: currentSession, error } = await joinAndGetContestState({ userId: user.uid, username: user.displayName || 'Player' });
+            if (error) throw new Error(error);
+            setSession(currentSession ?? null);
         } catch (e: any) {
              console.error(e);
             setError(e.message || "Failed to find a contest session.");
@@ -185,6 +172,13 @@ export default function ContestPage() {
             setIsJoining(false);
         }
     }, [user, toast]);
+
+    // Initial load effect
+    useEffect(() => {
+        if (user) {
+            findContest();
+        }
+    }, [user, findContest]);
     
     const handleStartNewContest = () => {
         if (!user) return;
@@ -389,3 +383,5 @@ export default function ContestPage() {
         </div>
     )
 }
+
+    
