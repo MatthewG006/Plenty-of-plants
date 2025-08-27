@@ -16,6 +16,8 @@ import { cn } from '@/lib/utils';
 import { updateLikePlayerProgress } from '@/lib/challenge-manager';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import Link from 'next/link';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 function SheenAnimation() {
     return (
@@ -148,18 +150,43 @@ export default function CommunityPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      setIsLoading(true);
-      setPermissionError(false);
-      try {
-        const communityUsers = await getCommunityUsers();
+    setIsLoading(true);
+    setPermissionError(false);
+
+    const usersCollectionRef = collection(db, 'users');
+
+    const unsubscribe = onSnapshot(usersCollectionRef, (querySnapshot) => {
+        const communityUsers: CommunityUser[] = [];
+        querySnapshot.forEach(docSnap => {
+            const data = docSnap.data();
+            const allPlants = data.plants || {};
+            const showcasePlantIds = data.showcasePlantIds || [];
+            
+            const showcasePlants = showcasePlantIds
+                .map((id: number) => allPlants[id])
+                .filter(Boolean);
+
+            communityUsers.push({
+                uid: docSnap.id,
+                username: data.username || 'Anonymous',
+                avatarColor: data.avatarColor || 'hsl(120, 70%, 85%)',
+                showcasePlants: showcasePlants,
+                likes: data.likes || 0,
+                gold: data.gold || 0,
+            });
+        });
+        
+        communityUsers.sort((a, b) => b.likes - a.likes);
         setUsers(communityUsers);
+        
         const total = communityUsers.reduce((sum, u) => sum + (u.gold || 0), 0);
         setTotalGold(total);
-      } catch (e: any) {
-        console.error(e);
-        if (e.code === 'permission-denied') {
-          setPermissionError(true);
+        
+        setIsLoading(false);
+    }, (error) => {
+        console.error("Firestore Snapshot Error:", error);
+        if (error.code === 'permission-denied') {
+            setPermissionError(true);
         } else {
             toast({
               variant: 'destructive',
@@ -167,11 +194,11 @@ export default function CommunityPage() {
               description: 'Please try again later.',
             });
         }
-      } finally {
         setIsLoading(false);
-      }
-    };
-    fetchUsers();
+    });
+
+    // Cleanup subscription on component unmount
+    return () => unsubscribe();
   }, [toast]);
 
   const handleLike = async (likedUser: CommunityUser) => {
@@ -184,7 +211,8 @@ export default function CommunityPage() {
         title: "Liked!",
         description: `You gave ${likedUser.username} 5 gold!`,
       });
-      // Optimistically update the UI
+      // The UI will update automatically via the onSnapshot listener,
+      // so optimistic updates are no longer strictly necessary but can make the UI feel faster.
       setUsers(prevUsers => 
         prevUsers.map(u => 
           u.uid === likedUser.uid ? { ...u, likes: u.likes + 1, gold: (u.gold || 0) + 5 } : u
