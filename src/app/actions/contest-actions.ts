@@ -130,7 +130,7 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                     ownerName: username,
                     lastSeen: new Date().toISOString(), // Set initial timestamp
                 };
-                if (!session) { // If no contest is active, create a new one with this player.
+                if (!session || session.status === 'finished') { // If no contest is active, create a new one with this player.
                     session = createNewSession(newContestant);
                 } else if (session.status === 'waiting') { // If the contest is waiting for players, add them.
                     const alreadyExists = session.contestants.some(c => c.ownerId === userId);
@@ -239,4 +239,3 @@ export async function sendHeartbeat(userId: string) {
         });
     }
 }
-

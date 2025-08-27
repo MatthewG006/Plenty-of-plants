@@ -164,45 +164,28 @@ export default function ContestPage() {
         return () => unsub();
     }, [user]);
 
-    const fetchContestState = useCallback(async (plantToEnter?: Plant) => {
+    const findContest = useCallback(async () => {
         if (!user) return;
-
         setIsJoining(true);
         setError(null);
         try {
-            // It's safer to finalize any potentially expired contest before joining
             const finalizedSession = await finalizeContest();
-             if (finalizedSession) {
+            if (finalizedSession) {
                 setSession(finalizedSession);
-                // If the contest just finished, don't try to join.
-                if (finalizedSession.status === 'finished') {
-                    setIsJoining(false);
-                    return;
-                }
-            }
-
-            const result = await joinAndGetContestState({
-                userId: user.uid,
-                username: user.displayName || 'Player',
-                plant: plantToEnter,
-            });
-
-            if (result.session) {
-                setSession(result.session);
-            } else if (result.error) {
-                throw new Error(result.error);
             } else {
-                setSession(null);
+                const { session: currentSession, error } = await joinAndGetContestState({ userId: user.uid, username: user.displayName || 'Player' });
+                if (error) throw new Error(error);
+                setSession(currentSession ?? null);
             }
         } catch (e: any) {
-            console.error(e);
-            setError(e.message || "Failed to join or create a contest session.");
+             console.error(e);
+            setError(e.message || "Failed to find a contest session.");
             toast({ variant: 'destructive', title: 'Contest Error', description: e.message });
         } finally {
             setIsJoining(false);
         }
     }, [user, toast]);
-
+    
     const handleStartNewContest = () => {
         if (!user) return;
         setShowPlantSelection(true);
@@ -211,7 +194,26 @@ export default function ContestPage() {
     const handleSelectPlant = async (plant: Plant) => {
         setShowPlantSelection(false);
         if (!user) return;
-        await fetchContestState(plant);
+
+        setIsJoining(true);
+        setError(null);
+        try {
+            const { session: newSession, error } = await joinAndGetContestState({
+                userId: user.uid,
+                username: user.displayName || 'Player',
+                plant: plant,
+            });
+
+            if (error) throw new Error(error);
+
+            setSession(newSession ?? null);
+        } catch (e: any) {
+            console.error("Failed to start/join contest:", e);
+            setError(e.message || "Failed to start or join a contest.");
+            toast({ variant: 'destructive', title: 'Contest Error', description: e.message });
+        } finally {
+            setIsJoining(false);
+        }
     };
     
     const handleVote = async (plantId: number) => {
@@ -249,7 +251,7 @@ export default function ContestPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Button onClick={() => fetchContestState()}>
+                    <Button onClick={() => findContest()}>
                         Try Again
                     </Button>
                 </CardContent>
@@ -370,7 +372,7 @@ export default function ContestPage() {
                         <div className="text-center mt-4 space-y-2">
                             <p>Congratulations to <span className="font-bold text-primary">{session.winner.ownerName}</span>!</p>
                              <p className="text-muted-foreground text-sm">They have been awarded 50 gold and a special Red Glitter cosmetic!</p>
-                             <Button onClick={() => fetchContestState()} className="mt-4">
+                             <Button onClick={() => findContest()} className="mt-4">
                                 Find a New Contest
                             </Button>
                         </div>
