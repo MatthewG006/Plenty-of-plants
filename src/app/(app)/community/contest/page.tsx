@@ -12,7 +12,6 @@ import type { Plant } from '@/interfaces/plant';
 import { cn } from '@/lib/utils';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { ContestPlantSelectionDialog } from '@/components/plant-dialogs';
 import { joinAndGetContestState, voteForContestant, finalizeContest, sendHeartbeat } from '@/app/actions/contest-actions';
 import type { ContestSession, Contestant } from '@/lib/firestore';
 import Link from 'next/link';

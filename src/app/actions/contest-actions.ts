@@ -239,3 +239,4 @@ export async function sendHeartbeat(userId: string) {
         });
     }
 }
+
