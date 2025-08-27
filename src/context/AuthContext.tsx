@@ -22,6 +22,11 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
 });
 
+// The AuthProvider is the core component that manages the logged-in user's state.
+// It wraps the entire application and performs two key functions:
+// 1. It listens for authentication state changes (login/logout) from Firebase Auth.
+// 2. Once a user is logged in, it establishes a real-time listener to that user's
+//    document in Firestore to keep their game data synchronized with the client.
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [gameData, setGameData] = useState<GameData | null>(null);
@@ -33,13 +38,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     let unsubscribeFirestore: Unsubscribe | undefined;
 
+    // This is the primary listener from Firebase Authentication.
+    // It fires once when the component mounts, and again any time a user logs in or out.
     const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
+      // The `currentUser` object is either the logged-in user or `null`.
+      // This is the first piece of data set to memory (React state).
       setUser(currentUser);
 
       if (currentUser) {
-        // User is logged in, start listening to their data
+        // If a user is logged in, we now know their UID.
+        // We use that UID to create a reference to their specific document in the 'users' collection.
         const docRef = doc(db, 'users', currentUser.uid);
         
+        // This is the second listener. `onSnapshot` subscribes to the user's document.
+        // It fires once immediately with the current data, and then again EVERY time that data changes in the database.
         unsubscribeFirestore = onSnapshot(docRef, (docSnap) => {
           if (docSnap.exists()) {
             const data = docSnap.data();
@@ -52,7 +64,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     return acc;
                 }, {});
             }
-
+            
+            // The document data is then stored in memory (the `gameData` React state).
+            // Because this is a real-time listener, any change on the server (like getting more gold)
+            // will automatically be pushed here and update the state.
             const loadedGameData: GameData = {
               gold: data.gold || 0,
               plants: data.plants || {},
@@ -82,7 +97,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             };
             setGameData(loadedGameData);
           } else {
-            // This can happen on first signup.
+            // This can happen on first signup. Create the user document and then set the game data.
             createUserDocument(currentUser).then(setGameData);
           }
           setLoading(false);
@@ -92,20 +107,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setLoading(false);
         });
       } else {
-        // User is logged out
+        // If there is no user, clear the game data from memory.
         setGameData(null);
         setLoading(false);
       }
     });
 
+    // Cleanup: When the component unmounts, these listeners are turned off to prevent memory leaks.
     return () => {
       unsubscribeAuth();
       if (unsubscribeFirestore) {
         unsubscribeFirestore();
       }
     };
-  }, []); // Only runs on mount
+  }, []); // The empty dependency array means this useEffect runs only once on mount.
 
+  // This effect handles routing logic based on the user's authentication state.
   useEffect(() => {
     if (loading) return; // Don't do anything while loading
 
@@ -131,6 +148,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     );
   }
 
+  // The user and their gameData are provided to all child components.
   return (
     <AuthContext.Provider value={{ user, gameData, loading }}>
       {children}
@@ -138,6 +156,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
+// Any component can use this hook to access the logged-in user's data.
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
