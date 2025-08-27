@@ -308,7 +308,11 @@ export default function ContestPage() {
                     </CardHeader>
                     <CardContent>
                         <ul className="space-y-2">
-                            {session.contestants.map(c => <li key={c.id} className="text-muted-foreground">{c.ownerName} entered with <span className="font-semibold text-primary">{c.name}</span></li>)}
+                            {session.contestants.map(c => (
+                                <li key={c.id} className="text-muted-foreground">
+                                    {c.ownerName}{c.ownerId === user?.uid && <span className="text-primary font-bold"> (You)</span>} entered with <span className="font-semibold text-primary">{c.name}</span>
+                                </li>
+                            ))}
                         </ul>
 
                         {!hasEntered && (
@@ -369,5 +373,3 @@ export default function ContestPage() {
         </div>
     )
 }
-
-    
