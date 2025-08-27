@@ -575,16 +575,6 @@ export default function HomePage() {
         <CommunityInfoDialog open={showCommunityInfo} onOpenChange={handleCloseCommunityInfo} />
         <GameChangesInfoDialog open={showGameChangesInfo} onOpenChange={handleCloseGameChangesInfo} />
         <GardenInfoDialog open={showGardenInfo} onOpenChange={handleCloseGardenInfo} />
-
-         <Link href="/garden">
-          <Button
-              size="lg"
-              className="fixed bottom-40 right-4 h-16 w-16 rounded-full bg-green-500 hover:bg-green-600 shadow-lg flex-col gap-1"
-          >
-              <Leaf className="h-6 w-6 text-white" />
-              <span className="text-xs text-white">Garden</span>
-          </Button>
-        </Link>
       </div>
       <footer className="text-center text-xs text-muted-foreground pb-2">
         <p>&copy; 2025 Sky Mountain Graphics. All Rights Reserved.</p>
@@ -592,6 +582,3 @@ export default function HomePage() {
     </>
   );
 }
-
-    
-    
