@@ -3,7 +3,7 @@
 
 import { db } from '@/lib/firebase';
 import { doc, runTransaction, getDoc, writeBatch, updateDoc, deleteDoc } from 'firebase/firestore';
-import type { Plant, ContestSession, Contestant } from '@/lib/firestore';
+import type { Plant, ContestSession, Contestant } from '@/interfaces/plant';
 import { awardContestPrize } from '@/lib/firestore';
 
 const CONTEST_SESSION_ID = 'active'; // There is only one contest session at a time
