@@ -95,15 +95,10 @@ const drawPlantFlow = ai.defineFlow(
             const imageGenPrompt = `Create a new plant character based on the description: "${plantDetails.imagePrompt}".\n\n${imageGenerationRules}`;
 
             // Step 3: Use the details to generate the new plant image.
-            const result = await ai.generate({
-                model: 'googleai/gemini-2.0-flash-preview-image-generation',
-                prompt: [{ text: imageGenPrompt }],
-                config: {
-                    responseModalities: ['TEXT', 'IMAGE'],
-                },
+            const { media } = await ai.generate({
+                model: 'googleai/imagen-4.0-fast-generate-001',
+                prompt: imageGenPrompt,
             });
-
-            const media = result.media;
 
             // Step 4: Check if the image was generated successfully.
             if (!media || !media.url) {
