@@ -122,6 +122,25 @@
       "static/chunks/184-a5d2c926e82cc53e.js",
       "static/chunks/app/(app)/community/park/page-ff0efb12018686d8.js"
     ],
+    "/(app)/garden/page": [
+      "static/chunks/webpack-60785faceb2046e0.js",
+      "static/chunks/4bd1b696-c023c6e3521b1417.js",
+      "static/chunks/255-01c481785f268126.js",
+      "static/chunks/main-app-a76918e032ab70ca.js",
+      "static/chunks/bc9e92e6-fe635e1178cea137.js",
+      "static/chunks/69806262-938683777433bda4.js",
+      "static/chunks/510-5ee991a3a9288bae.js",
+      "static/chunks/761-a67578877cb4c0b0.js",
+      "static/chunks/967-eb488ba39982dd18.js",
+      "static/chunks/619-9168df9c2a29b74b.js",
+      "static/chunks/476-28a40f8564af4b7c.js",
+      "static/chunks/667-0936e372e4e2da6a.js",
+      "static/chunks/806-c09778c4c37a60de.js",
+      "static/chunks/184-a5d2c926e82cc53e.js",
+      "static/chunks/482-b6eff2efd8dfa76c.js",
+      "static/chunks/584-c01ea2908bedce41.js",
+      "static/chunks/app/(app)/garden/page-9433cb0e4ac925fb.js"
+    ],
     "/(app)/garden/seeds/page": [
       "static/chunks/webpack-60785faceb2046e0.js",
       "static/chunks/4bd1b696-c023c6e3521b1417.js",
@@ -216,25 +235,6 @@
       "static/chunks/184-a5d2c926e82cc53e.js",
       "static/chunks/482-b6eff2efd8dfa76c.js",
       "static/chunks/app/(app)/shop/page-060ea508b44d6bf3.js"
-    ],
-    "/(app)/garden/page": [
-      "static/chunks/webpack-60785faceb2046e0.js",
-      "static/chunks/4bd1b696-c023c6e3521b1417.js",
-      "static/chunks/255-01c481785f268126.js",
-      "static/chunks/main-app-a76918e032ab70ca.js",
-      "static/chunks/bc9e92e6-fe635e1178cea137.js",
-      "static/chunks/69806262-938683777433bda4.js",
-      "static/chunks/510-5ee991a3a9288bae.js",
-      "static/chunks/761-a67578877cb4c0b0.js",
-      "static/chunks/967-eb488ba39982dd18.js",
-      "static/chunks/619-9168df9c2a29b74b.js",
-      "static/chunks/476-28a40f8564af4b7c.js",
-      "static/chunks/667-0936e372e4e2da6a.js",
-      "static/chunks/806-c09778c4c37a60de.js",
-      "static/chunks/184-a5d2c926e82cc53e.js",
-      "static/chunks/482-b6eff2efd8dfa76c.js",
-      "static/chunks/584-c01ea2908bedce41.js",
-      "static/chunks/app/(app)/garden/page-9433cb0e4ac925fb.js"
     ]
   }
 }
