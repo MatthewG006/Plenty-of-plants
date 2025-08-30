@@ -498,7 +498,8 @@ export async function deletePlant(userId: string, plantId: number) {
         throw new Error("Plant not found for deletion.");
     }
 
-    const { [`${plantId}`]: deletedPlant, ...remainingPlants } = gameData.plants;
+    // This creates a new object without the deleted plant's key.
+    const { [`${plantId}`]: _, ...remainingPlants } = gameData.plants;
 
     const newDeskPlantIds = gameData.deskPlantIds.map(id => (id === plantId ? null : id));
     const newGardenPlantIds = gameData.gardenPlantIds.map(id => (id === plantId ? null : id));

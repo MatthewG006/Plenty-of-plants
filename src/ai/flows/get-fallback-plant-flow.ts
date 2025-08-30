@@ -8,8 +8,6 @@
  */
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { storage } from '@/lib/firebase';
-import { ref, listAll, getDownloadURL } from 'firebase/storage';
 
 const GetFallbackPlantOutputSchema = z.object({
   name: z.string().describe('The creative and unique name of the new plant.'),
@@ -66,39 +64,13 @@ export const getFallbackPlantFlow = ai.defineFlow(
   },
   async ({ existingNames }) => {
     try {
-        const fallbackDirRef = ref(storage, 'fallback-plants');
-        const fileList = await listAll(fallbackDirRef);
-
-        if (fileList.items.length === 0) {
-            console.warn("No fallback images found in Firebase Storage. Please create a 'fallback-plants' folder and upload images. Returning hardcoded plant.");
-            return getHardcodedFallback();
-        }
-
-        const randomImageRef = fileList.items[Math.floor(Math.random() * fileList.items.length)];
-        
-        // Use string manipulation to remove the file extension
-        const fileName = randomImageRef.name;
-        const plantType = fileName.substring(0, fileName.lastIndexOf('.'));
-        
-        const imageUrl = await getDownloadURL(randomImageRef);
-
-        const { output: plantDetails } = await fallbackPlantDetailsPrompt({ plantType });
-        
-        if (!plantDetails) {
-            throw new Error("Could not generate details for fallback.");
-        }
-
-        return {
-            name: plantDetails.name,
-            description: plantDetails.description,
-            imageDataUri: imageUrl,
-        };
+        // Firebase Storage access is not reliable in this server context.
+        // Returning a hardcoded fallback is the safest option.
+        // A more advanced implementation might use the Firebase Admin SDK.
+        console.warn("The primary AI generation failed. To enable varied fallbacks, please configure Firebase Admin SDK access to the 'fallback-plants' folder in Firebase Storage. Returning hardcoded plant.");
+        return getHardcodedFallback();
     } catch (error: any) {
-        if (error.code === 'storage/object-not-found' || error.message?.includes('storage/object-not-found')) {
-             console.warn("The 'fallback-plants' folder does not exist in your Firebase Storage bucket. Please create it and upload images. Returning hardcoded plant.");
-        } else {
-             console.error("Critical error in fallback flow, returning hardcoded plant.", error);
-        }
+        console.error("Critical error in fallback flow, returning hardcoded plant.", error);
         // This is a final failsafe to prevent a crash.
         return getHardcodedFallback();
     }
