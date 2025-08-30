@@ -10,7 +10,6 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { storage } from '@/lib/firebase';
 import { ref, listAll, getDownloadURL } from 'firebase/storage';
-import path from 'path';
 
 const GetFallbackPlantOutputSchema = z.object({
   name: z.string().describe('The creative and unique name of the new plant.'),
@@ -76,7 +75,10 @@ export const getFallbackPlantFlow = ai.defineFlow(
         }
 
         const randomImageRef = fileList.items[Math.floor(Math.random() * fileList.items.length)];
-        const plantType = path.parse(randomImageRef.name).name; // e.g., "succulent" from "succulent.png"
+        
+        // Use string manipulation to remove the file extension, avoiding the 'path' module.
+        const fileName = randomImageRef.name;
+        const plantType = fileName.substring(0, fileName.lastIndexOf('.'));
         
         const imageUrl = await getDownloadURL(randomImageRef);
 
