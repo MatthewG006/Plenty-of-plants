@@ -69,7 +69,11 @@ export async function makeBackgroundTransparent(dataUri: string, threshold = 240
             ctx.putImageData(imageData, 0, 0);
             resolve(canvas.toDataURL('image/png'));
         };
-        img.onerror = reject;
+        img.onerror = (err) => {
+            // If there's an error loading the image (e.g., CORS), resolve with the original URI
+            console.warn("CORS or other error making background transparent, returning original image", err);
+            resolve(dataUri);
+        };
         img.src = dataUri;
     });
 }
