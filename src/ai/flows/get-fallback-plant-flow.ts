@@ -70,13 +70,13 @@ export const getFallbackPlantFlow = ai.defineFlow(
         const fileList = await listAll(fallbackDirRef);
 
         if (fileList.items.length === 0) {
-            console.warn("No fallback images found in Firebase Storage. Returning hardcoded plant.");
+            console.warn("No fallback images found in Firebase Storage. Please create a 'fallback-plants' folder and upload images. Returning hardcoded plant.");
             return getHardcodedFallback();
         }
 
         const randomImageRef = fileList.items[Math.floor(Math.random() * fileList.items.length)];
         
-        // Use string manipulation to remove the file extension, avoiding the 'path' module.
+        // Use string manipulation to remove the file extension
         const fileName = randomImageRef.name;
         const plantType = fileName.substring(0, fileName.lastIndexOf('.'));
         
@@ -94,7 +94,7 @@ export const getFallbackPlantFlow = ai.defineFlow(
             imageDataUri: imageUrl,
         };
     } catch (error: any) {
-        if (error.code === 'storage/object-not-found') {
+        if (error.code === 'storage/object-not-found' || error.message?.includes('storage/object-not-found')) {
              console.warn("The 'fallback-plants' folder does not exist in your Firebase Storage bucket. Please create it and upload images. Returning hardcoded plant.");
         } else {
              console.error("Critical error in fallback flow, returning hardcoded plant.", error);
