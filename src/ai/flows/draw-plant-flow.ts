@@ -72,33 +72,6 @@ You MUST adhere to the following rules without exception:
 7. **Composition:** The image must contain ONLY the single plant character in its pot. NO other objects, text, people, hands, or background elements are allowed.
 `;
 
-const qualityControlPrompt = ai.definePrompt({
-  name: 'qualityControlPrompt',
-  input: {
-    schema: z.object({
-      imageDataUri: z.string(),
-      rules: z.string(),
-    }),
-  },
-  output: {
-    schema: z.object({
-      isValid: z.boolean().describe('Whether the image meets all the rules.'),
-      reason: z.string().optional().describe('The reason for failure, if any.'),
-    }),
-  },
-  prompt: `You are an art director for a video game. Your job is to perform quality control on AI-generated images.
-Analyze the following image and determine if it strictly follows all of the provided rules.
-
-**Image to Analyze:**
-{{media url=imageDataUri}}
-
-**Rules:**
-{{{rules}}}
-
-Does the image pass inspection?
-`,
-});
-
 const drawPlantFlow = ai.defineFlow(
   {
     name: 'drawPlantFlow',
@@ -126,7 +99,7 @@ const drawPlantFlow = ai.defineFlow(
                 model: 'googleai/gemini-2.0-flash-preview-image-generation',
                 prompt: [{ text: imageGenPrompt }],
                 config: {
-                responseModalities: ['TEXT', 'IMAGE'],
+                    responseModalities: ['TEXT', 'IMAGE'],
                 },
             });
 
@@ -137,17 +110,7 @@ const drawPlantFlow = ai.defineFlow(
                 throw new Error('Could not generate plant image from AI.');
             }
 
-            // Step 5: Perform Quality Control check.
-            const { output: qcResult } = await qualityControlPrompt({
-                imageDataUri: media.url,
-                rules: imageGenerationRules,
-            });
-
-            if (!qcResult || !qcResult.isValid) {
-                throw new Error(`Image failed QC: ${qcResult?.reason}`);
-            }
-
-            // Step 6: Return the complete plant data if everything is successful.
+            // Step 5: Return the complete plant data if everything is successful.
             return {
                 name: plantDetails.name,
                 description: plantDetails.description,

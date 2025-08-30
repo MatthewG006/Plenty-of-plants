@@ -4,7 +4,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { claimFreeDraw, loadDraws, MAX_DRAWS, hasClaimedDailyDraw } from '@/lib/draw-manager';
+import { claimFreeDraw, MAX_DRAWS, hasClaimedDailyDraw } from '@/lib/draw-manager';
 import { Gift, Coins, Leaf, Clock, Loader2, Droplets, Sparkles, Zap, Pipette, RefreshCw, Star, Package, Gem, MessageCircle, ShoppingCart, Video } from 'lucide-react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAudio } from '@/context/AudioContext';
@@ -650,4 +650,5 @@ export default function ShopPage() {
   );
 }
 
+    
     
