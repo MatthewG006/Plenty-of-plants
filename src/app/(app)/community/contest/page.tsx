@@ -299,7 +299,7 @@ export default function ContestPage() {
                                         <div className="relative aspect-square">
                                             <Image src={c.image} alt={c.name} fill sizes="100px" className="object-contain" />
                                         </div>
-                                        <p className="text-center text-xs font-bold text-primary truncate -mt-2">
+                                        <p className="text-center text-xs font-bold text-primary truncate">
                                             {c.ownerName}
                                             {c.ownerId === user?.uid && <span className="text-muted-foreground"> (You)</span>}
                                         </p>
