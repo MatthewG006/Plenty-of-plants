@@ -48,8 +48,11 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                     });
                     
                     if (session.contestants.length > 0 && activeContestants.length === 0) {
+                        // All players timed out, delete session
                         transaction.delete(sessionRef);
                         session = null;
+                        // Important: Return null immediately since the session is gone.
+                        return null; 
                     } else if (session) {
                         session.contestants = activeContestants;
                     }
