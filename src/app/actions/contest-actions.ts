@@ -51,16 +51,14 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                         // All players timed out, delete session
                         transaction.delete(sessionRef);
                         session = null;
-                        // Important: Return null immediately since the session is gone.
-                        return null; 
                     } else if (session) {
                         session.contestants = activeContestants;
                     }
                 }
                 
-                // Check for expired session
-                if (now > expires) {
-                     if (session && session.status === 'waiting') {
+                // Check for expired session, only if the session wasn't just deleted
+                if (session && now > expires) {
+                     if (session.status === 'waiting') {
                         if (session.contestants.length >= 2) {
                             session.status = 'voting';
                             const newExpiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
@@ -69,7 +67,7 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                             transaction.delete(sessionRef);
                             session = null;
                         }
-                    } else if (session && session.status === 'voting') {
+                    } else if (session.status === 'voting') {
                         let maxVotes = -1;
                         let winners: Contestant[] = [];
                         session.contestants.forEach(c => {
@@ -100,20 +98,23 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
             // End cleanup
 
             // Step 2: Handle the player's action (joining or creating)
-            if (plant) { 
-                const newContestant: Contestant = {
+            // Do not proceed if the player is just polling and the session was deleted.
+            if (plant || session) { 
+                 const newContestant: Contestant | null = plant ? {
                     ...plant,
                     votes: 0,
                     voterIds: [],
                     ownerId: userId,
                     ownerName: username,
                     lastSeen: new Date().toISOString(),
-                };
+                } : null;
 
                 if (!session || session.status === 'finished') {
-                    // Create a new session if one doesn't exist or is finished
-                    session = createNewSession(newContestant);
-                } else if (session.status === 'waiting') {
+                    // Create a new session if one doesn't exist and a plant is trying to join
+                    if (newContestant) {
+                        session = createNewSession(newContestant);
+                    }
+                } else if (session.status === 'waiting' && newContestant) {
                     // Join an existing session if possible
                     const alreadyExists = session.contestants.some(c => c.ownerId === userId);
                     if (!alreadyExists && session.contestants.length < 4) {
@@ -121,7 +122,9 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                     } else if (alreadyExists) {
                         // If player is rejoining, just update their lastSeen
                         const index = session.contestants.findIndex(c => c.ownerId === userId);
-                        session.contestants[index].lastSeen = new Date().toISOString();
+                        if (index !== -1) {
+                           session.contestants[index].lastSeen = new Date().toISOString();
+                        }
                     }
                 }
                 
