@@ -68,6 +68,7 @@ const drawPlantFlow = ai.defineFlow(
     outputSchema: DrawPlantOutputSchema,
   },
   async ({ existingNames }) => {
+    
     const imageGenerationRules = `
 You MUST adhere to the following rules without exception:
 1. **Art Style:** The final image must have a clean, 2D, illustrated style.
@@ -79,57 +80,49 @@ You MUST adhere to the following rules without exception:
 7. **Composition:** The image must contain ONLY the single plant character in its pot. NO other objects, text, people, hands, or background elements are allowed.
 `;
 
-    let retries = 0;
-    const maxRetries = 2;
+    try {
+      // Step 1: Generate the plant's details.
+      const { output: plantDetails } = await plantDetailsPrompt({ existingNames });
+      if (!plantDetails) {
+        throw new Error('Could not generate plant details.');
+      }
 
-    while (retries <= maxRetries) {
-        try {
-            // Step 1: Generate the plant's details first and wait for the result.
-            const { output: plantDetails } = await plantDetailsPrompt({ existingNames });
-            
-            if (!plantDetails) {
-                throw new Error('Could not generate plant details.');
-            }
+      // Step 2: Build the prompt for image generation.
+      const imageGenPrompt = `Create a new plant character based on the description: "${plantDetails.imagePrompt}".\n\n${imageGenerationRules}`;
 
-            // Step 2: Build the prompt.
-            const imageGenPrompt = `Create a new plant character based on the description: "${plantDetails.imagePrompt}".\n\n${imageGenerationRules}`;
+      try {
+        // Step 3: Use the details to generate the new plant image.
+        const { media } = await ai.generate({
+          model: 'googleai/imagen-4.0-fast-generate-001',
+          prompt: imageGenPrompt,
+        });
 
-            // Step 3: Use the details to generate the new plant image.
-            const { media } = await ai.generate({
-                model: 'googleai/imagen-4.0-fast-generate-001',
-                prompt: imageGenPrompt,
-            });
-
-            // Step 4: Check if the image was generated successfully.
-            if (!media || !media.url) {
-                throw new Error('Could not generate plant image from AI.');
-            }
-
-            // Step 5: Return the complete plant data if everything is successful.
-            return {
-                name: plantDetails.name,
-                description: plantDetails.description,
-                imageDataUri: media.url,
-            };
-
-        } catch (error: any) {
-            retries++;
-            if (error.message && error.message.includes('API key not valid')) {
-                console.error("Authentication Error: The provided Google AI API key is invalid or missing.", error);
-                throw new Error("Invalid API Key"); // Re-throw to be caught by the client
-            }
-            
-            console.warn(`Attempt ${retries} failed for drawPlantFlow. Reason: ${error.message}. Retrying...`);
-            
-            if (retries > maxRetries) {
-                console.error("Primary plant generation failed after all retries, triggering fallback.", error);
-                return getFallbackPlantFlow({ existingNames });
-            }
+        // Step 4: Check if the image was generated successfully.
+        if (!media || !media.url) {
+          throw new Error('Could not generate plant image from AI.');
         }
+
+        // Step 5: Return the complete plant data.
+        return {
+          name: plantDetails.name,
+          description: plantDetails.description,
+          imageDataUri: media.url,
+        };
+      } catch (imageError: any) {
+        console.warn(`Image generation failed, triggering fallback. Reason: ${imageError.message}`);
+        // If image generation fails, trigger the fallback.
+        return getFallbackPlantFlow({ existingNames });
+      }
+
+    } catch (detailsError: any) {
+      if (detailsError.message && detailsError.message.includes('API key not valid')) {
+        console.error("Authentication Error: The provided Google AI API key is invalid or missing.", detailsError);
+        throw new Error("Invalid API Key"); // Re-throw to be caught by the client
+      }
+      
+      console.warn(`Plant details generation failed, triggering fallback. Reason: ${detailsError.message}`);
+      // If details generation fails, trigger the fallback.
+      return getFallbackPlantFlow({ existingNames });
     }
-    
-    // This should not be reached if logic is correct, but as a failsafe:
-    console.error("drawPlantFlow exhausted retries and did not return a value. Triggering fallback.");
-    return getFallbackPlantFlow({ existingNames });
   }
 );
