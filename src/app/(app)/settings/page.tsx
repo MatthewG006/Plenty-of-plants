@@ -23,7 +23,6 @@ import { useRouter } from 'next/navigation';
 import { useAudio } from '@/context/AudioContext';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { unequipSprinkler } from '@/lib/firestore';
 
 
 function SettingRow({ icon: Icon, label, children }: { icon: React.ElementType, label: string, children: React.ReactNode }) {

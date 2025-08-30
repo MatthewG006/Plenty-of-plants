@@ -10,9 +10,6 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { getFallbackPlantFlow } from './get-fallback-plant-flow';
-import fs from 'fs/promises';
-import path from 'path';
-
 
 const DrawPlantInputSchema = z.object({
   existingNames: z.array(z.string()).optional().describe("A list of existing plant names to avoid duplicating."),
@@ -121,30 +118,13 @@ const drawPlantFlow = ai.defineFlow(
                 throw new Error('Could not generate plant details.');
             }
 
-            // Step 2: Try to read the reference image from the filesystem.
-            let referenceImageDataUri: string | null = null;
-            try {
-                const imagePath = path.join(process.cwd(), 'public', 'fern.png');
-                const referenceImageBuffer = await fs.readFile(imagePath);
-                referenceImageDataUri = `data:image/png;base64,${referenceImageBuffer.toString('base64')}`;
-            } catch (e) {
-                console.warn("Could not load reference image 'fern.png'. Generating image without it.", e);
-            }
+            // Step 2: Build the prompt.
+            const imageGenPrompt = `Create a new plant character based on the description: "${plantDetails.imagePrompt}".\n\n${imageGenerationRules}`;
 
-            // Step 3: Build the prompt. If there's a reference image, include it.
-            const imageGenPrompt: (any)[] = [];
-            
-            if (referenceImageDataUri) {
-                imageGenPrompt.push({ media: { url: referenceImageDataUri, contentType: 'image/png' } });
-                imageGenPrompt.push({ text: `Your primary goal is to replicate the art style of the provided reference image EXACTLY. Create a new plant character based on the description: "${plantDetails.imagePrompt}".\n\n${imageGenerationRules}` });
-            } else {
-                imageGenPrompt.push({ text: `Create a new plant character based on the description: "${plantDetails.imagePrompt}".\n\n${imageGenerationRules}` });
-            }
-
-            // Step 4: Use the details to generate the new plant image.
+            // Step 3: Use the details to generate the new plant image.
             const result = await ai.generate({
                 model: 'googleai/gemini-2.0-flash-preview-image-generation',
-                prompt: imageGenPrompt,
+                prompt: [{ text: imageGenPrompt }],
                 config: {
                 responseModalities: ['TEXT', 'IMAGE'],
                 },
@@ -152,12 +132,12 @@ const drawPlantFlow = ai.defineFlow(
 
             const media = result.media;
 
-            // Step 5: Check if the image was generated successfully.
+            // Step 4: Check if the image was generated successfully.
             if (!media || !media.url) {
                 throw new Error('Could not generate plant image from AI.');
             }
 
-            // Step 6: Perform Quality Control check.
+            // Step 5: Perform Quality Control check.
             const { output: qcResult } = await qualityControlPrompt({
                 imageDataUri: media.url,
                 rules: imageGenerationRules,
@@ -167,10 +147,7 @@ const drawPlantFlow = ai.defineFlow(
                 throw new Error(`Image failed QC: ${qcResult?.reason}`);
             }
 
-            // Step 7: We are no longer saving the newly generated image as a fallback
-            // since fallbacks are now managed in Firebase Storage.
-
-            // Step 8: Return the complete plant data if everything is successful.
+            // Step 6: Return the complete plant data if everything is successful.
             return {
                 name: plantDetails.name,
                 description: plantDetails.description,
