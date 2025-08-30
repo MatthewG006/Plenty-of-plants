@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Loader2, Users, Leaf, Sparkles, ShieldAlert, Heart, Star, Trees, Coins } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { getCommunityUsers, likeUser, type CommunityUser } from '@/lib/firestore';
+import { getCommunityUsers, likeUser } from '@/lib/firestore';
+import type { CommunityUser } from '@/interfaces/plant';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import type { Plant } from '@/interfaces/plant';
