@@ -15,7 +15,7 @@ import { drawPlantAction } from '@/app/actions/draw-plant';
 import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-import { makeBackgroundTransparent } from '@/lib/image-compression';
+import { makeBackgroundTransparent, compressImage } from '@/lib/image-compression';
 
 
 const GERMINATION_TIME_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -141,7 +141,10 @@ export default function SeedsPage() {
             const existingNames = gameData.plants ? Object.values(gameData.plants).map(p => p.name) : [];
             const drawnPlantResult = await drawPlantAction(existingNames);
             
-            const newPlant = await savePlant(user.uid, drawnPlantResult);
+            const compressedImageDataUri = await compressImage(drawnPlantResult.imageDataUri);
+
+            const newPlant = await savePlant(user.uid, { ...drawnPlantResult, imageDataUri: compressedImageDataUri }, drawnPlantResult.imageDataUri);
+            
             await growSeed(user.uid, seed.id);
             playSfx('success');
             
