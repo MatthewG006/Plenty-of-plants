@@ -64,6 +64,7 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                             const newExpiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
                             session.expiresAt = newExpiresAt.toISOString();
                         } else {
+                            // Not enough players, so delete the session.
                             transaction.delete(sessionRef);
                             session = null;
                         }
