@@ -191,6 +191,7 @@ export async function createUserDocument(user: User): Promise<GameData> {
             description: "A happy little fern to start your collection.",
             image: "/fern.png",
             baseImage: '',
+            uncompressedImage: '/fern.png',
             form: "Base",
             hint: "fern plant",
             level: 1,
@@ -251,7 +252,7 @@ export async function createUserDocument(user: User): Promise<GameData> {
     return (await getUserGameData(user.uid))!;
 }
 
-export async function savePlant(userId: string, plantData: DrawPlantOutput): Promise<Plant> {
+export async function savePlant(userId: string, plantData: DrawPlantOutput, uncompressedImageDataUri: string): Promise<Plant> {
     const userDocRef = doc(db, 'users', userId);
     const gameData = await getUserGameData(userId);
 
@@ -268,6 +269,7 @@ export async function savePlant(userId: string, plantData: DrawPlantOutput): Pro
         description: plantData.description || 'A new plant has arrived.',
         image: plantData.imageDataUri || '',
         baseImage: '',
+        uncompressedImage: uncompressedImageDataUri,
         form: 'Base',
         hint: (plantData.name || '').toLowerCase().split(' ').slice(0, 2).join(' '),
         level: 1,

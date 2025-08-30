@@ -211,6 +211,7 @@ export default function HomePage() {
   const [latestPlant, setLatestPlant] = useState<Plant | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawnPlant, setDrawnPlant] = useState<DrawPlantOutput | null>(null);
+  const [uncompressedDrawnPlantUri, setUncompressedDrawnPlantUri] = useState<string | null>(null);
   const [isClaimingChallenge, setIsClaimingChallenge] = useState(false);
   const [nextDrawTime, setNextDrawTime] = useState('');
   const [showCommunityInfo, setShowCommunityInfo] = useState(false);
@@ -315,6 +316,8 @@ export default function HomePage() {
 
         const existingNames = gameData.plants ? Object.values(gameData.plants).map(p => p.name) : [];
         const drawnPlantResult = await drawPlantAction(existingNames);
+        
+        setUncompressedDrawnPlantUri(drawnPlantResult.imageDataUri);
         const compressedImageDataUri = await compressImage(drawnPlantResult.imageDataUri);
         
         playSfx('success');
@@ -347,11 +350,11 @@ export default function HomePage() {
   };
 
   const handleCollect = async () => {
-    if (!drawnPlant || !user) return;
+    if (!drawnPlant || !uncompressedDrawnPlantUri || !user) return;
 
     try {
         const plainDrawnPlant = JSON.parse(JSON.stringify(drawnPlant));
-        const newPlant = await savePlant(user.uid, plainDrawnPlant);
+        const newPlant = await savePlant(user.uid, plainDrawnPlant, uncompressedDrawnPlantUri);
         setLatestPlant(newPlant);
         await updateCollectionProgress(user.uid);
     } catch (e) {
@@ -364,6 +367,7 @@ export default function HomePage() {
     }
     
     setDrawnPlant(null);
+    setUncompressedDrawnPlantUri(null);
   };
   
   const handleClaimChallenge = async (challengeId: string) => {

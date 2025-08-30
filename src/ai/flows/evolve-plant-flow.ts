@@ -16,7 +16,7 @@ const EvolvePlantInputSchema = z.object({
   baseImageDataUri: z
     .string()
     .describe(
-      "The image of the plant's original, base form, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
+      "The UNCOMPRESSED, high-quality image of the plant's current form, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
     ),
   form: z.string().describe('The current form of the plant (e.g., "Base", "Evolved").'),
 });
@@ -78,7 +78,7 @@ The final image should be an epic evolution, but still recognizably the same cha
       const { media } = await ai.generate({
         model: 'googleai/gemini-2.0-flash-preview-image-generation',
         prompt: [
-          { media: { url: baseImageDataUri, contentType: 'image/jpeg' } },
+          { media: { url: baseImageDataUri, contentType: 'image/png' } },
           { text: promptText }
         ],
         config: {

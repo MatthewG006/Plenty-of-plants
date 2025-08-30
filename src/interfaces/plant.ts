@@ -6,6 +6,7 @@ export interface Plant {
   form: string;
   image: string;
   baseImage: string;
+  uncompressedImage: string;
   hint: string;
   description: string;
   level: number;
@@ -33,3 +34,4 @@ export interface CommunityUser {
     likes: number;
     gold: number;
 }
+
