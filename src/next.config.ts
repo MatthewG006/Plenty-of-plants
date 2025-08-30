@@ -32,27 +32,6 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
     NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
   },
-   webpack: (config, { isServer, webpack }) => {
-    if (isServer) {
-      config.externals.push({
-        handlebars: 'commonjs handlebars',
-      });
-    }
-     config.plugins.push(
-      new webpack.ContextReplacementPlugin(
-        /node_modules\/@opentelemetry\/sdk-node/,
-        (data: any) => {
-          for (const dependency of data.dependencies) {
-            if (dependency.request === '@opentelemetry/exporter-jaeger') {
-              dependency.critical = false;
-            }
-          }
-          return data;
-        },
-      )
-    );
-    return config;
-  },
 };
 
 export default nextConfig;
