@@ -1,9 +1,8 @@
 
 
-
 import { doc, getDoc, setDoc, getFirestore, updateDoc, arrayUnion, DocumentData, writeBatch, increment, collection, getDocs, query, where, limit, deleteDoc, arrayRemove, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { app, db, auth } from './firebase';
-import type { Plant, Seed } from '@/interfaces/plant';
+import type { Plant, Seed, CommunityUser, ContestSession, Contestant } from '@/interfaces/plant';
 import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 import { User } from 'firebase/auth';
 import { MAX_DRAWS } from './draw-manager';
@@ -692,4 +691,3 @@ export async function awardContestPrize(userId: string): Promise<void> {
         gold: increment(50),
     });
 }
-
