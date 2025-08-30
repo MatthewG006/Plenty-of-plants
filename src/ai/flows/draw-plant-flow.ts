@@ -61,7 +61,14 @@ You MUST NOT use any of the following names:
 `,
 });
 
-const imageGenerationRules = `
+const drawPlantFlow = ai.defineFlow(
+  {
+    name: 'drawPlantFlow',
+    inputSchema: DrawPlantInputSchema,
+    outputSchema: DrawPlantOutputSchema,
+  },
+  async ({ existingNames }) => {
+    const imageGenerationRules = `
 You MUST adhere to the following rules without exception:
 1. **Art Style:** The final image must have a clean, 2D, illustrated style.
 2. **The Pot:** The plant MUST be in a simple, terracotta pot.
@@ -72,13 +79,6 @@ You MUST adhere to the following rules without exception:
 7. **Composition:** The image must contain ONLY the single plant character in its pot. NO other objects, text, people, hands, or background elements are allowed.
 `;
 
-const drawPlantFlow = ai.defineFlow(
-  {
-    name: 'drawPlantFlow',
-    inputSchema: DrawPlantInputSchema,
-    outputSchema: DrawPlantOutputSchema,
-  },
-  async ({ existingNames }) => {
     let retries = 0;
     const maxRetries = 2;
 
