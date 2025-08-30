@@ -115,11 +115,15 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                     const alreadyExists = session.contestants.some(c => c.ownerId === userId);
                     if (!alreadyExists && session.contestants.length < 4) {
                         session.contestants.push(newContestant);
+                    } else if (alreadyExists) {
+                        // If player is rejoining, just update their lastSeen
+                        const index = session.contestants.findIndex(c => c.ownerId === userId);
+                        session.contestants[index].lastSeen = new Date().toISOString();
                     }
                 }
                 
                 // If the lobby is now full, automatically start the voting
-                if (session && session.status === 'waiting' && session.contestants.length >= 3) {
+                if (session && session.status === 'waiting' && session.contestants.length >= 4) {
                     session.status = 'voting';
                     const now = new Date();
                     const expiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
