@@ -12,7 +12,7 @@ const VOTE_TIME_SEC = 20;
 const PLAYER_TIMEOUT_SEC = 15; // A player is considered disconnected after this many seconds of inactivity
 
 // Helper to create a new, empty contest session
-function createNewSession(plant: Contestant): contestSession {
+function createNewSession(plant: Contestant): ContestSession {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + WAITING_TIME_SEC * 1000);
     return {
@@ -26,13 +26,13 @@ function createNewSession(plant: Contestant): contestSession {
 }
 
 
-export async function joinAndGetContestState({ userId, username, plant }: { userId: string, username: string, plant?: Plant }): Promise<{ session?: contestSession | null, error?: string }> {
+export async function joinAndGetContestState({ userId, username, plant }: { userId: string, username: string, plant?: Plant }): Promise<{ session?: ContestSession | null, error?: string }> {
     try {
         const sessionRef = doc(db, 'contestSessions', CONTEST_SESSION_ID);
 
         const finalSession = await runTransaction(db, async (transaction) => {
             const liveSessionDoc = await transaction.get(sessionRef);
-            let session: ContestSession | null = liveSessionDoc.exists() ? liveSessionDoc.data() as contestSession : null;
+            let session: ContestSession | null = liveSessionDoc.exists() ? liveSessionDoc.data() as ContestSession : null;
 
             // Step 1: Player Timeout and Expiry Cleanup
             if (session) {
@@ -161,7 +161,7 @@ export async function voteForContestant(userId: string, plantId: number): Promis
                 throw new Error("No active contest to vote in.");
             }
 
-            const session = sessionDoc.data() as contestSession;
+            const session = sessionDoc.data() as ContestSession;
 
             if (session.status !== 'voting') {
                 throw new Error("Voting is not active.");
@@ -205,7 +205,7 @@ export async function sendHeartbeat(userId: string) {
             const sessionDoc = await transaction.get(sessionRef);
             if (!sessionDoc.exists()) return;
 
-            const sessionData = sessionDoc.data() as contestSession;
+            const sessionData = sessionDoc.data() as ContestSession;
             if (sessionData.status !== 'waiting') return;
 
             const contestantIndex = sessionData.contestants.findIndex(c => c.ownerId === userId);
