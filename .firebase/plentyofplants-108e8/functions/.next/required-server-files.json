@@ -1,13 +1,19 @@
 {
   "version": 1,
   "config": {
-    "env": {},
-    "webpack": null,
+    "env": {
+      "NEXT_PUBLIC_FIREBASE_API_KEY": "AIzaSyBxgn4A1fMUdIwUKdDh4KWyjJTSle2dXQE",
+      "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN": "plentyofplants-108e8.firebaseapp.com",
+      "NEXT_PUBLIC_FIREBASE_PROJECT_ID": "plentyofplants-108e8",
+      "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET": "plentyofplants-108e8.appspot.com",
+      "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "317861154450",
+      "NEXT_PUBLIC_FIREBASE_APP_ID": "1:317861154450:web:3a586f3cc5b1c42e64e04b"
+    },
     "eslint": {
-      "ignoreDuringBuilds": false
+      "ignoreDuringBuilds": true
     },
     "typescript": {
-      "ignoreBuildErrors": false,
+      "ignoreBuildErrors": true,
       "tsconfigPath": "tsconfig.json"
     },
     "typedRoutes": false,
@@ -15,7 +21,7 @@
     "cleanDistDir": true,
     "assetPrefix": "",
     "cacheMaxMemorySize": 52428800,
-    "configOrigin": "default",
+    "configOrigin": "next.config.ts",
     "useFileSystemPublicRoutes": true,
     "generateEtags": true,
     "pageExtensions": [
@@ -59,7 +65,18 @@
       "dangerouslyAllowSVG": false,
       "contentSecurityPolicy": "script-src 'none'; frame-src 'none'; sandbox;",
       "contentDispositionType": "attachment",
-      "remotePatterns": [],
+      "remotePatterns": [
+        {
+          "protocol": "https",
+          "hostname": "placehold.co",
+          "port": "",
+          "pathname": "/**"
+        },
+        {
+          "protocol": "https",
+          "hostname": "firebasestorage.googleapis.com"
+        }
+      ],
       "unoptimized": false
     },
     "devIndicators": {
@@ -285,7 +302,7 @@
     },
     "htmlLimitedBots": "[\\w-]+-Google|Google-[\\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight",
     "bundlePagesRouterDependencies": false,
-    "configFileName": "next.config.js",
+    "configFileName": "next.config.ts",
     "turbopack": {
       "root": "/home/user/studio"
     }
