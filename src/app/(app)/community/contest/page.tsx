@@ -8,12 +8,11 @@ import { Loader2, ArrowLeft, Trophy, Users, Star, Crown, Sparkles, ShieldAlert }
 import Image from 'next/image';
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import type { Plant } from '@/interfaces/plant';
+import type { Plant, ContestSession, Contestant } from '@/interfaces/plant';
 import { cn } from '@/lib/utils';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { joinAndGetContestState, voteForContestant, sendHeartbeat } from '@/app/actions/contest-actions';
-import type { ContestSession, Contestant } from '@/lib/firestore';
 import Link from 'next/link';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';

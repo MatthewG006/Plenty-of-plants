@@ -167,21 +167,8 @@ const drawPlantFlow = ai.defineFlow(
                 throw new Error(`Image failed QC: ${qcResult?.reason}`);
             }
 
-            // Step 7: Save the newly generated plant image to be used as a future fallback.
-            const fallbackDir = path.join(process.cwd(), 'public', 'fallback-plants');
-            const safeFilename = `${plantDetails.name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-')}.png`;
-            const savePath = path.join(fallbackDir, safeFilename);
-            
-            const base64Data = media.url.split(';base64,').pop();
-            if (base64Data) {
-                try {
-                await fs.mkdir(fallbackDir, { recursive: true });
-                await fs.writeFile(savePath, base64Data, 'base64');
-                console.log(`Saved new plant image to: ${savePath}`);
-                } catch (saveError) {
-                console.error(`Failed to save new plant image to fallback folder: ${saveError}`);
-                }
-            }
+            // Step 7: We are no longer saving the newly generated image as a fallback
+            // since fallbacks are now managed in Firebase Storage.
 
             // Step 8: Return the complete plant data if everything is successful.
             return {
