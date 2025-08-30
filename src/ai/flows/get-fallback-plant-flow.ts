@@ -8,7 +8,8 @@
  */
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import fs from 'fs/promises';
+import { storage } from '@/lib/firebase';
+import { ref, listAll, getDownloadURL } from 'firebase/storage';
 import path from 'path';
 
 const GetFallbackPlantOutputSchema = z.object({
@@ -17,19 +18,11 @@ const GetFallbackPlantOutputSchema = z.object({
   imageDataUri: z
     .string()
     .describe(
-      "A generated image of the plant, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
+      "A generated image of the plant, as a public URL from Firebase Storage."
     ),
 });
 
 export type GetFallbackPlantOutput = z.infer<typeof GetFallbackPlantOutputSchema>;
-
-// Helper function to convert image file to data URI
-async function toDataURL(filePath: string, mimeType: string): Promise<string> {
-    const fileBuffer = await fs.readFile(filePath);
-    const base64 = fileBuffer.toString('base64');
-    return `data:${mimeType};base64,${base64}`;
-}
-
 
 const fallbackPlantDetailsPrompt = ai.definePrompt({
     name: 'fallbackPlantDetailsPrompt',
@@ -59,7 +52,8 @@ const getHardcodedFallback = () => {
     return {
         name: "Sturdy Sprout",
         description: "A reliable little plant that shows up when you need it most.",
-        imageDataUri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAMAAABrrFhUAAAAA1BMVEUAAACnej3aAAAASElEQVR4nO3BMQEAAADCoPVPbQwfoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIC3AcUIAAFkqh/QAAAAAElFTkSuQmCC" // 1x1 transparent png
+        // 1x1 transparent png
+        imageDataUri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" 
     };
 };
 
@@ -73,22 +67,18 @@ export const getFallbackPlantFlow = ai.defineFlow(
   },
   async ({ existingNames }) => {
     try {
-        const fallbackDir = path.join(process.cwd(), 'public', 'fallback-plants');
-        await fs.mkdir(fallbackDir, { recursive: true }); // Ensure the directory exists
-        const files = await fs.readdir(fallbackDir);
-        const imageFiles = files.filter(file => file.endsWith('.png') || file.endsWith('.jpg') || file.endsWith('.jpeg'));
+        const fallbackDirRef = ref(storage, 'fallback-plants');
+        const fileList = await listAll(fallbackDirRef);
 
-        if (imageFiles.length === 0) {
-            console.warn("No fallback images found. Returning hardcoded plant.");
+        if (fileList.items.length === 0) {
+            console.warn("No fallback images found in Firebase Storage. Returning hardcoded plant.");
             return getHardcodedFallback();
         }
 
-        const randomImageFile = imageFiles[Math.floor(Math.random() * imageFiles.length)];
-        const plantType = path.parse(randomImageFile).name; // e.g., "succulent" from "succulent.png"
-        const imagePath = path.join(fallbackDir, randomImageFile);
-        const mimeType = `image/${path.extname(randomImageFile).substring(1)}`;
-
-        const imageDataUri = await toDataURL(imagePath, mimeType);
+        const randomImageRef = fileList.items[Math.floor(Math.random() * fileList.items.length)];
+        const plantType = path.parse(randomImageRef.name).name; // e.g., "succulent" from "succulent.png"
+        
+        const imageUrl = await getDownloadURL(randomImageRef);
 
         const { output: plantDetails } = await fallbackPlantDetailsPrompt({ plantType });
         
@@ -99,11 +89,15 @@ export const getFallbackPlantFlow = ai.defineFlow(
         return {
             name: plantDetails.name,
             description: plantDetails.description,
-            imageDataUri: imageDataUri,
+            imageDataUri: imageUrl,
         };
-    } catch (error) {
-        console.error("Critical error in fallback flow, returning hardcoded plant.", error);
-        // This is a final failsafe to prevent a crash, especially if the API key is invalid or files are missing.
+    } catch (error: any) {
+        if (error.code === 'storage/object-not-found') {
+             console.warn("The 'fallback-plants' folder does not exist in your Firebase Storage bucket. Please create it and upload images. Returning hardcoded plant.");
+        } else {
+             console.error("Critical error in fallback flow, returning hardcoded plant.", error);
+        }
+        // This is a final failsafe to prevent a crash.
         return getHardcodedFallback();
     }
   }
