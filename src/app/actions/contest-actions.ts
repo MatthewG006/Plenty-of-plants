@@ -33,6 +33,7 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
         const finalSession = await runTransaction(db, async (transaction) => {
             const liveSessionDoc = await transaction.get(sessionRef);
             let session: ContestSession | null = liveSessionDoc.exists() ? liveSessionDoc.data() as ContestSession : null;
+            let sessionCreated = false;
 
             // Step 1: Player Timeout and Expiry Cleanup
             if (session) {
@@ -59,7 +60,7 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                 // Check for expired session, only if the session wasn't just deleted
                 if (session && now > expires) {
                      if (session.status === 'waiting') {
-                        if (session.contestants.length >= 2) {
+                        if (session.contestants.length >= 4) {
                             session.status = 'voting';
                             const newExpiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
                             session.expiresAt = newExpiresAt.toISOString();
@@ -99,49 +100,49 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
             // End cleanup
 
             // Step 2: Handle the player's action (joining or creating)
-            // Do not proceed if the player is just polling and the session was deleted.
-            if ((plant || session) && !(plant && !session)) { 
-                 const newContestant: Contestant | null = plant ? {
-                    ...plant,
-                    votes: 0,
-                    voterIds: [],
-                    ownerId: userId,
-                    ownerName: username,
-                    lastSeen: new Date().toISOString(),
-                } : null;
+            const newContestant: Contestant | null = plant ? {
+                ...plant,
+                votes: 0,
+                voterIds: [],
+                ownerId: userId,
+                ownerName: username,
+                lastSeen: new Date().toISOString(),
+            } : null;
 
-                if (!session || session.status === 'finished') {
-                    // Create a new session if one doesn't exist and a plant is trying to join
-                    if (newContestant) {
-                        session = createNewSession(newContestant);
-                    }
-                } else if (session.status === 'waiting' && newContestant) {
-                    // Join an existing session if possible
-                    const alreadyExists = session.contestants.some(c => c.ownerId === userId);
-                    if (!alreadyExists && session.contestants.length < 4) {
-                        session.contestants.push(newContestant);
-                    } else if (alreadyExists) {
-                        // If player is rejoining, just update their lastSeen
-                        const index = session.contestants.findIndex(c => c.ownerId === userId);
-                        if (index !== -1) {
-                           session.contestants[index].lastSeen = new Date().toISOString();
-                        }
+            if (!session || session.status === 'finished') {
+                // Create a new session if one doesn't exist and a plant is trying to join
+                if (newContestant) {
+                    session = createNewSession(newContestant);
+                    sessionCreated = true;
+                }
+            } else if (session.status === 'waiting' && newContestant) {
+                // Join an existing session if possible
+                const alreadyExists = session.contestants.some(c => c.ownerId === userId);
+                if (!alreadyExists && session.contestants.length < 4) {
+                    session.contestants.push(newContestant);
+                } else if (alreadyExists) {
+                    // If player is rejoining, just update their lastSeen
+                    const index = session.contestants.findIndex(c => c.ownerId === userId);
+                    if (index !== -1) {
+                        session.contestants[index].lastSeen = new Date().toISOString();
                     }
                 }
-                
-                // If the lobby is now full, automatically start the voting
-                if (session && session.status === 'waiting' && session.contestants.length >= 2) {
-                    session.status = 'voting';
-                    const now = new Date();
-                    const expiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
-                    session.expiresAt = expiresAt.toISOString();
-                }
+            }
+            
+            // If the lobby is now full, automatically start the voting
+            if (session && session.status === 'waiting' && session.contestants.length >= 4) {
+                session.status = 'voting';
+                const now = new Date();
+                const expiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
+                session.expiresAt = expiresAt.toISOString();
             }
 
             // Step 3: Write changes to Firestore
             if (session) {
                 // Use transaction.set() which works for both creating and overwriting.
-                transaction.set(sessionRef, session);
+                if (sessionCreated || liveSessionDoc.exists()) {
+                     transaction.set(sessionRef, session);
+                }
             } else if (liveSessionDoc.exists()) {
                 // If we determined the session should be deleted (e.g. timeout with no players)
                 transaction.delete(sessionRef);
