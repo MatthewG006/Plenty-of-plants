@@ -68,7 +68,9 @@ export default function ContestLobbyClientPage() {
         setError(null);
         try {
             const { sessionId, error } = await createNewContest(user.uid, user.displayName, plant);
-            if (error) throw new Error(error);
+            if (error) {
+                throw new Error(error);
+            }
 
             if (sessionId) {
                 toast({ title: 'Contest Created!', description: 'Your new contest lobby is now open.' });
@@ -79,8 +81,8 @@ export default function ContestLobbyClientPage() {
 
         } catch (e: any) {
             console.error("Failed to start contest:", e);
-            setError(e.message || "Failed to start a contest.");
-            toast({ variant: 'destructive', title: 'Contest Error', description: e.message });
+            setError(e.message || "Failed to start a new contest.");
+            toast({ variant: 'destructive', title: 'Contest Creation Error', description: e.message });
         } finally {
             setIsCreating(false);
         }
@@ -170,5 +172,3 @@ export default function ContestLobbyClientPage() {
         </div>
     )
 }
-
-    
