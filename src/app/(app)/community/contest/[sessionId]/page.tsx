@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, ArrowLeft, Trophy, Users, Star, Crown, Sparkles, ShieldAlert, RefreshCw } from 'lucide-react';
 import Image from 'next/image';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import type { Plant, ContestSession, Contestant } from '@/interfaces/plant';
 import { cn } from '@/lib/utils';
@@ -14,14 +14,12 @@ import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { joinContest, voteForContestant, sendHeartbeat, processContestState } from '@/app/actions/contest-actions';
 import Link from 'next/link';
-import { doc, onSnapshot, Timestamp } from 'firebase/firestore';
+import { doc, onSnapshot, Timestamp, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import confetti from 'canvas-confetti';
 import { ContestPlantSelectionDialog } from '@/components/plant-dialogs';
 import { useParams, useRouter } from 'next/navigation';
 
-const WAITING_TIME = 30; // seconds
-const VOTING_TIME = 20; // seconds
 const HEARTBEAT_INTERVAL = 10000; // 10 seconds
 
 // Predefined positions for contestants in the lobby view.
@@ -48,7 +46,7 @@ function GlitterAnimation() {
     );
 }
 
-function ContestantCard({ contestant, onVote, hasVoted, isWinner }: { contestant: Contestant, onVote: (id: number) => void, hasVoted: boolean, isWinner: boolean }) {
+function ContestantCard({ contestant, onVote, hasVoted, isWinner }: { contestant: Contestant, onVote: (id: string) => void, hasVoted: boolean, isWinner: boolean }) {
     return (
         <Card className={cn(
             "text-center transition-all relative overflow-hidden",
@@ -91,12 +89,13 @@ export default function ContestPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [session, setSession] = useState<ContestSession | null>(null);
+    const [contestants, setContestants] = useState<Contestant[]>([]);
     const [showPlantSelection, setShowPlantSelection] = useState(false);
     const [isJoining, setIsJoining] = useState(false);
     const [timeRemaining, setTimeRemaining] = useState(0);
 
-    const hasEntered = user && session?.contestants.some(c => c.ownerId === user.uid);
-    const hasVoted = user && session?.contestants.some(c => c.voterIds?.includes(user.uid));
+    const hasEntered = user && contestants.some(c => c.ownerId === user.uid);
+    const hasVoted = user && contestants.some(c => c.voterIds?.includes(user.uid));
 
     // Heartbeat effect
     useEffect(() => {
@@ -155,16 +154,9 @@ export default function ContestPage() {
         }
         
         setIsLoading(true);
-        const unsub = onSnapshot(doc(db, "contestSessions", sessionId), (doc) => {
+        const unsubSession = onSnapshot(doc(db, "contestSessions", sessionId), (doc) => {
             if (doc.exists()) {
-                const sessionData = { id: doc.id, ...doc.data()} as ContestSession;
-                // Basic validation
-                if (sessionData.id && sessionData.status) {
-                    setSession(sessionData);
-                } else {
-                    setSession(null);
-                    setError("Invalid contest session data.");
-                }
+                setSession({ id: doc.id, ...doc.data()} as ContestSession);
             } else {
                 setSession(null);
                 setError("This contest lobby no longer exists.");
@@ -176,7 +168,16 @@ export default function ContestPage() {
             setIsLoading(false);
         });
 
-        return () => unsub();
+        const unsubContestants = onSnapshot(collection(db, "contestSessions", sessionId, "contestants"), (snapshot) => {
+            const contestantsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Contestant));
+            setContestants(contestantsData);
+        });
+
+
+        return () => {
+            unsubSession();
+            unsubContestants();
+        };
     }, [user, sessionId]);
 
     // This effect handles automatic navigation on error/timeout
@@ -212,11 +213,11 @@ export default function ContestPage() {
         }
     };
     
-    const handleVote = async (plantId: number) => {
+    const handleVote = async (contestantId: string) => {
         if (!user || !session || !sessionId) return;
         try {
             playSfx('tap');
-            await voteForContestant(sessionId, user.uid, plantId);
+            await voteForContestant(sessionId, user.uid, contestantId);
             toast({ title: "Vote Cast!", description: "Your vote has been counted." });
         } catch(e: any) {
             console.error(e);
@@ -269,7 +270,7 @@ export default function ContestPage() {
             <Card className="text-center p-4 bg-muted/50">
                 <h2 className="text-lg font-semibold text-primary">Round {session.round}</h2>
                 <p className="text-sm text-muted-foreground">
-                    {session.status === 'waiting' && `Waiting for players... (${session.contestants.length}/${playerPositions.length})`}
+                    {session.status === 'waiting' && `Waiting for players... (${session.contestantCount}/${playerPositions.length})`}
                     {session.status === 'voting' && 'Vote for your favorite!'}
                     {session.status === 'finished' && 'Contest Over!'}
                 </p>
@@ -293,7 +294,7 @@ export default function ContestPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="absolute inset-0">
-                             {session.contestants.map((c, index) => {
+                             {contestants.map((c, index) => {
                                 const position = playerPositions[index % playerPositions.length];
                                 return (
                                     <div key={c.id} className="absolute w-1/4" style={{ top: position.top, left: position.left }}>
@@ -309,7 +310,7 @@ export default function ContestPage() {
                              })}
                         </div>
                         <div className="absolute bottom-4 left-4 right-4">
-                            {!hasEntered && timeRemaining > 0 && session.contestants.length < playerPositions.length ? (
+                            {!hasEntered && timeRemaining > 0 && session.contestantCount < playerPositions.length ? (
                                 <Button className="w-full" onClick={() => setShowPlantSelection(true)}>
                                     <Trophy className="mr-2" />
                                     Enter Your Plant!
@@ -322,7 +323,7 @@ export default function ContestPage() {
 
             {session.status === 'voting' && (
                  <div className="grid grid-cols-2 gap-4">
-                    {session.contestants.map(c => (
+                    {contestants.map(c => (
                         <ContestantCard
                             key={c.id}
                             contestant={c}
