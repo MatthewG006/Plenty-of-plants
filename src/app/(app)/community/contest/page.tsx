@@ -123,6 +123,16 @@ export default function ContestPage() {
         return () => clearInterval(timer);
     }, [session]);
 
+    // This effect handles what happens when the waiting timer runs out.
+    useEffect(() => {
+        if (session?.status === 'waiting' && timeRemaining <= 0) {
+            // The timer has run out, but the lobby is still in a waiting state.
+            // This means not enough players joined. Refresh to re-evaluate state,
+            // which will trigger the server cleanup and show the 'No Contest' page.
+            window.location.reload();
+        }
+    }, [session?.status, timeRemaining]);
+
     useEffect(() => {
         if (session?.status === 'finished' && session.winner) {
             confetti({
@@ -381,4 +391,5 @@ export default function ContestPage() {
     )
 }
 
+    
     
