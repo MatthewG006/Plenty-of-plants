@@ -12,7 +12,7 @@ import type { Plant, ContestSession, Contestant } from '@/interfaces/plant';
 import { cn } from '@/lib/utils';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { joinAndGetContestState, voteForContestant, sendHeartbeat } from '@/app/actions/contest-actions';
+import { joinAndGetContestState, voteForContestant, sendHeartbeat, cleanupExpiredContest } from '@/app/actions/contest-actions';
 import Link from 'next/link';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -139,26 +139,29 @@ export default function ContestPage() {
         }
         
         setIsLoading(true);
-        const unsub = onSnapshot(doc(db, "contestSessions", "active"), (doc) => {
-            if (doc.exists()) {
-                const sessionData = doc.data() as ContestSession;
-                // Basic validation
-                if (sessionData.id && sessionData.status) {
-                    setSession(sessionData);
+        // First, try to clean up any old, expired lobbies.
+        cleanupExpiredContest().finally(() => {
+            // Then, subscribe to the active contest session.
+            const unsub = onSnapshot(doc(db, "contestSessions", "active"), (doc) => {
+                if (doc.exists()) {
+                    const sessionData = doc.data() as ContestSession;
+                    // Basic validation
+                    if (sessionData.id && sessionData.status) {
+                        setSession(sessionData);
+                    } else {
+                        setSession(null);
+                    }
                 } else {
                     setSession(null);
                 }
-            } else {
-                setSession(null);
-            }
-            setIsLoading(false);
-        }, (err) => {
-            console.error("Snapshot error:", err);
-            setError("Could not connect to the contest service.");
-            setIsLoading(false);
+                setIsLoading(false);
+            }, (err) => {
+                console.error("Snapshot error:", err);
+                setError("Could not connect to the contest service.");
+                setIsLoading(false);
+            });
+            return () => unsub();
         });
-
-        return () => unsub();
     }, [user]);
 
     const handleStartNewContest = () => {

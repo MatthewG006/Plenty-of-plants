@@ -100,6 +100,9 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                 }
             }
             // End of State Machine. `session` is now the single source of truth.
+            if (session === null && !plant) {
+                return null;
+            }
 
             // Step 2: Handle the current player's action, if they are trying to join.
             if (plant) {
@@ -221,5 +224,34 @@ export async function sendHeartbeat(userId: string) {
         if ((error as any).code !== 'not-found' && (error as any).code !== 'aborted') {
             console.warn("Failed to send heartbeat:", error);
         }
+    }
+}
+
+/**
+ * A dedicated, simple function to clean up a stale lobby.
+ * This is called by the client before attempting to join a new contest.
+ */
+export async function cleanupExpiredContest(): Promise<void> {
+    try {
+        const sessionRef = doc(db, 'contestSessions', CONTEST_SESSION_ID);
+        await runTransaction(db, async (transaction) => {
+            const liveSessionDoc = await transaction.get(sessionRef);
+            if (!liveSessionDoc.exists()) {
+                return; // No session to clean up
+            }
+
+            const session = liveSessionDoc.data() as ContestSession;
+            const now = new Date();
+            const expires = new Date(session.expiresAt);
+            
+            // Only clean up expired 'waiting' lobbies with too few players
+            if (session.status === 'waiting' && now > expires && session.contestants.length < 2) {
+                transaction.delete(sessionRef);
+            }
+        });
+    } catch (e: any) {
+        // This is a cleanup function, so we don't want to throw errors to the client
+        // if it fails. We can just log it.
+        console.warn("Contest cleanup transaction failed:", e.message);
     }
 }
