@@ -1,6 +1,7 @@
 
 
 
+import { Timestamp } from 'firebase/firestore';
 
 export interface Plant {
   id: number;
@@ -45,20 +46,15 @@ export interface Contestant extends Plant {
     voterIds: string[];
     ownerId: string; // The UID of the user who owns this plant.
     ownerName: string; // The display name of the user.
-    lastSeen: string; // ISO string
+    lastSeen: Timestamp;
 }
 
 export interface ContestSession {
     id: string;
     status: 'waiting' | 'voting' | 'finished';
-    createdAt: string; // ISO string
-    expiresAt: string; // ISO string
+    createdAt: Timestamp;
+    expiresAt: Timestamp;
     round: number;
     contestants: Contestant[];
     winner?: Contestant;
 }
-
-
-
-
-    

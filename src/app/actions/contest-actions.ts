@@ -16,8 +16,8 @@ function createNewSession(plant: Contestant): Omit<ContestSession, 'id'> {
     const expiresAt = new Date(now.getTime() + WAITING_TIME_SEC * 1000);
     return {
         status: 'waiting',
-        createdAt: now.toISOString(),
-        expiresAt: expiresAt.toISOString(),
+        createdAt: Timestamp.fromDate(now),
+        expiresAt: Timestamp.fromDate(expiresAt),
         round: 1,
         contestants: [plant],
     };
@@ -32,7 +32,7 @@ export async function createNewContest(userId: string, username: string, plant: 
             voterIds: [],
             ownerId: userId,
             ownerName: username,
-            lastSeen: new Date().toISOString(),
+            lastSeen: Timestamp.fromDate(new Date()),
         };
         const newSessionData = createNewSession(newContestant);
         const sessionRef = await addDoc(collection(db, 'contestSessions'), newSessionData);
@@ -72,7 +72,7 @@ export async function joinContest(sessionId: string, userId: string, username: s
                 voterIds: [],
                 ownerId: userId,
                 ownerName: username,
-                lastSeen: new Date().toISOString(),
+                lastSeen: Timestamp.fromDate(new Date()),
             };
             
             session.contestants.push(newContestant);
@@ -82,7 +82,7 @@ export async function joinContest(sessionId: string, userId: string, username: s
                 session.status = 'voting';
                 const now = new Date();
                 const expiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
-                session.expiresAt = expiresAt.toISOString();
+                session.expiresAt = Timestamp.fromDate(expiresAt);
             }
 
             transaction.set(sessionRef, session);
@@ -108,7 +108,7 @@ export async function processContestState(sessionId: string): Promise<void> {
             
             let session = liveSessionDoc.data() as ContestSession;
             const now = new Date();
-            const expires = new Date(session.expiresAt);
+            const expires = (session.expiresAt as Timestamp).toDate();
             
             if (now < expires) {
                 return; // Not expired yet, nothing to do.
@@ -120,7 +120,7 @@ export async function processContestState(sessionId: string): Promise<void> {
                 if (session.contestants.length >= 2) { 
                     session.status = 'voting';
                     const newExpiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
-                    session.expiresAt = newExpiresAt.toISOString();
+                    session.expiresAt = Timestamp.fromDate(newExpiresAt);
                 } else {
                     // Not enough players, the contest is a dud. Delete it.
                     transaction.delete(sessionRef);
@@ -152,7 +152,7 @@ export async function processContestState(sessionId: string): Promise<void> {
                     const nextRoundContestants = winners.length > 0 ? winners : session.contestants;
                     session.contestants = nextRoundContestants.map(c => ({...c, votes: 0, voterIds: [] }));
                     const newExpiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
-                    session.expiresAt = newExpiresAt.toISOString();
+                    session.expiresAt = Timestamp.fromDate(newExpiresAt);
                 }
             }
 
@@ -224,7 +224,7 @@ export async function sendHeartbeat(sessionId: string, userId: string) {
 
             const contestantIndex = sessionData.contestants.findIndex(c => c.ownerId === userId);
             if (contestantIndex !== -1) {
-                sessionData.contestants[contestantIndex].lastSeen = new Date().toISOString();
+                sessionData.contestants[contestantIndex].lastSeen = Timestamp.fromDate(new Date());
                 transaction.set(sessionRef, sessionData);
             }
         });
@@ -245,7 +245,7 @@ export async function cleanupExpiredContests(): Promise<void> {
         
         const q = query(
             collection(db, 'contestSessions'), 
-            where('expiresAt', '<', oneHourAgo.toISOString())
+            where('expiresAt', '<', Timestamp.fromDate(oneHourAgo))
         );
 
         const querySnapshot = await getDocs(q);
@@ -273,11 +273,9 @@ export async function getActiveContests(): Promise<ContestSession[]> {
         querySnapshot.forEach((doc) => {
             contests.push({ id: doc.id, ...doc.data() } as ContestSession);
         });
-        return contests.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        return contests.sort((a,b) => (b.createdAt as Timestamp).toMillis() - (a.createdAt as Timestamp).toMillis());
     } catch (e) {
         console.error("Error getting active contests", e);
         return [];
     }
 }
-
-    
