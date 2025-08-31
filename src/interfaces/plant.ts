@@ -1,6 +1,5 @@
 
 
-
 import { Timestamp } from 'firebase/firestore';
 
 export interface Plant {
@@ -42,6 +41,7 @@ export interface CommunityUser {
 // This is done so the contest document has a self-contained copy of all necessary data,
 // which prevents the need for extra database lookups.
 export interface Contestant extends Plant {
+    id: string; // The ownerId becomes the document ID in the subcollection.
     votes: number;
     voterIds: string[];
     ownerId: string; // The UID of the user who owns this plant.
@@ -55,6 +55,7 @@ export interface ContestSession {
     createdAt: Timestamp;
     expiresAt: Timestamp;
     round: number;
-    contestants: Contestant[];
+    contestantCount: number;
+    hostName: string;
     winner?: Contestant;
 }

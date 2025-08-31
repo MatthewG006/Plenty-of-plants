@@ -61,6 +61,7 @@ export default function ContestLobbyClientPage() {
     };
 
     const handleSelectPlant = async (plant: Plant) => {
+        setShowPlantSelection(false);
         if (!user || !user.displayName) return;
 
         setIsCreating(true);
@@ -133,9 +134,9 @@ export default function ContestLobbyClientPage() {
                                 return (
                                     <Card key={session.id} className="hover:border-primary/50 transition-colors">
                                         <CardHeader>
-                                            <CardTitle>{session.contestants[0]?.ownerName}'s Contest</CardTitle>
+                                            <CardTitle>{session.hostName}'s Contest</CardTitle>
                                             <CardDescription className="flex items-center gap-4 pt-1">
-                                                <span className="flex items-center gap-1.5"><Users className="w-4 h-4" /> {session.contestants.length} / 4 players</span>
+                                                <span className="flex items-center gap-1.5"><Users className="w-4 h-4" /> {session.contestantCount} / 4 players</span>
                                                 <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> Created {formatDistanceToNow(createdAtDate, { addSuffix: true })}</span>
                                             </CardDescription>
                                         </CardHeader>
