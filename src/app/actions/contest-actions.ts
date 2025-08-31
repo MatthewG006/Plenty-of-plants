@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { doc, runTransaction, getDoc, writeBatch, updateDoc, deleteDoc, collection, addDoc, getDocs, query, where, Timestamp, orderBy, limit, documentId } from 'firebase/firestore';
+import { doc, runTransaction, getDoc, writeBatch, updateDoc, deleteDoc, collection, addDoc, getDocs, query, where, Timestamp, orderBy, limit, documentId, setDoc, increment, arrayUnion } from 'firebase/firestore';
 import type { Plant, ContestSession, Contestant } from '@/interfaces/plant';
 import { awardContestPrize, getUserGameData } from '@/lib/firestore';
 
@@ -22,11 +22,10 @@ function createNewSession(hostName: string): Omit<ContestSession, 'id' | 'contes
         createdAt: Timestamp.fromDate(now),
         expiresAt: Timestamp.fromDate(expiresAt),
         round: 1,
-        contestantCount: 1,
+        contestantCount: 0, // Starts with 0, will be incremented
         hostName: hostName,
     };
 }
-
 
 export async function createNewContest(userId: string, username: string, plantId: number): Promise<{ sessionId?: string, error?: string }> {
     try {
@@ -53,20 +52,31 @@ export async function createNewContest(userId: string, username: string, plantId
             throw new Error("The selected plant could not be found in your collection.");
         }
 
-        const newContestant: Omit<Contestant, 'id'> = {
-            ...plant,
-            votes: 0,
-            voterIds: [],
-            ownerId: userId,
-            ownerName: username,
-            lastSeen: Timestamp.fromDate(new Date()),
-        };
-        
+        // Create the session document first
         const newSessionData = createNewSession(username);
         const sessionRef = await addDoc(collection(db, 'contestSessions'), newSessionData);
         
-        // Add the host as the first contestant in the subcollection
-        await setDoc(doc(getContestantsRef(sessionRef.id), userId), newContestant);
+        // Now, create the contestant in a transaction to add them and update the count
+        await runTransaction(db, async (transaction) => {
+            const liveSessionDoc = await transaction.get(sessionRef);
+            if (!liveSessionDoc.exists()) {
+                throw new Error("Contest session disappeared before user could be added.");
+            }
+
+            const newContestant: Contestant = {
+                ...plant,
+                id: userId,
+                votes: 0,
+                voterIds: [],
+                ownerId: userId,
+                ownerName: username,
+                lastSeen: Timestamp.fromDate(new Date()),
+            };
+
+            const contestantRef = doc(getContestantsRef(sessionRef.id), userId);
+            transaction.set(contestantRef, newContestant);
+            transaction.update(sessionRef, { contestantCount: increment(1) });
+        });
 
         return { sessionId: sessionRef.id };
     } catch (e: any) {
@@ -74,7 +84,6 @@ export async function createNewContest(userId: string, username: string, plantId
         return { error: e.message || "An unknown error occurred while creating the contest." };
     }
 }
-
 
 export async function joinContest(sessionId: string, userId: string, username: string, plant: Plant): Promise<{ success: boolean, error?: string }> {
      try {
@@ -196,8 +205,13 @@ export async function processContestState(sessionId: string): Promise<void> {
                 }
             } else if (session.status === 'voting') {
                 const contestantsRef = getContestantsRef(sessionId);
-                const contestantsSnap = await getDocs(contestantsRef);
+                const contestantsSnap = await getDocs(query(contestantsRef));
                 const contestants = contestantsSnap.docs.map(d => ({id: d.id, ...d.data()}) as Contestant);
+
+                if (contestants.length === 0) {
+                    transaction.delete(sessionRef); // No contestants left, delete session
+                    return;
+                }
 
                 let maxVotes = -1;
                 let winners: Contestant[] = [];
@@ -217,20 +231,33 @@ export async function processContestState(sessionId: string): Promise<void> {
                         await awardContestPrize(session.winner.ownerId);
                     }
                 } else { // Tie or no votes, start a new round
-                    const nextRoundContestants = (winners.length > 0 && winners.length < contestants.length) ? winners : contestants;
-                    
                     const batch = writeBatch(db);
-                    // Reset votes for the next round
-                    nextRoundContestants.forEach(c => {
+                    // If it's a true tie (e.g. 1 vs 1), all contestants go to next round.
+                    // If some players got 0 votes and some are tied, only tied players advance.
+                    const tiedPlayers = (winners.length > 0 && winners.length < contestants.length) ? winners : contestants;
+
+                    const allContestantIds = new Set(contestants.map(c => c.id));
+                    const tiedPlayerIds = new Set(tiedPlayers.map(c => c.id));
+
+                    // Remove non-tied players from the subcollection
+                    for (const id of allContestantIds) {
+                        if (!tiedPlayerIds.has(id)) {
+                             batch.delete(doc(contestantsRef, id));
+                        }
+                    }
+
+                    // Reset votes for the players who are advancing
+                    tiedPlayers.forEach(c => {
                         batch.update(doc(contestantsRef, c.id), { votes: 0, voterIds: [] });
                     });
+                    
                     await batch.commit();
 
                     transaction.update(sessionRef, {
                         status: 'voting',
                         round: session.round + 1,
                         expiresAt: Timestamp.fromDate(new Date(now.getTime() + VOTE_TIME_SEC * 1000)),
-                        contestantCount: nextRoundContestants.length,
+                        contestantCount: tiedPlayers.length,
                     });
                 }
             }
@@ -263,8 +290,10 @@ export async function voteForContestant(sessionId: string, voterId: string, vote
                 throw new Error("You cannot vote for your own plant.");
             }
             
-            const allContestantsQuery = await getDocs(getContestantsRef(sessionId));
-            for(const doc of allContestantsQuery.docs) {
+            // Check if user has already voted for anyone in this round
+            const allContestantsQuery = query(getContestantsRef(sessionId));
+            const allContestantsSnap = await getDocs(allContestantsQuery);
+            for(const doc of allContestantsSnap.docs) {
                 const c = doc.data() as Contestant;
                 if(c.voterIds?.includes(voterId)) {
                     throw new Error("You have already voted in this round.");
@@ -347,3 +376,5 @@ export async function getActiveContests(): Promise<ContestSession[]> {
         return [];
     }
 }
+
+    

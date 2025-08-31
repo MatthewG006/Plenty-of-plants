@@ -61,9 +61,7 @@ export default function ContestLobbyClientPage() {
     };
 
     const handleSelectPlant = async (plant: Plant) => {
-        setShowPlantSelection(false);
         if (!user || !user.displayName) return;
-
         setIsCreating(true);
         setError(null);
         try {
@@ -174,3 +172,5 @@ export default function ContestLobbyClientPage() {
         </div>
     )
 }
+
+    
