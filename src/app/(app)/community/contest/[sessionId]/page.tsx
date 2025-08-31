@@ -115,18 +115,25 @@ export default function ContestPage() {
     useEffect(() => {
         if (!session || session.status === 'finished') return;
 
-        const endTime = new Date(session.expiresAt).getTime();
+        let timer: NodeJS.Timeout;
+
         const updateTimer = () => {
+            const endTime = new Date(session.expiresAt).getTime();
             const remaining = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
             setTimeRemaining(remaining);
+
             if (remaining <= 0) {
-                 processContestState(sessionId);
+                processContestState(sessionId);
+                clearInterval(timer);
             }
         };
-        updateTimer();
-        const timer = setInterval(updateTimer, 1000);
+
+        updateTimer(); // Initial call
+        timer = setInterval(updateTimer, 1000); // Subsequent calls every second
+
         return () => clearInterval(timer);
     }, [session, sessionId]);
+
 
     useEffect(() => {
         if (session?.status === 'finished' && session.winner) {
