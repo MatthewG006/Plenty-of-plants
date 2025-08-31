@@ -300,6 +300,16 @@ export default function ContestPage() {
                 <div className="text-3xl font-bold text-primary mt-1">{timeRemaining}s</div>
             </Card>
 
+            {session.status === 'waiting' && timeRemaining <= 0 && (
+                <div className="text-center">
+                    <p className="text-sm text-muted-foreground mb-2">The lobby timer has expired.</p>
+                    <Button onClick={() => window.location.reload()}>
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Refresh Status
+                    </Button>
+                </div>
+            )}
+
             {session.status === 'waiting' && (
                 <Card className="relative min-h-[400px]">
                     <CardHeader>
@@ -323,15 +333,7 @@ export default function ContestPage() {
                              })}
                         </div>
                         <div className="absolute bottom-4 left-4 right-4">
-                            {timeRemaining <= 0 ? (
-                                <div className="text-center">
-                                    <p className="text-sm text-muted-foreground mb-2">The lobby timer has expired.</p>
-                                    <Button onClick={() => window.location.reload()}>
-                                        <RefreshCw className="mr-2 h-4 w-4" />
-                                        Refresh Status
-                                    </Button>
-                                </div>
-                            ) : !hasEntered && session.contestants.length < playerPositions.length ? (
+                            {!hasEntered && timeRemaining > 0 && session.contestants.length < playerPositions.length ? (
                                 <Button className="w-full" onClick={() => setShowPlantSelection(true)}>
                                     <Trophy className="mr-2" />
                                     Enter Your Plant!
@@ -391,3 +393,4 @@ export default function ContestPage() {
 
     
     
+
