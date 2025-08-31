@@ -375,5 +375,3 @@ export async function getActiveContests(): Promise<ContestSession[]> {
         return [];
     }
 }
-
-    

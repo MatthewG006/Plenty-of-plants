@@ -62,6 +62,7 @@ export default function ContestLobbyClientPage() {
 
     const handleSelectPlant = async (plant: Plant) => {
         if (!user || !user.displayName) return;
+        setShowPlantSelection(false);
         setIsCreating(true);
         setError(null);
         try {
@@ -85,7 +86,6 @@ export default function ContestLobbyClientPage() {
             toast({ variant: 'destructive', title: 'Contest Creation Error', description: e.message });
         } finally {
             setIsCreating(false);
-            setShowPlantSelection(false);
         }
     };
     
@@ -173,5 +173,3 @@ export default function ContestLobbyClientPage() {
         </div>
     )
 }
-
-    
