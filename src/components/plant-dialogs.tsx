@@ -290,6 +290,12 @@ export function PlantSwapDialog({ open, onOpenChange, collectionPlants, onSelect
 }
 
 export function ContestPlantSelectionDialog({ open, onOpenChange, allPlants, onSelectPlant }: { open: boolean, onOpenChange: (open: boolean) => void, allPlants: Plant[], onSelectPlant: (plant: Plant) => void }) {
+    
+    const handleSelect = (plant: Plant) => {
+        onSelectPlant(plant);
+        onOpenChange(false);
+    };
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-md">
@@ -305,7 +311,7 @@ export function ContestPlantSelectionDialog({ open, onOpenChange, allPlants, onS
                                 <Card 
                                     key={plant.id}
                                     className="cursor-pointer hover:scale-105 transition-transform" 
-                                    onClick={() => onSelectPlant(plant)}
+                                    onClick={() => handleSelect(plant)}
                                 >
                                     <CardContent className="p-0">
                                         <div className="aspect-square relative flex items-center justify-center bg-muted/30">
@@ -517,3 +523,5 @@ export function PlantDetailDialog({ plant, open, onOpenChange, onStartEvolution,
         </Dialog>
     )
 }
+
+    
