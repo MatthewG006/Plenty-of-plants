@@ -28,6 +28,7 @@ export async function createNewContest(userId: string, username: string, plant: 
     try {
         const newContestant: Contestant = {
             ...plant,
+            id: plant.id, // Ensure the plant's own ID is preserved
             votes: 0,
             voterIds: [],
             ownerId: userId,
@@ -78,7 +79,7 @@ export async function joinContest(sessionId: string, userId: string, username: s
             session.contestants.push(newContestant);
 
             // If the lobby just became full, automatically start the voting.
-            if (session.contestants.length === 4) {
+            if (session.contestants.length >= 4) {
                 session.status = 'voting';
                 const now = new Date();
                 const expiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
