@@ -29,18 +29,35 @@ const HEARTBEAT_TIMEOUT_SECONDS = 30;
 export async function cleanupExpiredContests() {
     const now = Timestamp.now();
     const contestRef = collection(db, "contestSessions");
-    
-    // Get all sessions that are past their expiration time but are still in 'waiting' or 'voting'.
-    const q = query(
-        contestRef, 
-        where("status", "in", ["waiting", "voting"]), 
+
+    // Firestore requires separate queries for 'in' and inequality filters.
+    // We'll run two simple queries and merge the results.
+    const waitingQuery = query(
+        contestRef,
+        where("status", "==", "waiting"),
+        where("expiresAt", "<=", now)
+    );
+    const votingQuery = query(
+        contestRef,
+        where("status", "==", "voting"),
         where("expiresAt", "<=", now)
     );
 
-    const expiredSessions = await getDocs(q);
+    try {
+        const [expiredWaitingSnapshot, expiredVotingSnapshot] = await Promise.all([
+            getDocs(waitingQuery),
+            getDocs(votingQuery)
+        ]);
 
-    for (const doc of expiredSessions.docs) {
-       await processContestState(doc.id);
+        const expiredSessions = [...expiredWaitingSnapshot.docs, ...expiredVotingSnapshot.docs];
+
+        for (const doc of expiredSessions) {
+            await processContestState(doc.id);
+        }
+    } catch (e: any) {
+        console.error("Error during contest cleanup:", e);
+        // If indexing is the issue, this helps identify it without crashing the whole flow.
+        // It's better to fail cleanup silently than to block the entire lobby page.
     }
 }
 
