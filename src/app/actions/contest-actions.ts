@@ -31,46 +31,41 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
         const sessionRef = doc(db, 'contestSessions', CONTEST_SESSION_ID);
 
         const finalSession = await runTransaction(db, async (transaction) => {
-            let liveSessionDoc = await transaction.get(sessionRef);
+            const liveSessionDoc = await transaction.get(sessionRef);
             let session: ContestSession | null = liveSessionDoc.exists() ? liveSessionDoc.data() as ContestSession : null;
-            let sessionCreated = false;
 
-            // Step 1: Player Timeout and Expiry Cleanup
+            // Step 1: Cleanup any existing session (timeouts, state transitions)
             if (session) {
                 const now = new Date();
                 const expires = new Date(session.expiresAt);
 
+                // 1a: Handle player timeouts in waiting lobby
                 if (session.status === 'waiting') {
-                    // Check for inactive players
                     const activeContestants = session.contestants.filter(c => {
-                        if (!c.lastSeen) return true;
+                        if (!c.lastSeen) return true; // Keep if never seen (just joined)
                         const lastSeen = new Date(c.lastSeen);
                         return (now.getTime() - lastSeen.getTime()) < (PLAYER_TIMEOUT_SEC * 1000);
                     });
                     
                     if (session.contestants.length > 0 && activeContestants.length === 0) {
-                        // All players timed out, delete session
+                        // All players timed out, delete session.
                         transaction.delete(sessionRef);
-                        session = null;
-                        liveSessionDoc = await transaction.get(sessionRef); // re-read after delete
-                    } else if (session) {
-                        session.contestants = activeContestants;
+                        return null; // Exit transaction early
                     }
+                    session.contestants = activeContestants;
                 }
                 
-                // Check for expired session, only if the session wasn't just deleted
-                if (session && now > expires) {
+                // 1b: Handle session state transition if expired
+                if (now > expires) {
                      if (session.status === 'waiting') {
-                        if (session.contestants.length === 4) {
-                            // Full lobby, start voting
+                        if (session.contestants.length >= 2) { // Minimum 2 players to start
                             session.status = 'voting';
                             const newExpiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
                             session.expiresAt = newExpiresAt.toISOString();
                         } else {
                             // Not enough players, so delete the session.
                             transaction.delete(sessionRef);
-                            session = null;
-                            liveSessionDoc = await transaction.get(sessionRef); // re-read after delete
+                            return null; // Exit transaction early
                         }
                     } else if (session.status === 'voting') {
                         let maxVotes = -1;
@@ -86,7 +81,7 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
 
                         if (winners.length <= 1) { 
                             session.status = 'finished';
-                            session.winner = winners[0]; 
+                            session.winner = winners.length > 0 ? winners[0] : undefined;
                             if (session.winner) {
                                 await awardContestPrize(session.winner.ownerId);
                             }
@@ -100,9 +95,9 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                     }
                 }
             }
-            // End cleanup
+            // End cleanup step. If session was deleted, we would have returned null already.
 
-            // Step 2: Handle the player's action (joining or creating)
+            // Step 2: Handle the current player's action
             const newContestant: Contestant | null = plant ? {
                 ...plant,
                 votes: 0,
@@ -116,7 +111,6 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                 // Create a new session if one doesn't exist and a plant is trying to join
                 if (newContestant) {
                     session = createNewSession(newContestant);
-                    sessionCreated = true;
                 }
             } else if (session.status === 'waiting' && newContestant) {
                 // Join an existing session if possible
@@ -133,25 +127,18 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
             }
             
             // If the lobby is now full, automatically start the voting
-            if (session && session.status === 'waiting' && session.contestants.length >= 4) {
+            if (session && session.status === 'waiting' && session.contestants.length === 4) {
                 session.status = 'voting';
                 const now = new Date();
                 const expiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
                 session.expiresAt = expiresAt.toISOString();
             }
 
-            // Step 3: Write changes to Firestore
+            // Step 3: Write final session state to Firestore
             if (session) {
-                // Use transaction.set() which works for both creating and overwriting.
-                if (sessionCreated || liveSessionDoc.exists()) {
-                     transaction.set(sessionRef, session);
-                }
-            } else if (liveSessionDoc.exists()) {
-                // This is a final check. If we ended up with a null session but the doc still exists, delete it.
-                // This can happen if the session was determined to be invalid (e.g. timed out).
-                transaction.delete(sessionRef);
+                transaction.set(sessionRef, session);
             }
-
+            
             return session;
         });
 
