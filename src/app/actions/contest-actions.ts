@@ -59,7 +59,7 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                 // Check for expired session, only if the session wasn't just deleted
                 if (session && now > expires) {
                      if (session.status === 'waiting') {
-                        if (session.contestants.length >= 2) {
+                        if (session.contestants.length >= 4) {
                             session.status = 'voting';
                             const newExpiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
                             session.expiresAt = newExpiresAt.toISOString();
@@ -231,3 +231,4 @@ export async function sendHeartbeat(userId: string) {
         }
     }
 }
+
