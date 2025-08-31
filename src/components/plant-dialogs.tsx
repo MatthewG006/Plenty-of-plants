@@ -302,26 +302,25 @@ export function ContestPlantSelectionDialog({ open, onOpenChange, allPlants, onS
                     <div className="p-4 grid grid-cols-3 gap-4">
                         {allPlants.length > 0 ? (
                             allPlants.map(plant => (
-                                <DialogClose key={plant.id} asChild>
-                                    <Card 
-                                        className="cursor-pointer hover:scale-105 transition-transform" 
-                                        onClick={() => onSelectPlant(plant)}
-                                    >
-                                        <CardContent className="p-0">
-                                            <div className="aspect-square relative flex items-center justify-center bg-muted/30">
-                                                {plant.image !== 'placeholder' ? (
-                                                    <Image src={plant.image} alt={plant.name} fill sizes="100px" className="object-cover" data-ai-hint={plant.hint} />
-                                                ) : (
-                                                    <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
-                                                )}
-                                            </div>
-                                            <div className="p-2 text-center bg-white/50">
-                                                <p className="text-xs font-semibold text-primary truncate">{plant.name}</p>
-                                                <p className="text-[10px] text-muted-foreground">Lvl {plant.level}</p>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </DialogClose>
+                                <Card 
+                                    key={plant.id}
+                                    className="cursor-pointer hover:scale-105 transition-transform" 
+                                    onClick={() => onSelectPlant(plant)}
+                                >
+                                    <CardContent className="p-0">
+                                        <div className="aspect-square relative flex items-center justify-center bg-muted/30">
+                                            {plant.image !== 'placeholder' ? (
+                                                <Image src={plant.image} alt={plant.name} fill sizes="100px" className="object-cover" data-ai-hint={plant.hint} />
+                                            ) : (
+                                                <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
+                                            )}
+                                        </div>
+                                        <div className="p-2 text-center bg-white/50">
+                                            <p className="text-xs font-semibold text-primary truncate">{plant.name}</p>
+                                            <p className="text-[10px] text-muted-foreground">Lvl {plant.level}</p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
                             ))
                         ) : (
                             <p className="col-span-3 text-center text-muted-foreground">You have no plants to enter.</p>
