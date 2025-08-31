@@ -4,7 +4,7 @@
 import { db } from '@/lib/firebase';
 import { doc, runTransaction, getDoc, writeBatch, updateDoc, deleteDoc, collection, addDoc, getDocs, query, where, Timestamp } from 'firebase/firestore';
 import type { Plant, ContestSession, Contestant } from '@/interfaces/plant';
-import { awardContestPrize } from '@/lib/firestore';
+import { awardContestPrize, getUserGameData } from '@/lib/firestore';
 
 const WAITING_TIME_SEC = 30;
 const VOTE_TIME_SEC = 20;
@@ -24,17 +24,46 @@ function createNewSession(plant: Contestant): Omit<ContestSession, 'id'> {
 }
 
 
-export async function createNewContest(userId: string, username: string, plant: Plant): Promise<{ sessionId?: string, error?: string }> {
+export async function createNewContest(userId: string, username: string, plantId: number): Promise<{ sessionId?: string, error?: string }> {
     try {
+        // Fetch the user's game data to get the full plant object
+        const gameData = await getUserGameData(userId);
+        if (!gameData || !gameData.plants) {
+            throw new Error("Could not find user's plant data.");
+        }
+        
+        const plant = gameData.plants[plantId];
+        if (!plant) {
+            throw new Error("The selected plant could not be found in your collection.");
+        }
+
+        // Manually construct a clean Contestant object on the server
         const newContestant: Contestant = {
-            ...plant,
-            id: plant.id, // Ensure the ID is explicitly set
+            id: plant.id,
+            name: plant.name,
+            form: plant.form,
+            image: plant.image,
+            baseImage: plant.baseImage,
+            uncompressedImage: plant.uncompressedImage,
+            hint: plant.hint,
+            description: plant.description,
+            level: plant.level,
+            xp: plant.xp,
+            lastWatered: plant.lastWatered,
+            hasGlitter: plant.hasGlitter,
+            hasSheen: plant.hasSheen,
+            hasRainbowGlitter: plant.hasRainbowGlitter,
+            hasRedGlitter: plant.hasRedGlitter,
+            personality: plant.personality,
+            chatEnabled: plant.chatEnabled,
+            conversationHistory: plant.conversationHistory,
             votes: 0,
             voterIds: [],
             ownerId: userId,
             ownerName: username,
             lastSeen: Timestamp.fromDate(new Date()),
         };
+        
         const newSessionData = createNewSession(newContestant);
         const sessionRef = await addDoc(collection(db, 'contestSessions'), newSessionData);
         return { sessionId: sessionRef.id };

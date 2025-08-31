@@ -67,7 +67,8 @@ export default function ContestLobbyClientPage() {
         setIsCreating(true);
         setError(null);
         try {
-            const { sessionId, error } = await createNewContest(user.uid, user.displayName, plant);
+            // Pass only the plant's ID, not the whole object
+            const { sessionId, error } = await createNewContest(user.uid, user.displayName, plant.id);
             if (error) {
                 throw new Error(error);
             }
