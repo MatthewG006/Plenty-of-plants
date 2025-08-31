@@ -110,20 +110,13 @@ export async function processContestState(sessionId: string): Promise<void> {
             const now = new Date();
             const expires = new Date(session.expiresAt);
 
-            // 1a: Handle player timeouts in waiting lobby. This is a soft cleanup.
+            // 1a: Handle player timeouts in waiting lobby.
             if (session.status === 'waiting') {
-                const activeContestants = session.contestants.filter(c => {
-                    if (!c.lastSeen) return true; // Keep if never seen (just joined)
+                session.contestants = session.contestants.filter(c => {
+                    if (!c.lastSeen) return true; 
                     const lastSeen = new Date(c.lastSeen);
                     return (now.getTime() - lastSeen.getTime()) < (PLAYER_TIMEOUT_SEC * 1000);
                 });
-                
-                // If all players timed out, the lobby is dead. Delete it.
-                if (session.contestants.length > 0 && activeContestants.length === 0 && now > expires) {
-                     transaction.delete(sessionRef);
-                     return; // The session is gone, exit immediately.
-                }
-                session.contestants = activeContestants;
             }
             
             // 1b: Handle session state transition if expired
@@ -293,5 +286,3 @@ export async function getActiveContests(): Promise<ContestSession[]> {
         return [];
     }
 }
-
-    
