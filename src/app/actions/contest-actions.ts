@@ -26,20 +26,6 @@ function createNewSession(plant: Contestant): Omit<ContestSession, 'id'> {
 
 export async function createNewContest(userId: string, username: string, plant: Plant): Promise<{ sessionId?: string, error?: string }> {
     try {
-        const existingSessionsSnapshot = await getDocs(query(collection(db, 'contestSessions')));
-        let userIsInContest = false;
-        existingSessionsSnapshot.forEach(doc => {
-            const session = doc.data() as ContestSession;
-            if (session.contestants.some(c => c.ownerId === userId)) {
-                userIsInContest = true;
-            }
-        });
-
-        if (userIsInContest) {
-            throw new Error("You are already in an active contest and cannot create a new one.");
-        }
-
-
         const newContestant: Contestant = {
             ...plant,
             id: plant.id,
@@ -312,3 +298,5 @@ export async function getActiveContests(): Promise<ContestSession[]> {
         return [];
     }
 }
+
+    
