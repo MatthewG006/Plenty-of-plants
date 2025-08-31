@@ -97,9 +97,12 @@ export async function createNewContest(userId: string, hostName: string, plantId
                 hostName: hostName,
             };
 
+            // Destructure the plant to exclude its numeric id before spreading
+            const { id: plantNumericId, ...plantData } = plant;
+
             const newContestant: Contestant = {
-                ...plant,
-                id: newContestantRef.id,
+                ...plantData,
+                id: newContestantRef.id, // This is the STRING document ID
                 ownerId: userId,
                 ownerName: hostName,
                 votes: 0,
@@ -136,9 +139,17 @@ export async function joinContest(sessionId: string, userId: string, displayName
                  throw new Error("This contest lobby is full.");
             }
 
+            const contestantsQuery = query(collection(sessionRef, "contestants"), where("ownerId", "==", userId));
+            const existingContestantSnapshot = await transaction.get(contestantsQuery);
+
+            if (!existingContestantSnapshot.empty) {
+                throw new Error("You have already entered this contest.");
+            }
+
             const newContestantRef = doc(collection(sessionRef, "contestants"));
+            const { id: plantNumericId, ...plantData } = plant;
             const newContestant: Contestant = {
-                ...plant,
+                ...plantData,
                 id: newContestantRef.id,
                 ownerId: userId,
                 ownerName: displayName,
@@ -169,22 +180,28 @@ export async function voteForContestant(sessionId: string, voterId: string, cont
             if (!sessionDoc.exists() || sessionDoc.data().status !== 'voting') {
                 throw new Error("Voting for this contest has ended.");
             }
+            
+            const contestantsCollectionRef = collection(sessionRef, "contestants");
+            const contestantsSnapshot = await transaction.get(query(contestantsCollectionRef));
+            const allContestants = contestantsSnapshot.docs.map(d => d.data() as Contestant);
+            
+            const alreadyVoted = allContestants.some(c => c.voterIds?.includes(voterId));
+            if (alreadyVoted) {
+                 throw new Error("You have already voted in this round.");
+            }
 
             const contestantDoc = await transaction.get(contestantRef);
             if (!contestantDoc.exists()) {
                 throw new Error("This contestant is no longer in the running.");
             }
             const contestantData = contestantDoc.data() as Contestant;
-            if (contestantData.voterIds.includes(voterId)) {
-                throw new Error("You have already voted in this round.");
-            }
-             if (contestantData.ownerId === voterId) {
+            if (contestantData.ownerId === voterId) {
                 throw new Error("You cannot vote for your own plant.");
             }
 
             transaction.update(contestantRef, {
                 votes: increment(1),
-                voterIds: [...contestantData.voterIds, voterId]
+                voterIds: arrayUnion(voterId)
             });
         });
         
@@ -228,7 +245,7 @@ export async function processContestState(sessionId: string): Promise<void> {
 
             const contestantsRef = collection(sessionRef, "contestants");
             const contestantsSnapshot = await getDocs(query(contestantsRef));
-            const contestants = contestantsSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as Contestant));
+            const contestants = contestantsSnapshot.docs.map(d => ({ ...d.data(), id: d.id } as Contestant));
 
             if (session.status === 'waiting') {
                 // --- Logic for transitioning from WAITING to VOTING ---
@@ -309,3 +326,5 @@ export async function processContestState(sessionId: string): Promise<void> {
         await updateDoc(sessionRef, { status: 'finished' });
     }
 }
+
+    
