@@ -14,7 +14,7 @@ import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { joinContest, voteForContestant, sendHeartbeat, processContestState } from '@/app/actions/contest-actions';
 import Link from 'next/link';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import confetti from 'canvas-confetti';
 import { ContestPlantSelectionDialog } from '@/components/plant-dialogs';
@@ -118,13 +118,15 @@ export default function ContestPage() {
         let timer: NodeJS.Timeout;
 
         const updateTimer = () => {
-            const endTime = new Date(session.expiresAt).getTime();
-            const remaining = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
-            setTimeRemaining(remaining);
-
-            if (remaining <= 0) {
-                processContestState(sessionId);
-                clearInterval(timer);
+            if (session.expiresAt) {
+                const endTime = (session.expiresAt as Timestamp).toDate().getTime();
+                const remaining = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
+                setTimeRemaining(remaining);
+    
+                if (remaining <= 0) {
+                    processContestState(sessionId);
+                    clearInterval(timer);
+                }
             }
         };
 
@@ -364,5 +366,3 @@ export default function ContestPage() {
         </div>
     )
 }
-
-    

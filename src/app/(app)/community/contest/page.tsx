@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { ContestPlantSelectionDialog } from '@/components/plant-dialogs';
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
+import { Timestamp } from 'firebase/firestore';
 
 export default function ContestLobbyPage() {
     const { user, gameData } = useAuth();
@@ -120,25 +121,28 @@ export default function ContestLobbyPage() {
                     
                     <div className="space-y-4">
                         {sessions.length > 0 ? (
-                            sessions.map(session => (
-                                <Card key={session.id} className="hover:border-primary/50 transition-colors">
-                                    <CardHeader>
-                                        <CardTitle>{session.contestants[0]?.ownerName}'s Contest</CardTitle>
-                                        <CardDescription className="flex items-center gap-4 pt-1">
-                                            <span className="flex items-center gap-1.5"><Users className="w-4 h-4" /> {session.contestants.length} / 4 players</span>
-                                            <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> Created {formatDistanceToNow(new Date(session.createdAt), { addSuffix: true })}</span>
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <Button asChild className="w-full">
-                                            <Link href={`/community/contest/${session.id}`}>
-                                                <Trophy className="mr-2" />
-                                                Join Lobby
-                                            </Link>
-                                        </Button>
-                                    </CardContent>
-                                </Card>
-                            ))
+                            sessions.map(session => {
+                                const createdAtDate = (session.createdAt as unknown as Timestamp)?.toDate ? (session.createdAt as unknown as Timestamp).toDate() : new Date();
+                                return (
+                                    <Card key={session.id} className="hover:border-primary/50 transition-colors">
+                                        <CardHeader>
+                                            <CardTitle>{session.contestants[0]?.ownerName}'s Contest</CardTitle>
+                                            <CardDescription className="flex items-center gap-4 pt-1">
+                                                <span className="flex items-center gap-1.5"><Users className="w-4 h-4" /> {session.contestants.length} / 4 players</span>
+                                                <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> Created {formatDistanceToNow(createdAtDate, { addSuffix: true })}</span>
+                                            </CardDescription>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <Button asChild className="w-full">
+                                                <Link href={`/community/contest/${session.id}`}>
+                                                    <Trophy className="mr-2" />
+                                                    Join Lobby
+                                                </Link>
+                                            </Button>
+                                        </CardContent>
+                                    </Card>
+                                )
+                            })
                         ) : (
                              <Card className="text-center py-10">
                                 <CardHeader>
@@ -162,5 +166,3 @@ export default function ContestLobbyPage() {
         </div>
     )
 }
-
-    
