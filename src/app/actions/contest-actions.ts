@@ -66,7 +66,7 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                         } else {
                             // Not enough players, the contest is a dud. Delete it.
                             transaction.delete(sessionRef);
-                            session = null; 
+                            return null; 
                         }
                     } else if (session.status === 'voting') {
                         // Voting has ended. Determine winner or handle tie.
