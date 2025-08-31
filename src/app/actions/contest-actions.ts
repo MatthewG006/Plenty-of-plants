@@ -26,9 +26,29 @@ function createNewSession(plant: Contestant): Omit<ContestSession, 'id'> {
 
 export async function createNewContest(userId: string, username: string, plant: Plant): Promise<{ sessionId?: string, error?: string }> {
     try {
+        // **Critical Check**: Ensure the user is not already in an active contest.
+        const activeContestsQuery = query(
+            collection(db, 'contestSessions'),
+            where('contestants', 'array-contains', { ownerId: userId }) // This is a limitation, Firestore can't query inside array of objects this way. We have to fetch and check manually.
+        );
+        
+        const existingSessionsSnapshot = await getDocs(query(collection(db, 'contestSessions')));
+        let userIsInContest = false;
+        existingSessionsSnapshot.forEach(doc => {
+            const session = doc.data() as ContestSession;
+            if (session.contestants.some(c => c.ownerId === userId)) {
+                userIsInContest = true;
+            }
+        });
+
+        if (userIsInContest) {
+            throw new Error("You are already in an active contest and cannot create a new one.");
+        }
+
+
         const newContestant: Contestant = {
             ...plant,
-            id: plant.id, // Ensure the plant's own ID is preserved
+            id: plant.id,
             votes: 0,
             voterIds: [],
             ownerId: userId,
