@@ -34,12 +34,12 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
             const liveSessionDoc = await transaction.get(sessionRef);
             let session: ContestSession | null = liveSessionDoc.exists() ? liveSessionDoc.data() as ContestSession : null;
 
-            // Step 1: Cleanup any existing session (timeouts, state transitions)
+            // Step 1: Session state machine. Process current state before anything else.
             if (session) {
                 const now = new Date();
                 const expires = new Date(session.expiresAt);
 
-                // 1a: Handle player timeouts in waiting lobby
+                // 1a: Handle player timeouts in waiting lobby. This is a soft cleanup.
                 if (session.status === 'waiting') {
                     const activeContestants = session.contestants.filter(c => {
                         if (!c.lastSeen) return true; // Keep if never seen (just joined)
@@ -47,10 +47,10 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                         return (now.getTime() - lastSeen.getTime()) < (PLAYER_TIMEOUT_SEC * 1000);
                     });
                     
+                    // If all players timed out, the lobby is dead. It will be cleaned up by the expiration logic below.
                     if (session.contestants.length > 0 && activeContestants.length === 0) {
-                        // All players timed out, delete session.
-                        transaction.delete(sessionRef);
-                        return null; // Exit transaction early
+                         transaction.delete(sessionRef);
+                         return null; // The session is gone, exit immediately.
                     }
                     session.contestants = activeContestants;
                 }
@@ -58,16 +58,18 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                 // 1b: Handle session state transition if expired
                 if (now > expires) {
                      if (session.status === 'waiting') {
-                        if (session.contestants.length >= 2) { // Minimum 2 players to start
+                        // A waiting lobby has expired. It needs at least 2 players to start.
+                        if (session.contestants.length >= 2) { 
                             session.status = 'voting';
                             const newExpiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
                             session.expiresAt = newExpiresAt.toISOString();
                         } else {
-                            // Not enough players, so delete the session.
+                            // Not enough players, the contest is a dud. Delete it.
                             transaction.delete(sessionRef);
-                            return null; // Exit transaction early
+                            session = null; 
                         }
                     } else if (session.status === 'voting') {
+                        // Voting has ended. Determine winner or handle tie.
                         let maxVotes = -1;
                         let winners: Contestant[] = [];
                         session.contestants.forEach(c => {
@@ -79,54 +81,50 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                             }
                         });
 
-                        if (winners.length <= 1) { 
+                        if (winners.length === 1) { // We have a clear winner
                             session.status = 'finished';
-                            session.winner = winners.length > 0 ? winners[0] : undefined;
+                            session.winner = winners[0];
                             if (session.winner) {
                                 await awardContestPrize(session.winner.ownerId);
                             }
-                        } else { 
+                        } else { // Tie or no votes, start a new round with the tied players
                             session.status = 'voting';
                             session.round += 1;
-                            session.contestants = winners.map(c => ({...c, votes: 0, voterIds: [] }));
+                            // If everyone had 0 votes, all original contestants move on.
+                            const nextRoundContestants = winners.length > 0 ? winners : session.contestants;
+                            session.contestants = nextRoundContestants.map(c => ({...c, votes: 0, voterIds: [] }));
                             const newExpiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
                             session.expiresAt = newExpiresAt.toISOString();
                         }
                     }
                 }
             }
-            // End cleanup step. If session was deleted, we would have returned null already.
+            // End of State Machine. `session` is now the single source of truth.
 
-            // Step 2: Handle the current player's action
-            const newContestant: Contestant | null = plant ? {
-                ...plant,
-                votes: 0,
-                voterIds: [],
-                ownerId: userId,
-                ownerName: username,
-                lastSeen: new Date().toISOString(),
-            } : null;
+            // Step 2: Handle the current player's action, if they are trying to join.
+            if (plant) {
+                const newContestant: Contestant = {
+                    ...plant,
+                    votes: 0,
+                    voterIds: [],
+                    ownerId: userId,
+                    ownerName: username,
+                    lastSeen: new Date().toISOString(),
+                };
 
-            if (!session || session.status === 'finished') {
-                // Create a new session if one doesn't exist and a plant is trying to join
-                if (newContestant) {
+                if (!session || session.status === 'finished') {
+                    // Create a brand new session.
                     session = createNewSession(newContestant);
-                }
-            } else if (session.status === 'waiting' && newContestant) {
-                // Join an existing session if possible
-                const alreadyExists = session.contestants.some(c => c.ownerId === userId);
-                if (!alreadyExists && session.contestants.length < 4) {
-                    session.contestants.push(newContestant);
-                } else if (alreadyExists) {
-                    // If player is rejoining, just update their lastSeen
-                    const index = session.contestants.findIndex(c => c.ownerId === userId);
-                    if (index !== -1) {
-                        session.contestants[index].lastSeen = new Date().toISOString();
+                } else if (session.status === 'waiting') {
+                    // Try to join the existing waiting lobby.
+                    const alreadyExists = session.contestants.some(c => c.ownerId === userId);
+                    if (!alreadyExists && session.contestants.length < 4) {
+                        session.contestants.push(newContestant);
                     }
                 }
             }
             
-            // If the lobby is now full, automatically start the voting
+            // If the lobby just became full, automatically start the voting.
             if (session && session.status === 'waiting' && session.contestants.length === 4) {
                 session.status = 'voting';
                 const now = new Date();
@@ -218,8 +216,10 @@ export async function sendHeartbeat(userId: string) {
             }
         });
     } catch (error) {
+        // It's okay if this fails occasionally (e.g. transaction contention).
+        // It's just a heartbeat. We can ignore most errors.
         if ((error as any).code !== 'not-found' && (error as any).code !== 'aborted') {
-            console.error("Failed to send heartbeat:", error);
+            console.warn("Failed to send heartbeat:", error);
         }
     }
 }
