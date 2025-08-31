@@ -127,47 +127,49 @@ export async function processContestState(sessionId: string): Promise<void> {
             const now = new Date();
             const expires = new Date(session.expiresAt);
             
-            // Handle session state transition if expired
-            if (now > expires) {
-                    if (session.status === 'waiting') {
-                    // A waiting lobby has expired. It needs at least 2 players to start.
-                    if (session.contestants.length >= 2) { 
-                        session.status = 'voting';
-                        const newExpiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
-                        session.expiresAt = newExpiresAt.toISOString();
-                    } else {
-                        // Not enough players, the contest is a dud. Delete it.
-                        transaction.delete(sessionRef);
-                        return; 
-                    }
-                } else if (session.status === 'voting') {
-                    // Voting has ended. Determine winner or handle tie.
-                    let maxVotes = -1;
-                    let winners: Contestant[] = [];
-                    session.contestants.forEach(c => {
-                        if (c.votes > maxVotes) {
-                            maxVotes = c.votes;
-                            winners = [c];
-                        } else if (c.votes === maxVotes) {
-                            winners.push(c);
-                        }
-                    });
+            if (now < expires) {
+                return; // Not expired yet, nothing to do.
+            }
 
-                    if (winners.length === 1) { // We have a clear winner
-                        session.status = 'finished';
-                        session.winner = winners[0];
-                        if (session.winner) {
-                            await awardContestPrize(session.winner.ownerId);
-                        }
-                    } else { // Tie or no votes, start a new round with the tied players
-                        session.status = 'voting';
-                        session.round += 1;
-                        // If everyone had 0 votes, all original contestants move on.
-                        const nextRoundContestants = winners.length > 0 ? winners : session.contestants;
-                        session.contestants = nextRoundContestants.map(c => ({...c, votes: 0, voterIds: [] }));
-                        const newExpiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
-                        session.expiresAt = newExpiresAt.toISOString();
+            // Handle state transition if expired
+            if (session.status === 'waiting') {
+                // A waiting lobby has expired. It needs at least 2 players to start.
+                if (session.contestants.length >= 2) { 
+                    session.status = 'voting';
+                    const newExpiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
+                    session.expiresAt = newExpiresAt.toISOString();
+                } else {
+                    // Not enough players, the contest is a dud. Delete it.
+                    transaction.delete(sessionRef);
+                    return; 
+                }
+            } else if (session.status === 'voting') {
+                // Voting has ended. Determine winner or handle tie.
+                let maxVotes = -1;
+                let winners: Contestant[] = [];
+                session.contestants.forEach(c => {
+                    if (c.votes > maxVotes) {
+                        maxVotes = c.votes;
+                        winners = [c];
+                    } else if (c.votes === maxVotes) {
+                        winners.push(c);
                     }
+                });
+
+                if (winners.length === 1) { // We have a clear winner
+                    session.status = 'finished';
+                    session.winner = winners[0];
+                    if (session.winner) {
+                        await awardContestPrize(session.winner.ownerId);
+                    }
+                } else { // Tie or no votes, start a new round with the tied players
+                    session.status = 'voting';
+                    session.round += 1;
+                    // If everyone had 0 votes, all original contestants move on.
+                    const nextRoundContestants = winners.length > 0 ? winners : session.contestants;
+                    session.contestants = nextRoundContestants.map(c => ({...c, votes: 0, voterIds: [] }));
+                    const newExpiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
+                    session.expiresAt = newExpiresAt.toISOString();
                 }
             }
 
