@@ -70,6 +70,7 @@ export async function joinContest(sessionId: string, userId: string, username: s
             const newContestant: Contestant = {
                 ...plant,
                 votes: 0,
+                id: plant.id,
                 voterIds: [],
                 ownerId: userId,
                 ownerName: username,
@@ -117,6 +118,10 @@ export async function processContestState(sessionId: string): Promise<void> {
 
             // Handle state transition if expired
             if (session.status === 'waiting') {
+                // Before starting, remove any idle players.
+                const timeoutThreshold = new Date(now.getTime() - PLAYER_TIMEOUT_SEC * 1000);
+                session.contestants = session.contestants.filter(c => (c.lastSeen as Timestamp).toDate() > timeoutThreshold);
+                
                 // A waiting lobby has expired. It needs at least 2 players to start.
                 if (session.contestants.length >= 2) { 
                     session.status = 'voting';
@@ -150,7 +155,7 @@ export async function processContestState(sessionId: string): Promise<void> {
                     session.status = 'voting';
                     session.round += 1;
                     // If everyone had 0 votes, all original contestants move on.
-                    const nextRoundContestants = winners.length > 0 ? winners : session.contestants;
+                    const nextRoundContestants = winners.length > 0 && winners.length < session.contestants.length ? winners : session.contestants;
                     session.contestants = nextRoundContestants.map(c => ({...c, votes: 0, voterIds: [] }));
                     const newExpiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
                     session.expiresAt = Timestamp.fromDate(newExpiresAt);
@@ -246,7 +251,7 @@ export async function cleanupExpiredContests(): Promise<void> {
         
         const q = query(
             collection(db, 'contestSessions'), 
-            where('expiresAt', '<', Timestamp.fromDate(oneHourAgo))
+            where('createdAt', '<', Timestamp.fromDate(oneHourAgo))
         );
 
         const querySnapshot = await getDocs(q);
@@ -256,7 +261,9 @@ export async function cleanupExpiredContests(): Promise<void> {
             batch.delete(doc.ref);
         });
 
-        await batch.commit();
+        if (!querySnapshot.empty) {
+            await batch.commit();
+        }
 
     } catch (e: any) {
         console.warn("Contest cleanup transaction failed:", e.message);
@@ -266,13 +273,24 @@ export async function cleanupExpiredContests(): Promise<void> {
 export async function getActiveContests(): Promise<ContestSession[]> {
     const contests: ContestSession[] = [];
     try {
+        const now = new Date();
+        const timeoutThreshold = new Date(now.getTime() - PLAYER_TIMEOUT_SEC * 1000);
+        
         const q = query(
             collection(db, 'contestSessions'),
             where('status', '==', 'waiting')
         );
         const querySnapshot = await getDocs(q);
         querySnapshot.forEach((doc) => {
-            contests.push({ id: doc.id, ...doc.data() } as ContestSession);
+            const session = { id: doc.id, ...doc.data() } as ContestSession;
+            
+            // Filter out idle players for the count, but keep them in the main data for now
+            const activePlayers = session.contestants.filter(c => (c.lastSeen as Timestamp).toDate() > timeoutThreshold);
+
+            // Only show lobbies that have at least one active player
+            if (activePlayers.length > 0) {
+                 contests.push(session);
+            }
         });
         return contests.sort((a,b) => (b.createdAt as Timestamp).toMillis() - (a.createdAt as Timestamp).toMillis());
     } catch (e) {
