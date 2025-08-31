@@ -59,7 +59,7 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                 // Check for expired session, only if the session wasn't just deleted
                 if (session && now > expires) {
                      if (session.status === 'waiting') {
-                        if (session.contestants.length >= 4) {
+                        if (session.contestants.length >= 2) {
                             session.status = 'voting';
                             const newExpiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
                             session.expiresAt = newExpiresAt.toISOString();
@@ -100,7 +100,7 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
 
             // Step 2: Handle the player's action (joining or creating)
             // Do not proceed if the player is just polling and the session was deleted.
-            if (plant || session) { 
+            if ((plant || session) && !(plant && !session)) { 
                  const newContestant: Contestant | null = plant ? {
                     ...plant,
                     votes: 0,
@@ -130,7 +130,7 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                 }
                 
                 // If the lobby is now full, automatically start the voting
-                if (session && session.status === 'waiting' && session.contestants.length >= 4) {
+                if (session && session.status === 'waiting' && session.contestants.length >= 2) {
                     session.status = 'voting';
                     const now = new Date();
                     const expiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
@@ -231,4 +231,3 @@ export async function sendHeartbeat(userId: string) {
         }
     }
 }
-
