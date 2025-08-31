@@ -26,6 +26,25 @@ function createNewSession(plant: Contestant): Omit<ContestSession, 'id'> {
 
 export async function createNewContest(userId: string, username: string, plantId: number): Promise<{ sessionId?: string, error?: string }> {
     try {
+        const anyContestQuery = query(
+            collection(db, 'contestSessions'),
+            where('contestants', 'array-contains-any', [{ ownerId: userId }])
+        );
+        const existingContests = await getDocs(anyContestQuery);
+        
+        let userIsInContest = false;
+        existingContests.forEach(doc => {
+            const session = doc.data() as ContestSession;
+            if (session.contestants.some(c => c.ownerId === userId)) {
+                userIsInContest = true;
+            }
+        });
+
+        if (userIsInContest) {
+            throw new Error("You are already in an active contest.");
+        }
+
+
         // Fetch the user's game data to get the full plant object
         const gameData = await getUserGameData(userId);
         if (!gameData || !gameData.plants) {
@@ -76,6 +95,21 @@ export async function createNewContest(userId: string, username: string, plantId
 
 export async function joinContest(sessionId: string, userId: string, username: string, plant: Plant): Promise<{ success: boolean, error?: string }> {
      try {
+        const anyContestQuery = query(collection(db, 'contestSessions'), where('contestants', 'array-contains-any', [{ ownerId: userId }]));
+        const existingContests = await getDocs(anyContestQuery);
+        let userIsInContest = false;
+        existingContests.forEach(doc => {
+            const session = doc.data() as ContestSession;
+            if (session.contestants.some(c => c.ownerId === userId)) {
+                userIsInContest = true;
+            }
+        });
+
+        if (userIsInContest) {
+            throw new Error("You are already in an active contest.");
+        }
+
+
         const sessionRef = doc(db, 'contestSessions', sessionId);
         await runTransaction(db, async (transaction) => {
             const liveSessionDoc = await transaction.get(sessionRef);

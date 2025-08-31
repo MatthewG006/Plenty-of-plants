@@ -61,7 +61,6 @@ export default function ContestLobbyClientPage() {
     };
 
     const handleSelectPlant = async (plant: Plant) => {
-        setShowPlantSelection(false);
         if (!user || !user.displayName) return;
 
         setIsCreating(true);
@@ -69,6 +68,7 @@ export default function ContestLobbyClientPage() {
         try {
             // Pass only the plant's ID, not the whole object
             const { sessionId, error } = await createNewContest(user.uid, user.displayName, plant.id);
+            
             if (error) {
                 throw new Error(error);
             }
