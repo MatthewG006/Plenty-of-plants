@@ -10,27 +10,7 @@ const WAITING_TIME_SEC = 30;
 const VOTE_TIME_SEC = 20;
 const PLAYER_TIMEOUT_SEC = 15; // A player is considered disconnected after this many seconds of inactivity
 
-// Helper function to check if a user is already in any active contest
-async function isUserInAnyContest(userId: string): Promise<boolean> {
-    const contestsRef = collection(db, 'contestSessions');
-    // Query for contests that are not finished and contain the user as a contestant.
-    // Firestore does not support array-contains on nested objects directly, so we have to fetch and filter.
-    // This is inefficient and should be used cautiously. A better data model would be a user sub-collection.
-    const q = query(contestsRef, where('status', '!=', 'finished'));
-    const snapshot = await getDocs(q);
-    
-    for (const doc of snapshot.docs) {
-        const session = doc.data() as ContestSession;
-        if (session.contestants?.some(c => c.ownerId === userId)) {
-            return true; // User found in at least one active contest
-        }
-    }
-
-    return false;
-}
-
-
-// Helper to create a new, empty contest session
+// Helper function to create a new, empty contest session
 function createNewSession(plant: Contestant): Omit<ContestSession, 'id'> {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + WAITING_TIME_SEC * 1000);
@@ -46,10 +26,6 @@ function createNewSession(plant: Contestant): Omit<ContestSession, 'id'> {
 
 export async function createNewContest(userId: string, username: string, plant: Plant): Promise<{ sessionId?: string, error?: string }> {
     try {
-        if (await isUserInAnyContest(userId)) {
-            throw new Error("You are already in an active contest.");
-        }
-
         const newContestant: Contestant = {
             ...plant,
             id: plant.id, // Ensure the ID is explicitly set
@@ -71,10 +47,6 @@ export async function createNewContest(userId: string, username: string, plant: 
 
 export async function joinContest(sessionId: string, userId: string, username: string, plant: Plant): Promise<{ success: boolean, error?: string }> {
      try {
-        if (await isUserInAnyContest(userId)) {
-            throw new Error("You are already in an active contest.");
-        }
-
         const sessionRef = doc(db, 'contestSessions', sessionId);
         await runTransaction(db, async (transaction) => {
             const liveSessionDoc = await transaction.get(sessionRef);
