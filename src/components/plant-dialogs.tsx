@@ -305,7 +305,10 @@ export function ContestPlantSelectionDialog({ open, onOpenChange, allPlants, onS
                                 <Card 
                                     key={plant.id}
                                     className="cursor-pointer hover:scale-105 transition-transform" 
-                                    onClick={() => onSelectPlant(plant)}
+                                    onClick={() => {
+                                        onSelectPlant(plant);
+                                        onOpenChange(false);
+                                    }}
                                 >
                                     <CardContent className="p-0">
                                         <div className="aspect-square relative flex items-center justify-center bg-muted/30">
