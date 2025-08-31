@@ -27,7 +27,24 @@ function createNewSession(plant: Contestant): Omit<ContestSession, 'id'> {
 export async function createNewContest(userId: string, username: string, plant: Plant): Promise<{ sessionId?: string, error?: string }> {
     try {
         const newContestant: Contestant = {
-            ...plant,
+            id: plant.id,
+            name: plant.name,
+            description: plant.description,
+            image: plant.image,
+            baseImage: plant.baseImage,
+            uncompressedImage: plant.uncompressedImage,
+            hint: plant.hint,
+            level: plant.level,
+            xp: plant.xp,
+            lastWatered: plant.lastWatered,
+            hasGlitter: plant.hasGlitter,
+            hasSheen: plant.hasSheen,
+            hasRainbowGlitter: plant.hasRainbowGlitter,
+            hasRedGlitter: plant.hasRedGlitter,
+            personality: plant.personality,
+            chatEnabled: plant.chatEnabled,
+            conversationHistory: plant.conversationHistory,
+            form: plant.form,
             votes: 0,
             voterIds: [],
             ownerId: userId,
@@ -109,17 +126,8 @@ export async function processContestState(sessionId: string): Promise<void> {
             let session = liveSessionDoc.data() as ContestSession;
             const now = new Date();
             const expires = new Date(session.expiresAt);
-
-            // 1a: Handle player timeouts in waiting lobby.
-            if (session.status === 'waiting') {
-                session.contestants = session.contestants.filter(c => {
-                    if (!c.lastSeen) return true; 
-                    const lastSeen = new Date(c.lastSeen);
-                    return (now.getTime() - lastSeen.getTime()) < (PLAYER_TIMEOUT_SEC * 1000);
-                });
-            }
             
-            // 1b: Handle session state transition if expired
+            // Handle session state transition if expired
             if (now > expires) {
                     if (session.status === 'waiting') {
                     // A waiting lobby has expired. It needs at least 2 players to start.
@@ -286,3 +294,5 @@ export async function getActiveContests(): Promise<ContestSession[]> {
         return [];
     }
 }
+
+    
