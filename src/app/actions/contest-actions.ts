@@ -31,7 +31,7 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
         const sessionRef = doc(db, 'contestSessions', CONTEST_SESSION_ID);
 
         const finalSession = await runTransaction(db, async (transaction) => {
-            const liveSessionDoc = await transaction.get(sessionRef);
+            let liveSessionDoc = await transaction.get(sessionRef);
             let session: ContestSession | null = liveSessionDoc.exists() ? liveSessionDoc.data() as ContestSession : null;
             let sessionCreated = false;
 
@@ -52,6 +52,7 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                         // All players timed out, delete session
                         transaction.delete(sessionRef);
                         session = null;
+                        liveSessionDoc = await transaction.get(sessionRef); // re-read after delete
                     } else if (session) {
                         session.contestants = activeContestants;
                     }
@@ -60,7 +61,8 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                 // Check for expired session, only if the session wasn't just deleted
                 if (session && now > expires) {
                      if (session.status === 'waiting') {
-                        if (session.contestants.length >= 4) {
+                        if (session.contestants.length === 4) {
+                            // Full lobby, start voting
                             session.status = 'voting';
                             const newExpiresAt = new Date(now.getTime() + VOTE_TIME_SEC * 1000);
                             session.expiresAt = newExpiresAt.toISOString();
@@ -68,6 +70,7 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                             // Not enough players, so delete the session.
                             transaction.delete(sessionRef);
                             session = null;
+                            liveSessionDoc = await transaction.get(sessionRef); // re-read after delete
                         }
                     } else if (session.status === 'voting') {
                         let maxVotes = -1;
@@ -144,7 +147,8 @@ export async function joinAndGetContestState({ userId, username, plant }: { user
                      transaction.set(sessionRef, session);
                 }
             } else if (liveSessionDoc.exists()) {
-                // If we determined the session should be deleted (e.g. timeout with no players)
+                // This is a final check. If we ended up with a null session but the doc still exists, delete it.
+                // This can happen if the session was determined to be invalid (e.g. timed out).
                 transaction.delete(sessionRef);
             }
 
