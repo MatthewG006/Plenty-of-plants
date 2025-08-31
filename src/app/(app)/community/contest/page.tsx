@@ -18,6 +18,7 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import confetti from 'canvas-confetti';
 import { ContestPlantSelectionDialog } from '@/components/plant-dialogs';
+import { useRouter } from 'next/navigation';
 
 const WAITING_TIME = 30; // seconds
 const VOTING_TIME = 20; // seconds
@@ -83,6 +84,7 @@ export default function ContestPage() {
     const { user, gameData } = useAuth();
     const { toast } = useToast();
     const { playSfx } = useAudio();
+    const router = useRouter();
     
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -164,6 +166,17 @@ export default function ContestPage() {
         });
     }, [user]);
 
+    // This effect handles automatic navigation on error/timeout
+    useEffect(() => {
+        if (error) {
+            const timer = setTimeout(() => {
+                router.back();
+            }, 3000); // 3-second delay before navigating back
+
+            return () => clearTimeout(timer); // Clean up the timer
+        }
+    }, [error, router]);
+
     const handleStartNewContest = () => {
         if (!user) return;
         setShowPlantSelection(true);
@@ -226,13 +239,12 @@ export default function ContestPage() {
                     <CardTitle className="text-destructive">Contest Error</CardTitle>
                     <CardDescription>
                        {error}
+                       <br />
+                       You will be returned to the previous page shortly.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Button onClick={() => window.location.reload()}>
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                        Try Again
-                    </Button>
+                    <Loader2 className="h-6 w-6 animate-spin text-destructive mx-auto" />
                 </CardContent>
             </Card>
         )
@@ -368,3 +380,5 @@ export default function ContestPage() {
         </div>
     )
 }
+
+    
