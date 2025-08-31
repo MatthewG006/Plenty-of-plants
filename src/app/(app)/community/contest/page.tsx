@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, ArrowLeft, Trophy, Users, Star, Crown, Sparkles, ShieldAlert } from 'lucide-react';
+import { Loader2, ArrowLeft, Trophy, Users, Star, Crown, Sparkles, ShieldAlert, RefreshCw } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -229,8 +229,9 @@ export default function ContestPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Button asChild>
-                       <Link href="/community/park">Back to Park</Link>
+                    <Button onClick={() => window.location.reload()}>
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Try Again
                     </Button>
                 </CardContent>
             </Card>
