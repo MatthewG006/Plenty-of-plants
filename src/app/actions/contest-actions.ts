@@ -17,6 +17,7 @@ import {
   Timestamp,
   runTransaction,
   deleteDoc,
+  arrayUnion,
 } from "firebase/firestore";
 import type { Plant, ContestSession, Contestant } from '@/interfaces/plant';
 import { awardContestPrize, getPlantById, getUserGameData } from "@/lib/firestore";
@@ -140,7 +141,7 @@ export async function joinContest(sessionId: string, userId: string, displayName
             }
 
             const contestantsQuery = query(collection(sessionRef, "contestants"), where("ownerId", "==", userId));
-            const existingContestantSnapshot = await transaction.get(contestantsQuery);
+            const existingContestantSnapshot = await getDocs(contestantsQuery); // Use getDocs with transaction later if needed
 
             if (!existingContestantSnapshot.empty) {
                 throw new Error("You have already entered this contest.");
@@ -182,7 +183,7 @@ export async function voteForContestant(sessionId: string, voterId: string, cont
             }
             
             const contestantsCollectionRef = collection(sessionRef, "contestants");
-            const contestantsSnapshot = await transaction.get(query(contestantsCollectionRef));
+            const contestantsSnapshot = await getDocs(query(contestantsCollectionRef));
             const allContestants = contestantsSnapshot.docs.map(d => d.data() as Contestant);
             
             const alreadyVoted = allContestants.some(c => c.voterIds?.includes(voterId));
