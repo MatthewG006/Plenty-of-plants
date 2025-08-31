@@ -229,8 +229,8 @@ export default function ContestPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Button onClick={() => window.location.reload()}>
-                        Try Again
+                    <Button asChild>
+                       <Link href="/community/park">Back to Park</Link>
                     </Button>
                 </CardContent>
             </Card>
@@ -367,5 +367,3 @@ export default function ContestPage() {
         </div>
     )
 }
-
-    
