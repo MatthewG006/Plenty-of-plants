@@ -70,8 +70,12 @@ export default function ContestLobbyClientPage() {
             const { sessionId, error } = await createNewContest(user.uid, user.displayName, plant);
             if (error) throw new Error(error);
 
-            toast({ title: 'Contest Created!', description: 'Your new contest lobby is now open.' });
-            router.push(`/community/contest/${sessionId}`);
+            if (sessionId) {
+                toast({ title: 'Contest Created!', description: 'Your new contest lobby is now open.' });
+                router.push(`/community/contest/${sessionId}`);
+            } else {
+                throw new Error("Failed to get a session ID from the server.");
+            }
 
         } catch (e: any) {
             console.error("Failed to start contest:", e);
@@ -166,3 +170,5 @@ export default function ContestLobbyClientPage() {
         </div>
     )
 }
+
+    
