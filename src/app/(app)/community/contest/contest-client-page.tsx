@@ -85,6 +85,7 @@ export default function ContestLobbyClientPage() {
             toast({ variant: 'destructive', title: 'Contest Creation Error', description: e.message });
         } finally {
             setIsCreating(false);
+            setShowPlantSelection(false);
         }
     };
     

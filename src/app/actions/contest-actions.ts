@@ -14,7 +14,7 @@ const PLAYER_TIMEOUT_SEC = 15; // A player is considered disconnected after this
 const getContestantsRef = (sessionId: string) => collection(db, 'contestSessions', sessionId, 'contestants');
 
 // Helper function to create a new, empty contest session
-function createNewSession(hostName: string): Omit<ContestSession, 'id' | 'contestants'> {
+function createNewSession(hostName: string): Omit<ContestSession, 'id'> {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + WAITING_TIME_SEC * 1000);
     return {
@@ -27,19 +27,22 @@ function createNewSession(hostName: string): Omit<ContestSession, 'id' | 'contes
     };
 }
 
+async function isUserInAnyContest(userId: string): Promise<boolean> {
+    const anyContestQuery = query(collection(db, 'contestSessions'), where('status', 'in', ['waiting', 'voting']));
+    const existingSessionsSnapshot = await getDocs(anyContestQuery);
+    for (const sessionDoc of existingSessionsSnapshot.docs) {
+        const contestantDoc = await getDoc(doc(db, 'contestSessions', sessionDoc.id, 'contestants', userId));
+        if (contestantDoc.exists()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 export async function createNewContest(userId: string, username: string, plantId: number): Promise<{ sessionId?: string, error?: string }> {
     try {
-        // Check if the user is already in any active contest
-        const anyContestQuery = query(
-            collection(db, 'contestSessions'),
-            where('status', 'in', ['waiting', 'voting'])
-        );
-        const existingSessionsSnapshot = await getDocs(anyContestQuery);
-        for (const sessionDoc of existingSessionsSnapshot.docs) {
-            const contestantDoc = await getDoc(doc(db, 'contestSessions', sessionDoc.id, 'contestants', userId));
-            if (contestantDoc.exists()) {
-                throw new Error("You are already in an active contest.");
-            }
+        if (await isUserInAnyContest(userId)) {
+            throw new Error("You are already in an active contest.");
         }
         
         const gameData = await getUserGameData(userId);
@@ -65,7 +68,7 @@ export async function createNewContest(userId: string, username: string, plantId
 
             const newContestant: Contestant = {
                 ...plant,
-                id: userId,
+                id: userId, // Ensure the contestant doc ID is the user's ID
                 votes: 0,
                 voterIds: [],
                 ownerId: userId,
@@ -87,13 +90,8 @@ export async function createNewContest(userId: string, username: string, plantId
 
 export async function joinContest(sessionId: string, userId: string, username: string, plant: Plant): Promise<{ success: boolean, error?: string }> {
      try {
-        const anyContestQuery = query(collection(db, 'contestSessions'), where('status', 'in', ['waiting', 'voting']));
-        const existingSessionsSnapshot = await getDocs(anyContestQuery);
-        for (const sessionDoc of existingSessionsSnapshot.docs) {
-            const contestantDoc = await getDoc(doc(db, 'contestSessions', sessionDoc.id, 'contestants', userId));
-            if (contestantDoc.exists()) {
-                throw new Error("You are already in an active contest.");
-            }
+        if (await isUserInAnyContest(userId)) {
+            throw new Error("You are already in an active contest.");
         }
 
         const sessionRef = doc(db, 'contestSessions', sessionId);
@@ -117,8 +115,9 @@ export async function joinContest(sessionId: string, userId: string, username: s
                 throw new Error("You have already entered this contest.");
             }
 
-            const newContestant: Omit<Contestant, 'id'> = {
+            const newContestant: Contestant = {
                 ...plant,
+                id: userId,
                 votes: 0,
                 voterIds: [],
                 ownerId: userId,
