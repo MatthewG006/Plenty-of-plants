@@ -13,11 +13,15 @@ const PLAYER_TIMEOUT_SEC = 15; // A player is considered disconnected after this
 // Helper function to check if a user is already in any active contest
 async function isUserInAnyContest(userId: string): Promise<boolean> {
     const contestsRef = collection(db, 'contestSessions');
-    const snapshot = await getDocs(contestsRef);
+    // Query for contests that are not finished and contain the user as a contestant.
+    // Firestore does not support array-contains on nested objects directly, so we have to fetch and filter.
+    // This is inefficient and should be used cautiously. A better data model would be a user sub-collection.
+    const q = query(contestsRef, where('status', '!=', 'finished'));
+    const snapshot = await getDocs(q);
     
     for (const doc of snapshot.docs) {
         const session = doc.data() as ContestSession;
-        if (session.status !== 'finished' && session.contestants?.some(c => c.ownerId === userId)) {
+        if (session.contestants?.some(c => c.ownerId === userId)) {
             return true; // User found in at least one active contest
         }
     }
@@ -60,7 +64,7 @@ export async function createNewContest(userId: string, username: string, plant: 
         return { sessionId: sessionRef.id };
     } catch (e: any) {
         console.error("Failed to create contest:", e);
-        return { error: e.message || "Could not start a new contest." };
+        return { error: e.message || "An unknown error occurred while creating the contest." };
     }
 }
 
