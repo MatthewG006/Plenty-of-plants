@@ -192,9 +192,8 @@ export default function ContestPage() {
     }, [error, router]);
 
     const handleSelectPlant = async (plant: Plant) => {
-        setShowPlantSelection(false);
         if (!user || !user.displayName) return;
-
+        setShowPlantSelection(false);
         setIsJoining(true);
         setError(null);
         try {
@@ -367,5 +366,3 @@ export default function ContestPage() {
         </div>
     )
 }
-
-    

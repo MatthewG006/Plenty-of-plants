@@ -59,5 +59,3 @@ export interface ContestSession {
     hostName: string;
     winner?: Contestant;
 }
-
-    
