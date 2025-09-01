@@ -1,9 +1,10 @@
 {
-  "/favicon.ico/route": "/favicon.ico",
   "/_not-found/page": "/_not-found",
+  "/favicon.ico/route": "/favicon.ico",
   "/login/page": "/login",
   "/page": "/",
   "/signup/page": "/signup",
+  "/(app)/community/contest/[sessionId]/page": "/community/contest/[sessionId]",
   "/(app)/community/contest/page": "/community/contest",
   "/(app)/community/page": "/community",
   "/(app)/community/park/page": "/community/park",
@@ -11,7 +12,7 @@
   "/(app)/garden/seeds/page": "/garden/seeds",
   "/(app)/home/page": "/home",
   "/(app)/profile/page": "/profile",
-  "/(app)/room/page": "/room",
   "/(app)/settings/page": "/settings",
-  "/(app)/shop/page": "/shop"
+  "/(app)/shop/page": "/shop",
+  "/(app)/room/page": "/room"
 }

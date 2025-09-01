@@ -51,10 +51,14 @@ export async function cleanupExpiredContests() {
         ]);
 
         const expiredSessions = [...expiredWaitingSnapshot.docs, ...expiredVotingSnapshot.docs];
-
+        
+        const batch = writeBatch(db);
         for (const doc of expiredSessions) {
-            await processContestState(doc.id);
+            // Instead of full processing, just mark as finished to clean them up.
+             batch.update(doc.ref, { status: 'finished' });
         }
+        await batch.commit();
+
     } catch (e: any) {
         console.error("Error during contest cleanup:", e);
         // If indexing is the issue, this helps identify it without crashing the whole flow.
@@ -79,7 +83,9 @@ export async function getActiveContests(): Promise<ContestSession[]> {
 // Creates a new contest session and adds the host as the first contestant.
 export async function createNewContest(userId: string, hostName: string, plantId: number): Promise<{ sessionId?: string; error?: string; }> {
     try {
-        const plant = await getPlantById(userId, plantId);
+        const gameData = await getUserGameData(userId);
+        const plant = gameData?.plants?.[plantId];
+        
         if (!plant) {
             throw new Error("Could not find the selected plant.");
         }
@@ -98,12 +104,11 @@ export async function createNewContest(userId: string, hostName: string, plantId
                 hostName: hostName,
             };
 
-            // Destructure the plant to exclude its numeric id before spreading
             const { id: plantNumericId, ...plantData } = plant;
 
             const newContestant: Contestant = {
                 ...plantData,
-                id: newContestantRef.id, // This is the STRING document ID
+                id: newContestantRef.id,
                 ownerId: userId,
                 ownerName: hostName,
                 votes: 0,
@@ -141,7 +146,8 @@ export async function joinContest(sessionId: string, userId: string, displayName
             }
 
             const contestantsQuery = query(collection(sessionRef, "contestants"), where("ownerId", "==", userId));
-            const existingContestantSnapshot = await getDocs(contestantsQuery); // Use getDocs with transaction later if needed
+            // This query needs to be run outside the transaction for now due to Firestore limitations
+            const existingContestantSnapshot = await getDocs(contestantsQuery);
 
             if (!existingContestantSnapshot.empty) {
                 throw new Error("You have already entered this contest.");
@@ -183,6 +189,7 @@ export async function voteForContestant(sessionId: string, voterId: string, cont
             }
             
             const contestantsCollectionRef = collection(sessionRef, "contestants");
+            // This query needs to run outside transaction.
             const contestantsSnapshot = await getDocs(query(contestantsCollectionRef));
             const allContestants = contestantsSnapshot.docs.map(d => d.data() as Contestant);
             
@@ -297,9 +304,8 @@ export async function processContestState(sessionId: string): Promise<void> {
                         status: 'finished',
                         winner: winner,
                     });
-                    // Award the prize to the winner
-                    await awardContestPrize(winner.ownerId);
-
+                    // This must be done outside the transaction as it might involve other documents
+                    // and could make the transaction too complex. We'll call it after.
                 } else {
                     // 3b. There's a tie, start a new round with only the tied players.
                     const contestantsToEliminate = contestants.filter(c => c.votes < maxVotes);
@@ -321,11 +327,15 @@ export async function processContestState(sessionId: string): Promise<void> {
             }
         });
 
+        // Award prize outside of main transaction if a winner was determined.
+        const finalSessionState = (await getDoc(sessionRef)).data() as ContestSession | undefined;
+        if (finalSessionState?.status === 'finished' && finalSessionState.winner) {
+            await awardContestPrize(finalSessionState.winner.ownerId);
+        }
+
     } catch (e: any) {
         console.error(`Failed to process state for session ${sessionId}:`, e);
         // If processing fails, mark the contest as finished to prevent it from getting stuck.
         await updateDoc(sessionRef, { status: 'finished' });
     }
 }
-
-    
