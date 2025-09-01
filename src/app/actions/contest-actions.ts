@@ -20,16 +20,17 @@ import {
   arrayUnion,
 } from "firebase/firestore";
 import type { Plant, ContestSession, Contestant } from '@/interfaces/plant';
-import { getUserGameData } from "@/lib/firestore";
+import { getUserGameData, awardContestPrize } from "@/lib/firestore";
 
-const LOBBY_EXPIRATION_MINUTES = 5;
-const VOTING_TIME_SECONDS = 20;
+const LOBBY_EXPIRATION_MINUTES = 3;
+const VOTING_TIME_SECONDS = 30;
 const HEARTBEAT_TIMEOUT_SECONDS = 30;
 
 export async function cleanupExpiredContests() {
     const now = Timestamp.now();
     const contestRef = collection(db, "contestSessions");
 
+    // Separate queries to avoid needing a composite index
     const waitingQuery = query(
         contestRef,
         where("status", "==", "waiting"),
@@ -84,12 +85,13 @@ export async function createNewContest(userId: string, hostName: string, plantId
             throw new Error("Could not find the selected plant.");
         }
         
+        // This transaction ensures the session and the first contestant are created atomically.
         const newSessionId = await runTransaction(db, async (transaction) => {
             
             const newSessionRef = doc(collection(db, "contestSessions"));
             const newContestantRef = doc(collection(newSessionRef, "contestants"));
 
-            const newSession: Omit<ContestSession, 'id'> = {
+            const newSessionData: Omit<ContestSession, 'id'> = {
                 status: 'waiting',
                 createdAt: serverTimestamp(),
                 expiresAt: Timestamp.fromMillis(Date.now() + LOBBY_EXPIRATION_MINUTES * 60 * 1000),
@@ -98,6 +100,7 @@ export async function createNewContest(userId: string, hostName: string, plantId
                 hostName: hostName,
             };
             
+            // Critical fix: Exclude the numeric 'id' from the plant object to avoid validation errors.
             const { id: plantNumericId, ...plantData } = plant;
 
             const newContestant: Contestant = {
@@ -110,7 +113,7 @@ export async function createNewContest(userId: string, hostName: string, plantId
                 lastSeen: Timestamp.now(),
             };
 
-            transaction.set(newSessionRef, newSession);
+            transaction.set(newSessionRef, newSessionData);
             transaction.set(newContestantRef, newContestant);
 
             return newSessionRef.id;
@@ -126,10 +129,10 @@ export async function createNewContest(userId: string, hostName: string, plantId
 
 export async function joinContest(sessionId: string, userId: string, displayName: string, plant: Plant): Promise<{ success: boolean, error?: string }> {
      try {
-        const sessionRef = doc(db, "contestSessions", sessionId);
-
         await runTransaction(db, async (transaction) => {
+            const sessionRef = doc(db, "contestSessions", sessionId);
             const sessionDoc = await transaction.get(sessionRef);
+
             if (!sessionDoc.exists() || sessionDoc.data().status !== 'waiting') {
                 throw new Error("This contest is no longer accepting new players.");
             }
@@ -138,23 +141,15 @@ export async function joinContest(sessionId: string, userId: string, displayName
             }
 
             const contestantsRef = collection(sessionRef, "contestants");
-            const existingContestantQuery = query(contestantsRef, where("ownerId", "==", userId));
-            const existingContestantSnapshot = await transaction.get(existingContestantQuery);
+            const q = query(contestantsRef, where("ownerId", "==", userId));
+            const querySnapshot = await transaction.get(q);
 
-            if (!existingContestantSnapshot.empty) {
-                // This is the fix: Ensure the found contestant document belongs to the *current* session.
-                // This handles cases where a user might have a stale contestant document from a previous, failed game.
-                // Since our query is already scoped to the current session's subcollection, finding any document here
-                // means they are indeed already in THIS contest. So the original logic was correct in its context.
-                // The most likely issue is a client-side problem or a misunderstanding of the user state.
-                // However, adding an explicit check for safety doesn't hurt.
-                const isAlreadyInThisContest = existingContestantSnapshot.docs.some(doc => doc.ref.parent.parent?.id === sessionId);
-                if (isAlreadyInThisContest) {
-                    throw new Error("You have already entered this contest.");
-                }
+            if (!querySnapshot.empty) {
+                throw new Error("You have already entered this contest.");
             }
 
             const newContestantRef = doc(contestantsRef);
+            // Critical fix: Exclude the numeric 'id' from the plant object.
             const { id: plantNumericId, ...plantData } = plant;
             const newContestant: Contestant = {
                 ...plantData,
@@ -179,10 +174,10 @@ export async function joinContest(sessionId: string, userId: string, displayName
 
 export async function voteForContestant(sessionId: string, voterId: string, contestantId: string): Promise<{ success: boolean, error?: string }> {
     try {
-        const sessionRef = doc(db, "contestSessions", sessionId);
-        const contestantRef = doc(sessionRef, "contestants", contestantId);
-
         await runTransaction(db, async (transaction) => {
+            const sessionRef = doc(db, "contestSessions", sessionId);
+            const contestantToVoteForRef = doc(sessionRef, "contestants", contestantId);
+
             const sessionDoc = await transaction.get(sessionRef);
             if (!sessionDoc.exists() || sessionDoc.data().status !== 'voting') {
                 throw new Error("Voting for this contest has ended.");
@@ -197,7 +192,7 @@ export async function voteForContestant(sessionId: string, voterId: string, cont
                  throw new Error("You have already voted in this round.");
             }
 
-            const contestantDoc = await transaction.get(contestantRef);
+            const contestantDoc = await transaction.get(contestantToVoteForRef);
             if (!contestantDoc.exists()) {
                 throw new Error("This contestant is no longer in the running.");
             }
@@ -206,7 +201,7 @@ export async function voteForContestant(sessionId: string, voterId: string, cont
                 throw new Error("You cannot vote for your own plant.");
             }
 
-            transaction.update(contestantRef, {
+            transaction.update(contestantToVoteForRef, {
                 votes: increment(1),
                 voterIds: arrayUnion(voterId)
             });
@@ -243,7 +238,7 @@ export async function processContestState(sessionId: string): Promise<void> {
             const sessionDoc = await transaction.get(sessionRef);
             if (!sessionDoc.exists()) throw new Error("Session not found.");
             
-            const session = sessionDoc.data() as ContestSession;
+            const session = sessionDoc.data();
             if (session.status === 'finished') return;
 
             const contestantsRef = collection(sessionRef, "contestants");
@@ -252,7 +247,7 @@ export async function processContestState(sessionId: string): Promise<void> {
 
             if (session.status === 'waiting') {
                 const now = Timestamp.now().seconds;
-                const activeContestants = contestants.filter(c => (now - c.lastSeen.seconds) < HEARTBEAT_TIMEOUT_SECONDS);
+                const activeContestants = contestants.filter(c => (now - (c.lastSeen?.seconds || 0)) < HEARTBEAT_TIMEOUT_SECONDS);
                 
                 if (activeContestants.length < contestants.length) {
                     const inactiveContestants = contestants.filter(c => !activeContestants.find(ac => ac.id === c.id));
@@ -263,7 +258,7 @@ export async function processContestState(sessionId: string): Promise<void> {
                 }
 
                 if (activeContestants.length < 2) {
-                    transaction.update(sessionRef, { status: 'finished' });
+                    transaction.update(sessionRef, { status: 'finished', winner: null });
                     return;
                 }
 
@@ -274,25 +269,26 @@ export async function processContestState(sessionId: string): Promise<void> {
                 
             } else if (session.status === 'voting') {
                 if (contestants.length === 0) {
-                    transaction.update(sessionRef, { status: 'finished' });
+                    transaction.update(sessionRef, { status: 'finished', winner: null });
                     return;
                 }
 
-                const maxVotes = Math.max(...contestants.map(c => c.votes), 0);
-                const potentialWinners = contestants.filter(c => c.votes === maxVotes);
+                const maxVotes = Math.max(...contestants.map(c => c.votes || 0), 0);
+                const potentialWinners = contestants.filter(c => (c.votes || 0) === maxVotes);
 
-                if (potentialWinners.length === 1) {
+                if (potentialWinners.length === 1 && contestants.length > 1) {
                     const winner = potentialWinners[0];
                     transaction.update(sessionRef, {
                         status: 'finished',
                         winner: winner,
                     });
                 } else {
-                    const contestantsToEliminate = contestants.filter(c => c.votes < maxVotes);
+                    const contestantsToEliminate = contestants.filter(c => (c.votes || 0) < maxVotes);
                     for (const loser of contestantsToEliminate) {
                         transaction.delete(doc(contestantsRef, loser.id));
                     }
 
+                    const batch = writeBatch(db); // Use a batch within the transaction for multiple non-read ops
                     for (const tiedPlayer of potentialWinners) {
                          transaction.update(doc(contestantsRef, tiedPlayer.id), { votes: 0, voterIds: [] });
                     }
@@ -306,16 +302,12 @@ export async function processContestState(sessionId: string): Promise<void> {
             }
         });
 
+        // Awarding prize is done outside the transaction to avoid contention
         const finalSessionStateDoc = await getDoc(sessionRef);
         if (finalSessionStateDoc.exists()) {
             const finalSessionState = finalSessionStateDoc.data() as ContestSession;
             if (finalSessionState?.status === 'finished' && finalSessionState.winner) {
-                // Award prize outside of main transaction
-                const userDocRef = doc(db, "users", finalSessionState.winner.ownerId);
-                await updateDoc(userDocRef, {
-                    redGlitterCount: increment(1),
-                    gold: increment(50),
-                });
+                await awardContestPrize(finalSessionState.winner.ownerId);
             }
         }
 
