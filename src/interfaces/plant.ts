@@ -40,8 +40,8 @@ export interface CommunityUser {
 // The Contestant interface combines a player's plant with information about who owns it.
 // This is done so the contest document has a self-contained copy of all necessary data,
 // which prevents the need for extra database lookups.
-export interface Contestant extends Plant {
-    id: string; // The ownerId becomes the document ID in the subcollection.
+export interface Contestant extends Omit<Plant, 'id' | 'lastWatered' | 'conversationHistory'> {
+    id: string; // The document ID in the subcollection.
     votes: number;
     voterIds: string[];
     ownerId: string; // The UID of the user who owns this plant.
@@ -52,8 +52,8 @@ export interface Contestant extends Plant {
 export interface ContestSession {
     id: string;
     status: 'waiting' | 'voting' | 'finished';
-    createdAt: Timestamp;
-    expiresAt: Timestamp;
+    createdAt: Timestamp | string;
+    expiresAt: Timestamp | string;
     round: number;
     contestantCount: number;
     hostName: string;

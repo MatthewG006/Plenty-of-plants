@@ -15,7 +15,6 @@ import Link from 'next/link';
 import { ContestPlantSelectionDialog } from '@/components/plant-dialogs';
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
-import { Timestamp } from 'firebase/firestore';
 
 export default function ContestLobbyClientPage() {
     const { user, gameData } = useAuth();
@@ -34,7 +33,6 @@ export default function ContestLobbyClientPage() {
             setIsLoading(true);
             setError(null);
             try {
-                // It's good practice to run a cleanup before fetching.
                 await cleanupExpiredContests();
                 const activeSessions = await getActiveContests();
                 setSessions(activeSessions);
@@ -48,8 +46,7 @@ export default function ContestLobbyClientPage() {
         }
         
         loadContests();
-        // Optional: Set up an interval to refresh the list automatically
-        const interval = setInterval(loadContests, 30000); // Refresh every 30 seconds
+        const interval = setInterval(loadContests, 30000); 
         return () => clearInterval(interval);
 
     }, [toast]);
@@ -130,7 +127,7 @@ export default function ContestLobbyClientPage() {
                     <div className="space-y-4">
                         {sessions.length > 0 ? (
                             sessions.map(session => {
-                                const createdAtDate = (session.createdAt as unknown as Timestamp)?.toDate ? (session.createdAt as unknown as Timestamp).toDate() : new Date();
+                                const createdAtDate = new Date(session.createdAt as string);
                                 return (
                                     <Card key={session.id} className="hover:border-primary/50 transition-colors">
                                         <CardHeader>

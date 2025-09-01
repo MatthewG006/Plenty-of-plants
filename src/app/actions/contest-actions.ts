@@ -52,12 +52,10 @@ export async function cleanupExpiredContests() {
 
         const expiredSessions = [...expiredWaitingSnapshot.docs, ...expiredVotingSnapshot.docs];
         
-        const batch = writeBatch(db);
         for (const doc of expiredSessions) {
-            // Instead of full processing, just mark as finished to clean them up.
-             batch.update(doc.ref, { status: 'finished' });
+            // Process expired contests one by one to avoid large batches.
+            await processContestState(doc.id);
         }
-        await batch.commit();
 
     } catch (e: any) {
         console.error("Error during contest cleanup:", e);
@@ -73,10 +71,16 @@ export async function getActiveContests(): Promise<ContestSession[]> {
     
     const snapshot = await getDocs(q);
     
-    return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-    } as ContestSession));
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        // Convert Firestore Timestamps to serializable format (ISO strings)
+        return {
+            id: doc.id,
+            ...data,
+            createdAt: (data.createdAt as Timestamp).toDate().toISOString(),
+            expiresAt: (data.expiresAt as Timestamp).toDate().toISOString(),
+        } as ContestSession;
+    });
 }
 
 
@@ -145,15 +149,15 @@ export async function joinContest(sessionId: string, userId: string, displayName
                  throw new Error("This contest lobby is full.");
             }
 
-            const contestantsQuery = query(collection(sessionRef, "contestants"), where("ownerId", "==", userId));
-            // This query needs to be run outside the transaction for now due to Firestore limitations
-            const existingContestantSnapshot = await getDocs(contestantsQuery);
+            const contestantsRef = collection(sessionRef, "contestants");
+            const existingContestantQuery = query(contestantsRef, where("ownerId", "==", userId));
+            const existingContestantSnapshot = await getDocs(existingContestantQuery);
 
             if (!existingContestantSnapshot.empty) {
                 throw new Error("You have already entered this contest.");
             }
 
-            const newContestantRef = doc(collection(sessionRef, "contestants"));
+            const newContestantRef = doc(contestantsRef);
             const { id: plantNumericId, ...plantData } = plant;
             const newContestant: Contestant = {
                 ...plantData,
@@ -189,7 +193,6 @@ export async function voteForContestant(sessionId: string, voterId: string, cont
             }
             
             const contestantsCollectionRef = collection(sessionRef, "contestants");
-            // This query needs to run outside transaction.
             const contestantsSnapshot = await getDocs(query(contestantsCollectionRef));
             const allContestants = contestantsSnapshot.docs.map(d => d.data() as Contestant);
             
@@ -304,8 +307,7 @@ export async function processContestState(sessionId: string): Promise<void> {
                         status: 'finished',
                         winner: winner,
                     });
-                    // This must be done outside the transaction as it might involve other documents
-                    // and could make the transaction too complex. We'll call it after.
+                    // Prize will be awarded outside the transaction
                 } else {
                     // 3b. There's a tie, start a new round with only the tied players.
                     const contestantsToEliminate = contestants.filter(c => c.votes < maxVotes);
@@ -328,14 +330,20 @@ export async function processContestState(sessionId: string): Promise<void> {
         });
 
         // Award prize outside of main transaction if a winner was determined.
-        const finalSessionState = (await getDoc(sessionRef)).data() as ContestSession | undefined;
-        if (finalSessionState?.status === 'finished' && finalSessionState.winner) {
-            await awardContestPrize(finalSessionState.winner.ownerId);
+        const finalSessionStateDoc = await getDoc(sessionRef);
+        if (finalSessionStateDoc.exists()) {
+            const finalSessionState = finalSessionStateDoc.data() as ContestSession;
+            if (finalSessionState?.status === 'finished' && finalSessionState.winner) {
+                await awardContestPrize(finalSessionState.winner.ownerId);
+            }
         }
 
     } catch (e: any) {
         console.error(`Failed to process state for session ${sessionId}:`, e);
-        // If processing fails, mark the contest as finished to prevent it from getting stuck.
-        await updateDoc(sessionRef, { status: 'finished' });
+        try {
+            await updateDoc(sessionRef, { status: 'finished' });
+        } catch (updateError) {
+             console.error(`Failed to even mark session ${sessionId} as finished:`, updateError);
+        }
     }
 }
