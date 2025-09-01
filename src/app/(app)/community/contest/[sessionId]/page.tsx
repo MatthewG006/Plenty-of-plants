@@ -118,19 +118,18 @@ export default function ContestPage() {
 
         const updateTimer = () => {
             if (session.expiresAt) {
-                const endTime = (session.expiresAt as Timestamp).toDate().getTime();
+                const endTime = new Date(session.expiresAt as string).getTime();
                 const remaining = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
                 setTimeRemaining(remaining);
     
                 if (remaining <= 0) {
                     processContestState(sessionId);
-                    clearInterval(timer);
                 }
             }
         };
 
-        updateTimer(); // Initial call
-        timer = setInterval(updateTimer, 1000); // Subsequent calls every second
+        updateTimer(); 
+        timer = setInterval(updateTimer, 1000); 
 
         return () => clearInterval(timer);
     }, [session, sessionId]);
@@ -156,7 +155,16 @@ export default function ContestPage() {
         setIsLoading(true);
         const unsubSession = onSnapshot(doc(db, "contestSessions", sessionId), (doc) => {
             if (doc.exists()) {
-                setSession({ id: doc.id, ...doc.data()} as ContestSession);
+                 const data = doc.data();
+                 const sessionData: ContestSession = {
+                    id: doc.id,
+                    ...data,
+                    // Manually handle Timestamps if they exist, though they might already be serialized
+                    createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt,
+                    expiresAt: data.expiresAt?.toDate ? data.expiresAt.toDate().toISOString() : data.expiresAt,
+                    winner: data.winner,
+                 } as ContestSession;
+                 setSession(sessionData);
             } else {
                 setSession(null);
                 setError("This contest lobby no longer exists.");
@@ -276,7 +284,7 @@ export default function ContestPage() {
                 <div className="text-3xl font-bold text-primary mt-1">{timeRemaining}s</div>
             </Card>
 
-            {session.status === 'waiting' && timeRemaining <= 0 && (
+            {session.status === 'waiting' && timeRemaining <= 0 && session.contestantCount < 2 && (
                 <div className="text-center">
                     <p className="text-sm text-muted-foreground mb-2">The lobby timer has expired.</p>
                     <Button onClick={() => window.location.reload()}>
