@@ -79,18 +79,25 @@ export async function getActiveContests(): Promise<ContestSession[]> {
 export async function createNewContest(userId: string, hostName: string, plantId: number): Promise<{ sessionId?: string; error?: string; }> {
     try {
         const gameData = await getUserGameData(userId);
-        const plant = gameData?.plants?.[plantId];
+        if (!gameData?.plants) {
+             throw new Error("User game data or plants not found.");
+        }
+        
+        const plant = gameData.plants[plantId];
+
+        // --- Start of Added Logs ---
+        console.log("Game Data:", gameData);
+        console.log("Plant ID passed:", plantId);
+        console.log("Plant found:", plant);
+        // --- End of Added Logs ---
         
         if (!plant) {
             throw new Error("Could not find the selected plant.");
         }
         
-        // This transaction ensures the session and the first contestant are created atomically.
         const newSessionId = await runTransaction(db, async (transaction) => {
-            
             const newSessionRef = doc(collection(db, "contestSessions"));
-            const newContestantRef = doc(collection(newSessionRef, "contestants"));
-
+            
             const newSessionData: Omit<ContestSession, 'id'> = {
                 status: 'waiting',
                 createdAt: serverTimestamp(),
@@ -99,8 +106,9 @@ export async function createNewContest(userId: string, hostName: string, plantId
                 contestantCount: 1,
                 hostName: hostName,
             };
+            transaction.set(newSessionRef, newSessionData);
             
-            // Critical fix: Exclude the numeric 'id' from the plant object to avoid validation errors.
+            const newContestantRef = doc(collection(newSessionRef, "contestants"));
             const { id: plantNumericId, ...plantData } = plant;
 
             const newContestant: Contestant = {
@@ -113,7 +121,6 @@ export async function createNewContest(userId: string, hostName: string, plantId
                 lastSeen: Timestamp.now(),
             };
 
-            transaction.set(newSessionRef, newSessionData);
             transaction.set(newContestantRef, newContestant);
 
             return newSessionRef.id;
@@ -142,14 +149,19 @@ export async function joinContest(sessionId: string, userId: string, displayName
 
             const contestantsRef = collection(sessionRef, "contestants");
             const q = query(contestantsRef, where("ownerId", "==", userId));
-            const querySnapshot = await transaction.get(q);
+            const querySnapshot = await getDocs(q);
 
             if (!querySnapshot.empty) {
-                throw new Error("You have already entered this contest.");
+                // Check if the contestant doc belongs to a DIFFERENT session, indicating stale data.
+                // This is a defensive check in case cleanup fails.
+                const isStale = querySnapshot.docs.some(doc => doc.ref.parent.parent?.id !== sessionId);
+                if (!isStale) {
+                    throw new Error("You have already entered this contest.");
+                }
             }
 
+
             const newContestantRef = doc(contestantsRef);
-            // Critical fix: Exclude the numeric 'id' from the plant object.
             const { id: plantNumericId, ...plantData } = plant;
             const newContestant: Contestant = {
                 ...plantData,
