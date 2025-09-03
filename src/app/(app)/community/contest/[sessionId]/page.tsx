@@ -159,7 +159,6 @@ export default function ContestPage() {
                  const sessionData: ContestSession = {
                     id: doc.id,
                     ...data,
-                    // Manually handle Timestamps if they exist, though they might already be serialized
                     createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt,
                     expiresAt: data.expiresAt?.toDate ? data.expiresAt.toDate().toISOString() : data.expiresAt,
                     winner: data.winner,
@@ -374,3 +373,5 @@ export default function ContestPage() {
         </div>
     )
 }
+
+    
