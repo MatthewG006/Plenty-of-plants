@@ -67,11 +67,14 @@ export async function getActiveContests(): Promise<ContestSession[]> {
     
     return snapshot.docs.map(doc => {
         const data = doc.data();
+        const createdAt = data.createdAt;
+        const expiresAt = data.expiresAt;
+
         return {
             id: doc.id,
             ...data,
-            createdAt: (data.createdAt as Timestamp)?.toDate().toISOString(),
-            expiresAt: (data.expiresAt as Timestamp)?.toDate().toISOString(),
+            createdAt: createdAt?.toDate ? createdAt.toDate().toISOString() : createdAt,
+            expiresAt: expiresAt?.toDate ? expiresAt.toDate().toISOString() : expiresAt,
         } as ContestSession;
     });
 }
@@ -332,3 +335,5 @@ export async function processContestState(sessionId: string): Promise<void> {
         }
     }
 }
+
+    
