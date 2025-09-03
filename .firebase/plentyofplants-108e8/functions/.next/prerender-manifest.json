@@ -30,6 +30,31 @@
         "x-next-revalidate-tag-token"
       ]
     },
+    "/_not-found": {
+      "initialStatus": 404,
+      "experimentalBypassFor": [
+        {
+          "type": "header",
+          "key": "next-action"
+        },
+        {
+          "type": "header",
+          "key": "content-type",
+          "value": "multipart/form-data;.*"
+        }
+      ],
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/_not-found",
+      "dataRoute": "/_not-found.rsc",
+      "allowHeader": [
+        "host",
+        "x-matched-path",
+        "x-prerender-revalidate",
+        "x-prerender-revalidate-if-generated",
+        "x-next-revalidated-tags",
+        "x-next-revalidate-tag-token"
+      ]
+    },
     "/login": {
       "experimentalBypassFor": [
         {
@@ -150,7 +175,7 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/community/park": {
+    "/garden/seeds": {
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -163,8 +188,8 @@
         }
       ],
       "initialRevalidateSeconds": false,
-      "srcRoute": "/community/park",
-      "dataRoute": "/community/park.rsc",
+      "srcRoute": "/garden/seeds",
+      "dataRoute": "/garden/seeds.rsc",
       "allowHeader": [
         "host",
         "x-matched-path",
@@ -198,7 +223,7 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/garden/seeds": {
+    "/community/park": {
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -211,8 +236,8 @@
         }
       ],
       "initialRevalidateSeconds": false,
-      "srcRoute": "/garden/seeds",
-      "dataRoute": "/garden/seeds.rsc",
+      "srcRoute": "/community/park",
+      "dataRoute": "/community/park.rsc",
       "allowHeader": [
         "host",
         "x-matched-path",
@@ -333,31 +358,6 @@
       "initialRevalidateSeconds": false,
       "srcRoute": "/shop",
       "dataRoute": "/shop.rsc",
-      "allowHeader": [
-        "host",
-        "x-matched-path",
-        "x-prerender-revalidate",
-        "x-prerender-revalidate-if-generated",
-        "x-next-revalidated-tags",
-        "x-next-revalidate-tag-token"
-      ]
-    },
-    "/_not-found": {
-      "initialStatus": 404,
-      "experimentalBypassFor": [
-        {
-          "type": "header",
-          "key": "next-action"
-        },
-        {
-          "type": "header",
-          "key": "content-type",
-          "value": "multipart/form-data;.*"
-        }
-      ],
-      "initialRevalidateSeconds": false,
-      "srcRoute": "/_not-found",
-      "dataRoute": "/_not-found.rsc",
       "allowHeader": [
         "host",
         "x-matched-path",
