@@ -175,7 +175,7 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/garden/seeds": {
+    "/community/park": {
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -188,8 +188,8 @@
         }
       ],
       "initialRevalidateSeconds": false,
-      "srcRoute": "/garden/seeds",
-      "dataRoute": "/garden/seeds.rsc",
+      "srcRoute": "/community/park",
+      "dataRoute": "/community/park.rsc",
       "allowHeader": [
         "host",
         "x-matched-path",
@@ -223,7 +223,7 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/community/park": {
+    "/garden/seeds": {
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -236,8 +236,8 @@
         }
       ],
       "initialRevalidateSeconds": false,
-      "srcRoute": "/community/park",
-      "dataRoute": "/community/park.rsc",
+      "srcRoute": "/garden/seeds",
+      "dataRoute": "/garden/seeds.rsc",
       "allowHeader": [
         "host",
         "x-matched-path",

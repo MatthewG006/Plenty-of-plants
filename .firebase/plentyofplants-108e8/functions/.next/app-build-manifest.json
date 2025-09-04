@@ -114,13 +114,6 @@
       "static/chunks/482-b6eff2efd8dfa76c.js",
       "static/chunks/app/(app)/community/page-67b9c227f5c0c694.js"
     ],
-    "/(app)/community/park/page": [
-      "static/chunks/webpack-c7ef6925637ce56a.js",
-      "static/chunks/4bd1b696-21f374d1156f834a.js",
-      "static/chunks/255-396846120a84130d.js",
-      "static/chunks/main-app-a76918e032ab70ca.js",
-      "static/chunks/app/(app)/community/park/page-293ffc5d10024367.js"
-    ],
     "/(app)/garden/page": [
       "static/chunks/webpack-c7ef6925637ce56a.js",
       "static/chunks/4bd1b696-21f374d1156f834a.js",
@@ -139,6 +132,13 @@
       "static/chunks/482-b6eff2efd8dfa76c.js",
       "static/chunks/584-93fc360b51129f55.js",
       "static/chunks/app/(app)/garden/page-17724deaa220c107.js"
+    ],
+    "/(app)/community/park/page": [
+      "static/chunks/webpack-c7ef6925637ce56a.js",
+      "static/chunks/4bd1b696-21f374d1156f834a.js",
+      "static/chunks/255-396846120a84130d.js",
+      "static/chunks/main-app-a76918e032ab70ca.js",
+      "static/chunks/app/(app)/community/park/page-293ffc5d10024367.js"
     ],
     "/(app)/garden/seeds/page": [
       "static/chunks/webpack-c7ef6925637ce56a.js",
