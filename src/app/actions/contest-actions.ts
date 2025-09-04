@@ -79,23 +79,10 @@ export async function getActiveContests(): Promise<ContestSession[]> {
     });
 }
 
-export async function createNewContest(userId: string, hostName: string, plantId: number): Promise<{ sessionId?: string; error?: string; }> {
+export async function createNewContest(userId: string, hostName: string, plant: Plant): Promise<{ sessionId?: string; error?: string; }> {
     try {
-        const gameData = await getUserGameData(userId);
-        if (!gameData?.plants) {
-             throw new Error("User game data or plants not found.");
-        }
-        
-        const plant = gameData.plants[plantId];
-
-        // --- Start of Added Logs ---
-        console.log("Game Data:", gameData);
-        console.log("Plant ID passed:", plantId);
-        console.log("Plant found:", plant);
-        // --- End of Added Logs ---
-        
         if (!plant) {
-            throw new Error("Could not find the selected plant.");
+            throw new Error("A valid plant must be provided to create a contest.");
         }
         
         const newSessionId = await runTransaction(db, async (transaction) => {
