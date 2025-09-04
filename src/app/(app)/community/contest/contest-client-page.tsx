@@ -65,7 +65,7 @@ export default function ContestLobbyClientPage() {
         setError(null);
         
         try {
-            const { sessionId, error } = await createNewContest(user.uid, user.displayName, plant.id);
+            const { sessionId, error } = await createNewContest(user.uid, user.displayName, plant);
             
             if (error) {
                 throw new Error(error);
