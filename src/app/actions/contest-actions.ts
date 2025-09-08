@@ -73,8 +73,8 @@ export async function getActiveContests(): Promise<ContestSession[]> {
         return {
             id: doc.id,
             ...data,
-            createdAt: createdAt?.toDate ? createdAt.toDate().toISOString() : createdAt,
-            expiresAt: expiresAt?.toDate ? expiresAt.toDate().toISOString() : expiresAt,
+            createdAt: createdAt?.toDate ? createdAt.toDate().toISOString() : new Date().toISOString(),
+            expiresAt: expiresAt?.toDate ? expiresAt.toDate().toISOString() : new Date().toISOString(),
         } as ContestSession;
     });
 }
@@ -186,8 +186,9 @@ export async function voteForContestant(sessionId: string, voterId: string, cont
             }
             
             const contestantsCollectionRef = collection(sessionRef, "contestants");
-            const contestantsSnapshot = await transaction.get(query(contestantsCollectionRef));
-            const allContestants = contestantsSnapshot.docs.map(d => d.data() as Contestant);
+            // We need to fetch the contestants within the transaction to ensure consistent reads.
+            const contestantsSnapshotDocs = await getDocs(query(contestantsCollectionRef));
+            const allContestants = contestantsSnapshotDocs.docs.map(d => d.data() as Contestant);
             
             const alreadyVoted = allContestants.some(c => c.voterIds?.includes(voterId));
             if (alreadyVoted) {
@@ -244,7 +245,7 @@ export async function processContestState(sessionId: string): Promise<void> {
             if (session.status === 'finished') return;
 
             const contestantsRef = collection(sessionRef, "contestants");
-            const contestantsSnapshot = await transaction.get(query(contestantsRef));
+            const contestantsSnapshot = await getDocs(query(contestantsRef));
             const contestants = contestantsSnapshot.docs.map(d => ({ ...d.data(), id: d.id } as Contestant));
 
             if (session.status === 'waiting') {
@@ -284,13 +285,20 @@ export async function processContestState(sessionId: string): Promise<void> {
                         status: 'finished',
                         winner: winner,
                     });
-                } else {
+                } else { // Tie or only one person left
+                     if (potentialWinners.length <= 1) {
+                         // If there's only one person left, they are the winner.
+                         const winner = potentialWinners[0] || contestants[0];
+                         transaction.update(sessionRef, { status: 'finished', winner: winner });
+                         return;
+                     }
+
+                    // Handle tie-breaker round
                     const contestantsToEliminate = contestants.filter(c => (c.votes || 0) < maxVotes);
                     for (const loser of contestantsToEliminate) {
                         transaction.delete(doc(contestantsRef, loser.id));
                     }
-
-                    const batch = writeBatch(db); // Use a batch within the transaction for multiple non-read ops
+                    
                     for (const tiedPlayer of potentialWinners) {
                          transaction.update(doc(contestantsRef, tiedPlayer.id), { votes: 0, voterIds: [] });
                     }
@@ -316,11 +324,9 @@ export async function processContestState(sessionId: string): Promise<void> {
     } catch (e: any) {
         console.error(`Failed to process state for session ${sessionId}:`, e);
         try {
-            await updateDoc(sessionRef, { status: 'finished' });
+            await updateDoc(sessionRef, { status: 'finished', error: e.message });
         } catch (updateError) {
              console.error(`Failed to even mark session ${sessionId} as finished:`, updateError);
         }
     }
 }
-
-    

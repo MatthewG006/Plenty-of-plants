@@ -118,7 +118,7 @@ export default function ContestPage() {
 
         const updateTimer = () => {
             if (session.expiresAt) {
-                const endTime = new Date(session.expiresAt as string).getTime();
+                const endTime = (session.expiresAt as any)?.seconds ? new Timestamp((session.expiresAt as any).seconds, (session.expiresAt as any).nanoseconds).toDate().getTime() : new Date(session.expiresAt as string).getTime();
                 const remaining = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
                 setTimeRemaining(remaining);
     
@@ -159,9 +159,8 @@ export default function ContestPage() {
                  const sessionData: ContestSession = {
                     id: doc.id,
                     ...data,
-                    createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt,
-                    expiresAt: data.expiresAt?.toDate ? data.expiresAt.toDate().toISOString() : data.expiresAt,
-                    winner: data.winner,
+                    createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
+                    expiresAt: data.expiresAt?.toDate ? data.expiresAt.toDate().toISOString() : new Date().toISOString(),
                  } as ContestSession;
                  setSession(sessionData);
             } else {
@@ -373,5 +372,3 @@ export default function ContestPage() {
         </div>
     )
 }
-
-    
