@@ -38,7 +38,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icon-512.png" />
         <link rel="manifest" href="/manifest.webmanifest" />
       </head>
-      <body className="font-body antialiased">
+      <body className="font-body antialiased" suppressHydrationWarning={true}>
         <AudioProvider>
           <AuthProvider>
             {children}
