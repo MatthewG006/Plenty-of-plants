@@ -15,15 +15,6 @@ export default function SplashPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    if (!loading && user) {
-        // Pre-emptively redirect if user is already known and we are on the splash page.
-        // The user clicks the button which will take them to the correct page.
-        return;
-    }
-  }, [user, loading, router]);
-
-
   const handleEnter = () => {
     playSfx('whoosh');
     router.push(user ? '/home' : '/login');
