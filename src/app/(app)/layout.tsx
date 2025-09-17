@@ -1,15 +1,34 @@
+import type { Metadata } from "next";
+import "./globals.css";
+import { AuthProvider } from "@/context/AuthContext";
+import { Toaster } from "@/components/ui/toaster";
 
-import BottomNavBar from '@/components/bottom-nav-bar';
+export const metadata: Metadata = {
+  title: "AuthZen",
+  description: "Simple and elegant authentication with Firebase and Next.js",
+};
 
-export default function AppLayout({
+export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
-    <div className="min-h-screen w-full">
-      <main className="pb-24">{children}</main>
-      <BottomNavBar />
-    </div>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="font-body antialiased">
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+        <Toaster />
+      </body>
+    </html>
   );
 }

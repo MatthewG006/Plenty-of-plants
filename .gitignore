@@ -1,69 +1,45 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# Dependencies
+# dependencies
 /node_modules
 /.pnp
-.pnp.js
-.yarn/install-state.gz
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
 
-# Testing
+# testing
 /coverage
 
-# Next.js
+# next.js
 /.next/
 /out/
 
-# Production
+# production
 /build
 
-# Vercel
-.vercel
-
-# Firebase
-/.firebase
-firebase-debug.log
-
-# Turborepo
-.turbo
-
-# ESLint
-.eslintcache
-
-# dotenv
-.env
-.env*.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# PWA
-public/sw.js
-public/workbox-*.js*
-
-# Misc
+# misc
 .DS_Store
 *.pem
-Matt/
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
+.pnpm-debug.log*
 
-# Editor directories and files
-.vscode
-.idea
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+# vercel
+.vercel
 
-gitignore
-# Ignore build artifacts and cache files
-.firebase/
-.next/
+# typescript
+*.tsbuildinfo
+next-env.d.ts
 
-# Ignore node_modules
-node_modules/
+.genkit/*
+.env*
+
+# firebase
+firebase-debug.log
+firestore-debug.log
