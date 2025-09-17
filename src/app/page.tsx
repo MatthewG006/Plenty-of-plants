@@ -4,19 +4,15 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import { useEffect } from 'react';
 
 export default function SplashPage() {
-  const { playSfx } = useAudio();
   const { user, loading } = useAuth();
   const router = useRouter();
 
   const handleEnter = () => {
-    playSfx('whoosh');
     router.push(user ? '/home' : '/login');
   };
 
@@ -36,7 +32,7 @@ export default function SplashPage() {
         <p className="text-lg text-white font-bold -mt-16" style={{ textShadow: '0 2px 4px rgba(0,0,0,1)' }}>
           Your Digital Conservatory Awaits.
         </p>
-        <Button onClick={handleEnter} className="mt-12 animate-pulse-subtle bg-blue-500 hover:bg-blue-600" size="lg" disableSfx>
+        <Button onClick={handleEnter} className="mt-12 animate-pulse-subtle bg-blue-500 hover:bg-blue-600" size="lg">
           <span className="text-xl px-8">Tap to Enter</span>
         </Button>
       </div>
