@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 // IMPORTANT: Replace the placeholder values with your own Firebase project configuration.
 // You can find this in your Firebase project settings.
@@ -15,5 +16,6 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
+const db = getFirestore(app);
 
-export { app, auth };
+export { app, auth, db };
