@@ -96,6 +96,12 @@
       "namedRegex": "^/profile(?:/)?$"
     },
     {
+      "page": "/register",
+      "regex": "^/register(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/register(?:/)?$"
+    },
+    {
       "page": "/room",
       "regex": "^/room(?:/)?$",
       "routeKeys": {},
