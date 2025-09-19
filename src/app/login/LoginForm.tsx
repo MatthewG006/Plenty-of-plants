@@ -18,6 +18,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { useAudio } from "@/context/AudioContext";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Megaphone } from "lucide-react";
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
@@ -33,7 +35,7 @@ export default function LoginForm() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       startMusic();
-      router.push("/");
+      router.push("/home");
     } catch (error: any) {
       toast({
         title: "Login Failed",
@@ -46,11 +48,18 @@ export default function LoginForm() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md shadow-lg">
+    <main className="flex min-h-screen items-center justify-center bg-splash-image p-4">
+      <Card className="w-full max-w-md shadow-lg bg-background/90 backdrop-blur-sm">
         <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-headline">AuthZen</CardTitle>
-          <CardDescription>Log in to your account</CardDescription>
+          <Alert className="mb-4 bg-accent/80 border-primary/20">
+            <Megaphone className="h-4 w-4" />
+            <AlertTitle className="font-bold text-primary">New Update!</AlertTitle>
+            <AlertDescription>
+              The real-time Plant Beauty Contest is now live! Visit the Park to compete.
+            </AlertDescription>
+          </Alert>
+          <CardTitle className="text-3xl font-headline text-primary">Welcome Back!</CardTitle>
+          <CardDescription>Log in to tend to your plants.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignIn} className="space-y-6">
@@ -83,10 +92,10 @@ export default function LoginForm() {
           <p className="mt-6 text-center text-sm text-muted-foreground">
             Don&apos;t have an account?{" "}
             <Link
-              href="/register"
+              href="/signup"
               className="font-medium text-primary hover:underline"
             >
-              Register
+              Sign Up
             </Link>
           </p>
         </CardContent>
