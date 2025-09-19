@@ -7,7 +7,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/context/AuthContext';
 import { useEffect } from 'react';
 import { AudioProvider } from '@/context/AudioContext';
-import MusicPlayer from '@/components/MusicPlayer';
 
 
 // export const metadata: Metadata = {
@@ -44,7 +43,6 @@ export default function RootLayout({
           <AuthProvider>
             {children}
             <Toaster />
-            <MusicPlayer />
           </AuthProvider>
         </AudioProvider>
       </body>

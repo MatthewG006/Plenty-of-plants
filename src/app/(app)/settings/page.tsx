@@ -43,7 +43,7 @@ export default function SettingsPage() {
   const { user, gameData } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const { sfxVolume, setSfxVolume, playSfx } = useAudio();
+  const { sfxVolume, setSfxVolume, playSfx, musicVolume, setMusicVolume, isMusicPlaying, toggleMusic } = useAudio();
   const [isClient, setIsClient] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
@@ -113,6 +113,9 @@ export default function SettingsPage() {
           <CardTitle>Game Controls</CardTitle>
         </CardHeader>
         <CardContent>
+          <SettingRow icon={Music} label="Music">
+            <Switch id="music" checked={isMusicPlaying} onCheckedChange={toggleMusic} />
+          </SettingRow>
           <SettingRow icon={Zap} label="Effects">
             <Switch id="fx" checked={sfxVolume > 0} onCheckedChange={(checked) => setSfxVolume(checked ? 0.75 : 0)} />
           </SettingRow>
@@ -127,6 +130,16 @@ export default function SettingsPage() {
           <CardTitle>Volume</CardTitle>
         </CardHeader>
         <CardContent>
+           <SettingRow icon={Music} label="Music">
+              <Slider 
+                value={[musicVolume * 100]} 
+                onValueChange={(value) => setMusicVolume(value[0] / 100)}
+                max={100} 
+                step={1} 
+                className="w-1/2" 
+                aria-label="Music volume"
+              />
+          </SettingRow>
            <SettingRow icon={Zap} label="Effects">
               <Slider 
                 value={[sfxVolume * 100]} 

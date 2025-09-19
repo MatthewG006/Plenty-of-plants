@@ -6,6 +6,10 @@ import React, { createContext, useContext, useState, ReactNode, useCallback, use
 interface AudioContextType {
   sfxVolume: number;
   setSfxVolume: (volume: number) => void;
+  musicVolume: number;
+  setMusicVolume: (volume: number) => void;
+  isMusicPlaying: boolean;
+  toggleMusic: () => void;
   playSfx: (sound: 'tap' | 'success' | 'reward' | 'chime' | 'watering') => void;
 }
 
@@ -20,6 +24,18 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
     return 0.75;
   });
 
+  const [musicVolume, setMusicVolumeState] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedVolume = localStorage.getItem('musicVolume');
+      return savedVolume !== null ? parseFloat(savedVolume) : 0.2;
+    }
+    return 0.2;
+  });
+  
+  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+  
+  const musicRef = useRef<HTMLAudioElement | null>(null);
+
   const audioRefs = {
     tap: useRef<HTMLAudioElement | null>(null),
     success: useRef<HTMLAudioElement | null>(null),
@@ -30,19 +46,64 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      musicRef.current = new Audio('/music.mp3');
+      musicRef.current.loop = true;
+
       audioRefs.tap.current = new Audio('/sfx/tap.mp3');
       audioRefs.success.current = new Audio('/sfx/success.mp3');
       audioRefs.reward.current = new Audio('/sfx/reward.mp3');
       audioRefs.chime.current = new Audio('/sfx/chime.mp3');
       audioRefs.watering.current = new Audio('/sfx/watering.mp3');
+
+      const handleFirstInteraction = () => {
+        if (musicRef.current && musicRef.current.paused) {
+           musicRef.current.play().then(() => {
+              setIsMusicPlaying(true);
+           }).catch(() => {
+              setIsMusicPlaying(false);
+           });
+        }
+        document.removeEventListener('click', handleFirstInteraction);
+        document.removeEventListener('keydown', handleFirstInteraction);
+      };
+  
+      document.addEventListener('click', handleFirstInteraction);
+      document.addEventListener('keydown', handleFirstInteraction);
+  
+      return () => {
+        document.removeEventListener('click', handleFirstInteraction);
+        document.removeEventListener('keydown', handleFirstInteraction);
+      };
     }
   }, []);
+
+  useEffect(() => {
+    if (musicRef.current) {
+        musicRef.current.volume = musicVolume;
+    }
+    localStorage.setItem('musicVolume', String(musicVolume));
+  }, [musicVolume]);
 
   const setSfxVolume = (volume: number) => {
     setSfxVolumeState(volume);
     localStorage.setItem('sfxVolume', String(volume));
   };
   
+  const setMusicVolume = (volume: number) => {
+    setMusicVolumeState(volume);
+  }
+
+  const toggleMusic = useCallback(() => {
+    if (musicRef.current) {
+      if (isMusicPlaying) {
+        musicRef.current.pause();
+      } else {
+        musicRef.current.play();
+      }
+      setIsMusicPlaying(!isMusicPlaying);
+    }
+  }, [isMusicPlaying]);
+
   const playSfx = useCallback((sound: keyof typeof audioRefs) => {
       const audio = audioRefs[sound].current;
       if (audio) {
@@ -54,7 +115,7 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
 
 
   return (
-    <AudioContext.Provider value={{ sfxVolume, setSfxVolume, playSfx }}>
+    <AudioContext.Provider value={{ sfxVolume, setSfxVolume, musicVolume, setMusicVolume, isMusicPlaying, toggleMusic, playSfx }}>
       {children}
     </AudioContext.Provider>
   );
