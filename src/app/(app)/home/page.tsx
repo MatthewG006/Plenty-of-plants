@@ -224,12 +224,14 @@ export default function HomePage() {
 
   useEffect(() => {
     if (user && gameData) {
-        if (gameData.draws > 0) {
-             toast({
-                title: "Draws Available!",
-                description: `You have ${gameData.draws} draw(s) ready.`,
-            });
-        }
+        refillDraws(user.uid).then(drawsAdded => {
+            if (drawsAdded > 0) {
+                 toast({
+                    title: "Draws Refilled!",
+                    description: `You got ${drawsAdded} new draw(s).`,
+                });
+            }
+        });
         
         checkAndResetChallenges(user.uid).then(() => {
             updateLoginProgress(user.uid);

@@ -6,6 +6,8 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/context/AuthContext';
 import { useEffect } from 'react';
+import { AudioProvider } from '@/context/AudioContext';
+import MusicPlayer from '@/components/MusicPlayer';
 
 
 // export const metadata: Metadata = {
@@ -38,10 +40,13 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.webmanifest" />
       </head>
       <body className="font-body antialiased" suppressHydrationWarning={true}>
+        <AudioProvider>
           <AuthProvider>
             {children}
             <Toaster />
+            <MusicPlayer />
           </AuthProvider>
+        </AudioProvider>
       </body>
     </html>
   );
