@@ -56,6 +56,9 @@ export interface ContestSession {
     expiresAt: Timestamp | string;
     round: number;
     contestantCount: number;
+    hostId: string;
     hostName: string;
     winner?: Contestant;
 }
+
+    

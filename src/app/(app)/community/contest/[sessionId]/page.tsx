@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, ArrowLeft, Trophy, Users, Star, Crown, Sparkles, ShieldAlert, RefreshCw } from 'lucide-react';
+import { Loader2, ArrowLeft, Trophy, Users, Star, Crown, Sparkles, ShieldAlert, RefreshCw, Play } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -12,7 +12,7 @@ import type { Plant, ContestSession, Contestant } from '@/interfaces/plant';
 import { cn } from '@/lib/utils';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { joinContest, voteForContestant, sendHeartbeat, processContestState } from '@/app/actions/contest-actions';
+import { joinContest, voteForContestant, sendHeartbeat, processContestState, startContestManually } from '@/app/actions/contest-actions';
 import Link from 'next/link';
 import { doc, onSnapshot, Timestamp, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -87,6 +87,7 @@ export default function ContestPage() {
     const sessionId = params.sessionId as string;
     
     const [isLoading, setIsLoading] = useState(true);
+    const [isStarting, setIsStarting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [session, setSession] = useState<ContestSession | null>(null);
     const [contestants, setContestants] = useState<Contestant[]>([]);
@@ -96,6 +97,7 @@ export default function ContestPage() {
 
     const hasEntered = user && contestants.some(c => c.ownerId === user.uid);
     const hasVoted = user && contestants.some(c => c.voterIds?.includes(user.uid));
+    const isHost = user && session?.hostId === user.uid;
 
     // Heartbeat effect
     useEffect(() => {
@@ -217,6 +219,24 @@ export default function ContestPage() {
             setIsJoining(false);
         }
     };
+
+    const handleStartContest = async () => {
+        if (!user || !isHost) return;
+        setIsStarting(true);
+        try {
+            const { success, error } = await startContestManually(sessionId, user.uid);
+            if (!success) {
+                throw new Error(error || "Failed to start contest.");
+            }
+            playSfx('success');
+            toast({ title: "Contest Started!", description: "The first voting round has begun." });
+        } catch (e: any) {
+            console.error("Failed to start contest:", e);
+            toast({ variant: 'destructive', title: 'Start Error', description: e.message });
+        } finally {
+            setIsStarting(false);
+        }
+    };
     
     const handleVote = async (contestantId: string) => {
         if (!user || !session || !sessionId) return;
@@ -231,11 +251,13 @@ export default function ContestPage() {
     };
 
 
-    if (isLoading || isJoining) {
+    if (isLoading || isJoining || isStarting) {
         return (
             <div className="flex h-screen w-full items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="ml-2">{isJoining ? "Joining contest..." : "Finding contest..."}</p>
+                <p className="ml-2">
+                    {isJoining ? "Joining contest..." : isStarting ? "Starting contest..." : "Finding contest..."}
+                </p>
             </div>
         );
     }
@@ -279,7 +301,7 @@ export default function ContestPage() {
                     {session.status === 'voting' && 'Vote for your favorite!'}
                     {session.status === 'finished' && 'Contest Over!'}
                 </p>
-                <div className="text-3xl font-bold text-primary mt-1">{timeRemaining}s</div>
+                <div className="text-3xl font-bold text-primary mt-1">{timeRemaining > 0 ? `${timeRemaining}s` : '0s'}</div>
             </Card>
 
             {session.status === 'waiting' && timeRemaining <= 0 && session.contestantCount < 2 && (
@@ -314,13 +336,22 @@ export default function ContestPage() {
                                 )
                              })}
                         </div>
-                        <div className="absolute bottom-4 left-4 right-4">
+                        <div className="absolute bottom-4 left-4 right-4 flex flex-col gap-2">
+                             {isHost && (
+                                <Button className="w-full" onClick={handleStartContest} disabled={contestants.length < 2 || timeRemaining <= 0}>
+                                    <Play className="mr-2" />
+                                    Start Contest
+                                </Button>
+                            )}
                             {!hasEntered && timeRemaining > 0 && session.contestantCount < playerPositions.length ? (
-                                <Button className="w-full" onClick={() => setShowPlantSelection(true)}>
+                                <Button className="w-full" onClick={() => setShowPlantSelection(true)} variant={isHost ? "secondary" : "default"}>
                                     <Trophy className="mr-2" />
                                     Enter Your Plant!
                                 </Button>
                             ) : null}
+                            <p className="text-xs text-muted-foreground text-center">
+                                {isHost ? (contestants.length < 2 ? "Waiting for more players..." : "You can start the contest now.") : "Waiting for the host to start the contest..."}
+                            </p>
                         </div>
                     </CardContent>
                 </Card>
@@ -372,3 +403,5 @@ export default function ContestPage() {
         </div>
     )
 }
+
+    

@@ -26,6 +26,39 @@ const LOBBY_EXPIRATION_MINUTES = 3;
 const VOTING_TIME_SECONDS = 30;
 const HEARTBEAT_TIMEOUT_SECONDS = 30;
 
+export async function startContestManually(sessionId: string, userId: string): Promise<{ success: boolean; error?: string }> {
+    const sessionRef = doc(db, "contestSessions", sessionId);
+
+    try {
+        await runTransaction(db, async (transaction) => {
+            const sessionDoc = await transaction.get(sessionRef);
+            if (!sessionDoc.exists()) throw new Error("Session not found.");
+            
+            const session = sessionDoc.data() as ContestSession;
+            if (session.status !== 'waiting') throw new Error("The contest has already started.");
+            if (session.hostId !== userId) throw new Error("Only the host can start the contest.");
+
+            const contestantsRef = collection(sessionRef, "contestants");
+            const contestantsSnapshot = await getDocs(query(contestantsRef));
+            const contestants = contestantsSnapshot.docs.map(d => ({ ...d.data(), id: d.id } as Contestant));
+
+            if (contestants.length < 2) {
+                throw new Error("You need at least 2 players to start the contest.");
+            }
+            
+            transaction.update(sessionRef, {
+                status: 'voting',
+                expiresAt: Timestamp.fromMillis(Date.now() + VOTING_TIME_SECONDS * 1000)
+            });
+        });
+        return { success: true };
+    } catch (e: any) {
+        console.error("Error starting contest manually:", e);
+        return { success: false, error: e.message || "Could not start the contest." };
+    }
+}
+
+
 export async function cleanupExpiredContests() {
     const now = Timestamp.now();
     const contestRef = collection(db, "contestSessions");
@@ -94,6 +127,7 @@ export async function createNewContest(userId: string, hostName: string, plant: 
                 expiresAt: Timestamp.fromMillis(Date.now() + LOBBY_EXPIRATION_MINUTES * 60 * 1000),
                 round: 1,
                 contestantCount: 1,
+                hostId: userId,
                 hostName: hostName,
             };
             transaction.set(newSessionRef, newSessionData);
@@ -260,12 +294,8 @@ export async function processContestState(sessionId: string): Promise<void> {
                     transaction.update(sessionRef, { contestantCount: activeContestants.length });
                 }
 
-                if (activeContestants.length >= 2) {
-                    transaction.update(sessionRef, {
-                        status: 'voting',
-                        expiresAt: Timestamp.fromMillis(Date.now() + VOTING_TIME_SECONDS * 1000)
-                    });
-                } else {
+                // Lobby expired and no one is there or only one person is there
+                if (activeContestants.length < 2) {
                     transaction.update(sessionRef, { status: 'finished', winner: null });
                 }
                 return;
@@ -330,3 +360,5 @@ export async function processContestState(sessionId: string): Promise<void> {
         }
     }
 }
+
+    
