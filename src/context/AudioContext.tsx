@@ -10,6 +10,7 @@ interface AudioContextType {
   setMusicVolume: (volume: number) => void;
   isMusicPlaying: boolean;
   toggleMusic: () => void;
+  startMusic: () => void;
   playSfx: (sound: 'tap' | 'success' | 'reward' | 'chime' | 'watering') => void;
 }
 
@@ -46,34 +47,12 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      musicRef.current = new Audio('/music.mp3');
-      musicRef.current.loop = true;
-
+      // Pre-load sound effects
       audioRefs.tap.current = new Audio('/sfx/tap.mp3');
       audioRefs.success.current = new Audio('/sfx/success.mp3');
       audioRefs.reward.current = new Audio('/sfx/reward.mp3');
       audioRefs.chime.current = new Audio('/sfx/chime.mp3');
       audioRefs.watering.current = new Audio('/sfx/watering.mp3');
-
-      const handleFirstInteraction = () => {
-        if (musicRef.current && musicRef.current.paused) {
-           musicRef.current.play().then(() => {
-              setIsMusicPlaying(true);
-           }).catch(() => {
-              setIsMusicPlaying(false);
-           });
-        }
-        document.removeEventListener('click', handleFirstInteraction);
-        document.removeEventListener('keydown', handleFirstInteraction);
-      };
-  
-      document.addEventListener('click', handleFirstInteraction);
-      document.addEventListener('keydown', handleFirstInteraction);
-  
-      return () => {
-        document.removeEventListener('click', handleFirstInteraction);
-        document.removeEventListener('keydown', handleFirstInteraction);
-      };
     }
   }, []);
 
@@ -93,16 +72,35 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
     setMusicVolumeState(volume);
   }
 
+  const createMusicPlayer = useCallback(() => {
+    if (!musicRef.current && typeof window !== 'undefined') {
+        const music = new Audio('/music.mp3');
+        music.loop = true;
+        music.volume = musicVolume;
+        musicRef.current = music;
+    }
+  }, [musicVolume]);
+
+  const startMusic = useCallback(() => {
+    createMusicPlayer();
+    if (musicRef.current && musicRef.current.paused) {
+      musicRef.current.play().then(() => {
+          setIsMusicPlaying(true);
+      }).catch(e => console.error("Music play failed", e));
+    }
+  }, [createMusicPlayer]);
+
   const toggleMusic = useCallback(() => {
+    createMusicPlayer(); // Ensure player exists if toggled from settings first
     if (musicRef.current) {
       if (isMusicPlaying) {
         musicRef.current.pause();
       } else {
-        musicRef.current.play();
+        musicRef.current.play().catch(e => console.error("Music play failed", e));
       }
       setIsMusicPlaying(!isMusicPlaying);
     }
-  }, [isMusicPlaying]);
+  }, [isMusicPlaying, createMusicPlayer]);
 
   const playSfx = useCallback((sound: keyof typeof audioRefs) => {
       const audio = audioRefs[sound].current;
@@ -115,7 +113,7 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
 
 
   return (
-    <AudioContext.Provider value={{ sfxVolume, setSfxVolume, musicVolume, setMusicVolume, isMusicPlaying, toggleMusic, playSfx }}>
+    <AudioContext.Provider value={{ sfxVolume, setSfxVolume, musicVolume, setMusicVolume, isMusicPlaying, toggleMusic, startMusic, playSfx }}>
       {children}
     </AudioContext.Provider>
   );

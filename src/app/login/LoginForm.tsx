@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -16,6 +17,7 @@ import {
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
+import { useAudio } from "@/context/AudioContext";
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
@@ -23,12 +25,14 @@ export default function LoginForm() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const { startMusic } = useAudio();
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
+      startMusic();
       router.push("/");
     } catch (error: any) {
       toast({
