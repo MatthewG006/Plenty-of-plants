@@ -260,15 +260,15 @@ export async function processContestState(sessionId: string): Promise<void> {
                     transaction.update(sessionRef, { contestantCount: activeContestants.length });
                 }
 
-                if (activeContestants.length < 2) {
+                if (activeContestants.length >= 2) {
+                    transaction.update(sessionRef, {
+                        status: 'voting',
+                        expiresAt: Timestamp.fromMillis(Date.now() + VOTING_TIME_SECONDS * 1000)
+                    });
+                } else {
                     transaction.update(sessionRef, { status: 'finished', winner: null });
-                    return;
                 }
-
-                transaction.update(sessionRef, {
-                    status: 'voting',
-                    expiresAt: Timestamp.fromMillis(Date.now() + VOTING_TIME_SECONDS * 1000)
-                });
+                return;
                 
             } else if (session.status === 'voting') {
                 if (contestants.length === 0) {
