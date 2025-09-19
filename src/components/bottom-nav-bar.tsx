@@ -24,10 +24,13 @@ export default function BottomNavBar() {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 h-20 border-t bg-card/95 backdrop-blur-sm z-10 flex justify-center">
+    <nav className="fixed bottom-0 left-0 right-0 h-16 border-t bg-card/95 backdrop-blur-sm z-10 flex justify-center">
       <div className="grid h-full w-full max-w-md grid-cols-5 items-center">
         {navItems.map((item) => {
-          const isActive = pathname.startsWith(item.href);
+          // Garden and Seeds page should highlight the Garden tab
+          const isActive = item.href === '/garden' 
+            ? (pathname === '/garden' || pathname === '/garden/seeds')
+            : pathname.startsWith(item.href);
 
           return (
             <Link 
@@ -36,18 +39,13 @@ export default function BottomNavBar() {
               onClick={handleNavClick}
               className="flex flex-col items-center justify-center gap-1 h-full"
             >
-              <div className={cn(
-                "flex items-center justify-center p-2 rounded-lg transition-colors",
-                isActive ? 'bg-accent' : 'bg-transparent'
-              )}>
-                <item.icon className={cn(
-                  'h-6 w-6',
-                  isActive ? 'text-accent-foreground' : 'text-muted-foreground'
-                )} />
-              </div>
+              <item.icon className={cn(
+                'h-6 w-6',
+                isActive ? 'text-primary' : 'text-muted-foreground'
+              )} />
               <span className={cn(
                 'text-xs font-medium',
-                isActive ? 'text-accent-foreground' : 'text-muted-foreground'
+                isActive ? 'text-primary' : 'text-muted-foreground'
               )}>
                 {item.label}
               </span>

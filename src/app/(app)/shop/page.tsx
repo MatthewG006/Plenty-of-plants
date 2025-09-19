@@ -47,7 +47,7 @@ function getNextDrawTimeString() {
 function VideoAdDialog({ open, onOpenChange, onSkip, countdown }: { open: boolean; onOpenChange: (open: boolean) => void; onSkip: () => void; countdown: number; }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md p-0" hideCloseButton>
+      <DialogContent className="max-w-md p-0" onPointerDownOutside={(e) => e.preventDefault()} >
         <DialogHeader>
           <DialogTitle className="sr-only">Video Ad</DialogTitle>
         </DialogHeader>
@@ -649,6 +649,3 @@ export default function ShopPage() {
     </div>
   );
 }
-
-    
-    
