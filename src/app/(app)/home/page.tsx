@@ -24,7 +24,7 @@ import { useAudio } from '@/context/AudioContext';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/context/AuthContext';
 import { savePlant } from '@/lib/firestore';
-import { compressImage } from '@/lib/image-compression';
+import { compressImage, isImageBlack } from '@/lib/image-compression';
 import { drawPlantAction } from '@/app/actions/draw-plant';
 import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 import { Challenge, challenges, secondaryChallenges, claimChallengeReward, checkAndResetChallenges, updateCollectionProgress, updateLoginProgress } from '@/lib/challenge-manager';
@@ -320,6 +320,11 @@ export default function HomePage() {
         const existingNames = gameData.plants ? Object.values(gameData.plants).map(p => p.name) : [];
         const drawnPlantResult = await drawPlantAction(existingNames);
         
+        const isBlack = await isImageBlack(drawnPlantResult.imageDataUri);
+        if (isBlack) {
+            throw new Error("Generated image is all black.");
+        }
+
         setUncompressedDrawnPlantUri(drawnPlantResult.imageDataUri);
         const compressedImageDataUri = await compressImage(drawnPlantResult.imageDataUri);
         
