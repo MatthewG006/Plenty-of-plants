@@ -1,0 +1,15 @@
+{
+  "name": "Plenty of Plants",
+  "short_name": "Plenty of Plants",
+  "description": "Collect and grow your own digital plant collection!",
+  "icons": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#ffffff",
+  "background_color": "#ffffff",
+  "display": "standalone"
+}
