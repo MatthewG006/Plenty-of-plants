@@ -43,11 +43,13 @@ export const getFallbackPlantFlow = ai.defineFlow(
   },
   async () => {
     try {
+      const storageBucket = process.env.FIREBASE_STORAGE_BUCKET?.replace('gs://', '');
+
       const firebaseConfig: FirebaseOptions = {
           apiKey: process.env.GEMINI_API_KEY, // Genkit uses GEMINI_API_KEY for Firebase auth in flows
           authDomain: process.env.FIREBASE_AUTH_DOMAIN,
           projectId: process.env.FIREBASE_PROJECT_ID,
-          storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+          storageBucket: storageBucket,
           messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
           appId: process.env.FIREBASE_APP_ID,
       };
