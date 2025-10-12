@@ -103,56 +103,62 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="p-4">
+    <div className="p-4 flex flex-col min-h-[calc(100vh-4rem)]">
       <header className="pb-4">
         <h1 className="text-3xl text-primary text-center">Settings</h1>
       </header>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Game Controls</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <SettingRow icon={Music} label="Music">
-            <Switch id="music" checked={isMusicPlaying} onCheckedChange={toggleMusic} />
-          </SettingRow>
-          <SettingRow icon={Zap} label="Effects">
-            <Switch id="fx" checked={sfxVolume > 0} onCheckedChange={(checked) => setSfxVolume(checked ? 0.75 : 0)} />
-          </SettingRow>
-          <SettingRow icon={Bell} label="Reminders">
-            <Switch id="reminders" checked={notificationsEnabled} onCheckedChange={handleNotificationsToggle} aria-label="Toggle notifications" />
-          </SettingRow>
-        </CardContent>
-      </Card>
+      <div className="flex-grow">
+        <Card>
+          <CardHeader>
+            <CardTitle>Game Controls</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <SettingRow icon={Music} label="Music">
+              <Switch id="music" checked={isMusicPlaying} onCheckedChange={toggleMusic} />
+            </SettingRow>
+            <SettingRow icon={Zap} label="Effects">
+              <Switch id="fx" checked={sfxVolume > 0} onCheckedChange={(checked) => setSfxVolume(checked ? 0.75 : 0)} />
+            </SettingRow>
+            <SettingRow icon={Bell} label="Reminders">
+              <Switch id="reminders" checked={notificationsEnabled} onCheckedChange={handleNotificationsToggle} aria-label="Toggle notifications" />
+            </SettingRow>
+          </CardContent>
+        </Card>
 
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Volume</CardTitle>
-        </CardHeader>
-        <CardContent>
-           <SettingRow icon={Music} label="Music">
-              <Slider 
-                value={[musicVolume * 100]} 
-                onValueChange={(value) => setMusicVolume(value[0] / 100)}
-                max={100} 
-                step={1} 
-                className="w-1/2" 
-                aria-label="Music volume"
-              />
-          </SettingRow>
-           <SettingRow icon={Zap} label="Effects">
-              <Slider 
-                value={[sfxVolume * 100]} 
-                onValueChange={(value) => setSfxVolume(value[0] / 100)}
-                onValueCommit={() => playSfx('tap')}
-                max={100} 
-                step={1} 
-                className="w-1/2" 
-                aria-label="Effects volume"
-              />
-          </SettingRow>
-        </CardContent>
-      </Card>
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Volume</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <SettingRow icon={Music} label="Music">
+                <Slider 
+                  value={[musicVolume * 100]} 
+                  onValueChange={(value) => setMusicVolume(value[0] / 100)}
+                  max={100} 
+                  step={1} 
+                  className="w-1/2" 
+                  aria-label="Music volume"
+                />
+            </SettingRow>
+            <SettingRow icon={Zap} label="Effects">
+                <Slider 
+                  value={[sfxVolume * 100]} 
+                  onValueChange={(value) => setSfxVolume(value[0] / 100)}
+                  onValueCommit={() => playSfx('tap')}
+                  max={100} 
+                  step={1} 
+                  className="w-1/2" 
+                  aria-label="Effects volume"
+                />
+            </SettingRow>
+          </CardContent>
+        </Card>
+      </div>
+
+      <footer className="pt-8 pb-16 text-center text-xs text-muted-foreground">
+        <p>Developed by Matthew Gonzalez based in Miami, FL</p>
+      </footer>
     </div>
   );
 }
