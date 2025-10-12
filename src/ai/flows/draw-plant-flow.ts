@@ -126,12 +126,6 @@ You MUST adhere to the following rules without exception:
         throw new Error('Could not generate plant image from AI.');
       }
       
-      const isBlack = await isImageBlack(media.url);
-      if (isBlack) {
-          throw new Error("Generated image is all black.");
-      }
-
-      // Return the complete plant data.
       return {
         name: plantDetails.name,
         description: plantDetails.description,

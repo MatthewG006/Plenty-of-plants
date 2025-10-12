@@ -25,7 +25,7 @@ import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/context/AuthContext';
 import { savePlant } from '@/lib/firestore';
 import { compressImage, isImageBlack } from '@/lib/image-compression';
-import { drawFromStorageAction } from '@/app/actions/draw-from-storage-action';
+import { drawPlantAction } from '@/app/actions/draw-plant';
 import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 import { Challenge, challenges, secondaryChallenges, claimChallengeReward, checkAndResetChallenges, updateCollectionProgress, updateLoginProgress } from '@/lib/challenge-manager';
 import Autoplay from "embla-carousel-autoplay"
@@ -318,14 +318,12 @@ export default function HomePage() {
         await useDraw(user.uid);
 
         const existingNames = gameData.plants ? Object.values(gameData.plants).map(p => p.name) : [];
+        const drawnPlantResult = await drawPlantAction(existingNames);
         
-        // Call the new action to draw from storage
-        const drawnPlantResult = await drawFromStorageAction(existingNames);
-        
-        // The uncompressed URI is the same as the result URI since we're not generating it
+        // This is the full quality image, which we store separately for evolutions.
         setUncompressedDrawnPlantUri(drawnPlantResult.imageDataUri);
         const compressedImageDataUri = await compressImage(drawnPlantResult.imageDataUri);
-        
+
         playSfx('success');
         setDrawnPlant({
             ...drawnPlantResult,
@@ -340,7 +338,9 @@ export default function HomePage() {
         toast({
             variant: "destructive",
             title: "Failed to draw a plant",
-            description: "There was an issue with Firebase Storage. Your draw has been refunded.",
+            description: e.message === 'Invalid API Key' 
+                ? "Your Gemini API key is not configured. Please set it up."
+                : "There was an issue with the AI. Your draw has been refunded.",
         });
     } finally {
         setIsDrawing(false);
