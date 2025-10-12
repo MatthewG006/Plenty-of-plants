@@ -109,10 +109,10 @@ You MUST adhere to the following rules without exception:
 7. **Composition:** The image must contain ONLY the single plant character in its pot. NO other objects, text, people, hands, or background elements are allowed.
 `;
     
-    try {
-      // Build the prompt for image generation.
-      const imageGenPrompt = `Create a new plant character based on the description: "${plantDetails.imagePrompt}".\n\n${imageGenerationRules}`;
+    // Build the prompt for image generation.
+    const imageGenPrompt = `Create a new plant character based on the description: "${plantDetails.imagePrompt}".\n\n${imageGenerationRules}`;
 
+    try {
       // Use the details to generate the new plant image.
       const { media } = await ai.generate({
         model: 'googleai/imagen-4.0-fast-generate-001',
@@ -135,10 +135,8 @@ You MUST adhere to the following rules without exception:
       console.warn(`Primary image generation failed, triggering fallback image flow. Reason: ${imageError.message}`);
       
       try {
-        const fallbackImageResult = await getFallbackPlantFlow({
-            name: plantDetails.name,
-            description: plantDetails.description,
-        });
+        // Retry with the exact same prompt.
+        const fallbackImageResult = await getFallbackPlantFlow({ imageGenPrompt });
 
         return {
             name: plantDetails.name,
