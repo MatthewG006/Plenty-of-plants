@@ -9,7 +9,8 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { getStorage, ref, listAll, getDownloadURL } from 'firebase/storage';
-import { app } from '@/lib/firebase'; // Ensure our initialized Firebase app is available
+import { initializeApp, getApps, getApp, type FirebaseOptions } from 'firebase/app';
+
 
 const GetFallbackPlantOutputSchema = z.object({
   name: z.string().describe('The creative name of the fallback plant.'),
@@ -34,6 +35,7 @@ async function imageToDataUri(url: string): Promise<string> {
     });
 }
 
+
 export const getFallbackPlantFlow = ai.defineFlow(
   {
     name: 'getFallbackPlantFlow',
@@ -41,6 +43,20 @@ export const getFallbackPlantFlow = ai.defineFlow(
   },
   async () => {
     try {
+      const firebaseConfig: FirebaseOptions = {
+          apiKey: process.env.GEMINI_API_KEY, // Note: Genkit uses GEMINI_API_KEY, adapt if your env var is different
+          authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+          messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+          appId: process.env.FIREBASE_APP_ID,
+      };
+      
+      if (!firebaseConfig.projectId || !firebaseConfig.storageBucket) {
+        throw new Error("Server-side Firebase configuration for Storage is missing.");
+      }
+
+      const app = getApps().length ? getApp() : initializeApp(firebaseConfig, `genkit-fallback-${Date.now()}`);
       const storage = getStorage(app);
       const fallbackDirRef = ref(storage, 'fallback-plants');
       const fileList = await listAll(fallbackDirRef);
