@@ -1,1 +1,0 @@
-This file marks a stable version of the application. The garden layout has been adjusted and is now considered complete.
