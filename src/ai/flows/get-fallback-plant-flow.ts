@@ -10,7 +10,10 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { getStorage, ref, listAll, getDownloadURL } from 'firebase/storage';
 import { initializeApp, getApps, getApp, type FirebaseOptions } from 'firebase/app';
+import * as dotenv from 'dotenv';
 
+// Explicitly load environment variables from .env file
+dotenv.config();
 
 const GetFallbackPlantOutputSchema = z.object({
   name: z.string().describe('The creative name of the fallback plant.'),
@@ -27,12 +30,9 @@ async function imageToDataUri(url: string): Promise<string> {
         throw new Error(`Failed to fetch image: ${response.statusText}`);
     }
     const blob = await response.blob();
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-    });
+    const buffer = Buffer.from(await blob.arrayBuffer());
+    const dataUri = `data:${blob.type};base64,${buffer.toString('base64')}`;
+    return dataUri;
 }
 
 
@@ -44,7 +44,7 @@ export const getFallbackPlantFlow = ai.defineFlow(
   async () => {
     try {
       const firebaseConfig: FirebaseOptions = {
-          apiKey: process.env.GEMINI_API_KEY, // Note: Genkit uses GEMINI_API_KEY, adapt if your env var is different
+          apiKey: process.env.GEMINI_API_KEY, // Genkit uses GEMINI_API_KEY for Firebase auth in flows
           authDomain: process.env.FIREBASE_AUTH_DOMAIN,
           projectId: process.env.FIREBASE_PROJECT_ID,
           storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
@@ -56,6 +56,7 @@ export const getFallbackPlantFlow = ai.defineFlow(
         throw new Error("Server-side Firebase configuration for Storage is missing.");
       }
 
+      // Initialize a unique app instance for the flow to avoid conflicts.
       const app = getApps().length ? getApp() : initializeApp(firebaseConfig, `genkit-fallback-${Date.now()}`);
       const storage = getStorage(app);
       const fallbackDirRef = ref(storage, 'fallback-plants');
@@ -70,26 +71,16 @@ export const getFallbackPlantFlow = ai.defineFlow(
       const downloadUrl = await getDownloadURL(randomFileRef);
       const imageDataUri = await imageToDataUri(downloadUrl);
 
-      // Generate a new name and description for this fallback image
-      const fallbackDetailsPrompt = `You are a creative botanist. An existing image of a cute plant will be used. Generate a completely new, creative two-word name and a short, one-sentence whimsical description for it. The name must be unique and not a common plant type.`;
+      // Generate a simple, generic name and description without an AI call.
+      const names = ["Sturdy Sprout", "Happy Bloom", "Sunny Petal", "Leafy Friend", "Rooty"];
+      const descriptions = ["A resilient and cheerful plant.", "It seems to be enjoying the day.", "This one has a lot of personality.", "A classic for any collection."];
 
-      const { output } = await ai.generate({
-        prompt: fallbackDetailsPrompt,
-        output: {
-          schema: z.object({
-            name: z.string().describe('A creative two-word name for the plant.'),
-            description: z.string().describe('A short, whimsical one-sentence description.'),
-          }),
-        },
-      });
-
-      if (!output) {
-        throw new Error('Could not generate details for fallback plant.');
-      }
+      const name = names[Math.floor(Math.random() * names.length)];
+      const description = descriptions[Math.floor(Math.random() * descriptions.length)];
 
       return {
-        name: output.name,
-        description: output.description,
+        name: name,
+        description: description,
         imageDataUri: imageDataUri,
       };
     } catch (error: any) {
