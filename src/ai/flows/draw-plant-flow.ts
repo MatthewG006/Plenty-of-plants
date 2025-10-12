@@ -93,13 +93,9 @@ const drawPlantFlow = ai.defineFlow(
             throw new Error("Invalid API Key"); // Re-throw to be caught by the client
         }
         
-        console.warn(`Plant details generation failed, triggering fallback details. Reason: ${detailsError.message}`);
-        // If details generation fails for other reasons, use the fallback.
-        const fallbackDetails = await getFallbackPlantFlow({ existingNames });
-        plantDetails = {
-            ...fallbackDetails,
-            imagePrompt: `A cute, simple, 2D illustrated plant named ${fallbackDetails.name}.`,
-        };
+        console.warn(`Plant details generation failed, returning hardcoded fallback. Reason: ${detailsError.message}`);
+        // If details generation fails for other reasons, return the hardcoded plant.
+        return getHardcodedFallback();
     }
     
     const imageGenerationRules = `
@@ -136,9 +132,24 @@ You MUST adhere to the following rules without exception:
       };
 
     } catch (imageError: any) {
-      console.error(`Image generation failed, returning hardcoded fallback. Reason: ${imageError.message}`);
-      // If all image generation attempts fail, return a hardcoded plant to prevent app crash.
-      return getHardcodedFallback();
+      console.warn(`Primary image generation failed, triggering fallback image flow. Reason: ${imageError.message}`);
+      
+      try {
+        const fallbackImageResult = await getFallbackPlantFlow({
+            name: plantDetails.name,
+            description: plantDetails.description,
+        });
+
+        return {
+            name: plantDetails.name,
+            description: plantDetails.description,
+            imageDataUri: fallbackImageResult.imageDataUri,
+        };
+      } catch (fallbackImageError: any) {
+        console.error(`Fallback image generation also failed. Returning hardcoded failsafe plant. Reason: ${fallbackImageError.message}`);
+        // If all image generation attempts fail, return a hardcoded plant to prevent app crash.
+        return getHardcodedFallback();
+      }
     }
   }
 );
