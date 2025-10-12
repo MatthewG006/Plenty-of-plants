@@ -37,23 +37,25 @@ export const getFallbackPlantFlow = ai.defineFlow(
   },
   async () => {
     try {
-      const storageBucket = process.env.FIREBASE_STORAGE_BUCKET?.replace('gs://', '');
+      // Use NEXT_PUBLIC_ prefixed variables, as defined in the user's .env file
+      const storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET?.replace('gs://', '');
 
       const firebaseConfig: FirebaseOptions = {
-          apiKey: process.env.GEMINI_API_KEY, // Genkit uses GEMINI_API_KEY for Firebase auth in flows
-          authDomain: process.env.FIREBASE_AUTH_DOMAIN,
-          projectId: process.env.FIREBASE_PROJECT_ID,
+          apiKey: process.env.GEMINI_API_KEY, // Genkit auth for Firebase services on the server
+          authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+          projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
           storageBucket: storageBucket,
-          messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-          appId: process.env.FIREBASE_APP_ID,
+          messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+          appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
       };
       
       if (!firebaseConfig.projectId || !firebaseConfig.storageBucket) {
-        throw new Error("Server-side Firebase configuration for Storage is missing.");
+        throw new Error("Server-side Firebase configuration for Storage is missing. Check environment variables.");
       }
 
       // Initialize a unique app instance for the flow to avoid conflicts.
-      const app = getApps().length ? getApp() : initializeApp(firebaseConfig, `genkit-fallback-${Date.now()}`);
+      const appName = `genkit-fallback-${Date.now()}`;
+      const app = getApps().find(a => a.name === appName) || initializeApp(firebaseConfig, appName);
       const storage = getStorage(app);
       const fallbackDirRef = ref(storage, 'fallback-plants');
       const fileList = await listAll(fallbackDirRef);
