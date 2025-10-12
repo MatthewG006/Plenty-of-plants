@@ -87,13 +87,14 @@ const drawPlantFlow = ai.defineFlow(
         }
         plantDetails = output;
     } catch (detailsError: any) {
-         if (detailsError.message && detailsError.message.includes('API key not valid')) {
+        // Immediately stop and throw a specific error if the API key is the problem.
+        if (detailsError.message && (detailsError.message.includes('API key not valid') || detailsError.message.includes('API_KEY_INVALID'))) {
             console.error("Authentication Error: The provided Google AI API key is invalid or missing.", detailsError);
             throw new Error("Invalid API Key"); // Re-throw to be caught by the client
         }
         
         console.warn(`Plant details generation failed, triggering fallback details. Reason: ${detailsError.message}`);
-        // If details generation fails, trigger the fallback for details only.
+        // If details generation fails for other reasons, use the fallback.
         const fallbackDetails = await getFallbackPlantFlow({ existingNames });
         plantDetails = {
             ...fallbackDetails,
