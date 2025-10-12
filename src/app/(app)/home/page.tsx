@@ -25,7 +25,7 @@ import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/context/AuthContext';
 import { savePlant } from '@/lib/firestore';
 import { compressImage, isImageBlack } from '@/lib/image-compression';
-import { drawPlantAction } from '@/app/actions/draw-plant';
+import { drawFromStorageAction } from '@/app/actions/draw-from-storage-action';
 import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 import { Challenge, challenges, secondaryChallenges, claimChallengeReward, checkAndResetChallenges, updateCollectionProgress, updateLoginProgress } from '@/lib/challenge-manager';
 import Autoplay from "embla-carousel-autoplay"
@@ -318,13 +318,11 @@ export default function HomePage() {
         await useDraw(user.uid);
 
         const existingNames = gameData.plants ? Object.values(gameData.plants).map(p => p.name) : [];
-        const drawnPlantResult = await drawPlantAction(existingNames);
         
-        const isBlack = await isImageBlack(drawnPlantResult.imageDataUri);
-        if (isBlack) {
-            throw new Error("Generated image is all black.");
-        }
-
+        // Call the new action to draw from storage
+        const drawnPlantResult = await drawFromStorageAction(existingNames);
+        
+        // The uncompressed URI is the same as the result URI since we're not generating it
         setUncompressedDrawnPlantUri(drawnPlantResult.imageDataUri);
         const compressedImageDataUri = await compressImage(drawnPlantResult.imageDataUri);
         
@@ -339,19 +337,11 @@ export default function HomePage() {
         // If something goes wrong, give the user their draw back
         await refundDraw(user.uid);
 
-        if (e.message === 'Invalid API Key') {
-            toast({
-                variant: "destructive",
-                title: "Invalid API Key",
-                description: "Please check your GOOGLE_API_KEY. Your draw has been refunded.",
-            });
-        } else {
-            toast({
-                variant: "destructive",
-                title: "Failed to draw a plant",
-                description: "There was an issue with the AI. Your draw has been refunded.",
-            });
-        }
+        toast({
+            variant: "destructive",
+            title: "Failed to draw a plant",
+            description: "There was an issue with Firebase Storage. Your draw has been refunded.",
+        });
     } finally {
         setIsDrawing(false);
     }
