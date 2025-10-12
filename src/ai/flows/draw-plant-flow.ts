@@ -61,15 +61,6 @@ You MUST NOT use any of the following names:
 `,
 });
 
-const getHardcodedFallback = () => {
-    return {
-        name: "Sturdy Sprout",
-        description: "A reliable little plant that shows up when you need it most.",
-        // 1x1 transparent png
-        imageDataUri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" 
-    };
-};
-
 const drawPlantFlow = ai.defineFlow(
   {
     name: 'drawPlantFlow',
@@ -87,15 +78,16 @@ const drawPlantFlow = ai.defineFlow(
         }
         plantDetails = output;
     } catch (detailsError: any) {
-        // Immediately stop and throw a specific error if the API key is the problem.
+        // If the API key is the problem, this is a critical error. Stop immediately.
         if (detailsError.message && (detailsError.message.includes('API key not valid') || detailsError.message.includes('API_KEY_INVALID'))) {
             console.error("Authentication Error: The provided Google AI API key is invalid or missing.", detailsError);
             throw new Error("Invalid API Key"); // Re-throw to be caught by the client
         }
         
-        console.warn(`Plant details generation failed, returning hardcoded fallback. Reason: ${detailsError.message}`);
-        // If details generation fails for other reasons, return the hardcoded plant.
-        return getHardcodedFallback();
+        console.warn(`Plant details generation failed. Using fallback flow. Reason: ${detailsError.message}`);
+        // If details generation fails, try to generate a fallback plant from Storage.
+        // The fallback flow will generate its own name and description.
+        return getFallbackPlantFlow();
     }
     
     const imageGenerationRules = `
@@ -132,22 +124,10 @@ You MUST adhere to the following rules without exception:
       };
 
     } catch (imageError: any) {
-      console.warn(`Primary image generation failed, triggering fallback image flow. Reason: ${imageError.message}`);
-      
-      try {
-        // Retry with the exact same prompt.
-        const fallbackImageResult = await getFallbackPlantFlow({ imageGenPrompt });
-
-        return {
-            name: plantDetails.name,
-            description: plantDetails.description,
-            imageDataUri: fallbackImageResult.imageDataUri,
-        };
-      } catch (fallbackImageError: any) {
-        console.error(`Fallback image generation also failed. Returning hardcoded failsafe plant. Reason: ${fallbackImageError.message}`);
-        // If all image generation attempts fail, return a hardcoded plant to prevent app crash.
-        return getHardcodedFallback();
-      }
+      console.warn(`Primary image generation failed, triggering fallback image flow from Storage. Reason: ${imageError.message}`);
+      // If image generation fails, use the fallback flow which pulls from Firebase Storage.
+      // It will use its own name/description logic.
+      return getFallbackPlantFlow();
     }
   }
 );
