@@ -69,6 +69,16 @@ const drawPlantFlow = ai.defineFlow(
   },
   async ({ existingNames }) => {
     
+    // ===================================================================
+    // TEMPORARY CHANGE: Force all draws to use the fallback plant system.
+    // To revert, comment out the line below and uncomment the original
+    // 'try/catch' block.
+    // ===================================================================
+    return getFallbackPlantFlow();
+
+    /*
+    // ORIGINAL AI GENERATION LOGIC - Uncomment this block to restore normal behavior
+    
     let plantDetails: { name: string, description: string, imagePrompt: string };
 
     try {
@@ -115,6 +125,11 @@ You MUST adhere to the following rules without exception:
       if (!media || !media.url) {
         throw new Error('Could not generate plant image from AI.');
       }
+      
+      const isBlack = await isImageBlack(media.url);
+      if (isBlack) {
+          throw new Error("Generated image is all black.");
+      }
 
       // Return the complete plant data.
       return {
@@ -129,5 +144,6 @@ You MUST adhere to the following rules without exception:
       // It will use its own name/description logic.
       return getFallbackPlantFlow();
     }
+    */
   }
 );
