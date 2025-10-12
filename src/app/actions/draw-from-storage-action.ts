@@ -4,17 +4,12 @@
  * @fileOverview An action for drawing a new plant from a predefined set in Firebase Storage.
  */
 
-import { getStorage, ref, listAll, getDownloadURL } from 'firebase/storage';
+import { getStorage, ref, listAll, getDownloadURL, getBlob } from 'firebase/storage';
 import { app } from '@/lib/firebase';
 import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 
-// Helper to fetch an image and convert it to a data URI
-async function imageToDataUri(url: string): Promise<string> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch image: ${response.statusText}`);
-  }
-  const blob = await response.blob();
+// Helper to convert a Blob to a Base64 data URI
+async function blobToDataUri(blob: Blob): Promise<string> {
   const buffer = Buffer.from(await blob.arrayBuffer());
   return `data:${blob.type};base64,${buffer.toString('base64')}`;
 }
@@ -33,11 +28,15 @@ export async function drawFromStorageAction(
       );
     }
 
-    // Select a random image from the list
+    // Select a random image reference from the list
     const randomFileRef =
       fileList.items[Math.floor(Math.random() * fileList.items.length)];
-    const downloadUrl = await getDownloadURL(randomFileRef);
-    const imageDataUri = await imageToDataUri(downloadUrl);
+    
+    // Get the image data directly as a blob
+    const imageBlob = await getBlob(randomFileRef);
+    
+    // Convert the blob to a data URI
+    const imageDataUri = await blobToDataUri(imageBlob);
 
     // Generate a simple, non-AI name and description
     const plantNames = [
