@@ -15,7 +15,7 @@ const GetFallbackPlantOutputSchema = z.object({
   imageDataUri: z
     .string()
     .describe(
-      "A generated image of the plant, as a public URL from Firebase Storage."
+      "A generated image of the plant, as a public URL."
     ),
 });
 
@@ -45,14 +45,14 @@ const fallbackPlantDetailsPrompt = ai.definePrompt({
     prompt: `You are a creative botanist for a game. For the plant type "{{plantType}}", generate a unique two-word name and a whimsical one-sentence description for it.`,
 });
 
-const getHardcodedFallback = () => {
-    return {
-        name: "Sturdy Sprout",
-        description: "A reliable little plant that shows up when you need it most.",
-        // 1x1 transparent png
-        imageDataUri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" 
-    };
-};
+// A list of pre-packaged fallback plants with public URLs.
+const hardcodedFallbacks = [
+    { type: 'Cactus', url: '/fallback-plants/fallback1.png' },
+    { type: 'Flower', url: '/fallback-plants/fallback2.png' },
+    { type: 'Mushroom', url: '/fallback-plants/fallback3.png' },
+    { type: 'Succulent', url: '/fallback-plants/fallback4.png' },
+    { type: 'Sprout', url: '/fallback-plants/fallback5.png' },
+];
 
 export const getFallbackPlantFlow = ai.defineFlow(
   {
@@ -64,15 +64,28 @@ export const getFallbackPlantFlow = ai.defineFlow(
   },
   async ({ existingNames }) => {
     try {
-        // Firebase Storage access is not reliable in this server context.
-        // Returning a hardcoded fallback is the safest option.
-        // A more advanced implementation might use the Firebase Admin SDK.
-        console.warn("The primary AI generation failed. To enable varied fallbacks, please configure Firebase Admin SDK access to the 'fallback-plants' folder in Firebase Storage. Returning hardcoded plant.");
-        return getHardcodedFallback();
+        // Select a random fallback plant from the hardcoded list.
+        const fallbackChoice = hardcodedFallbacks[Math.floor(Math.random() * hardcodedFallbacks.length)];
+
+        // Generate a new name and description for the selected plant type.
+        const { output } = await fallbackPlantDetailsPrompt({ plantType: fallbackChoice.type });
+
+        if (!output) {
+            throw new Error('Could not generate details for fallback plant.');
+        }
+
+        return {
+            ...output,
+            imageDataUri: fallbackChoice.url,
+        };
     } catch (error: any) {
-        console.error("Critical error in fallback flow, returning hardcoded plant.", error);
+        console.error("Critical error in fallback flow, returning a default hardcoded plant.", error);
         // This is a final failsafe to prevent a crash.
-        return getHardcodedFallback();
+        return {
+            name: "Sturdy Sprout",
+            description: "A reliable little plant that shows up when you need it most.",
+            imageDataUri: "/fallback-plants/fallback5.png" 
+        };
     }
   }
 );
