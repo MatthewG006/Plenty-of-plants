@@ -4,7 +4,7 @@
  * @fileOverview An action for drawing a new plant from a predefined set in Firebase Storage.
  */
 
-import { getStorage, ref, listAll, getDownloadURL, getBlob } from 'firebase/storage';
+import { getStorage, ref, listAll, getBlob } from 'firebase/storage';
 import { app } from '@/lib/firebase';
 import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
 
@@ -62,13 +62,7 @@ export async function drawFromStorageAction(
     };
   } catch (error: any) {
     console.error('CRITICAL FALLBACK FAILURE:', error);
-    // This is the absolute last resort if Storage fails.
-    // This ensures the app doesn't crash.
-    return {
-      name: 'Sturdy Sprout',
-      description: 'A very resilient little sprout.',
-      imageDataUri:
-        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
-    };
+    // This is the crucial change: throw the error so the client can catch it.
+    throw new Error('There was an issue with Firebase Storage.');
   }
 }
