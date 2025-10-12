@@ -8,7 +8,7 @@
  */
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { getStorage, ref, listAll, getDownloadURL } from 'firebase/storage';
+import { getStorage, ref, listAll, getBlob } from 'firebase/storage';
 import { initializeApp, getApps, getApp, type FirebaseOptions } from 'firebase/app';
 import * as dotenv from 'dotenv';
 
@@ -23,16 +23,10 @@ const GetFallbackPlantOutputSchema = z.object({
 
 export type GetFallbackPlantOutput = z.infer<typeof GetFallbackPlantOutputSchema>;
 
-// Helper to fetch an image and convert it to a data URI
-async function imageToDataUri(url: string): Promise<string> {
-    const response = await fetch(url);
-    if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${response.statusText}`);
-    }
-    const blob = await response.blob();
-    const buffer = Buffer.from(await blob.arrayBuffer());
-    const dataUri = `data:${blob.type};base64,${buffer.toString('base64')}`;
-    return dataUri;
+// Helper to convert a Blob to a data URI
+async function blobToDataUri(blob: Blob): Promise<string> {
+  const buffer = Buffer.from(await blob.arrayBuffer());
+  return `data:${blob.type};base64,${buffer.toString('base64')}`;
 }
 
 
@@ -70,8 +64,10 @@ export const getFallbackPlantFlow = ai.defineFlow(
 
       // Select a random image from the list
       const randomFileRef = fileList.items[Math.floor(Math.random() * fileList.items.length)];
-      const downloadUrl = await getDownloadURL(randomFileRef);
-      const imageDataUri = await imageToDataUri(downloadUrl);
+      
+      // Get the image data directly as a Blob
+      const imageBlob = await getBlob(randomFileRef);
+      const imageDataUri = await blobToDataUri(imageBlob);
 
       // Generate a simple, generic name and description without an AI call.
       const names = ["Sturdy Sprout", "Happy Bloom", "Sunny Petal", "Leafy Friend", "Rooty"];
@@ -85,6 +81,7 @@ export const getFallbackPlantFlow = ai.defineFlow(
         description: description,
         imageDataUri: imageDataUri,
       };
+
     } catch (error: any) {
       console.error("CRITICAL FALLBACK FAILURE:", error);
       // This is the absolute last resort if Storage or AI fails during the fallback.
