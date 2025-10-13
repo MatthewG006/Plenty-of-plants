@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -6,14 +7,10 @@ service cloud.firestore {
     match /users/{userId} {
       // Allow users to read and write to their own document.
       allow read, write: if request.auth != null && request.auth.uid == userId;
-      
-      // Allow any authenticated user to update another user's document.
-      // This is required for the 'like' feature to award gold.
-      allow update: if request.auth != null;
 
-      // Allow any authenticated user to view the list of users.
-      // This is required for the Community Showcase feature.
-      allow list: if request.auth != null;
+      // Allow any authenticated user to view the list of users and update other user's documents.
+      // This is required for the Community Showcase and "like" features.
+      allow list, update: if request.auth != null;
     }
 
     // Rules for the 'contestSessions' collection
