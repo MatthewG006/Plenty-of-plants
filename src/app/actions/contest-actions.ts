@@ -98,23 +98,34 @@ export async function getActiveContests(): Promise<ContestSession[]> {
     
     const snapshot = await getDocs(q);
 
-    // Filter out any sessions where the timestamp hasn't been set by the server yet,
-    // and convert valid timestamps to strings.
-    const sessions = snapshot.docs
-        .map(doc => {
-            const data = doc.data();
-            // A newly created doc with serverTimestamp() might not have this field yet on read.
-            if (!data.createdAt || !data.expiresAt) {
-                return null;
-            }
-            return {
+    // Safely convert Firestore Timestamps to ISO strings for serialization.
+    const safeTimestampToISO = (ts: any): string | null => {
+        if (!ts) return null;
+        if (typeof ts.toDate === 'function') return ts.toDate().toISOString(); // Firestore Timestamp
+        if (typeof ts === 'string') return ts; // Already a string
+        try {
+            return new Date(ts).toISOString(); // Fallback for other date-like objects
+        } catch {
+            return null;
+        }
+    };
+    
+    const sessions: ContestSession[] = [];
+    snapshot.forEach(doc => {
+        const data = doc.data();
+        const createdAt = safeTimestampToISO(data.createdAt);
+        const expiresAt = safeTimestampToISO(data.expiresAt);
+
+        // Only include sessions where timestamps are valid and converted.
+        if (createdAt && expiresAt) {
+            sessions.push({
                 id: doc.id,
                 ...data,
-                createdAt: (data.createdAt as Timestamp).toDate().toISOString(),
-                expiresAt: (data.expiresAt as Timestamp).toDate().toISOString(),
-            } as ContestSession;
-        })
-        .filter((session): session is ContestSession => session !== null); // Remove nulls
+                createdAt,
+                expiresAt,
+            } as ContestSession);
+        }
+    });
 
     return sessions;
 }
