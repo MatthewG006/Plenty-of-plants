@@ -85,8 +85,8 @@ export const getFallbackPlantFlow = ai.defineFlow(
       const description = descriptions[Math.floor(Math.random() * descriptions.length)];
 
       return {
-        name: name,
-        description: description,
+        name: String(name),
+        description: String(description),
         imageDataUri: imageDataUri,
       };
 
