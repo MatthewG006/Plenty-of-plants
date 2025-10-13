@@ -238,7 +238,7 @@ export async function savePlant(userId: string, plantData: DrawPlantOutput, unco
         description: plantData.description || 'A new plant has arrived.',
         image: plantData.imageDataUri || '',
         baseImage: '',
-        uncompressedImage: '', // Intentionally left blank to save space
+        uncompressedImage: uncompressedImageDataUri, // Save for evolution, but it won't be stored in Firestore.
         form: 'Base',
         hint: (plantData.name || '').toLowerCase().split(' ').slice(0, 2).join(' '),
         level: 1,
@@ -252,11 +252,15 @@ export async function savePlant(userId: string, plantData: DrawPlantOutput, unco
         chatEnabled: false,
         conversationHistory: [],
     };
+    
+    // Create a version of the plant to be saved that does NOT include the uncompressed image
+    const { uncompressedImage, ...plantToSave } = newPlant;
+
 
     const firstEmptyPotIndex = gameData.deskPlantIds.findIndex(id => id === null);
 
     const updatePayload: { [key: string]: any } = {
-        [`plants.${newPlant.id}`]: newPlant,
+        [`plants.${newPlant.id}`]: plantToSave,
     };
     
     if (firstEmptyPotIndex !== -1) {
@@ -269,6 +273,7 @@ export async function savePlant(userId: string, plantData: DrawPlantOutput, unco
     
     await updateDoc(userDocRef, updatePayload);
     
+    // Return the full plant object (with uncompressed image) to the client for immediate use
     return newPlant;
 }
 
