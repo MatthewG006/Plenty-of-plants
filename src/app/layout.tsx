@@ -1,19 +1,13 @@
 
 'use client';
 
-import type { Metadata } from 'next';
+import type { Readonly } from 'react';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/context/AuthContext';
 import { useEffect } from 'react';
 import { AudioProvider } from '@/context/AudioContext';
 
-
-// export const metadata: Metadata = {
-//   title: 'Plenty of Plants',
-//   description: 'Collect and grow your own digital plant collection!',
-//   manifest: '/manifest.webmanifest',
-// };
 
 export default function RootLayout({
   children,
