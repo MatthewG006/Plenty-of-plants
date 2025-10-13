@@ -76,17 +76,17 @@ The final image should be an epic evolution, but still recognizably the same cha
       }
 
       const { media } = await ai.generate({
-        model: 'googleai/gemini-2.0-flash-preview-image-generation',
+        model: 'googleai/gemini-1.5-flash',
         prompt: [
-          { media: { url: baseImageDataUri, contentType: 'image/png' } },
-          { text: promptText }
+          {media: {url: baseImageDataUri, contentType: 'image/png'}},
+          {text: promptText}
         ],
         config: {
-          responseModalities: ['TEXT', 'IMAGE'],
+            responseMimeType: 'image/png',
         },
       });
 
-      if (!media || !media.url) {
+      if (!media || !media[0]?.url) {
         throw new Error('Could not generate evolved plant image from AI.');
       }
       
@@ -99,7 +99,7 @@ The final image should be an epic evolution, but still recognizably the same cha
       }
       
       return {
-        newImageDataUri: media.url,
+        newImageDataUri: media[0].url,
         personality: personality,
       };
 

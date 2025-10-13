@@ -107,19 +107,19 @@ You MUST adhere to the following rules without exception:
     try {
       // Use the details to generate the new plant image.
       const { media } = await ai.generate({
-        model: 'googleai/imagen-4.0-fast-generate-001',
+        model: 'googleai/imagen-2.0-fast',
         prompt: imageGenPrompt,
       });
 
       // Check if the image was generated successfully.
-      if (!media || !media.url) {
+      if (!media || !media[0]?.url) {
         throw new Error('Could not generate plant image from AI.');
       }
       
       return {
         name: plantDetails.name,
         description: plantDetails.description,
-        imageDataUri: media.url,
+        imageDataUri: media[0].url,
       };
 
     } catch (imageError: any) {
