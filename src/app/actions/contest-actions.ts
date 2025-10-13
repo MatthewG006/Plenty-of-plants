@@ -97,17 +97,25 @@ export async function getActiveContests(): Promise<ContestSession[]> {
     const q = query(contestRef, where("status", "==", "waiting"));
     
     const snapshot = await getDocs(q);
+
+    const safeTimestampToISO = (ts: any): string => {
+        if (!ts) return new Date().toISOString();
+        if (typeof ts === 'string') return ts;
+        if (ts.toDate) return ts.toDate().toISOString();
+        if (typeof ts.seconds === 'number' && typeof ts.nanoseconds === 'number') {
+            return new Timestamp(ts.seconds, ts.nanoseconds).toDate().toISOString();
+        }
+        return new Date().toISOString();
+    };
     
     return snapshot.docs.map(doc => {
         const data = doc.data();
-        const createdAt = data.createdAt;
-        const expiresAt = data.expiresAt;
-
+        
         return {
             id: doc.id,
             ...data,
-            createdAt: createdAt?.toDate ? createdAt.toDate().toISOString() : new Date().toISOString(),
-            expiresAt: expiresAt?.toDate ? expiresAt.toDate().toISOString() : new Date().toISOString(),
+            createdAt: safeTimestampToISO(data.createdAt),
+            expiresAt: safeTimestampToISO(data.expiresAt),
         } as ContestSession;
     });
 }
@@ -360,5 +368,3 @@ export async function processContestState(sessionId: string): Promise<void> {
         }
     }
 }
-
-    
