@@ -158,11 +158,18 @@ export default function ContestPage() {
         const unsubSession = onSnapshot(doc(db, "contestSessions", sessionId), (doc) => {
             if (doc.exists()) {
                  const data = doc.data();
+                 // Safely convert timestamps to strings
+                 const safeTimestampToISO = (ts: any): string => {
+                    if (!ts) return new Date().toISOString();
+                    if (ts.toDate) return ts.toDate().toISOString(); // Firestore Timestamp
+                    return new Date(ts).toISOString(); // Fallback for other date-like objects
+                 };
+
                  const sessionData: ContestSession = {
                     id: doc.id,
                     ...data,
-                    createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
-                    expiresAt: data.expiresAt?.toDate ? data.expiresAt.toDate().toISOString() : new Date().toISOString(),
+                    createdAt: safeTimestampToISO(data.createdAt),
+                    expiresAt: safeTimestampToISO(data.expiresAt),
                  } as ContestSession;
                  setSession(sessionData);
             } else {
@@ -403,5 +410,3 @@ export default function ContestPage() {
         </div>
     )
 }
-
-    
