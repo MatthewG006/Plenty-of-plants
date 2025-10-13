@@ -98,26 +98,25 @@ export async function getActiveContests(): Promise<ContestSession[]> {
     
     const snapshot = await getDocs(q);
 
-    const safeTimestampToISO = (ts: any): string => {
-        if (!ts) return new Date().toISOString();
-        if (ts.toDate) return ts.toDate().toISOString(); // Firestore Timestamp
-        if (typeof ts === 'string') return ts; // Already a string
-        if (typeof ts.seconds === 'number' && typeof ts.nanoseconds === 'number') {
-            return new Timestamp(ts.seconds, ts.nanoseconds).toDate().toISOString();
-        }
-        return new Date(ts).toISOString(); // Fallback for other date-like objects
-    };
-    
-    return snapshot.docs.map(doc => {
-        const data = doc.data();
-        
-        return {
-            id: doc.id,
-            ...data,
-            createdAt: safeTimestampToISO(data.createdAt),
-            expiresAt: safeTimestampToISO(data.expiresAt),
-        } as ContestSession;
-    });
+    // Filter out any sessions where the timestamp hasn't been set by the server yet,
+    // and convert valid timestamps to strings.
+    const sessions = snapshot.docs
+        .map(doc => {
+            const data = doc.data();
+            // A newly created doc with serverTimestamp() might not have this field yet on read.
+            if (!data.createdAt || !data.expiresAt) {
+                return null;
+            }
+            return {
+                id: doc.id,
+                ...data,
+                createdAt: (data.createdAt as Timestamp).toDate().toISOString(),
+                expiresAt: (data.expiresAt as Timestamp).toDate().toISOString(),
+            } as ContestSession;
+        })
+        .filter((session): session is ContestSession => session !== null); // Remove nulls
+
+    return sessions;
 }
 
 export async function createNewContest(userId: string, hostName: string, plant: Plant): Promise<{ sessionId?: string; error?: string; }> {
@@ -131,7 +130,7 @@ export async function createNewContest(userId: string, hostName: string, plant: 
             
             const newSessionData: Omit<ContestSession, 'id'> = {
                 status: 'waiting',
-                createdAt: serverTimestamp(),
+                createdAt: serverTimestamp() as any, // Cast to any to satisfy type
                 expiresAt: Timestamp.fromMillis(Date.now() + LOBBY_EXPIRATION_MINUTES * 60 * 1000),
                 round: 1,
                 contestantCount: 1,
