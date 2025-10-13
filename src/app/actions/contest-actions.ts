@@ -100,12 +100,12 @@ export async function getActiveContests(): Promise<ContestSession[]> {
 
     const safeTimestampToISO = (ts: any): string => {
         if (!ts) return new Date().toISOString();
-        if (typeof ts === 'string') return ts;
-        if (ts.toDate) return ts.toDate().toISOString();
+        if (ts.toDate) return ts.toDate().toISOString(); // Firestore Timestamp
+        if (typeof ts === 'string') return ts; // Already a string
         if (typeof ts.seconds === 'number' && typeof ts.nanoseconds === 'number') {
             return new Timestamp(ts.seconds, ts.nanoseconds).toDate().toISOString();
         }
-        return new Date().toISOString();
+        return new Date(ts).toISOString(); // Fallback for other date-like objects
     };
     
     return snapshot.docs.map(doc => {
