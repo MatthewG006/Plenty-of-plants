@@ -316,15 +316,13 @@ export default function HomePage() {
     setIsDrawing(true);
     try {
         await useDraw(user.uid);
+        playSfx('success');
 
         const existingNames = gameData.plants ? Object.values(gameData.plants).map(p => p.name) : [];
         const drawnPlantResult = await drawPlantAction(existingNames);
         
-        // This is the full quality image, which we store separately for evolutions.
-        setUncompressedDrawnPlantUri(drawnPlantResult.imageDataUri);
         const compressedImageDataUri = await compressImage(drawnPlantResult.imageDataUri);
 
-        playSfx('success');
         setDrawnPlant({
             ...drawnPlantResult,
             imageDataUri: compressedImageDataUri,
@@ -348,11 +346,11 @@ export default function HomePage() {
   };
 
   const handleCollect = async () => {
-    if (!drawnPlant || !uncompressedDrawnPlantUri || !user) return;
+    if (!drawnPlant || !user) return;
 
     try {
         const plainDrawnPlant = JSON.parse(JSON.stringify(drawnPlant));
-        const newPlant = await savePlant(user.uid, plainDrawnPlant, uncompressedDrawnPlantUri);
+        const newPlant = await savePlant(user.uid, plainDrawnPlant);
         setLatestPlant(newPlant);
         await updateCollectionProgress(user.uid);
     } catch (e) {
@@ -365,7 +363,6 @@ export default function HomePage() {
     }
     
     setDrawnPlant(null);
-    setUncompressedDrawnPlantUri(null);
   };
   
   const handleClaimChallenge = async (challengeId: string) => {
