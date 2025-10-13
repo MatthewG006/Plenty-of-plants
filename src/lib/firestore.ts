@@ -160,7 +160,7 @@ export async function createUserDocument(user: User): Promise<GameData> {
             description: "A happy little fern to start your collection.",
             image: "/fern.png",
             baseImage: '',
-            uncompressedImage: '/fern.png',
+            uncompressedImage: '', // Intentionally left blank to save space
             form: "Base",
             hint: "fern plant",
             level: 1,
@@ -238,7 +238,7 @@ export async function savePlant(userId: string, plantData: DrawPlantOutput, unco
         description: plantData.description || 'A new plant has arrived.',
         image: plantData.imageDataUri || '',
         baseImage: '',
-        uncompressedImage: uncompressedImageDataUri,
+        uncompressedImage: '', // Intentionally left blank to save space
         form: 'Base',
         hint: (plantData.name || '').toLowerCase().split(' ').slice(0, 2).join(' '),
         level: 1,

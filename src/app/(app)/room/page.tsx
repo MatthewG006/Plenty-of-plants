@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -350,6 +351,16 @@ export default function RoomPage() {
 
   const handleEvolve = async () => {
     if (!evolvingPlant || !user) return;
+
+    if (!evolvingPlant.uncompressedImage) {
+        toast({
+            variant: 'destructive',
+            title: 'Evolution Error',
+            description: 'The high-quality image required for evolution is missing. This plant cannot be evolved.'
+        });
+        setEvolvingPlant(null);
+        return;
+    }
     
     setIsEvolving(true);
     try {
@@ -391,7 +402,7 @@ export default function RoomPage() {
 
         const updateData: Partial<Plant> = {
             image: newImageUri,
-            uncompressedImage: uncompressedNewImageUri,
+            uncompressedImage: '', // Do not save the new uncompressed image to save space
             form: newForm,
             personality: personality || '',
         };
