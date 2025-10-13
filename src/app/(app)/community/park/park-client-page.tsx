@@ -78,7 +78,7 @@ export default function ParkClientPage() {
           </div>
         </div>
 
-        <div className="w-full h-1/3 absolute bottom-0 left-0 flex items-end justify-start p-4 pointer-events-none">
+        <div className="w-full h-1/3 absolute bottom-10 left-0 flex items-end justify-start p-4 pointer-events-none">
           {isLoading ? (
               <Loader2 className="w-8 h-8 animate-spin text-white" />
           ) : processedImage ? (
