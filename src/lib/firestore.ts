@@ -221,7 +221,7 @@ export async function createUserDocument(user: User): Promise<GameData> {
     return (await getUserGameData(user.uid))!;
 }
 
-export async function savePlant(userId: string, plantData: DrawPlantOutput, uncompressedImageDataUri: string): Promise<Plant> {
+export async function savePlant(userId: string, plantData: DrawPlantOutput): Promise<Plant> {
     const userDocRef = doc(db, 'users', userId);
     const gameData = await getUserGameData(userId);
 
@@ -238,7 +238,9 @@ export async function savePlant(userId: string, plantData: DrawPlantOutput, unco
         description: plantData.description || 'A new plant has arrived.',
         image: plantData.imageDataUri || '',
         baseImage: '',
-        uncompressedImage: uncompressedImageDataUri, // Save for evolution, but it won't be stored in Firestore.
+        // The uncompressed image is received but NOT saved to Firestore to prevent document size errors.
+        // It's used for the evolution flow and then discarded from the saved object.
+        uncompressedImage: '',
         form: 'Base',
         hint: (plantData.name || '').toLowerCase().split(' ').slice(0, 2).join(' '),
         level: 1,
@@ -253,14 +255,10 @@ export async function savePlant(userId: string, plantData: DrawPlantOutput, unco
         conversationHistory: [],
     };
     
-    // Create a version of the plant to be saved that does NOT include the uncompressed image
-    const { uncompressedImage, ...plantToSave } = newPlant;
-
-
     const firstEmptyPotIndex = gameData.deskPlantIds.findIndex(id => id === null);
 
     const updatePayload: { [key: string]: any } = {
-        [`plants.${newPlant.id}`]: plantToSave,
+        [`plants.${newPlant.id}`]: newPlant,
     };
     
     if (firstEmptyPotIndex !== -1) {
@@ -273,8 +271,54 @@ export async function savePlant(userId: string, plantData: DrawPlantOutput, unco
     
     await updateDoc(userDocRef, updatePayload);
     
-    // Return the full plant object (with uncompressed image) to the client for immediate use
     return newPlant;
+}
+
+export async function waterPlant(userId: string, plantId: number): Promise<{ leveledUp: boolean, xpGained: number, newLevel: number, seedCollected: boolean }> {
+    const userDocRef = doc(db, 'users', userId);
+    const gameData = await getUserGameData(userId);
+
+    if (!gameData) {
+        throw new Error("User data not found.");
+    }
+
+    const plant = gameData.plants[plantId];
+    if (!plant) {
+        throw new Error("Plant not found.");
+    }
+
+    const timesWateredToday = plant.lastWatered.filter(isToday).length;
+    if (timesWateredToday >= MAX_WATERINGS_PER_DAY) {
+        throw new Error("This plant has been fully watered for today.");
+    }
+
+    let currentXp = plant.xp + XP_PER_WATERING;
+    let currentLevel = plant.level;
+    let leveledUp = false;
+    let seedCollected = false;
+
+    if (currentXp >= XP_PER_LEVEL) {
+        currentXp -= XP_PER_LEVEL;
+        currentLevel += 1;
+        leveledUp = true;
+        
+        // Add a seed if there's space
+        if (gameData.seeds.length < MAX_SEEDS) {
+            await addSeed(userId);
+            seedCollected = true;
+        }
+    }
+
+    const updates: { [key: string]: any } = {
+        [`plants.${plantId}.xp`]: currentXp,
+        [`plants.${plantId}.level`]: currentLevel,
+        [`plants.${plantId}.lastWatered`]: arrayUnion(Date.now()),
+        gold: increment(GOLD_PER_WATERING)
+    };
+
+    await updateDoc(userDocRef, updates);
+
+    return { leveledUp, xpGained: XP_PER_WATERING, newLevel: currentLevel, seedCollected };
 }
 
 
@@ -697,3 +741,4 @@ export async function awardContestPrize(userId: string): Promise<void> {
         gold: increment(50),
     });
 }
+

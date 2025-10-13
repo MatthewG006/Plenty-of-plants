@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { deletePlant, unlockPlantChat, addConversationHistory, updatePlant, updateUserGold, updateUserRubies, useWaterRefill, addSeed, useGlitter, useSheen, useRainbowGlitter, useRedGlitter } from '@/lib/firestore';
+import { deletePlant, unlockPlantChat, addConversationHistory, updatePlant, updateUserGold, updateUserRubies, useWaterRefill, addSeed, useGlitter, useSheen, useRainbowGlitter, useRedGlitter, waterPlant } from '@/lib/firestore';
 import { AlertDialog, AlertDialogTrigger, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription as AlertDialogDescriptionComponent } from '@/components/ui/alert-dialog';
 import { plantChatAction } from '@/app/actions/plant-chat';
 import { Textarea } from '@/components/ui/textarea';
@@ -26,6 +26,15 @@ const XP_PER_LEVEL = 1000;
 const EVOLUTION_LEVEL = 10;
 const SECOND_EVOLUTION_LEVEL = 25;
 const MAX_LEVEL = 50;
+const MAX_WATERINGS_PER_DAY = 4;
+
+function isToday(timestamp: number): boolean {
+    const today = new Date();
+    const someDate = new Date(timestamp);
+    return someDate.getDate() === today.getDate() &&
+           someDate.getMonth() === today.getMonth() &&
+           someDate.getFullYear() === today.getFullYear();
+}
 
 function SheenAnimation() {
     return (
@@ -198,9 +207,142 @@ export function PlantChatDialog({ plant, open, onOpenChange, userId }: { plant: 
 }
 
 export function PlantCareDialog({ plant, open, onOpenChange, onStartEvolution, onSwapRequest }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, onStartEvolution: (plant: Plant) => void, onSwapRequest: (plantId: number, gardenPlotIndex: number) => void }) {
-    return null;
-}
+    const { user, gameData } = useAuth();
+    const { playSfx } = useAudio();
+    const { toast } = useToast();
+    const [isWatering, setIsWatering] = useState(false);
+    const [waterDropPositions, setWaterDropPositions] = useState<{ x: number; y: number; key: number }[]>([]);
 
+    if (!plant || !user || !gameData) return null;
+
+    const timesWateredToday = plant.lastWatered.filter(isToday).length;
+    const canWater = timesWateredToday < MAX_WATERINGS_PER_DAY;
+    const canUseRefill = gameData.waterRefillCount > 0 && !canWater;
+
+    const handleWaterPlant = async () => {
+        setIsWatering(true);
+        playSfx('watering');
+        
+        // Add a visual effect
+        setWaterDropPositions(prev => [...prev, { x: Math.random() * 80 + 10, y: 0, key: Date.now() }]);
+
+        try {
+            const result = await waterPlant(user.uid, plant.id);
+            if (result.leveledUp) {
+                toast({
+                    title: 'Leveled Up!',
+                    description: `${plant.name} is now level ${result.newLevel}! You found a seed!`,
+                });
+                playSfx('reward');
+            } else {
+                 toast({
+                    title: 'Watered!',
+                    description: `${plant.name} gained ${result.xpGained} XP.`,
+                });
+            }
+
+            // Update challenge progress
+            updateWateringProgress(user.uid);
+            if (plant.form !== 'Base') {
+                updateWaterEvolvedProgress(user.uid);
+            }
+        } catch (e: any) {
+            toast({
+                variant: 'destructive',
+                title: 'Watering Error',
+                description: e.message,
+            });
+        } finally {
+            setTimeout(() => {
+                setIsWatering(false);
+            }, 500); // Give effect time to play
+        }
+    };
+    
+    const handleUseRefill = async () => {
+        try {
+            await useWaterRefill(user.uid, plant.id);
+            toast({
+                title: 'Water Refilled!',
+                description: `${plant.name} can be watered again.`,
+            });
+        } catch (e: any) {
+             toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: e.message,
+            });
+        }
+    }
+
+    const shouldEvolve = (plant.level >= EVOLUTION_LEVEL && plant.form === 'Base') || (plant.level >= SECOND_EVOLUTION_LEVEL && plant.form === 'Evolved');
+    const isMaxLevel = plant.level >= MAX_LEVEL;
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-sm">
+                <DialogHeader>
+                    <DialogTitle className="text-3xl text-center text-primary">{plant.name}</DialogTitle>
+                </DialogHeader>
+                <div className="flex flex-col items-center gap-4 pt-4">
+                    <div className="w-64 h-64 relative">
+                        <div className="rounded-lg overflow-hidden border-4 border-primary/50 shadow-lg bg-green-100 flex items-center justify-center h-full">
+                            {plant.image && plant.image !== 'placeholder' ? (
+                                <Image src={plant.image} alt={plant.name} width={256} height={256} className="object-cover w-full h-full" data-ai-hint={plant.hint} />
+                            ) : (
+                                <Leaf className="w-24 h-24 text-muted-foreground/50" />
+                            )}
+                        </div>
+                        {waterDropPositions.map(pos => (
+                            <div key={pos.key} className="absolute top-0 w-full h-full pointer-events-none" style={{ left: `${pos.x}%` }}>
+                                <Droplet className="text-blue-400 w-8 h-8 animate-water-drop" onAnimationEnd={() => setWaterDropPositions(p => p.filter(drop => drop.key !== pos.key))} />
+                            </div>
+                        ))}
+                    </div>
+
+                    <p className="text-muted-foreground text-center mt-2 px-4">{plant.description}</p>
+                    
+                     <div className="w-full px-4 space-y-2">
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-baseline">
+                                <p className="text-lg font-semibold text-primary">Level {plant.level}</p>
+                                <p className="text-sm text-muted-foreground">{isMaxLevel ? "MAX" : `${plant.xp} / ${XP_PER_LEVEL} XP`}</p>
+                            </div>
+                            <Progress value={isMaxLevel ? 100 : (plant.xp / XP_PER_LEVEL) * 100} className="w-full" />
+                        </div>
+                         <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>Form: <span className="font-semibold text-primary">{plant.form}</span></span>
+                            <span>Watered: {timesWateredToday}/{MAX_WATERINGS_PER_DAY}</span>
+                        </div>
+                    </div>
+                </div>
+                <DialogFooter className="pt-2 flex-col sm:flex-col sm:space-x-0 gap-2">
+                    {shouldEvolve && !isMaxLevel ? (
+                        <Button onClick={() => { onOpenChange(false); onStartEvolution(plant); }} className="w-full">
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Evolve Plant
+                        </Button>
+                    ) : (
+                        <Button onClick={handleWaterPlant} disabled={!canWater || isWatering} className="w-full">
+                            {isWatering ? <Loader2 className="animate-spin" /> : <><Droplet className="mr-2 h-4 w-4" /> Water Plant</>}
+                        </Button>
+                    )}
+                    {canUseRefill && (
+                        <Button onClick={handleUseRefill} variant="outline" className="w-full">
+                           <Coins className="mr-2 h-4 w-4" /> Use Water Refill ({gameData.waterRefillCount})
+                        </Button>
+                    )}
+                     <Button variant="secondary" onClick={() => onSwapRequest(plant.id, -1)} className="w-full">
+                        <Replace className="mr-2 h-4 w-4" /> Swap Plant
+                    </Button>
+                    <DialogClose asChild>
+                        <Button className="w-full" variant="outline">Close</Button>
+                    </DialogClose>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
 
 export function EvolveConfirmationDialog({ plant, open, onConfirm, onCancel, isEvolving }: { plant: Plant | null, open: boolean, onConfirm: () => void, onCancel: () => void, isEvolving: boolean }) {
     if (!plant) return null;
