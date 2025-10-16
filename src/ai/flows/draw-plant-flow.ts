@@ -107,19 +107,22 @@ You MUST adhere to the following rules without exception:
     try {
       // Use the details to generate the new plant image.
       const { media } = await ai.generate({
-        model: 'googleai/imagen-2.0-fast',
+        model: 'googleai/gemini-1.5-flash',
         prompt: imageGenPrompt,
+        config: {
+            responseMimeType: 'image/png'
+        }
       });
 
       // Check if the image was generated successfully.
-      if (!media || !media[0]?.url) {
+      if (!media || !media.url) {
         throw new Error('Could not generate plant image from AI.');
       }
       
       return {
         name: plantDetails.name,
         description: plantDetails.description,
-        imageDataUri: media[0].url,
+        imageDataUri: media.url,
       };
 
     } catch (imageError: any) {

@@ -10,10 +10,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { getStorage, ref, listAll, getDownloadURL } from 'firebase/storage';
 import { initializeApp, getApps, getApp, type FirebaseOptions } from 'firebase/app';
-import * as dotenv from 'dotenv';
 
-// Explicitly load environment variables from .env file
-dotenv.config();
 
 const GetFallbackPlantOutputSchema = z.object({
   name: z.string().describe('The creative name of the fallback plant.'),

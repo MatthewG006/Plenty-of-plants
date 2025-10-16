@@ -70,6 +70,10 @@
 }
 
 @layer utilities {
+  .bg-splash-gradient {
+    background-image: linear-gradient(to top, hsl(var(--primary) / 0.8), hsl(var(--primary) / 0.1));
+  }
+
   .bg-splash-image {
     background-image: linear-gradient(to top, rgba(83, 223, 129, 0.8), rgba(83, 223, 129, 0.05)), url('/splash-bg.png');
     background-size: cover;
