@@ -1,6 +1,7 @@
 
 
 import { Timestamp } from 'firebase/firestore';
+import { z } from 'zod';
 
 export interface Plant {
   id: number;
@@ -61,4 +62,24 @@ export interface ContestSession {
     winner?: Contestant;
 }
 
+export const EvolvePlantInputSchema = z.object({
+  name: z.string().describe('The name of the plant being evolved.'),
+  baseImageDataUri: z
+    .string()
+    .describe(
+      "The UNCOMPRESSED, high-quality image of the plant's current form, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
+    ),
+  form: z.string().describe('The current form of the plant (e.g., "Base", "Evolved").'),
+});
+export type EvolvePlantInput = z.infer<typeof EvolvePlantInputSchema>;
+
+export const EvolvePlantOutputSchema = z.object({
+  newImageDataUri: z
+    .string()
+    .describe(
+      "The newly generated, evolved image of the plant, as a data URI."
+    ),
+  personality: z.string().optional().describe("A one-word personality trait for the plant (e.g., 'cheerful', 'grumpy'). This is only generated for the final form."),
+});
+export type EvolvePlantOutput = z.infer<typeof EvolvePlantOutputSchema>;
     

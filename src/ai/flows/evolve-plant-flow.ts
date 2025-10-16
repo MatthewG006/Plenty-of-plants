@@ -4,33 +4,12 @@
  * @fileOverview A flow for evolving an existing plant.
  *
  * - evolvePlant - A function that generates an evolved version of a plant.
- * - EvolvePlantInput - The input type for the evolvePlant function.
- * - EvolvePlantOutput - The return type for the evolvePlant function.
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
+import { EvolvePlantInputSchema, EvolvePlantOutputSchema, type EvolvePlantInput, type EvolvePlantOutput } from '@/interfaces/plant';
 
-const EvolvePlantInputSchema = z.object({
-  name: z.string().describe('The name of the plant being evolved.'),
-  baseImageDataUri: z
-    .string()
-    .describe(
-      "The UNCOMPRESSED, high-quality image of the plant's current form, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
-    ),
-  form: z.string().describe('The current form of the plant (e.g., "Base", "Evolved").'),
-});
-export type EvolvePlantInput = z.infer<typeof EvolvePlantInputSchema>;
-
-const EvolvePlantOutputSchema = z.object({
-  newImageDataUri: z
-    .string()
-    .describe(
-      "The newly generated, evolved image of the plant, as a data URI."
-    ),
-  personality: z.string().optional().describe("A one-word personality trait for the plant (e.g., 'cheerful', 'grumpy'). This is only generated for the final form."),
-});
-export type EvolvePlantOutput = z.infer<typeof EvolvePlantOutputSchema>;
 
 export async function evolvePlant(input: EvolvePlantInput): Promise<EvolvePlantOutput> {
   return evolvePlantFlow(input);
@@ -78,7 +57,7 @@ The final image should be an epic evolution, but still recognizably the same cha
       const { media } = await ai.generate({
         model: 'googleai/gemini-1.5-flash',
         prompt: [
-          {media: {url: baseImageDataUri, contentType: 'image/png'}},
+          {media: {url: baseImageDataUri}},
           {text: promptText}
         ],
         config: {
@@ -86,7 +65,7 @@ The final image should be an epic evolution, but still recognizably the same cha
         },
       });
 
-      if (!media || !media[0]?.url) {
+      if (!media || !media.url) {
         throw new Error('Could not generate evolved plant image from AI.');
       }
       
@@ -99,7 +78,7 @@ The final image should be an epic evolution, but still recognizably the same cha
       }
       
       return {
-        newImageDataUri: media[0].url,
+        newImageDataUri: media.url,
         personality: personality,
       };
 
