@@ -141,7 +141,7 @@ export async function createNewContest(userId: string, hostName: string, plant: 
             
             const newSessionData: Omit<ContestSession, 'id'> = {
                 status: 'waiting',
-                createdAt: serverTimestamp() as any, // Cast to any to satisfy type
+                createdAt: Timestamp.now(),
                 expiresAt: Timestamp.fromMillis(Date.now() + LOBBY_EXPIRATION_MINUTES * 60 * 1000),
                 round: 1,
                 contestantCount: 1,
