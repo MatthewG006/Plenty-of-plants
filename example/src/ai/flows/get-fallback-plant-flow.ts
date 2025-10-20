@@ -7,7 +7,7 @@
  * - GetFallbackPlantOutput - The return type for the getFallbackPlant function.
  */
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 import { getStorage, ref, listAll, getBlob } from 'firebase/storage';
 import { initializeApp, getApps, getApp, type FirebaseOptions } from 'firebase/app';
 
@@ -22,12 +22,10 @@ export type GetFallbackPlantOutput = z.infer<typeof GetFallbackPlantOutputSchema
 
 // Helper to convert a Blob to a data URI
 async function blobToDataUri(blob: Blob): Promise<string> {
-    const reader = new FileReader();
-    return new Promise((resolve, reject) => {
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-    });
+    const arrayBuffer = await blob.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const contentType = blob.type || 'image/png';
+    return `data:${contentType};base64,${buffer.toString('base64')}`;
 }
 
 
