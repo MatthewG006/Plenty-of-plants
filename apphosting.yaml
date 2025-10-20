@@ -1,9 +1,5 @@
 # Settings to manage and configure a Firebase App Hosting backend.
 # https://firebase.google.com/docs/app-hosting/configure
 
-runConfig:
-  # Increase this value if you'd like to automatically spin up
-  # more instances in response to increased traffic.
-  maxInstances: 100
-  # Set the request timeout for the backend to 240s to match the startup probe.
-  timeoutSeconds: 240
+# By removing the runConfig, we will use the default timeouts, which are
+# more appropriate for this application and resolve the startup probe conflict.
