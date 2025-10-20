@@ -96,7 +96,7 @@ export default function ContestPage() {
     const [timeRemaining, setTimeRemaining] = useState(0);
 
     const hasEntered = user && contestants.some(c => c.ownerId === user.uid);
-    const hasVoted = user && contestants.some(c => c.voterIds?.includes(user.uid));
+    const hasVoted = user && session?.status === 'voting' && contestants.some(c => c.voterIds?.includes(user.uid));
     const isHost = user && session?.hostId === user.uid;
 
     // Heartbeat effect
@@ -114,17 +114,23 @@ export default function ContestPage() {
     }, [user, hasEntered, session?.status, sessionId]);
 
     useEffect(() => {
-        if (!session || session.status === 'finished') return;
+        if (!session || session.status === 'finished') {
+            setTimeRemaining(0);
+            return;
+        }
 
         let timer: NodeJS.Timeout;
 
         const updateTimer = () => {
             if (session.expiresAt) {
-                const endTime = (session.expiresAt as any)?.seconds ? new Timestamp((session.expiresAt as any).seconds, (session.expiresAt as any).nanoseconds).toDate().getTime() : new Date(session.expiresAt as string).getTime();
+                const endTime = (session.expiresAt as any)?.seconds 
+                    ? new Timestamp((session.expiresAt as any).seconds, (session.expiresAt as any).nanoseconds).toMillis() 
+                    : new Date(session.expiresAt as string).getTime();
+                
                 const remaining = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
                 setTimeRemaining(remaining);
     
-                if (remaining <= 0) {
+                if (remaining <= 0 && (session.status === 'waiting' || session.status === 'voting')) {
                     processContestState(sessionId);
                 }
             }
@@ -158,11 +164,10 @@ export default function ContestPage() {
         const unsubSession = onSnapshot(doc(db, "contestSessions", sessionId), (doc) => {
             if (doc.exists()) {
                  const data = doc.data();
-                 // Safely convert timestamps to strings
                  const safeTimestampToISO = (ts: any): string => {
                     if (!ts) return new Date().toISOString();
-                    if (ts.toDate) return ts.toDate().toISOString(); // Firestore Timestamp
-                    return new Date(ts).toISOString(); // Fallback for other date-like objects
+                    if (ts.toDate) return ts.toDate().toISOString();
+                    return new Date(ts).toISOString();
                  };
 
                  const sessionData: ContestSession = {
@@ -304,14 +309,14 @@ export default function ContestPage() {
             <Card className="text-center p-4 bg-muted/50">
                 <h2 className="text-lg font-semibold text-primary">Round {session.round}</h2>
                 <p className="text-sm text-muted-foreground">
-                    {session.status === 'waiting' && `Waiting for players... (${session.contestantCount}/${playerPositions.length})`}
+                    {session.status === 'waiting' && `Waiting for players... (${contestants.length}/${playerPositions.length})`}
                     {session.status === 'voting' && 'Vote for your favorite!'}
                     {session.status === 'finished' && 'Contest Over!'}
                 </p>
                 <div className="text-3xl font-bold text-primary mt-1">{timeRemaining > 0 ? `${timeRemaining}s` : '0s'}</div>
             </Card>
 
-            {session.status === 'waiting' && timeRemaining <= 0 && session.contestantCount < 2 && (
+            {session.status === 'waiting' && timeRemaining <= 0 && contestants.length < 2 && (
                 <div className="text-center">
                     <p className="text-sm text-muted-foreground mb-2">The lobby timer has expired.</p>
                     <Button onClick={() => window.location.reload()}>
@@ -350,7 +355,7 @@ export default function ContestPage() {
                                     Start Contest
                                 </Button>
                             )}
-                            {!hasEntered && timeRemaining > 0 && session.contestantCount < playerPositions.length ? (
+                            {!hasEntered && timeRemaining > 0 && contestants.length < playerPositions.length ? (
                                 <Button className="w-full" onClick={() => setShowPlantSelection(true)} variant={isHost ? "secondary" : "default"}>
                                     <Trophy className="mr-2" />
                                     Enter Your Plant!
