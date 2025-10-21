@@ -16,5 +16,3 @@ const ContestLobbyClientPage = dynamic(() => import('./contest-client-page'), {
 export default function ContestLobbyPage() {
   return <ContestLobbyClientPage />;
 }
-
-    
