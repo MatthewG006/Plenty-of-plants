@@ -131,6 +131,8 @@ export default function ContestPage() {
                 setTimeRemaining(remaining);
     
                 if (remaining <= 0 && (session.status === 'waiting' || session.status === 'voting')) {
+                    // The onSnapshot listener will catch the state change triggered by the backend,
+                    // but we can pre-emptively call it to make the UI feel faster.
                     processContestState(sessionId);
                 }
             }
