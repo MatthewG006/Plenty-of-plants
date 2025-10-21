@@ -361,7 +361,7 @@ export default function ContestPage() {
                         </div>
                         <div className="absolute bottom-4 left-4 right-4 flex flex-col gap-2">
                              {isHost && (
-                                <Button className="w-full" onClick={handleStartContest} disabled={contestants.length < 2 || timeRemaining <= 0}>
+                                <Button className="w-full" onClick={handleStartContest} disabled={contestants.length < 2}>
                                     <Play className="mr-2" />
                                     Start Contest
                                 </Button>
