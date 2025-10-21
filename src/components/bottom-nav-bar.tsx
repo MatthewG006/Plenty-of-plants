@@ -23,19 +23,22 @@ export default function BottomNavBar() {
     playSfx('tap');
   };
 
+  // Adjust base paths for matching
+  const adjustedPathname = pathname.startsWith('/app') ? pathname.substring(4) : pathname;
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 h-16 border-t bg-card/95 backdrop-blur-sm z-10 flex justify-center">
       <div className="grid h-full w-full max-w-md grid-cols-5 items-center">
         {navItems.map((item) => {
-          // Garden and Seeds page should highlight the Garden tab
-          const isActive = item.href === '/garden' 
-            ? (pathname === '/garden' || pathname === '/garden/seeds')
-            : pathname.startsWith(item.href);
+          const baseItemPath = item.href === '/home' ? '/' : item.href;
+          const isActive = adjustedPathname === baseItemPath || (baseItemPath !== '/' && adjustedPathname.startsWith(baseItemPath));
+          
+          const finalHref = item.href === '/home' ? '/' : item.href;
 
           return (
             <Link 
               key={item.href} 
-              href={item.href} 
+              href={finalHref} 
               onClick={handleNavClick}
               className="flex flex-col items-center justify-center gap-1 h-full"
             >
