@@ -113,6 +113,7 @@ export default function ContestPage() {
         }
     }, [user, hasEntered, session?.status, sessionId]);
 
+    // Timer effect
     useEffect(() => {
         if (!session || session.status === 'finished') {
             setTimeRemaining(0);
@@ -123,6 +124,7 @@ export default function ContestPage() {
 
         const updateTimer = () => {
             if (session.expiresAt) {
+                // Handle both Firestore Timestamp and ISO string formats
                 const endTime = (session.expiresAt as any)?.seconds 
                     ? new Timestamp((session.expiresAt as any).seconds, (session.expiresAt as any).nanoseconds).toMillis() 
                     : new Date(session.expiresAt as string).getTime();
@@ -138,13 +140,14 @@ export default function ContestPage() {
             }
         };
 
-        updateTimer(); 
-        timer = setInterval(updateTimer, 1000); 
+        updateTimer(); // Initial call
+        timer = setInterval(updateTimer, 1000); // Update every second
 
         return () => clearInterval(timer);
     }, [session, sessionId]);
 
 
+    // Confetti for the winner
     useEffect(() => {
         if (session?.status === 'finished' && session.winner) {
             confetti({
@@ -156,6 +159,7 @@ export default function ContestPage() {
     }, [session?.status, session?.winner]);
 
 
+    // Realtime data subscriptions
     useEffect(() => {
         if (!user || !sessionId) {
             setIsLoading(false);
@@ -417,3 +421,5 @@ export default function ContestPage() {
         </div>
     )
 }
+
+    

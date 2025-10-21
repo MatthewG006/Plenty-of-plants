@@ -33,6 +33,7 @@ export default function ContestLobbyClientPage() {
             setIsLoading(true);
             setError(null);
             try {
+                // This function will now process any expired sessions before fetching active ones.
                 await cleanupExpiredContests();
                 const activeSessions = await getActiveContests();
                 setSessions(activeSessions);
@@ -46,7 +47,8 @@ export default function ContestLobbyClientPage() {
         }
         
         loadContests();
-        const interval = setInterval(loadContests, 30000); 
+        // Set up an interval to refresh the list of contests periodically.
+        const interval = setInterval(loadContests, 30000); // Refresh every 30 seconds
         return () => clearInterval(interval);
 
     }, [toast]);
@@ -171,3 +173,5 @@ export default function ContestLobbyClientPage() {
         </div>
     )
 }
+
+    
