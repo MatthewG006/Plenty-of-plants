@@ -354,5 +354,3 @@ export async function processContestState(sessionId: string): Promise<void> {
         }
     }
 }
-
-    
