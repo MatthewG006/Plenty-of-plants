@@ -63,6 +63,7 @@ export async function cleanupExpiredContests() {
     const now = Timestamp.now();
     const contestRef = collection(db, "contestSessions");
 
+    // Query for sessions that are not finished and whose expiration time has passed.
     const expiredQuery = query(
         contestRef,
         where("status", "!=", "finished"),
@@ -71,7 +72,10 @@ export async function cleanupExpiredContests() {
 
     try {
         const expiredSnapshot = await getDocs(expiredQuery);
-        
+        if (expiredSnapshot.empty) return;
+
+        // Process state for each expired session. This is a failsafe.
+        // In a high-traffic app, this should be a scheduled Cloud Function.
         for (const doc of expiredSnapshot.docs) {
             // Process state without awaiting, allowing them to run in parallel
             processContestState(doc.id);
@@ -90,7 +94,7 @@ export async function getActiveContests(): Promise<ContestSession[]> {
 
     const safeTimestampToISO = (ts: any): string => {
         if (!ts) return new Date().toISOString();
-        if (ts.toDate) return ts.toDate().toISOString(); 
+        if (ts.toDate) return ts.toDate().toISOString(); // Firestore Timestamp
         return new Date(ts).toISOString();
     };
     
@@ -168,10 +172,13 @@ export async function joinContest(sessionId: string, userId: string, displayName
             }
 
             const contestantsRef = collection(sessionRef, "contestants");
+            // Check if user is already in THIS contest.
             const q = query(contestantsRef, where("ownerId", "==", userId));
-            const querySnapshot = await getDocs(q);
+            const querySnapshot = await getDocs(q); // Use getDocs within transaction context if needed, but it's often not required for reads.
 
             if (!querySnapshot.empty) {
+                // If the user's document exists in a subcollection of a DIFFERENT contest,
+                // it might be stale. Here we assume we only care about THIS contest.
                 const isStale = querySnapshot.docs.some(doc => doc.ref.parent.parent?.id !== sessionId);
                 if (!isStale) {
                     throw new Error("You have already entered this contest.");
@@ -213,6 +220,7 @@ export async function voteForContestant(sessionId: string, voterId: string, cont
                 throw new Error("Voting for this contest has ended.");
             }
             
+            // Check if user has already voted in this round
             const contestantsCollectionRef = collection(sessionRef, "contestants");
             const contestantsSnapshotDocs = await getDocs(query(contestantsCollectionRef));
             const allContestants = contestantsSnapshotDocs.docs.map(d => d.data() as Contestant);
@@ -227,6 +235,7 @@ export async function voteForContestant(sessionId: string, voterId: string, cont
                 throw new Error("This contestant is no longer in the running.");
             }
             const contestantData = contestantDoc.data() as Contestant;
+            // Prevent voting for yourself
             if (contestantData.ownerId === voterId) {
                 throw new Error("You cannot vote for your own plant.");
             }
@@ -273,8 +282,10 @@ export async function processContestState(sessionId: string): Promise<void> {
             const contestantsSnapshot = await transaction.get(query(contestantsRef));
             let contestants = contestantsSnapshot.docs.map(d => ({ ...d.data(), id: d.id } as Contestant));
 
+            // Stage 1: Handle timeouts in the waiting room
             if (session.status === 'waiting') {
                 const now = Timestamp.now().seconds;
+                // Kick inactive players
                 const activeContestants = contestants.filter(c => (now - (c.lastSeen?.seconds || 0)) < HEARTBEAT_TIMEOUT_SECONDS);
                 
                 if (activeContestants.length < contestants.length) {
@@ -284,6 +295,7 @@ export async function processContestState(sessionId: string): Promise<void> {
                     contestants = activeContestants;
                 }
 
+                // If enough players, start voting. Otherwise, end the contest.
                 if (contestants.length >= 2) {
                      transaction.update(sessionRef, {
                         status: 'voting',
@@ -295,6 +307,7 @@ export async function processContestState(sessionId: string): Promise<void> {
                 return;
             }
 
+            // Stage 2: Handle voting round results
             if (session.status === 'voting') {
                 if (contestants.length === 0) {
                     transaction.update(sessionRef, { status: 'finished', winner: null });
@@ -311,12 +324,14 @@ export async function processContestState(sessionId: string): Promise<void> {
                 const losers = contestants.filter(c => (c.votes || 0) < maxVotes);
 
                 if (winners.length === 1) {
+                    // Single winner, end the contest
                     transaction.update(sessionRef, { status: 'finished', winner: winners[0] });
                     await awardContestPrize(winners[0].ownerId);
                 } else {
-                    // There's a tie, so eliminate the losers and start a new round with the winners.
+                    // Tie-breaker: eliminate losers and start a new voting round with the tied players
                     losers.forEach(loser => transaction.delete(doc(contestantsRef, loser.id)));
                     
+                    // Reset votes for the tied winners
                     winners.forEach(winner => {
                         transaction.update(doc(contestantsRef, winner.id), { votes: 0, voterIds: [] });
                     });
@@ -331,6 +346,7 @@ export async function processContestState(sessionId: string): Promise<void> {
         });
     } catch (e: any) {
         console.error(`Failed to process state for session ${sessionId}:`, e);
+        // Attempt to mark the session as finished with an error to prevent it from being stuck.
         try {
             await updateDoc(sessionRef, { status: 'finished', error: e.message });
         } catch (updateError) {
@@ -338,3 +354,5 @@ export async function processContestState(sessionId: string): Promise<void> {
         }
     }
 }
+
+    

@@ -220,7 +220,7 @@ export async function createUserDocument(user: User): Promise<GameData> {
     return (await getUserGameData(user.uid))!;
 }
 
-export async function savePlant(userId: string, plantData: DrawPlantOutput): Promise<Plant> {
+export async function savePlant(userId: string, plantData: DrawPlantOutput, uncompressedDataUri: string): Promise<Plant> {
     const userDocRef = doc(db, 'users', userId);
     const gameData = await getUserGameData(userId);
 
@@ -237,9 +237,8 @@ export async function savePlant(userId: string, plantData: DrawPlantOutput): Pro
         description: plantData.description || 'A new plant has arrived.',
         image: plantData.imageDataUri || '',
         baseImage: '',
-        // The uncompressed image is received but NOT saved to Firestore to prevent document size errors.
-        // It's used for the evolution flow and then discarded from the saved object.
-        uncompressedImage: '',
+        // The uncompressed image is required for the evolution flow.
+        uncompressedImage: uncompressedDataUri,
         form: 'Base',
         hint: (plantData.name || '').toLowerCase().split(' ').slice(0, 2).join(' '),
         level: 1,
@@ -340,6 +339,8 @@ export async function updatePlant(userId: string, plantId: number, plantUpdateDa
     
     let updates: { [key: string]: any } = {};
     
+    // This allows for updating top-level fields on the user document if needed,
+    // though it's primarily designed for updating nested plant properties.
     if (plantId === 0) {
         updates = { ...plantUpdateData };
     } else {
@@ -622,6 +623,7 @@ export async function useWaterRefill(userId: string, plantId: number): Promise<v
         throw new Error("Plant not found.");
     }
 
+    // Reset waterings for the day by filtering out today's timestamps
     const previousWaterings = plant.lastWatered.filter(ts => !isToday(ts));
 
     await updateDoc(userDocRef, {
@@ -740,3 +742,5 @@ export async function awardContestPrize(userId: string): Promise<void> {
         gold: increment(50),
     });
 }
+
+    
