@@ -291,7 +291,9 @@ export async function processContestState(sessionId: string): Promise<void> {
                 const activeContestants = contestants.filter(c => c.lastSeen && (now - c.lastSeen.seconds) < HEARTBEAT_TIMEOUT_SECONDS);
                 
                 if (activeContestants.length < contestants.length) {
-                    const inactiveContestantIds = contestants.filter(c => !activeContestants.find(ac => ac.id === c.id)).map(c => c.id);
+                    const activeIds = new Set(activeContestants.map(c => c.id));
+                    const inactiveContestantIds = contestants.filter(c => !activeIds.has(c.id)).map(c => c.id);
+                    
                     inactiveContestantIds.forEach(id => transaction.delete(doc(contestantsRef, id)));
                     transaction.update(sessionRef, { contestantCount: activeContestants.length });
                     contestants = activeContestants;
@@ -326,25 +328,36 @@ export async function processContestState(sessionId: string): Promise<void> {
                 const winners = contestants.filter(c => (c.votes || 0) === maxVotes);
                 const losers = contestants.filter(c => (c.votes || 0) < maxVotes);
 
-                if (winners.length === 1) {
+                if (winners.length === 1 && losers.length > 0) {
                     // Single winner, end the contest
                     const winner = winners[0];
                     transaction.update(sessionRef, { status: 'finished', winner: winner, expiresAt: Timestamp.now() });
                     await awardContestPrize(winner.ownerId);
                 } else {
-                    // Tie-breaker: eliminate losers and start a new voting round with the tied players
-                    const batch = writeBatch(db);
-                    losers.forEach(loser => batch.delete(doc(contestantsRef, loser.id)));
+                    // Tie-breaker or all players have 0 votes: eliminate losers and start a new voting round.
+                    // If all players are tied (including all with 0 votes), they all advance.
+                    // Only eliminate players if there is a distinct group of losers.
+                    if (losers.length > 0 && winners.length < contestants.length) {
+                        const batch = writeBatch(db);
+                        losers.forEach(loser => batch.delete(doc(contestantsRef, loser.id)));
+                        
+                        // Reset votes for the tied winners
+                        winners.forEach(winner => {
+                            batch.update(doc(contestantsRef, winner.id), { votes: 0, voterIds: [] });
+                        });
+                        
+                        await batch.commit();
+                    } else {
+                        // All players are tied, so just reset everyone's votes for the next round
+                        const batch = writeBatch(db);
+                        contestants.forEach(c => {
+                             batch.update(doc(contestantsRef, c.id), { votes: 0, voterIds: [] });
+                        });
+                        await batch.commit();
+                    }
                     
-                    // Reset votes for the tied winners
-                    winners.forEach(winner => {
-                        batch.update(doc(contestantsRef, winner.id), { votes: 0, voterIds: [] });
-                    });
-                    
-                    // Commit the deletes and vote resets first
-                    await batch.commit();
 
-                    // Now, update the session in the main transaction
+                    // Update the session in the main transaction
                     transaction.update(sessionRef, {
                         round: increment(1),
                         expiresAt: Timestamp.fromMillis(Date.now() + VOTING_TIME_SECONDS * 1000),
