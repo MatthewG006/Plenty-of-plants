@@ -84,9 +84,8 @@ export async function cleanupExpiredContests() {
         if (expiredSnapshot.empty) return;
 
         // Process state for each expired session.
-        for (const doc of expiredSnapshot.docs) {
-            await processContestState(doc.id);
-        }
+        const promises = expiredSnapshot.docs.map(doc => processContestState(doc.id));
+        await Promise.all(promises);
 
     } catch (e: any) {
         console.error("Error during contest cleanup:", e);
@@ -95,7 +94,14 @@ export async function cleanupExpiredContests() {
 
 export async function getActiveContests(): Promise<ContestSession[]> {
     const contestRef = collection(db, "contestSessions");
-    const q = query(contestRef, where("status", "==", "waiting"));
+    const now = Timestamp.now();
+    
+    // Query for lobbies that are in the "waiting" state AND have not yet expired.
+    const q = query(
+      contestRef, 
+      where("status", "==", "waiting"),
+      where("expiresAt", ">", now)
+    );
     
     const snapshot = await getDocs(q);
     
@@ -310,8 +316,9 @@ export async function processContestState(sessionId: string): Promise<void> {
                     return;
                 }
                 if (contestants.length === 1) {
-                    transaction.update(sessionRef, { status: 'finished', winner: contestants[0], expiresAt: Timestamp.now() });
-                    await awardContestPrize(contestants[0].ownerId);
+                    const winner = contestants[0];
+                    transaction.update(sessionRef, { status: 'finished', winner: winner, expiresAt: Timestamp.now() });
+                    await awardContestPrize(winner.ownerId);
                     return;
                 }
 
@@ -321,17 +328,23 @@ export async function processContestState(sessionId: string): Promise<void> {
 
                 if (winners.length === 1) {
                     // Single winner, end the contest
-                    transaction.update(sessionRef, { status: 'finished', winner: winners[0], expiresAt: Timestamp.now() });
-                    await awardContestPrize(winners[0].ownerId);
+                    const winner = winners[0];
+                    transaction.update(sessionRef, { status: 'finished', winner: winner, expiresAt: Timestamp.now() });
+                    await awardContestPrize(winner.ownerId);
                 } else {
                     // Tie-breaker: eliminate losers and start a new voting round with the tied players
-                    losers.forEach(loser => transaction.delete(doc(contestantsRef, loser.id)));
+                    const batch = writeBatch(db);
+                    losers.forEach(loser => batch.delete(doc(contestantsRef, loser.id)));
                     
                     // Reset votes for the tied winners
                     winners.forEach(winner => {
-                        transaction.update(doc(contestantsRef, winner.id), { votes: 0, voterIds: [] });
+                        batch.update(doc(contestantsRef, winner.id), { votes: 0, voterIds: [] });
                     });
                     
+                    // Commit the deletes and vote resets first
+                    await batch.commit();
+
+                    // Now, update the session in the main transaction
                     transaction.update(sessionRef, {
                         round: increment(1),
                         expiresAt: Timestamp.fromMillis(Date.now() + VOTING_TIME_SECONDS * 1000),
@@ -349,5 +362,3 @@ export async function processContestState(sessionId: string): Promise<void> {
         }
     }
 }
-
-    
