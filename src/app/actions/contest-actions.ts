@@ -172,19 +172,14 @@ export async function joinContest(sessionId: string, userId: string, displayName
             }
 
             const contestantsRef = collection(sessionRef, "contestants");
-            // Check if user is already in THIS contest.
             const q = query(contestantsRef, where("ownerId", "==", userId));
-            const querySnapshot = await getDocs(q); // Use getDocs within transaction context if needed, but it's often not required for reads.
+            const querySnapshot = await transaction.get(q); // Use transaction.get for reads inside a transaction
 
             if (!querySnapshot.empty) {
-                // If the user's document exists in a subcollection of a DIFFERENT contest,
-                // it might be stale. Here we assume we only care about THIS contest.
-                const isStale = querySnapshot.docs.some(doc => doc.ref.parent.parent?.id !== sessionId);
-                if (!isStale) {
-                    throw new Error("You have already entered this contest.");
-                }
+                // This check is now correct and safe within the transaction.
+                // It ensures a user cannot join the same session more than once.
+                throw new Error("You have already entered this contest.");
             }
-
 
             const newContestantRef = doc(contestantsRef);
             const { id: plantNumericId, ...plantData } = plant;
