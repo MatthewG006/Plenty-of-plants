@@ -30,6 +30,7 @@ export default function ContestLobbyClientPage() {
 
     useEffect(() => {
         async function loadContests() {
+            if (!user) return;
             setIsLoading(true);
             setError(null);
             try {
@@ -51,7 +52,7 @@ export default function ContestLobbyClientPage() {
         const interval = setInterval(loadContests, 30000); // Refresh every 30 seconds
         return () => clearInterval(interval);
 
-    }, [toast]);
+    }, [user, toast]);
 
     const handleStartNewContest = () => {
         if (!user) return;
@@ -173,3 +174,5 @@ export default function ContestLobbyClientPage() {
         </div>
     )
 }
+
+    

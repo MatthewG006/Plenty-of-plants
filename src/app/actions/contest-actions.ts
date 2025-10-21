@@ -26,6 +26,15 @@ const LOBBY_EXPIRATION_MINUTES = 3;
 const VOTING_TIME_SECONDS = 30;
 const HEARTBEAT_TIMEOUT_SECONDS = 30;
 
+// Helper function to safely convert Firestore Timestamps to ISO strings
+const safeTimestampToISO = (ts: any): string => {
+    if (!ts) return new Date().toISOString();
+    if (ts.toDate) return ts.toDate().toISOString(); // Firestore Timestamp
+    if (typeof ts === 'string') return ts; // Already a string
+    if (ts.seconds) return new Timestamp(ts.seconds, ts.nanoseconds).toDate().toISOString(); // Serialized Timestamp
+    return new Date(ts).toISOString();
+};
+
 export async function startContestManually(sessionId: string, userId: string): Promise<{ success: boolean; error?: string }> {
     const sessionRef = doc(db, "contestSessions", sessionId);
 
@@ -74,11 +83,9 @@ export async function cleanupExpiredContests() {
         const expiredSnapshot = await getDocs(expiredQuery);
         if (expiredSnapshot.empty) return;
 
-        // Process state for each expired session. This is a failsafe.
-        // In a high-traffic app, this should be a scheduled Cloud Function.
+        // Process state for each expired session.
         for (const doc of expiredSnapshot.docs) {
-            // Process state without awaiting, allowing them to run in parallel
-            processContestState(doc.id);
+            await processContestState(doc.id);
         }
 
     } catch (e: any) {
@@ -91,12 +98,6 @@ export async function getActiveContests(): Promise<ContestSession[]> {
     const q = query(contestRef, where("status", "==", "waiting"));
     
     const snapshot = await getDocs(q);
-
-    const safeTimestampToISO = (ts: any): string => {
-        if (!ts) return new Date().toISOString();
-        if (ts.toDate) return ts.toDate().toISOString(); // Firestore Timestamp
-        return new Date(ts).toISOString();
-    };
     
     const sessions: ContestSession[] = [];
     snapshot.forEach(doc => {
@@ -123,7 +124,7 @@ export async function createNewContest(userId: string, hostName: string, plant: 
             
             const newSessionData: Omit<ContestSession, 'id'> = {
                 status: 'waiting',
-                createdAt: Timestamp.now(),
+                createdAt: serverTimestamp(),
                 expiresAt: Timestamp.fromMillis(Date.now() + LOBBY_EXPIRATION_MINUTES * 60 * 1000),
                 round: 1,
                 contestantCount: 1,
@@ -142,7 +143,7 @@ export async function createNewContest(userId: string, hostName: string, plant: 
                 ownerName: hostName,
                 votes: 0,
                 voterIds: [],
-                lastSeen: Timestamp.now(),
+                lastSeen: serverTimestamp() as Timestamp,
             };
 
             transaction.set(newContestantRef, newContestant);
@@ -173,11 +174,9 @@ export async function joinContest(sessionId: string, userId: string, displayName
 
             const contestantsRef = collection(sessionRef, "contestants");
             const q = query(contestantsRef, where("ownerId", "==", userId));
-            const querySnapshot = await transaction.get(q); // Use transaction.get for reads inside a transaction
+            const userContestantSnapshot = await getDocs(q);
 
-            if (!querySnapshot.empty) {
-                // This check is now correct and safe within the transaction.
-                // It ensures a user cannot join the same session more than once.
+            if (!userContestantSnapshot.empty) {
                 throw new Error("You have already entered this contest.");
             }
 
@@ -190,7 +189,7 @@ export async function joinContest(sessionId: string, userId: string, displayName
                 ownerName: displayName,
                 votes: 0,
                 voterIds: [],
-                lastSeen: Timestamp.now(),
+                lastSeen: serverTimestamp() as Timestamp,
             };
 
             transaction.set(newContestantRef, newContestant);
@@ -217,8 +216,8 @@ export async function voteForContestant(sessionId: string, voterId: string, cont
             
             // Check if user has already voted in this round
             const contestantsCollectionRef = collection(sessionRef, "contestants");
-            const contestantsSnapshotDocs = await getDocs(query(contestantsCollectionRef));
-            const allContestants = contestantsSnapshotDocs.docs.map(d => d.data() as Contestant);
+            const contestantsSnapshot = await getDocs(query(contestantsCollectionRef));
+            const allContestants = contestantsSnapshot.docs.map(d => d.data() as Contestant);
             
             const alreadyVoted = allContestants.some(c => c.voterIds?.includes(voterId));
             if (alreadyVoted) {
@@ -257,7 +256,7 @@ export async function sendHeartbeat(sessionId: string, userId: string): Promise<
         const snapshot = await getDocs(q);
         if (!snapshot.empty) {
             const contestantDoc = snapshot.docs[0];
-            await updateDoc(contestantDoc.ref, { lastSeen: Timestamp.now() });
+            await updateDoc(contestantDoc.ref, { lastSeen: serverTimestamp() });
         }
     } catch (error) {
         console.error("Error sending heartbeat:", error);
@@ -274,14 +273,14 @@ export async function processContestState(sessionId: string): Promise<void> {
 
             const session = sessionDoc.data();
             const contestantsRef = collection(sessionRef, "contestants");
-            const contestantsSnapshot = await transaction.get(query(contestantsRef));
+            const contestantsSnapshot = await getDocs(query(contestantsRef));
             let contestants = contestantsSnapshot.docs.map(d => ({ ...d.data(), id: d.id } as Contestant));
 
             // Stage 1: Handle timeouts in the waiting room
             if (session.status === 'waiting') {
                 const now = Timestamp.now().seconds;
                 // Kick inactive players
-                const activeContestants = contestants.filter(c => (now - (c.lastSeen?.seconds || 0)) < HEARTBEAT_TIMEOUT_SECONDS);
+                const activeContestants = contestants.filter(c => c.lastSeen && (now - c.lastSeen.seconds) < HEARTBEAT_TIMEOUT_SECONDS);
                 
                 if (activeContestants.length < contestants.length) {
                     const inactiveContestantIds = contestants.filter(c => !activeContestants.find(ac => ac.id === c.id)).map(c => c.id);
@@ -297,7 +296,7 @@ export async function processContestState(sessionId: string): Promise<void> {
                         expiresAt: Timestamp.fromMillis(Date.now() + VOTING_TIME_SECONDS * 1000)
                     });
                 } else {
-                     transaction.update(sessionRef, { status: 'finished', winner: null });
+                     transaction.update(sessionRef, { status: 'finished', winner: null, expiresAt: Timestamp.now() });
                 }
                 return;
             }
@@ -305,11 +304,11 @@ export async function processContestState(sessionId: string): Promise<void> {
             // Stage 2: Handle voting round results
             if (session.status === 'voting') {
                 if (contestants.length === 0) {
-                    transaction.update(sessionRef, { status: 'finished', winner: null });
+                    transaction.update(sessionRef, { status: 'finished', winner: null, expiresAt: Timestamp.now() });
                     return;
                 }
                 if (contestants.length === 1) {
-                    transaction.update(sessionRef, { status: 'finished', winner: contestants[0] });
+                    transaction.update(sessionRef, { status: 'finished', winner: contestants[0], expiresAt: Timestamp.now() });
                     await awardContestPrize(contestants[0].ownerId);
                     return;
                 }
@@ -320,7 +319,7 @@ export async function processContestState(sessionId: string): Promise<void> {
 
                 if (winners.length === 1) {
                     // Single winner, end the contest
-                    transaction.update(sessionRef, { status: 'finished', winner: winners[0] });
+                    transaction.update(sessionRef, { status: 'finished', winner: winners[0], expiresAt: Timestamp.now() });
                     await awardContestPrize(winners[0].ownerId);
                 } else {
                     // Tie-breaker: eliminate losers and start a new voting round with the tied players
@@ -341,11 +340,12 @@ export async function processContestState(sessionId: string): Promise<void> {
         });
     } catch (e: any) {
         console.error(`Failed to process state for session ${sessionId}:`, e);
-        // Attempt to mark the session as finished with an error to prevent it from being stuck.
         try {
-            await updateDoc(sessionRef, { status: 'finished', error: e.message });
+            await updateDoc(sessionRef, { status: 'finished', error: e.message, expiresAt: Timestamp.now() });
         } catch (updateError) {
             console.error(`Failed to mark session ${sessionId} as finished:`, updateError);
         }
     }
 }
+
+    

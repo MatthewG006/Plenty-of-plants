@@ -124,10 +124,8 @@ export default function ContestPage() {
 
         const updateTimer = () => {
             if (session.expiresAt) {
-                // Handle both Firestore Timestamp and ISO string formats
-                const endTime = (session.expiresAt as any)?.seconds 
-                    ? new Timestamp((session.expiresAt as any).seconds, (session.expiresAt as any).nanoseconds).toMillis() 
-                    : new Date(session.expiresAt as string).getTime();
+                // The expiresAt is now always a string
+                const endTime = new Date(session.expiresAt as string).getTime();
                 
                 const remaining = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
                 setTimeRemaining(remaining);
@@ -190,13 +188,20 @@ export default function ContestPage() {
             setIsLoading(false);
         }, (err) => {
             console.error("Snapshot error:", err);
-            setError("Could not connect to the contest service.");
+            if (err.code === 'permission-denied') {
+              setError("Permission denied. Your security rules might be incorrect.");
+            } else {
+              setError("Could not connect to the contest service.");
+            }
             setIsLoading(false);
         });
 
         const unsubContestants = onSnapshot(collection(db, "contestSessions", sessionId, "contestants"), (snapshot) => {
             const contestantsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Contestant));
             setContestants(contestantsData);
+        }, (err) => {
+          console.error("Contestants snapshot error:", err);
+          setError("Could not load contestants data.");
         });
 
 
@@ -421,3 +426,5 @@ export default function ContestPage() {
         </div>
     )
 }
+
+    
