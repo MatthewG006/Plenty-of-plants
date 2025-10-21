@@ -134,6 +134,7 @@ export async function createNewContest(userId: string, hostName: string, plant: 
             transaction.set(newSessionRef, newSessionData);
             
             const newContestantRef = doc(collection(newSessionRef, "contestants"));
+            // This is the fix: explicitly remove the numeric 'id' from the plant object before spreading.
             const { id: plantNumericId, ...plantData } = plant;
 
             const newContestant: Contestant = {
@@ -181,6 +182,7 @@ export async function joinContest(sessionId: string, userId: string, displayName
             }
 
             const newContestantRef = doc(contestantsRef);
+            // This is the fix: explicitly remove the numeric 'id' from the plant object before spreading.
             const { id: plantNumericId, ...plantData } = plant;
             const newContestant: Contestant = {
                 ...plantData,
