@@ -271,7 +271,7 @@ export async function processContestState(sessionId: string): Promise<void> {
             const session = sessionDoc.data();
             const contestantsRef = collection(sessionRef, "contestants");
             const contestantsSnapshot = await transaction.get(query(contestantsRef));
-            const contestants = contestantsSnapshot.docs.map(d => ({ ...d.data(), id: d.id } as Contestant));
+            let contestants = contestantsSnapshot.docs.map(d => ({ ...d.data(), id: d.id } as Contestant));
 
             if (session.status === 'waiting') {
                 const now = Timestamp.now().seconds;
@@ -281,10 +281,16 @@ export async function processContestState(sessionId: string): Promise<void> {
                     const inactiveContestantIds = contestants.filter(c => !activeContestants.find(ac => ac.id === c.id)).map(c => c.id);
                     inactiveContestantIds.forEach(id => transaction.delete(doc(contestantsRef, id)));
                     transaction.update(sessionRef, { contestantCount: activeContestants.length });
+                    contestants = activeContestants;
                 }
 
-                if (activeContestants.length < 2) {
-                    transaction.update(sessionRef, { status: 'finished', winner: null });
+                if (contestants.length >= 2) {
+                     transaction.update(sessionRef, {
+                        status: 'voting',
+                        expiresAt: Timestamp.fromMillis(Date.now() + VOTING_TIME_SECONDS * 1000)
+                    });
+                } else {
+                     transaction.update(sessionRef, { status: 'finished', winner: null });
                 }
                 return;
             }
@@ -302,12 +308,13 @@ export async function processContestState(sessionId: string): Promise<void> {
 
                 const maxVotes = Math.max(...contestants.map(c => c.votes || 0), 0);
                 const winners = contestants.filter(c => (c.votes || 0) === maxVotes);
+                const losers = contestants.filter(c => (c.votes || 0) < maxVotes);
 
                 if (winners.length === 1) {
                     transaction.update(sessionRef, { status: 'finished', winner: winners[0] });
                     await awardContestPrize(winners[0].ownerId);
                 } else {
-                    const losers = contestants.filter(c => (c.votes || 0) < maxVotes);
+                    // There's a tie, so eliminate the losers and start a new round with the winners.
                     losers.forEach(loser => transaction.delete(doc(contestantsRef, loser.id)));
                     
                     winners.forEach(winner => {
