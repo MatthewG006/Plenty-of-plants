@@ -8,7 +8,7 @@
  */
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { getStorage, ref, listAll, getDownloadURL } from 'firebase/storage';
+import { getStorage, ref, listAll, getBlob } from 'firebase/storage';
 import { initializeApp, getApps, getApp, type FirebaseOptions } from 'firebase/app';
 
 
@@ -20,16 +20,12 @@ const GetFallbackPlantOutputSchema = z.object({
 
 export type GetFallbackPlantOutput = z.infer<typeof GetFallbackPlantOutputSchema>;
 
-// Helper to download an image from a URL and convert it to a data URI
-async function imageToDataUri(url: string): Promise<string> {
-    const fetch = (await import('node-fetch')).default;
-    const response = await fetch(url);
-    if (!response.ok) {
-        throw new Error(`Failed to fetch image from URL: ${response.statusText}`);
-    }
-    const buffer = await response.arrayBuffer();
-    const contentType = response.headers.get('content-type') || 'image/png';
-    return `data:${contentType};base64,${Buffer.from(buffer).toString('base64')}`;
+// Helper to convert a Blob to a data URI
+async function blobToDataUri(blob: Blob): Promise<string> {
+    const arrayBuffer = await blob.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const contentType = blob.type || 'image/png';
+    return `data:${contentType};base64,${buffer.toString('base64')}`;
 }
 
 
@@ -70,9 +66,9 @@ export const getFallbackPlantFlow = ai.defineFlow(
       // Select a random image from the list
       const randomFileRef = fileList.items[Math.floor(Math.random() * fileList.items.length)];
       
-      // Get a download URL and then fetch the data
-      const downloadUrl = await getDownloadURL(randomFileRef);
-      const imageDataUri = await imageToDataUri(downloadUrl);
+      // Get the image data directly as a Blob
+      const imageBlob = await getBlob(randomFileRef);
+      const imageDataUri = await blobToDataUri(imageBlob);
 
       // Generate a simple, generic name and description without an AI call.
       const names = ["Sturdy Sprout", "Happy Bloom", "Sunny Petal", "Leafy Friend", "Rooty"];
