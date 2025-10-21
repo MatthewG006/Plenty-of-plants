@@ -295,7 +295,7 @@ export async function waterPlant(userId: string, plantId: number): Promise<{ lev
     let leveledUp = false;
     let seedCollected = false;
 
-    if (currentXp >= XP_PER_LEVEL) {
+    while (currentXp >= XP_PER_LEVEL) {
         currentXp -= XP_PER_LEVEL;
         currentLevel += 1;
         leveledUp = true;
