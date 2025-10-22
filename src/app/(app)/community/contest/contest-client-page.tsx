@@ -29,8 +29,13 @@ export default function ContestLobbyClientPage() {
     const [showPlantSelection, setShowPlantSelection] = useState(false);
 
     useEffect(() => {
+        let interval: NodeJS.Timeout;
+
         async function loadContests() {
-            if (!user) return;
+            if (!user) {
+                console.log("Waiting for auth to initialize...");
+                return;
+            }
             setIsLoading(true);
             setError(null);
             try {
@@ -47,10 +52,19 @@ export default function ContestLobbyClientPage() {
             }
         }
         
-        loadContests();
-        // Set up an interval to refresh the list of contests periodically.
-        const interval = setInterval(loadContests, 30000); // Refresh every 30 seconds
-        return () => clearInterval(interval);
+        // Only start when user is defined (not just falsy)
+        if (user) {
+            loadContests();
+            interval = setInterval(loadContests, 30000);
+        } else {
+            setIsLoading(false);
+        }
+
+        return () => {
+            if (interval) {
+                clearInterval(interval);
+            }
+        };
 
     }, [user, toast]);
 
@@ -174,5 +188,3 @@ export default function ContestLobbyClientPage() {
         </div>
     )
 }
-
-    
