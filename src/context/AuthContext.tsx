@@ -27,6 +27,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      console.log("Auth state changed:", user ? user.uid : "no user");
       setUser(user);
       if (!user) {
         setGameData(null);
