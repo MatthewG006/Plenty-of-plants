@@ -80,7 +80,7 @@ function ContestantCard({ contestant, onVote, hasVoted, isWinner }: { contestant
 }
 
 export default function ContestPage() {
-    const { user, gameData } = useAuth();
+    const { user, gameData, loading: authLoading } = useAuth();
     const { toast } = useToast();
     const { playSfx } = useAudio();
     const router = useRouter();
@@ -161,57 +161,77 @@ export default function ContestPage() {
 
     // Realtime data subscriptions
     useEffect(() => {
-        if (!user || !sessionId) {
+        // If Auth is still initializing, wait
+        if (authLoading) {
+            return;
+        }
+
+        if (!user) {
+            console.log("No user signed in yet — skipping Firestore listeners.");
             setIsLoading(false);
             return;
         }
-        
+
+        if (!sessionId) return;
+
+        console.log("Auth ready:", user.uid);
         setIsLoading(true);
-        const unsubSession = onSnapshot(doc(db, "contestSessions", sessionId), (doc) => {
-            if (doc.exists()) {
-                 const data = doc.data();
-                 const safeTimestampToISO = (ts: any): string => {
-                    if (!ts) return new Date().toISOString();
-                    if (ts.toDate) return ts.toDate().toISOString();
-                    return new Date(ts).toISOString();
-                 };
 
-                 const sessionData: ContestSession = {
-                    id: doc.id,
-                    ...data,
-                    createdAt: safeTimestampToISO(data.createdAt),
-                    expiresAt: safeTimestampToISO(data.expiresAt),
-                 } as ContestSession;
-                 setSession(sessionData);
-            } else {
-                setSession(null);
-                setError("This contest lobby no longer exists.");
+        const unsubSession = onSnapshot(
+            doc(db, "contestSessions", sessionId),
+            (doc) => {
+                if (doc.exists()) {
+                    const data = doc.data();
+                    const safeTimestampToISO = (ts: any): string => {
+                        if (!ts) return new Date().toISOString();
+                        if (ts.toDate) return ts.toDate().toISOString();
+                        return new Date(ts).toISOString();
+                    };
+
+                    const sessionData: ContestSession = {
+                        id: doc.id,
+                        ...data,
+                        createdAt: safeTimestampToISO(data.createdAt),
+                        expiresAt: safeTimestampToISO(data.expiresAt),
+                    } as ContestSession;
+
+                    setSession(sessionData);
+                } else {
+                    setSession(null);
+                    setError("This contest lobby no longer exists.");
+                }
+                setIsLoading(false);
+            },
+            (err) => {
+                console.error("Snapshot error:", err);
+                if (err.code === "permission-denied") {
+                    setError("Permission denied. Your security rules might be incorrect.");
+                } else {
+                    setError("Could not connect to the contest service.");
+                }
+                setIsLoading(false);
             }
-            setIsLoading(false);
-        }, (err) => {
-            console.error("Snapshot error:", err);
-            if (err.code === 'permission-denied') {
-              setError("Permission denied. Your security rules might be incorrect.");
-            } else {
-              setError("Could not connect to the contest service.");
+        );
+
+        const unsubContestants = onSnapshot(
+            collection(db, "contestSessions", sessionId, "contestants"),
+            (snapshot) => {
+                const contestantsData = snapshot.docs.map(
+                    (doc) => ({ id: doc.id, ...doc.data() } as Contestant)
+                );
+                setContestants(contestantsData);
+            },
+            (err) => {
+                console.error("Contestants snapshot error:", err);
+                setError("Could not load contestants data.");
             }
-            setIsLoading(false);
-        });
-
-        const unsubContestants = onSnapshot(collection(db, "contestSessions", sessionId, "contestants"), (snapshot) => {
-            const contestantsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Contestant));
-            setContestants(contestantsData);
-        }, (err) => {
-          console.error("Contestants snapshot error:", err);
-          setError("Could not load contestants data.");
-        });
-
+        );
 
         return () => {
             unsubSession();
             unsubContestants();
         };
-    }, [user, sessionId]);
+    }, [user, authLoading, sessionId]);
 
     // This effect handles automatic navigation on error/timeout
     useEffect(() => {
