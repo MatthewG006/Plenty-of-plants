@@ -19,6 +19,7 @@ import { db } from '@/lib/firebase';
 import confetti from 'canvas-confetti';
 import { ContestPlantSelectionDialog } from '@/components/plant-dialogs';
 import { useParams, useRouter } from 'next/navigation';
+import { getAuth } from "firebase/auth";
 
 const HEARTBEAT_INTERVAL = 10000; // 10 seconds
 
@@ -102,6 +103,7 @@ export default function ContestPage() {
     // Heartbeat effect
     useEffect(() => {
         if (user && hasEntered && session?.status === 'waiting' && sessionId) {
+            console.log(getAuth().currentUser);
             const interval = setInterval(() => {
                 sendHeartbeat(sessionId, user.uid);
             }, HEARTBEAT_INTERVAL);
