@@ -12,9 +12,21 @@ import type { Plant, ContestSession, Contestant } from '@/interfaces/plant';
 import { cn } from '@/lib/utils';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { joinContest, voteForContestant, sendHeartbeat, processContestState, startContestManually } from '@/app/actions/contest-actions';
+import { processContestState, startContestManually, sendHeartbeat } from '@/app/actions/contest-actions';
 import Link from 'next/link';
-import { doc, onSnapshot, Timestamp, collection } from 'firebase/firestore';
+import {
+  doc,
+  onSnapshot,
+  Timestamp,
+  collection,
+  runTransaction,
+  serverTimestamp,
+  increment,
+  arrayUnion,
+  query,
+  where,
+  getDocs,
+} from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import confetti from 'canvas-confetti';
 import { ContestPlantSelectionDialog } from '@/components/plant-dialogs';
@@ -100,24 +112,103 @@ export default function ContestPage() {
     const hasVoted = user && session?.status === 'voting' && contestants.some(c => c.voterIds?.includes(user.uid));
     const isHost = user && session?.hostId === user.uid;
 
+    const joinContestClient = async (sessionId: string, userId: string, displayName: string, plant: Plant): Promise<{ success: boolean, error?: string }> => {
+        try {
+            await runTransaction(db, async (transaction) => {
+                const sessionRef = doc(db, "contestSessions", sessionId);
+                const sessionDoc = await transaction.get(sessionRef);
+
+                if (!sessionDoc.exists() || sessionDoc.data().status !== 'waiting') {
+                    throw new Error("This contest is no longer accepting new players.");
+                }
+                if (sessionDoc.data().contestantCount >= 4) {
+                    throw new Error("This contest lobby is full.");
+                }
+
+                const contestantsRef = collection(sessionRef, "contestants");
+                const q = query(contestantsRef, where("ownerId", "==", userId));
+                const userContestantSnapshot = await getDocs(q);
+
+                if (!userContestantSnapshot.empty) {
+                    throw new Error("You have already entered this contest.");
+                }
+
+                const newContestantRef = doc(contestantsRef);
+                const { id: plantNumericId, ...plantData } = plant;
+                const newContestant = {
+                    ...plantData,
+                    id: newContestantRef.id,
+                    ownerId: userId,
+                    ownerName: displayName,
+                    votes: 0,
+                    voterIds: [],
+                    lastSeen: serverTimestamp(),
+                };
+
+                transaction.set(newContestantRef, newContestant);
+                transaction.update(sessionRef, { contestantCount: increment(1) });
+            });
+            return { success: true };
+        } catch (e: any) {
+            console.error("Error joining contest:", e);
+            return { success: false, error: e.message || "Failed to join contest." };
+        }
+    };
+    
+    const voteForContestantClient = async (sessionId: string, voterId: string, contestantId: string): Promise<{ success: boolean, error?: string }> => {
+        try {
+            await runTransaction(db, async (transaction) => {
+                const sessionRef = doc(db, "contestSessions", sessionId);
+                const contestantToVoteForRef = doc(sessionRef, "contestants", contestantId);
+
+                const sessionDoc = await transaction.get(sessionRef);
+                if (!sessionDoc.exists() || sessionDoc.data().status !== 'voting') {
+                    throw new Error("Voting for this contest has ended.");
+                }
+                
+                const contestantsCollectionRef = collection(sessionRef, "contestants");
+                const contestantsSnapshot = await getDocs(query(contestantsCollectionRef));
+                const allContestants = contestantsSnapshot.docs.map(d => d.data() as Contestant);
+                
+                const alreadyVoted = allContestants.some(c => c.voterIds?.includes(voterId));
+                if (alreadyVoted) {
+                    throw new Error("You have already voted in this round.");
+                }
+
+                const contestantDoc = await transaction.get(contestantToVoteForRef);
+                if (!contestantDoc.exists()) throw new Error("This contestant is no longer in the running.");
+                
+                if (contestantDoc.data().ownerId === voterId) {
+                    throw new Error("You cannot vote for your own plant.");
+                }
+
+                transaction.update(contestantToVoteForRef, {
+                    votes: increment(1),
+                    voterIds: arrayUnion(voterId)
+                });
+            });
+            return { success: true };
+        } catch (e: any) {
+            console.error("Error casting vote:", e);
+            return { success: false, error: e.message || "Failed to cast vote." };
+        }
+    };
+
+
     // Heartbeat effect
     useEffect(() => {
         if (user && hasEntered && session?.status === 'waiting' && sessionId) {
-            console.log(getAuth().currentUser);
             const interval = setInterval(() => {
                 sendHeartbeat(sessionId, user.uid);
             }, HEARTBEAT_INTERVAL);
-
-            // Send an immediate heartbeat on joining
             sendHeartbeat(sessionId, user.uid);
-
             return () => clearInterval(interval);
         }
     }, [user, hasEntered, session?.status, sessionId]);
 
     // Timer effect
     useEffect(() => {
-        if (!session || session.status === 'finished') {
+        if (!session || session.status === 'finished' || !session.expiresAt) {
             setTimeRemaining(0);
             return;
         }
@@ -125,24 +216,17 @@ export default function ContestPage() {
         let timer: NodeJS.Timeout;
 
         const updateTimer = () => {
-            if (session.expiresAt) {
-                // The expiresAt is now always a string
-                const endTime = new Date(session.expiresAt as string).getTime();
-                
-                const remaining = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
-                setTimeRemaining(remaining);
+            const endTime = new Date(session.expiresAt as string).getTime();
+            const remaining = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
+            setTimeRemaining(remaining);
     
-                if (remaining <= 0 && (session.status === 'waiting' || session.status === 'voting')) {
-                    // The onSnapshot listener will catch the state change triggered by the backend,
-                    // but we can pre-emptively call it to make the UI feel faster.
-                    processContestState(sessionId);
-                }
+            if (remaining <= 0 && (session.status === 'waiting' || session.status === 'voting')) {
+                processContestState(sessionId);
             }
         };
 
-        updateTimer(); // Initial call
-        timer = setInterval(updateTimer, 1000); // Update every second
-
+        updateTimer();
+        timer = setInterval(updateTimer, 1000);
         return () => clearInterval(timer);
     }, [session, sessionId]);
 
@@ -161,11 +245,7 @@ export default function ContestPage() {
 
     // Realtime data subscriptions
     useEffect(() => {
-        // If Auth is still initializing, wait
-        if (authLoading) {
-            return;
-        }
-
+        if (authLoading) return;
         if (!user) {
             console.log("No user signed in yet — skipping Firestore listeners.");
             setIsLoading(false);
@@ -173,7 +253,6 @@ export default function ContestPage() {
         }
 
         if (!sessionId) return;
-
         console.log("Auth ready:", user.uid);
         setIsLoading(true);
 
@@ -185,17 +264,15 @@ export default function ContestPage() {
                     const safeTimestampToISO = (ts: any): string => {
                         if (!ts) return new Date().toISOString();
                         if (ts.toDate) return ts.toDate().toISOString();
+                        if (ts.seconds) return new Timestamp(ts.seconds, ts.nanoseconds).toDate().toISOString();
                         return new Date(ts).toISOString();
                     };
-
-                    const sessionData: ContestSession = {
+                    setSession({
                         id: doc.id,
                         ...data,
                         createdAt: safeTimestampToISO(data.createdAt),
                         expiresAt: safeTimestampToISO(data.expiresAt),
-                    } as ContestSession;
-
-                    setSession(sessionData);
+                    } as ContestSession);
                 } else {
                     setSession(null);
                     setError("This contest lobby no longer exists.");
@@ -203,7 +280,7 @@ export default function ContestPage() {
                 setIsLoading(false);
             },
             (err) => {
-                console.error("Snapshot error:", err);
+                console.error("Session Snapshot error:", err);
                 if (err.code === "permission-denied") {
                     setError("Permission denied. Your security rules might be incorrect.");
                 } else {
@@ -239,8 +316,7 @@ export default function ContestPage() {
             const timer = setTimeout(() => {
                 router.push('/community/contest');
             }, 3000); // 3-second delay before navigating back
-
-            return () => clearTimeout(timer); // Clean up the timer
+            return () => clearTimeout(timer);
         }
     }, [error, router]);
 
@@ -250,12 +326,11 @@ export default function ContestPage() {
         setIsJoining(true);
         setError(null);
         try {
-            const { success, error } = await joinContest(sessionId, user.uid, user.displayName, plant);
+            const { success, error } = await joinContestClient(sessionId, user.uid, user.displayName, plant);
             if (error) throw new Error(error);
             if (success) {
                 toast({ title: 'You have entered the contest!' });
             }
-
         } catch (e: any) {
             console.error("Failed to join contest:", e);
             setError(e.message || "Failed to join the contest.");
@@ -269,6 +344,7 @@ export default function ContestPage() {
         if (!user || !isHost) return;
         setIsStarting(true);
         try {
+            // This is a server action
             const { success, error } = await startContestManually(sessionId, user.uid);
             if (!success) {
                 throw new Error(error || "Failed to start contest.");
@@ -287,14 +363,13 @@ export default function ContestPage() {
         if (!user || !session || !sessionId) return;
         try {
             playSfx('tap');
-            await voteForContestant(sessionId, user.uid, contestantId);
+            await voteForContestantClient(sessionId, user.uid, contestantId);
             toast({ title: "Vote Cast!", description: "Your vote has been counted." });
         } catch(e: any) {
             console.error(e);
             toast({ variant: 'destructive', title: 'Voting Error', description: e.message });
         }
     };
-
 
     if (isLoading || isJoining || isStarting) {
         return (
@@ -383,7 +458,7 @@ export default function ContestPage() {
                         </div>
                         <div className="absolute bottom-4 left-4 right-4 flex flex-col gap-2">
                              {isHost && (
-                                <Button className="w-full" onClick={handleStartContest} disabled={contestants.length < 2}>
+                                <Button className="w-full" onClick={handleStartContest} disabled={isStarting || contestants.length < 2}>
                                     <Play className="mr-2" />
                                     Start Contest
                                 </Button>
@@ -448,5 +523,3 @@ export default function ContestPage() {
         </div>
     )
 }
-
-    

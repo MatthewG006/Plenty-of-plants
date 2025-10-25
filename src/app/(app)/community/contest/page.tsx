@@ -10,11 +10,33 @@ import { useToast } from '@/hooks/use-toast';
 import type { Plant, ContestSession } from '@/interfaces/plant';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { getActiveContests, createNewContest, cleanupExpiredContests } from '@/app/actions/contest-actions';
 import Link from 'next/link';
 import { ContestPlantSelectionDialog } from '@/components/plant-dialogs';
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
+import { db } from '@/lib/firebase';
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  doc,
+  serverTimestamp,
+  Timestamp,
+  runTransaction,
+} from "firebase/firestore";
+import { cleanupExpiredContests } from '@/app/actions/contest-actions';
+
+// Helper to safely convert Firestore Timestamps to ISO strings
+const safeTimestampToISO = (ts: any): string => {
+    if (!ts) return new Date().toISOString();
+    if (ts.toDate) return ts.toDate().toISOString(); // Firestore Timestamp
+    if (typeof ts === 'string') return ts; // Already a string
+    if (ts.seconds) return new Timestamp(ts.seconds, ts.nanoseconds).toDate().toISOString(); // Serialized Timestamp
+    return new Date(ts).toISOString();
+};
+
 
 export default function ContestLobbyPage() {
     const { user, gameData } = useAuth();
@@ -28,10 +50,77 @@ export default function ContestLobbyPage() {
     const [sessions, setSessions] = useState<ContestSession[]>([]);
     const [showPlantSelection, setShowPlantSelection] = useState(false);
 
+    // Client-side function to get active contests
+    const getActiveContestsClient = async (): Promise<ContestSession[]> => {
+        const contestRef = collection(db, "contestSessions");
+        const now = Timestamp.now();
+        const q = query(
+          contestRef, 
+          where("status", "==", "waiting"),
+          where("expiresAt", ">", now)
+        );
+        
+        const snapshot = await getDocs(q);
+        
+        const sessions: ContestSession[] = [];
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            sessions.push({
+                id: doc.id,
+                ...data,
+                createdAt: safeTimestampToISO(data.createdAt),
+                expiresAt: safeTimestampToISO(data.expiresAt),
+            } as ContestSession);
+        });
+        return sessions;
+    };
+
+    const createNewContestClient = async (userId: string, hostName: string, plant: Plant): Promise<{ sessionId?: string; error?: string; }> => {
+        try {
+            if (!plant) throw new Error("A valid plant must be provided to create a contest.");
+            
+            const newSessionId = await runTransaction(db, async (transaction) => {
+                const newSessionRef = doc(collection(db, "contestSessions"));
+                
+                const newSessionData = {
+                    status: 'waiting',
+                    createdAt: serverTimestamp(),
+                    expiresAt: Timestamp.fromMillis(Date.now() + 3 * 60 * 1000),
+                    round: 1,
+                    contestantCount: 1,
+                    hostId: userId,
+                    hostName: hostName,
+                };
+                transaction.set(newSessionRef, newSessionData);
+                
+                const newContestantRef = doc(collection(newSessionRef, "contestants"));
+                const { id: plantNumericId, ...plantData } = plant;
+
+                const newContestant = {
+                    ...plantData,
+                    id: newContestantRef.id,
+                    ownerId: userId,
+                    ownerName: hostName,
+                    votes: 0,
+                    voterIds: [],
+                    lastSeen: serverTimestamp(),
+                };
+                transaction.set(newContestantRef, newContestant);
+                return newSessionRef.id;
+            });
+            return { sessionId: newSessionId };
+        } catch (e: any) {
+            console.error("Error creating new contest:", e);
+            return { error: e.message || "An unknown error occurred." };
+        }
+    };
+
+
     useEffect(() => {
         let interval: NodeJS.Timeout;
 
         async function loadContests() {
+            // This now checks for a truthy user, not just defined
             if (!user) {
                 console.log("Waiting for auth to initialize...");
                 return;
@@ -39,9 +128,9 @@ export default function ContestLobbyPage() {
             setIsLoading(true);
             setError(null);
             try {
-                // This function will now process any expired sessions before fetching active ones.
+                // This function can remain a server action as it's a cleanup task
                 await cleanupExpiredContests();
-                const activeSessions = await getActiveContests();
+                const activeSessions = await getActiveContestsClient();
                 setSessions(activeSessions);
             } catch (e: any) {
                 console.error("Failed to load contests:", e);
@@ -52,11 +141,12 @@ export default function ContestLobbyPage() {
             }
         }
         
-        // Only start when user is defined (not just falsy)
+        // This is the critical fix: only run when user is truthy (logged in).
         if (user) {
             loadContests();
             interval = setInterval(loadContests, 30000);
-        } else {
+        } else if (user === null) {
+            // If we know the user is logged out, stop loading.
             setIsLoading(false);
         }
 
@@ -82,11 +172,9 @@ export default function ContestLobbyPage() {
         setError(null);
         
         try {
-            const { sessionId, error } = await createNewContest(user.uid, user.displayName, plant);
+            const { sessionId, error } = await createNewContestClient(user.uid, user.displayName, plant);
             
-            if (error) {
-                throw new Error(error);
-            }
+            if (error) throw new Error(error);
 
             if (sessionId) {
                 toast({ title: 'Contest Created!', description: 'Your new contest lobby is now open.' });
@@ -118,6 +206,13 @@ export default function ContestLobbyPage() {
                 <div className="flex justify-center pt-10">
                   <Loader2 className="h-10 w-10 animate-spin text-primary" />
                 </div>
+            ) : !user ? (
+                <Card className="m-4 text-center py-10">
+                    <CardHeader>
+                        <CardTitle>Please Log In</CardTitle>
+                        <CardDescription>You must be logged in to view contests.</CardDescription>
+                    </CardHeader>
+                </Card>
             ) : error ? (
                 <Card className="m-4 text-center py-10 border-destructive">
                     <CardHeader>
