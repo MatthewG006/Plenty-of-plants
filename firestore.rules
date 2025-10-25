@@ -1,16 +1,15 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
     // Rules for the 'users' collection
-    match /users/{userId}/{document=**} {
+    match /users/{userId} {
       // Allow users to read and write to their own document.
       allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
 
-    // Allow any authenticated user to view the list of users.
-    // This is required for the Community Showcase feature.
-    match /users/{userId} {
+      // Allow any authenticated user to view the list of users.
+      // This is required for the Community Showcase feature.
       allow list: if request.auth != null;
     }
 
@@ -19,11 +18,11 @@ service cloud.firestore {
       // Allow any authenticated user to read and write to contest sessions.
       // This is required for finding, joining, creating, and voting in the contest.
       allow read, write: if request.auth != null;
-    }
 
-    // This rule allows access to the subcollections of a contest session
-    match /contestSessions/{sessionId}/{document=**} {
-      allow read, write: if request.auth != null;
+      // Allow access to the contestants subcollection
+      match /contestants/{contestantId} {
+        allow read, write: if request.auth != null;
+      }
     }
   }
 }
