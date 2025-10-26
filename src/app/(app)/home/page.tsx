@@ -24,9 +24,8 @@ import { useAudio } from '@/context/AudioContext';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/context/AuthContext';
 import { savePlant } from '@/lib/firestore';
-import { compressImage, isImageBlack } from '@/lib/image-compression';
-import { drawPlantAction } from '@/app/actions/draw-plant';
-import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
+import { compressImage } from '@/lib/image-compression';
+import type { DrawPlantOutput } from '@/interfaces/plant';
 import { Challenge, challenges, secondaryChallenges, claimChallengeReward, checkAndResetChallenges, updateCollectionProgress, updateLoginProgress } from '@/lib/challenge-manager';
 import Autoplay from "embla-carousel-autoplay"
 import {
@@ -35,8 +34,18 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 import { useRouter } from 'next/navigation';
+import { getStorage, ref, listAll, getBlob } from 'firebase/storage';
+import { app } from '@/lib/firebase';
 
 const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
+
+// Helper to convert a Blob to a data URI
+async function blobToDataUri(blob: Blob): Promise<string> {
+    const arrayBuffer = await blob.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const contentType = blob.type || 'image/png';
+    return `data:${contentType};base64,${buffer.toString('base64')}`;
+}
 
 function getNextDrawTimeString(lastRefill: number) {
     const now = Date.now();
@@ -317,13 +326,32 @@ export default function HomePage() {
     try {
         await useDraw(user.uid);
         playSfx('success');
-
-        const existingNames = gameData.plants ? Object.values(gameData.plants).map(p => p.name) : [];
-        const drawnPlantResult = await drawPlantAction(existingNames);
         
-        // Save the original, uncompressed image URI
-        setUncompressedDrawnPlantUri(drawnPlantResult.imageDataUri);
+        // This logic is now client-side
+        const storage = getStorage(app);
+        const fallbackDirRef = ref(storage, 'fallback-plants');
+        const fileList = await listAll(fallbackDirRef);
 
+        if (fileList.items.length === 0) {
+            throw new Error('No fallback images found in storage.');
+        }
+
+        const randomFileRef = fileList.items[Math.floor(Math.random() * fileList.items.length)];
+        const imageBlob = await getBlob(randomFileRef);
+        const imageDataUri = await blobToDataUri(imageBlob);
+
+        const names = ["Sturdy Sprout", "Happy Bloom", "Sunny Petal", "Leafy Friend", "Rooty"];
+        const descriptions = ["A resilient and cheerful plant.", "It seems to be enjoying the day.", "This one has a lot of personality.", "A classic for any collection."];
+        const name = names[Math.floor(Math.random() * names.length)];
+        const description = descriptions[Math.floor(Math.random() * descriptions.length)];
+
+        const drawnPlantResult: DrawPlantOutput = {
+            name,
+            description,
+            imageDataUri,
+        };
+        
+        setUncompressedDrawnPlantUri(drawnPlantResult.imageDataUri);
         const compressedImageDataUri = await compressImage(drawnPlantResult.imageDataUri);
 
         setDrawnPlant({
@@ -339,9 +367,7 @@ export default function HomePage() {
         toast({
             variant: "destructive",
             title: "Failed to draw a plant",
-            description: e.message === 'Invalid API Key' 
-                ? "Your Gemini API key is not configured. Please set it up."
-                : "There was an issue with the AI. Your draw has been refunded.",
+            description: "There was an issue fetching a plant from storage. Your draw has been refunded.",
         });
     } finally {
         setIsDrawing(false);
