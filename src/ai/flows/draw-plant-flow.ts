@@ -107,11 +107,8 @@ You MUST adhere to the following rules without exception:
     try {
       // Use the details to generate the new plant image.
       const { media } = await ai.generate({
-        model: 'gemini-1.5-flash',
+        model: 'googleai/imagen-2-flash', // Correct model for image generation
         prompt: imageGenPrompt,
-        config: {
-            responseMimeType: 'image/png'
-        }
       });
 
       // Check if the image was generated successfully.
