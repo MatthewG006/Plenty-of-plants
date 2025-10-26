@@ -38,7 +38,7 @@ export const getFallbackPlantFlow = ai.defineFlow(
     try {
       // Use server-side environment variables for Firebase config in a Genkit flow.
       const firebaseConfig: FirebaseOptions = {
-          apiKey: process.env.FIREBASE_API_KEY, 
+          apiKey: process.env.GEMINI_API_KEY, 
           authDomain: process.env.FIREBASE_AUTH_DOMAIN,
           projectId: process.env.FIREBASE_PROJECT_ID,
           storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
