@@ -665,5 +665,3 @@ export function PlantDetailDialog({ plant, open, onOpenChange, onStartEvolution,
         </Dialog>
     )
 }
-
-    
