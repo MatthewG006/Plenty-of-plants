@@ -1,11 +1,72 @@
 
 'use server';
 
-import { drawPlantFlow } from '@/ai/flows/draw-plant-flow';
-import type { DrawPlantOutput } from '@/interfaces/plant';
+import { getStorage, ref, listAll, getBlob } from 'firebase/storage';
+import { initializeApp, getApps, getApp, type FirebaseOptions } from 'firebase/app';
+import { DrawPlantOutputSchema, type DrawPlantOutput } from '@/interfaces/plant';
+
+// Helper to convert a Blob to a data URI
+async function blobToDataUri(blob: Blob): Promise<string> {
+    const arrayBuffer = await blob.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const contentType = blob.type || 'image/png';
+    return `data:${contentType};base64,${buffer.toString('base64')}`;
+}
+
 
 export async function drawPlantAction(existingNames: string[] = []): Promise<DrawPlantOutput> {
-  // This action now directly calls the simplified flow that gets a plant from Storage.
-  // The AI generation logic has been removed to ensure reliability.
-  return await drawPlantFlow();
+  try {
+      // Use server-side environment variables for Firebase config.
+      // IMPORTANT: These must be set in your hosting environment.
+      const firebaseConfig: FirebaseOptions = {
+          apiKey: process.env.GEMINI_API_KEY, // The key for server-to-server auth in this context
+          authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+          messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+          appId: process.env.FIREBASE_APP_ID,
+      };
+      
+      if (!firebaseConfig.projectId || !firebaseConfig.storageBucket) {
+        throw new Error("Server-side Firebase configuration for Storage is missing. Please check your environment variables.");
+      }
+
+      // Initialize a unique app instance for the action to avoid conflicts.
+      const app = getApps().length ? getApp() : initializeApp(firebaseConfig, `draw-plant-action-${Date.now()}`);
+      const storage = getStorage(app);
+      const fallbackDirRef = ref(storage, 'fallback-plants');
+      const fileList = await listAll(fallbackDirRef);
+
+      if (fileList.items.length === 0) {
+        throw new Error('No fallback images found in Firebase Storage at /fallback-plants/');
+      }
+
+      // Select a random image from the list
+      const randomFileRef = fileList.items[Math.floor(Math.random() * fileList.items.length)];
+      
+      const imageBlob = await getBlob(randomFileRef);
+      const imageDataUri = await blobToDataUri(imageBlob);
+
+      // Generate a simple, generic name and description.
+      const names = ["Sturdy Sprout", "Happy Bloom", "Sunny Petal", "Leafy Friend", "Rooty"];
+      const descriptions = ["A resilient and cheerful plant.", "It seems to be enjoying the day.", "This one has a lot of personality.", "A classic for any collection."];
+
+      const name = names[Math.floor(Math.random() * names.length)];
+      const description = descriptions[Math.floor(Math.random() * descriptions.length)];
+
+      const result: DrawPlantOutput = {
+        name: name,
+        description: description,
+        imageDataUri: imageDataUri,
+      };
+      
+      // Validate the output against the schema before returning
+      DrawPlantOutputSchema.parse(result);
+
+      return result;
+
+    } catch (error: any) {
+      console.error("CRITICAL DRAW FAILURE in Server Action:", error);
+      throw new Error(`The drawing system failed. Reason: ${error.message}`);
+    }
 }
