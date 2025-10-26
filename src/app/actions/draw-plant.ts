@@ -4,57 +4,52 @@
 import * as admin from 'firebase-admin';
 import { DrawPlantOutputSchema, type DrawPlantOutput } from '@/interfaces/plant';
 
-// Helper to initialize Firebase Admin SDK safely
+// Helper to initialize Firebase Admin SDK safely and correctly for the App Hosting environment.
 function initializeFirebaseAdmin() {
+  // If the app is already initialized, return it.
   if (admin.apps.length > 0) {
     return admin.app();
   }
 
-  // Check if the necessary environment variables are set.
-  // These are automatically populated in the App Hosting environment.
-  if (!process.env.FIREBASE_PROJECT_ID || !process.env.FIREBASE_STORAGE_BUCKET) {
-    throw new Error('Firebase Admin SDK environment variables are not set.');
-  }
-
-  return admin.initializeApp({
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-  });
+  // In a managed environment like App Hosting, initializeApp() with no arguments
+  // automatically uses the project's credentials.
+  return admin.initializeApp();
 }
 
 /**
- * This server action uses the Firebase Admin SDK to securely access
- * Firebase Storage from the server-side. It fetches a random image
- * from the 'fallback-plants' directory and returns it as a data URI.
+ * This server action uses the Firebase Admin SDK to securely access Firebase Storage from the server-side.
+ * It fetches a random image from the 'fallback-plants' directory and returns it as a data URI.
  */
 export async function drawPlantAction(existingNames: string[] = []): Promise<DrawPlantOutput> {
   try {
     const app = initializeFirebaseAdmin();
     const storage = app.storage();
+    // Get a reference to the default bucket.
     const bucket = storage.bucket();
 
+    // List files in the 'fallback-plants/' directory.
     const [files] = await bucket.getFiles({ prefix: 'fallback-plants/' });
     
-    // Filter out the directory itself
+    // Filter out the directory placeholder itself.
     const imageFiles = files.filter(file => !file.name.endsWith('/'));
     
     if (imageFiles.length === 0) {
-      throw new Error('No fallback images found in Firebase Storage at /fallback-plants/');
+      throw new Error('No fallback images found in Firebase Storage at /fallback-plants/. Please upload images to this directory in your Firebase console.');
     }
 
     const randomFile = imageFiles[Math.floor(Math.random() * imageFiles.length)];
     
-    // Download the file content into a buffer
+    // Download the file content into a buffer.
     const [fileBuffer] = await randomFile.download();
     
-    // Determine MIME type from file extension
+    // Determine MIME type from file extension.
     const extension = randomFile.name.split('.').pop()?.toLowerCase() || 'png';
     const contentType = `image/${extension}`;
 
-    // Convert the buffer to a Base64 data URI
+    // Convert the buffer to a Base64 data URI.
     const imageDataUri = `data:${contentType};base64,${fileBuffer.toString('base64')}`;
 
-    // Generate a simple, generic name and description
+    // Generate a simple, generic name and description.
     const names = ["Sturdy Sprout", "Happy Bloom", "Sunny Petal", "Leafy Friend", "Rooty"];
     const descriptions = ["A resilient and cheerful plant.", "It seems to be enjoying the day.", "This one has a lot of personality.", "A classic for any collection."];
 
@@ -67,7 +62,7 @@ export async function drawPlantAction(existingNames: string[] = []): Promise<Dra
       imageDataUri,
     };
     
-    // Validate the output against the schema before returning
+    // Validate the output against the schema before returning.
     DrawPlantOutputSchema.parse(result);
 
     return result;
@@ -75,6 +70,6 @@ export async function drawPlantAction(existingNames: string[] = []): Promise<Dra
   } catch (error: any) {
     console.error("CRITICAL DRAW FAILURE in Server Action:", error);
     // This will be caught by the client and trigger the error toast.
-    throw new Error(`The drawing system failed. Reason: ${error.message}`);
+    throw new Error(`The drawing system failed. Please check server logs. Reason: ${error.message}`);
   }
 }
