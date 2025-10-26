@@ -1,10 +1,11 @@
 
 'use server';
 
-import { getFallbackPlantFlow, type GetFallbackPlantOutput } from '@/ai/flows/get-fallback-plant-flow';
+import { drawPlantFlow } from '@/ai/flows/draw-plant-flow';
+import type { DrawPlantOutput } from '@/interfaces/plant';
 
-export async function drawPlantAction(existingNames: string[] = []): Promise<GetFallbackPlantOutput> {
-  // Directly call the correct flow that fetches from storage.
-  // The input 'existingNames' is no longer used but is kept to avoid breaking the calling function signature.
-  return await getFallbackPlantFlow();
+export async function drawPlantAction(existingNames: string[] = []): Promise<DrawPlantOutput> {
+  // This action now directly calls the simplified flow that gets a plant from Storage.
+  // The AI generation logic has been removed to ensure reliability.
+  return await drawPlantFlow();
 }
