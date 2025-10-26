@@ -90,7 +90,7 @@ You MUST adhere to the following rules without exception:
         const imageGenPrompt = `Create a new plant character based on the description: "${plantDetails.imagePrompt}".\n\n${imageGenerationRules}`;
 
         const { media } = await ai.generate({
-            model: 'googleai/imagen-2-flash',
+            model: 'imagen-2-flash',
             prompt: imageGenPrompt,
         });
 
@@ -106,14 +106,7 @@ You MUST adhere to the following rules without exception:
         };
 
     } catch (error: any) {
-        // If the API key is the problem, this is a critical error. Stop immediately.
-        if (error.message && (error.message.includes('API key not valid') || error.message.includes('API_KEY_INVALID'))) {
-            console.error("Authentication Error: The provided Google AI API key is invalid or missing.", error);
-            // Re-throw to be caught by the client-side, which will show a specific message.
-            throw new Error("Invalid API Key"); 
-        }
-
-        // For any other error (details, image gen, safety filter, etc.), trigger the universal fallback.
+        // For any error (API key, details, image gen, safety filter, etc.), trigger the universal fallback.
         console.warn(`Primary plant generation failed, triggering fallback flow from Storage. Reason: ${error.message}`);
         return getFallbackPlantFlow();
     }
