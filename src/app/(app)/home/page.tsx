@@ -349,6 +349,7 @@ export default function HomePage() {
             name,
             description,
             imageDataUri,
+            hint: name.toLowerCase().split(' ').slice(0, 2).join(' '),
         };
         
         setUncompressedDrawnPlantUri(drawnPlantResult.imageDataUri);
@@ -611,3 +612,5 @@ export default function HomePage() {
     </>
   );
 }
+
+    
