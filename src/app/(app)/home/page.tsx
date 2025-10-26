@@ -327,7 +327,6 @@ export default function HomePage() {
         await useDraw(user.uid);
         playSfx('success');
         
-        // This logic is now client-side
         const storage = getStorage(app);
         const fallbackDirRef = ref(storage, 'fallback-plants');
         const fileList = await listAll(fallbackDirRef);
@@ -612,5 +611,3 @@ export default function HomePage() {
     </>
   );
 }
-
-    
