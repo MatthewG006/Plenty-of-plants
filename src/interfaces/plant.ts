@@ -62,6 +62,18 @@ export interface ContestSession {
     winner?: Contestant;
 }
 
+export const DrawPlantOutputSchema = z.object({
+  name: z.string().describe('The creative and unique name of the plant, avoiding common plant names.'),
+  description: z.string().describe('A short, one-sentence, whimsical description of the plant.'),
+  imageDataUri: z
+    .string()
+    .describe(
+      "The generated image of the plant, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
+    ),
+});
+
+export type DrawPlantOutput = z.infer<typeof DrawPlantOutputSchema>;
+
 export const EvolvePlantInputSchema = z.object({
   name: z.string().describe('The name of the plant being evolved.'),
   baseImageDataUri: z
