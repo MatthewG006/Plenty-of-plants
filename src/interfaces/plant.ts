@@ -70,6 +70,7 @@ export const DrawPlantOutputSchema = z.object({
     .describe(
       "The generated image of the plant, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
     ),
+  hint: z.string().describe("A two-word hint for the plant's image for AI processing.")
 });
 
 export type DrawPlantOutput = z.infer<typeof DrawPlantOutputSchema>;
@@ -94,4 +95,6 @@ export const EvolvePlantOutputSchema = z.object({
   personality: z.string().optional().describe("A one-word personality trait for the plant (e.g., 'cheerful', 'grumpy'). This is only generated for the final form."),
 });
 export type EvolvePlantOutput = z.infer<typeof EvolvePlantOutputSchema>;
+    
+
     
