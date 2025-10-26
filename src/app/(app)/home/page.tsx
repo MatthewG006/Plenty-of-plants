@@ -311,9 +311,9 @@ export default function HomePage() {
   }, [gameData?.lastDrawRefill]);
 
   const handleDraw = async () => {
-    if (!user) return;
+    if (!user || !gameData) return;
     
-    if (!gameData || gameData.draws <= 0) {
+    if (gameData.draws <= 0) {
         toast({
             variant: "destructive",
             title: "No Draws Left",
@@ -611,5 +611,7 @@ export default function HomePage() {
     </>
   );
 }
+
+    
 
     
