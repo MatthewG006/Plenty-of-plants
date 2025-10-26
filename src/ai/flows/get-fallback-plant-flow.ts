@@ -36,8 +36,9 @@ export const getFallbackPlantFlow = ai.defineFlow(
   },
   async () => {
     try {
+      // Use server-side environment variables for Firebase config in a Genkit flow.
       const firebaseConfig: FirebaseOptions = {
-          apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY, 
+          apiKey: process.env.GEMINI_API_KEY, 
           authDomain: process.env.FIREBASE_AUTH_DOMAIN,
           projectId: process.env.FIREBASE_PROJECT_ID,
           storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
@@ -46,7 +47,7 @@ export const getFallbackPlantFlow = ai.defineFlow(
       };
       
       if (!firebaseConfig.projectId || !firebaseConfig.storageBucket) {
-        throw new Error("Server-side Firebase configuration for Storage is missing. Please check your .env file.");
+        throw new Error("Server-side Firebase configuration for Storage is missing. Please check your environment variables.");
       }
 
       // Initialize a unique app instance for the flow to avoid conflicts.
