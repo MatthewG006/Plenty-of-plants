@@ -351,7 +351,7 @@ export default function HomePage() {
       const drawnPlantResult: DrawPlantOutput = {
           name,
           description,
-          imageDataUri,
+          imageDataUri: imageDataUri,
           hint,
       };
 
