@@ -2,7 +2,7 @@
 import { doc, getDoc, setDoc, getFirestore, updateDoc, arrayUnion, DocumentData, writeBatch, increment, collection, getDocs, query, where, limit, deleteDoc, arrayRemove, runTransaction, Timestamp } from 'firebase/firestore';
 import { app, db, auth } from './firebase';
 import type { Plant, Seed, CommunityUser, ContestSession, Contestant } from '@/interfaces/plant';
-import type { DrawPlantOutput } from '@/ai/flows/draw-plant-flow';
+import type { DrawPlantOutput } from '@/interfaces/plant';
 import { User } from 'firebase/auth';
 import { MAX_DRAWS } from './draw-manager';
 import { v4 as uuidv4 } from 'uuid';

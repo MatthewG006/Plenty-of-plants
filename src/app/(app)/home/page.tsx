@@ -36,6 +36,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { getStorage, ref, listAll, getBlob } from 'firebase/storage';
 import { app } from '@/lib/firebase';
+import { drawPlantAction } from '@/app/actions/draw-plant';
 
 const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
 
@@ -342,17 +343,13 @@ export default function HomePage() {
       const imageBlob = await getBlob(randomFileRef);
       const imageDataUri = await blobToDataUri(imageBlob);
 
-      const names = ["Sturdy Sprout", "Happy Bloom", "Sunny Petal", "Leafy Friend", "Rooty"];
-      const descriptions = ["A resilient and cheerful plant.", "It seems to be enjoying the day.", "This one has a lot of personality.", "A classic for any collection."];
-      const name = names[Math.floor(Math.random() * names.length)];
-      const description = descriptions[Math.floor(Math.random() * descriptions.length)];
-      const hint = name.toLowerCase().split(' ').slice(0, 2).join(' ');
+      const existingNames = gameData.plants ? Object.values(gameData.plants).map(p => p.name) : [];
+      const { name, description } = await drawPlantAction({ existingNames });
 
       const drawnPlantResult: DrawPlantOutput = {
           name,
           description,
           imageDataUri,
-          hint,
       };
 
       setUncompressedDrawnPlantUri(drawnPlantResult.imageDataUri);
@@ -612,5 +609,3 @@ export default function HomePage() {
     </>
   );
 }
-
-    
