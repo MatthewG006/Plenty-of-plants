@@ -329,30 +329,29 @@ export default function HomePage() {
     try {
       await useDraw(user.uid);
       playSfx('success');
-
-      // This is now the definitive, client-side logic for fetching a plant.
+      
       const storage = getStorage(app);
       const fallbackDirRef = ref(storage, 'fallback-plants');
       const fileList = await listAll(fallbackDirRef);
-
+      
       if (fileList.items.length === 0) {
         throw new Error('No fallback images found in storage.');
       }
-
+      
       const randomFileRef = fileList.items[Math.floor(Math.random() * fileList.items.length)];
       const imageBlob = await getBlob(randomFileRef);
       const imageDataUri = await blobToDataUri(imageBlob);
-      
+
       const names = ["Sturdy Sprout", "Happy Bloom", "Sunny Petal", "Leafy Friend", "Rooty"];
       const descriptions = ["A resilient and cheerful plant.", "It seems to be enjoying the day.", "This one has a lot of personality.", "A classic for any collection."];
       const name = names[Math.floor(Math.random() * names.length)];
       const description = descriptions[Math.floor(Math.random() * descriptions.length)];
 
       const drawnPlantResult: DrawPlantOutput = {
-        name,
-        description,
-        imageDataUri,
-        hint: name.toLowerCase().split(' ').slice(0, 2).join(' '),
+          name,
+          description,
+          imageDataUri,
+          hint: name.toLowerCase().split(' ').slice(0, 2).join(' ')
       };
 
       setUncompressedDrawnPlantUri(drawnPlantResult.imageDataUri);
