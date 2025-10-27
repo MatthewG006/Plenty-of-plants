@@ -39,16 +39,6 @@ import { app } from '@/lib/firebase';
 
 const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
 
-// Helper to convert a Blob to a data URI
-async function blobToDataUri(blob: Blob): Promise<string> {
-    const reader = new FileReader();
-    return new Promise((resolve, reject) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = (error) => reject(error);
-        reader.readAsDataURL(blob);
-    });
-}
-
 
 function getNextDrawTimeString(lastRefill: number) {
     const now = Date.now();
@@ -330,6 +320,15 @@ export default function HomePage() {
       await useDraw(user.uid);
       playSfx('success');
       
+      function blobToDataUri(blob: Blob): Promise<string> {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = (error) => reject(error);
+            reader.readAsDataURL(blob);
+        });
+      }
+
       const storage = getStorage(app);
       const fallbackDirRef = ref(storage, 'fallback-plants');
       const fileList = await listAll(fallbackDirRef);
@@ -613,5 +612,3 @@ export default function HomePage() {
     </>
   );
 }
-
-    
