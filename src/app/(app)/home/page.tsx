@@ -36,7 +36,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { getStorage, ref, listAll, getBlob } from 'firebase/storage';
 import { app } from '@/lib/firebase';
-import { drawPlantAction } from '@/app/actions/draw-plant';
+import { getPlantDetails } from '@/ai/flows/get-plant-details-flow';
 
 const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
 
@@ -344,7 +344,7 @@ export default function HomePage() {
       const imageDataUri = await blobToDataUri(imageBlob);
 
       const existingNames = gameData.plants ? Object.values(gameData.plants).map(p => p.name) : [];
-      const { name, description } = await drawPlantAction({ existingNames });
+      const { name, description } = await getPlantDetails({ existingNames });
 
       const drawnPlantResult: DrawPlantOutput = {
           name,
@@ -609,3 +609,5 @@ export default function HomePage() {
     </>
   );
 }
+
+    

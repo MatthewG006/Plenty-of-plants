@@ -7,3 +7,5 @@ import type { GetPlantDetailsInput, GetPlantDetailsOutput } from '@/ai/flows/get
 export async function drawPlantAction(input: GetPlantDetailsInput): Promise<GetPlantDetailsOutput> {
   return await getPlantDetails(input);
 }
+
+    
