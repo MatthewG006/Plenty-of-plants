@@ -351,7 +351,7 @@ export default function HomePage() {
       const drawnPlantResult: DrawPlantOutput = {
           name,
           description,
-          imageDataUri: imageDataUri,
+          imageDataUri,
           hint,
       };
 
@@ -613,4 +613,3 @@ export default function HomePage() {
   );
 }
 
-    
