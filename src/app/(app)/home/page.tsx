@@ -34,7 +34,7 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 import { useRouter } from 'next/navigation';
-import { getStorage, ref, listAll, getBlob } from 'firebase/storage';
+import { getStorage, ref, listAll, getDownloadURL } from 'firebase/storage';
 import { app } from '@/lib/firebase';
 
 const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
@@ -339,8 +339,7 @@ export default function HomePage() {
       }
       
       const randomFileRef = fileList.items[Math.floor(Math.random() * fileList.items.length)];
-      const imageBlob = await getBlob(randomFileRef);
-      const imageDataUri = await blobToDataUri(imageBlob);
+      const imageDataUri = await getDownloadURL(randomFileRef);
 
       const names = ["Sturdy Sprout", "Happy Bloom", "Sunny Petal", "Leafy Friend", "Rooty"];
       const descriptions = ["A resilient and cheerful plant.", "It seems to be enjoying the day.", "This one has a lot of personality.", "A classic for any collection."];
@@ -611,3 +610,5 @@ export default function HomePage() {
     </>
   );
 }
+
+    
