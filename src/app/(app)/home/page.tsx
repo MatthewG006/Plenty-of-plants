@@ -41,11 +41,14 @@ const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
 
 // Helper to convert a Blob to a data URI
 async function blobToDataUri(blob: Blob): Promise<string> {
-    const arrayBuffer = await blob.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const contentType = blob.type || 'image/png';
-    return `data:${contentType};base64,${buffer.toString('base64')}`;
+    const reader = new FileReader();
+    return new Promise((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = (error) => reject(error);
+        reader.readAsDataURL(blob);
+    });
 }
+
 
 function getNextDrawTimeString(lastRefill: number) {
     const now = Date.now();
@@ -312,65 +315,64 @@ export default function HomePage() {
 
   const handleDraw = async () => {
     if (!user || !gameData) return;
-    
+
     if (gameData.draws <= 0) {
-        toast({
-            variant: "destructive",
-            title: "No Draws Left",
-            description: "Visit the shop to get more draws or wait for your daily refill.",
-        });
-        return;
+      toast({
+        variant: 'destructive',
+        title: 'No Draws Left',
+        description: 'Visit the shop to get more draws or wait for your daily refill.',
+      });
+      return;
     }
 
     setIsDrawing(true);
     try {
-        await useDraw(user.uid);
-        playSfx('success');
-        
-        const storage = getStorage(app);
-        const fallbackDirRef = ref(storage, 'fallback-plants');
-        const fileList = await listAll(fallbackDirRef);
+      await useDraw(user.uid);
+      playSfx('success');
 
-        if (fileList.items.length === 0) {
-            throw new Error('No fallback images found in storage.');
-        }
+      // This is now the definitive, client-side logic for fetching a plant.
+      const storage = getStorage(app);
+      const fallbackDirRef = ref(storage, 'fallback-plants');
+      const fileList = await listAll(fallbackDirRef);
 
-        const randomFileRef = fileList.items[Math.floor(Math.random() * fileList.items.length)];
-        const imageBlob = await getBlob(randomFileRef);
-        const imageDataUri = await blobToDataUri(imageBlob);
+      if (fileList.items.length === 0) {
+        throw new Error('No fallback images found in storage.');
+      }
 
-        const names = ["Sturdy Sprout", "Happy Bloom", "Sunny Petal", "Leafy Friend", "Rooty"];
-        const descriptions = ["A resilient and cheerful plant.", "It seems to be enjoying the day.", "This one has a lot of personality.", "A classic for any collection."];
-        const name = names[Math.floor(Math.random() * names.length)];
-        const description = descriptions[Math.floor(Math.random() * descriptions.length)];
+      const randomFileRef = fileList.items[Math.floor(Math.random() * fileList.items.length)];
+      const imageBlob = await getBlob(randomFileRef);
+      const imageDataUri = await blobToDataUri(imageBlob);
+      
+      const names = ["Sturdy Sprout", "Happy Bloom", "Sunny Petal", "Leafy Friend", "Rooty"];
+      const descriptions = ["A resilient and cheerful plant.", "It seems to be enjoying the day.", "This one has a lot of personality.", "A classic for any collection."];
+      const name = names[Math.floor(Math.random() * names.length)];
+      const description = descriptions[Math.floor(Math.random() * descriptions.length)];
 
-        const drawnPlantResult: DrawPlantOutput = {
-            name,
-            description,
-            imageDataUri,
-            hint: name.toLowerCase().split(' ').slice(0, 2).join(' '),
-        };
-        
-        setUncompressedDrawnPlantUri(drawnPlantResult.imageDataUri);
-        const compressedImageDataUri = await compressImage(drawnPlantResult.imageDataUri);
+      const drawnPlantResult: DrawPlantOutput = {
+        name,
+        description,
+        imageDataUri,
+        hint: name.toLowerCase().split(' ').slice(0, 2).join(' '),
+      };
 
-        setDrawnPlant({
-            ...drawnPlantResult,
-            imageDataUri: compressedImageDataUri,
-        });
+      setUncompressedDrawnPlantUri(drawnPlantResult.imageDataUri);
+      const compressedImageDataUri = await compressImage(drawnPlantResult.imageDataUri);
+      
+      setDrawnPlant({
+        ...drawnPlantResult,
+        imageDataUri: compressedImageDataUri,
+      });
 
     } catch (e: any) {
-        console.error(e);
-        // If something goes wrong, give the user their draw back
-        await refundDraw(user.uid);
-
-        toast({
-            variant: "destructive",
-            title: "Failed to draw a plant",
-            description: "There was an issue fetching a plant from storage. Your draw has been refunded.",
-        });
+      console.error(e);
+      await refundDraw(user.uid);
+      toast({
+        variant: 'destructive',
+        title: 'Failed to draw a plant',
+        description: 'There was an issue fetching from storage. Your draw has been refunded.',
+      });
     } finally {
-        setIsDrawing(false);
+      setIsDrawing(false);
     }
   };
 
@@ -378,8 +380,7 @@ export default function HomePage() {
     if (!drawnPlant || !user || !uncompressedDrawnPlantUri) return;
 
     try {
-        const plainDrawnPlant = JSON.parse(JSON.stringify(drawnPlant));
-        const newPlant = await savePlant(user.uid, plainDrawnPlant, uncompressedDrawnPlantUri);
+        const newPlant = await savePlant(user.uid, drawnPlant, uncompressedDrawnPlantUri);
         setLatestPlant(newPlant);
         await updateCollectionProgress(user.uid);
     } catch (e) {
