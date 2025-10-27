@@ -34,7 +34,7 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 import { useRouter } from 'next/navigation';
-import { getStorage, ref, listAll, getDownloadURL, getBlob } from 'firebase/storage';
+import { getStorage, ref, listAll, getBlob } from 'firebase/storage';
 import { app } from '@/lib/firebase';
 
 const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
@@ -347,7 +347,6 @@ export default function HomePage() {
       const descriptions = ["A resilient and cheerful plant.", "It seems to be enjoying the day.", "This one has a lot of personality.", "A classic for any collection."];
       const name = names[Math.floor(Math.random() * names.length)];
       const description = descriptions[Math.floor(Math.random() * descriptions.length)];
-      
       const hint = name.toLowerCase().split(' ').slice(0, 2).join(' ');
 
       const drawnPlantResult: DrawPlantOutput = {
