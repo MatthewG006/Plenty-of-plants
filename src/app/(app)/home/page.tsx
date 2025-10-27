@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -215,7 +214,6 @@ export default function HomePage() {
   const [latestPlant, setLatestPlant] = useState<Plant | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawnPlant, setDrawnPlant] = useState<DrawPlantOutput | null>(null);
-  const [uncompressedDrawnPlantUri, setUncompressedDrawnPlantUri] = useState<string | null>(null);
   const [isClaimingChallenge, setIsClaimingChallenge] = useState(false);
   const [nextDrawTime, setNextDrawTime] = useState('');
   const [showCommunityInfo, setShowCommunityInfo] = useState(false);
@@ -351,14 +349,8 @@ export default function HomePage() {
           description,
           imageDataUri,
       };
-
-      setUncompressedDrawnPlantUri(drawnPlantResult.imageDataUri);
-      const compressedImageDataUri = await compressImage(drawnPlantResult.imageDataUri);
       
-      setDrawnPlant({
-        ...drawnPlantResult,
-        imageDataUri: compressedImageDataUri,
-      });
+      setDrawnPlant(drawnPlantResult);
 
     } catch (e: any) {
       console.error(e);
@@ -374,10 +366,18 @@ export default function HomePage() {
   };
 
   const handleCollect = async () => {
-    if (!drawnPlant || !user || !uncompressedDrawnPlantUri) return;
+    if (!drawnPlant || !user) return;
 
     try {
-        const newPlant = await savePlant(user.uid, drawnPlant, uncompressedDrawnPlantUri);
+        const uncompressedImageDataUri = drawnPlant.imageDataUri;
+        const compressedImageDataUri = await compressImage(uncompressedImageDataUri);
+
+        const plantToSave: DrawPlantOutput = {
+            ...drawnPlant,
+            imageDataUri: compressedImageDataUri,
+        };
+
+        const newPlant = await savePlant(user.uid, plantToSave, uncompressedImageDataUri);
         setLatestPlant(newPlant);
         await updateCollectionProgress(user.uid);
     } catch (e) {
@@ -390,7 +390,6 @@ export default function HomePage() {
     }
     
     setDrawnPlant(null);
-    setUncompressedDrawnPlantUri(null);
   };
   
   const handleClaimChallenge = async (challengeId: string) => {
