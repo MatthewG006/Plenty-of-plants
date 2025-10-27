@@ -60,9 +60,6 @@ The final image should be an epic evolution, but still recognizably the same cha
           {media: {url: baseImageDataUri}},
           {text: promptText}
         ],
-        config: {
-            responseMimeType: 'image/png',
-        },
       });
 
       if (!media || !media.url) {
