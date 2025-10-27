@@ -59,6 +59,27 @@ This rule allows:
 2.  Any logged-in user to view the list of users for the community page.
 3.  Any logged-in user to read and write to the shared contest data.
 
+### 3.2. Firebase Storage Security Rules
+
+The "Draw Plant" feature works by fetching random images from the `fallback-plants/` directory in your Firebase Storage bucket. For this to work, you must allow public read access to your storage files.
+
+**Action Required:** Go to your Firebase project, navigate to **Storage > Rules**, and replace the default rules with the following:
+
+```
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow public read access to all files.
+    // This is safe for public assets like the plant images.
+    match /{allPaths=**} {
+      allow read;
+      allow write: if request.auth != null;
+    }
+  }
+}
+```
+
 ---
 
 ## 4. Core Features & Logic
