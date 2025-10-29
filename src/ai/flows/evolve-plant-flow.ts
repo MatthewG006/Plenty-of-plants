@@ -6,9 +6,14 @@
  * - evolvePlant - A function that generates an evolved version of a plant.
  */
 
-import {ai} from '@/ai/genkit';
+import { genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
 import {z} from 'zod';
 import { EvolvePlantInputSchema, EvolvePlantOutputSchema, type EvolvePlantInput, type EvolvePlantOutput } from '@/interfaces/plant';
+
+const ai = genkit({
+    plugins: [googleAI()],
+});
 
 
 export async function evolvePlant(input: EvolvePlantInput): Promise<EvolvePlantOutput> {
