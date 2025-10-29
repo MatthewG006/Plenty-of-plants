@@ -7,7 +7,7 @@ import { Settings, User, Check, X, Loader2, Leaf, Award, Coins, Info, Clock, Use
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useRef, useMemo } from 'react';
-import type { Plant } from '@/interfaces/plant';
+import type { Plant, DrawPlantOutput } from '@/interfaces/plant';
 import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -25,7 +25,6 @@ import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/context/AuthContext';
 import { savePlant } from '@/lib/firestore';
 import { compressImage } from '@/lib/image-compression';
-import type { DrawPlantOutput } from '@/interfaces/plant';
 import { Challenge, challenges, secondaryChallenges, claimChallengeReward, checkAndResetChallenges, updateCollectionProgress, updateLoginProgress } from '@/lib/challenge-manager';
 import Autoplay from "embla-carousel-autoplay"
 import {
@@ -214,7 +213,6 @@ export default function HomePage() {
   const [latestPlant, setLatestPlant] = useState<Plant | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawnPlant, setDrawnPlant] = useState<DrawPlantOutput | null>(null);
-  const [uncompressedDrawnPlantUri, setUncompressedDrawnPlantUri] = useState<string | null>(null);
   const [isClaimingChallenge, setIsClaimingChallenge] = useState(false);
   const [nextDrawTime, setNextDrawTime] = useState('');
   const [showCommunityInfo, setShowCommunityInfo] = useState(false);
@@ -321,18 +319,8 @@ export default function HomePage() {
       playSfx('success');
       
       const existingNames = gameData.plants ? Object.values(gameData.plants).map(p => p.name) : [];
-      
       const drawnPlantResult = await drawPlantAction(existingNames);
-      
-      setUncompressedDrawnPlantUri(drawnPlantResult.imageDataUri);
-
-      const compressedImageDataUri = await compressImage(drawnPlantResult.imageDataUri);
-
-      setDrawnPlant({
-        ...drawnPlantResult,
-        imageDataUri: compressedImageDataUri,
-      });
-
+      setDrawnPlant(drawnPlantResult);
     } catch (e: any) {
       console.error("Error during handleDraw:", e);
       await refundDraw(user.uid);
@@ -347,10 +335,14 @@ export default function HomePage() {
   };
 
   const handleCollect = async () => {
-    if (!drawnPlant || !uncompressedDrawnPlantUri || !user) return;
+    if (!drawnPlant || !user) return;
+    
+    const uncompressedDataUri = drawnPlant.imageDataUri;
 
     try {
-        const newPlant = await savePlant(user.uid, drawnPlant, uncompressedDrawnPlantUri);
+        const compressedImageDataUri = await compressImage(uncompressedDataUri);
+        
+        const newPlant = await savePlant(user.uid, { ...drawnPlant, imageDataUri: compressedImageDataUri }, uncompressedDataUri);
         setLatestPlant(newPlant);
         await updateCollectionProgress(user.uid);
     } catch (e) {
@@ -363,7 +355,6 @@ export default function HomePage() {
     }
     
     setDrawnPlant(null);
-    setUncompressedDrawnPlantUri(null);
   };
   
   const handleClaimChallenge = async (challengeId: string) => {

@@ -1,5 +1,4 @@
 
-
 import { Timestamp } from 'firebase/firestore';
 import { z } from 'zod';
 
@@ -62,6 +61,21 @@ export interface ContestSession {
     winner?: Contestant;
 }
 
+
+// Schemas for AI Flows
+
+export const GetPlantDetailsInputSchema = z.object({
+  existingNames: z.array(z.string()).describe('An array of plant names that already exist in the user\'s collection to avoid duplication.'),
+});
+export type GetPlantDetailsInput = z.infer<typeof GetPlantDetailsInputSchema>;
+
+export const GetPlantDetailsOutputSchema = z.object({
+  name: z.string().describe('The creative and unique name of the plant, avoiding common plant names.'),
+  description: z.string().describe('A short, one-sentence, whimsical description of the plant.'),
+});
+export type GetPlantDetailsOutput = z.infer<typeof GetPlantDetailsOutputSchema>;
+
+
 export const DrawPlantOutputSchema = z.object({
   name: z.string().describe('The creative and unique name of the plant, avoiding common plant names.'),
   description: z.string().describe('A short, one-sentence, whimsical description of the plant.'),
@@ -95,4 +109,3 @@ export const EvolvePlantOutputSchema = z.object({
   personality: z.string().optional().describe("A one-word personality trait for the plant (e.g., 'cheerful', 'grumpy'). This is only generated for the final form."),
 });
 export type EvolvePlantOutput = z.infer<typeof EvolvePlantOutputSchema>;
-    
