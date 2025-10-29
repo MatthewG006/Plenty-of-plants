@@ -33,7 +33,9 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 import { useRouter } from 'next/navigation';
-import { drawPlantAction } from '@/app/actions/draw-plant';
+import { getPlantDetailsAction } from '@/app/actions/draw-plant';
+import { getStorage, ref, listAll, getDownloadURL } from 'firebase/storage';
+import { app } from '@/lib/firebase';
 
 
 const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
@@ -319,9 +321,18 @@ export default function HomePage() {
       playSfx('success');
       
       const existingNames = gameData.plants ? Object.values(gameData.plants).map(p => p.name) : [];
-      const drawnPlantResult = await drawPlantAction({ existingNames });
+      
+      // Get AI details from server action
+      const { name, description } = await getPlantDetailsAction({ existingNames });
 
-      setDrawnPlant(drawnPlantResult);
+      // Get random image from storage on client
+      const storage = getStorage(app);
+      const listRef = ref(storage, 'fallback-plants');
+      const res = await listAll(listRef);
+      const randomItem = res.items[Math.floor(Math.random() * res.items.length)];
+      const imageUrl = await getDownloadURL(randomItem);
+
+      setDrawnPlant({ name, description, imageDataUri: imageUrl });
 
     } catch (e: any) {
       console.error("Error during handleDraw:", e);
@@ -339,13 +350,11 @@ export default function HomePage() {
   const handleCollect = async () => {
     if (!drawnPlant || !user) return;
     
-    // The uncompressed URI is the same as the compressed one because the server now handles it.
-    const uncompressedDataUri = drawnPlant.imageDataUri;
-
     try {
         const compressedImageDataUri = await compressImage(drawnPlant.imageDataUri);
         
-        const newPlant = await savePlant(user.uid, { ...drawnPlant, imageDataUri: compressedImageDataUri }, uncompressedDataUri);
+        // Pass both original public URL and compressed data URI to savePlant
+        const newPlant = await savePlant(user.uid, { ...drawnPlant, imageDataUri: compressedImageDataUri }, drawnPlant.imageDataUri);
         setLatestPlant(newPlant);
         await updateCollectionProgress(user.uid);
     } catch (e) {
