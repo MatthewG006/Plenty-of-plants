@@ -11,6 +11,7 @@
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import { z } from 'zod';
+import { ai } from '@/ai/genkit';
 
 export const GetPlantDetailsInputSchema = z.object({
   existingNames: z.array(z.string()).describe('An array of plant names that already exist in the user\'s collection to avoid duplication.'),
@@ -28,28 +29,11 @@ export async function getPlantDetails(input: GetPlantDetailsInput): Promise<GetP
   return getPlantDetailsFlow(input);
 }
 
-
-const getPlantDetailsFlow = genkit.defineFlow(
-  {
-    name: 'getPlantDetailsFlow',
-    inputSchema: GetPlantDetailsInputSchema,
-    outputSchema: GetPlantDetailsOutputSchema,
-  },
-  async (input) => {
-    // Initialize AI and Prompt inside the flow to comply with 'use server' constraints.
-    const ai = genkit({
-      plugins: [
-        googleAI({
-          apiKey: process.env.GEMINI_API_KEY,
-        }),
-      ],
-    });
-
-    const getPlantDetailsPrompt = ai.definePrompt({
-      name: 'getPlantDetailsPrompt',
-      input: { schema: GetPlantDetailsInputSchema },
-      output: { schema: GetPlantDetailsOutputSchema },
-      prompt: `You are a creative botanist for a whimsical game about collecting digital plants.
+const getPlantDetailsPrompt = ai.definePrompt({
+  name: 'getPlantDetailsPrompt',
+  input: { schema: GetPlantDetailsInputSchema },
+  output: { schema: GetPlantDetailsOutputSchema },
+  prompt: `You are a creative botanist for a whimsical game about collecting digital plants.
 Your task is to generate a new, unique plant.
 
 **CRITICAL INSTRUCTIONS:**
@@ -59,8 +43,15 @@ Your task is to generate a new, unique plant.
     {{#each existingNames}}- {{{this}}}{{/each}}
 
 Generate a new plant that is not on that list.`,
-    });
+});
 
+const getPlantDetailsFlow = ai.defineFlow(
+  {
+    name: 'getPlantDetailsFlow',
+    inputSchema: GetPlantDetailsInputSchema,
+    outputSchema: GetPlantDetailsOutputSchema,
+  },
+  async (input) => {
     const { output } = await getPlantDetailsPrompt(input);
     return output!;
   }

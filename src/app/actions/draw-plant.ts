@@ -49,6 +49,7 @@ export async function drawPlantAction(input: {existingNames: string[]}): Promise
         name: "Failsafe Fern",
         description: "A resilient plant that appears when things go wrong.",
         imageDataUri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+        hint: 'fern',
     }
   }
 }
