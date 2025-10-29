@@ -70,6 +70,7 @@ export const DrawPlantOutputSchema = z.object({
     .describe(
       "The image of the plant, as a data URI."
     ),
+  hint: z.string().optional(),
 });
 
 export type DrawPlantOutput = z.infer<typeof DrawPlantOutputSchema>;
