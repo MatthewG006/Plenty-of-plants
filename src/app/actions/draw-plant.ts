@@ -17,7 +17,7 @@ if (!getApps().length) {
   adminApp = getApps()[0];
 }
 
-export async function drawPlantAction(existingNames: string[]): Promise<DrawPlantOutput> {
+export async function drawPlantAction(input: {existingNames: string[]}): Promise<DrawPlantOutput> {
   try {
     const storage = getStorage(adminApp);
     const bucket = storage.bucket();
@@ -35,7 +35,7 @@ export async function drawPlantAction(existingNames: string[]): Promise<DrawPlan
     const mimeType = randomFile.metadata.contentType || 'image/png';
     const imageDataUri = `data:${mimeType};base64,${fileContents.toString('base64')}`;
 
-    const { name, description } = await getPlantDetails({ existingNames });
+    const { name, description } = await getPlantDetails({ existingNames: input.existingNames });
 
     return {
       name,
