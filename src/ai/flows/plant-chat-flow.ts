@@ -7,9 +7,14 @@
  * - PlantChatInput - The input type for the plantChat function.
  * - PlantChatOutput - The return type for the plantChat function.
  */
-import {ai} from '@/ai/genkit';
+import { genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
 import {z} from 'zod';
 import { PlantChatInputSchema, type PlantChatInput } from '@/interfaces/chat';
+
+const ai = genkit({
+    plugins: [googleAI()],
+});
 
 
 export type PlantChatOutput = z.infer<typeof PlantChatOutputSchema>;
