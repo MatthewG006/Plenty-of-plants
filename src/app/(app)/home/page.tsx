@@ -33,9 +33,7 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 import { useRouter } from 'next/navigation';
-import { getPlantDetailsAction } from '@/app/actions/draw-plant';
-import { getStorage, ref, listAll, getDownloadURL } from 'firebase/storage';
-import { app } from '@/lib/firebase';
+import { drawPlantAction } from '@/app/actions/draw-plant';
 
 
 const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
@@ -320,16 +318,10 @@ export default function HomePage() {
       await useDraw(user.uid);
       playSfx('success');
       
-      const storage = getStorage(app);
-      const listRef = ref(storage, 'fallback-plants');
-      const res = await listAll(listRef);
-      const randomFileRef = res.items[Math.floor(Math.random() * res.items.length)];
-      const publicUrl = await getDownloadURL(randomFileRef);
-
       const existingNames = gameData.plants ? Object.values(gameData.plants).map(p => p.name) : [];
-      const { name, description } = await getPlantDetailsAction({ existingNames });
+      const drawnPlantResult = await drawPlantAction({ existingNames });
 
-      setDrawnPlant({ name, description, imageDataUri: publicUrl });
+      setDrawnPlant(drawnPlantResult);
 
     } catch (e: any) {
       console.error("Error during handleDraw:", e);
@@ -347,10 +339,11 @@ export default function HomePage() {
   const handleCollect = async () => {
     if (!drawnPlant || !user) return;
     
+    // The uncompressed URI is the same as the compressed one because the server now handles it.
     const uncompressedDataUri = drawnPlant.imageDataUri;
 
     try {
-        const compressedImageDataUri = await compressImage(uncompressedDataUri);
+        const compressedImageDataUri = await compressImage(drawnPlant.imageDataUri);
         
         const newPlant = await savePlant(user.uid, { ...drawnPlant, imageDataUri: compressedImageDataUri }, uncompressedDataUri);
         setLatestPlant(newPlant);
