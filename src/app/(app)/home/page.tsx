@@ -214,6 +214,7 @@ export default function HomePage() {
   const [latestPlant, setLatestPlant] = useState<Plant | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawnPlant, setDrawnPlant] = useState<DrawPlantOutput | null>(null);
+  const [uncompressedDrawnPlantUri, setUncompressedDrawnPlantUri] = useState<string | null>(null);
   const [isClaimingChallenge, setIsClaimingChallenge] = useState(false);
   const [nextDrawTime, setNextDrawTime] = useState('');
   const [showCommunityInfo, setShowCommunityInfo] = useState(false);
@@ -333,7 +334,7 @@ export default function HomePage() {
       const fileList = await listAll(fallbackDirRef);
       
       if (fileList.items.length === 0) {
-        throw new Error('No fallback images found in storage.');
+        throw new Error('No fallback images found in storage. Make sure you have uploaded images to the /fallback-plants directory in your Firebase Storage bucket.');
       }
       
       const randomFileRef = fileList.items[Math.floor(Math.random() * fileList.items.length)];
@@ -350,7 +351,15 @@ export default function HomePage() {
           imageDataUri,
       };
       
-      setDrawnPlant(drawnPlantResult);
+      setUncompressedDrawnPlantUri(imageDataUri);
+
+      const compressedImageDataUri = await compressImage(drawnPlantResult.imageDataUri);
+
+      setDrawnPlant({
+          ...drawnPlantResult,
+          imageDataUri: compressedImageDataUri,
+      });
+
 
     } catch (e: any) {
       console.error(e);
@@ -366,18 +375,10 @@ export default function HomePage() {
   };
 
   const handleCollect = async () => {
-    if (!drawnPlant || !user) return;
+    if (!drawnPlant || !uncompressedDrawnPlantUri || !user) return;
 
     try {
-        const uncompressedImageDataUri = drawnPlant.imageDataUri;
-        const compressedImageDataUri = await compressImage(uncompressedImageDataUri);
-
-        const plantToSave: DrawPlantOutput = {
-            ...drawnPlant,
-            imageDataUri: compressedImageDataUri,
-        };
-
-        const newPlant = await savePlant(user.uid, plantToSave, uncompressedImageDataUri);
+        const newPlant = await savePlant(user.uid, drawnPlant, uncompressedDrawnPlantUri);
         setLatestPlant(newPlant);
         await updateCollectionProgress(user.uid);
     } catch (e) {
@@ -390,6 +391,7 @@ export default function HomePage() {
     }
     
     setDrawnPlant(null);
+    setUncompressedDrawnPlantUri(null);
   };
   
   const handleClaimChallenge = async (challengeId: string) => {
