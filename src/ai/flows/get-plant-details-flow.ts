@@ -12,6 +12,7 @@ import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import { GetPlantDetailsInputSchema, GetPlantDetailsOutputSchema, type GetPlantDetailsInput, type GetPlantDetailsOutput } from '@/interfaces/plant';
 
+// This is the correct initialization. The `ai` object is configured with plugins.
 const ai = genkit({
     plugins: [googleAI()],
 });
@@ -32,6 +33,7 @@ Your task is to generate a new, unique plant.
 Generate a new plant that is not on that list.`,
 });
 
+// This flow is now correctly defined using the configured `ai` object.
 const getPlantDetailsFlow = ai.defineFlow(
   {
     name: 'getPlantDetailsFlow',
@@ -44,7 +46,7 @@ const getPlantDetailsFlow = ai.defineFlow(
   }
 );
 
-
+// This is the only exported function, as required for Server Actions.
 export async function getPlantDetails(input: GetPlantDetailsInput): Promise<GetPlantDetailsOutput> {
   return getPlantDetailsFlow(input);
 }
