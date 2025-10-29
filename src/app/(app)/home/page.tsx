@@ -33,7 +33,7 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 import { useRouter } from 'next/navigation';
-import { drawPlantAction, getPlantDetailsAction } from '@/app/actions/draw-plant';
+import { getPlantDetailsAction } from '@/app/actions/draw-plant';
 import { getStorage, ref, listAll, getDownloadURL } from 'firebase/storage';
 import { app } from '@/lib/firebase';
 
