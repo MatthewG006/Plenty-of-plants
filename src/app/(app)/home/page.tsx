@@ -34,9 +34,8 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 import { useRouter } from 'next/navigation';
-import { getStorage, ref, listAll, getDownloadURL } from 'firebase/storage';
-import { app } from '@/lib/firebase';
-import { getPlantDetails } from '@/ai/flows/get-plant-details-flow';
+import { drawPlantAction } from '@/app/actions/draw-plant';
+
 
 const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
 
@@ -215,6 +214,7 @@ export default function HomePage() {
   const [latestPlant, setLatestPlant] = useState<Plant | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawnPlant, setDrawnPlant] = useState<DrawPlantOutput | null>(null);
+  const [uncompressedDrawnPlantUri, setUncompressedDrawnPlantUri] = useState<string | null>(null);
   const [isClaimingChallenge, setIsClaimingChallenge] = useState(false);
   const [nextDrawTime, setNextDrawTime] = useState('');
   const [showCommunityInfo, setShowCommunityInfo] = useState(false);
@@ -320,44 +320,21 @@ export default function HomePage() {
       await useDraw(user.uid);
       playSfx('success');
       
-      const blobToDataUri = (blob: Blob): Promise<string> => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = (error) => reject(error);
-            reader.readAsDataURL(blob);
-        });
-      }
-
-      const storage = getStorage(app);
-      const fallbackDirRef = ref(storage, 'fallback-plants');
-      const fileList = await listAll(fallbackDirRef);
-      
-      if (fileList.items.length === 0) {
-        throw new Error('No fallback images found in storage. Make sure you have uploaded images to the /fallback-plants directory in your Firebase Storage bucket.');
-      }
-      
-      const randomFileRef = fileList.items[Math.floor(Math.random() * fileList.items.length)];
-      
-      // Use getDownloadURL to bypass CORS issues
-      const downloadUrl = await getDownloadURL(randomFileRef);
-      const response = await fetch(downloadUrl);
-      const imageBlob = await response.blob();
-      const imageDataUri = await blobToDataUri(imageBlob);
-
       const existingNames = gameData.plants ? Object.values(gameData.plants).map(p => p.name) : [];
-      const { name, description } = await getPlantDetails({ existingNames });
+      
+      const drawnPlantResult = await drawPlantAction(existingNames);
+      
+      setUncompressedDrawnPlantUri(drawnPlantResult.imageDataUri);
 
-      const drawnPlantResult: DrawPlantOutput = {
-          name,
-          description,
-          imageDataUri,
-      };
+      const compressedImageDataUri = await compressImage(drawnPlantResult.imageDataUri);
 
-      setDrawnPlant(drawnPlantResult);
+      setDrawnPlant({
+        ...drawnPlantResult,
+        imageDataUri: compressedImageDataUri,
+      });
 
     } catch (e: any) {
-      console.error(e);
+      console.error("Error during handleDraw:", e);
       await refundDraw(user.uid);
       toast({
         variant: 'destructive',
@@ -370,11 +347,10 @@ export default function HomePage() {
   };
 
   const handleCollect = async () => {
-    if (!drawnPlant || !user) return;
+    if (!drawnPlant || !uncompressedDrawnPlantUri || !user) return;
 
     try {
-        const compressedImageDataUri = await compressImage(drawnPlant.imageDataUri);
-        const newPlant = await savePlant(user.uid, { ...drawnPlant, imageDataUri: compressedImageDataUri }, drawnPlant.imageDataUri);
+        const newPlant = await savePlant(user.uid, drawnPlant, uncompressedDrawnPlantUri);
         setLatestPlant(newPlant);
         await updateCollectionProgress(user.uid);
     } catch (e) {
@@ -387,6 +363,7 @@ export default function HomePage() {
     }
     
     setDrawnPlant(null);
+    setUncompressedDrawnPlantUri(null);
   };
   
   const handleClaimChallenge = async (challengeId: string) => {
