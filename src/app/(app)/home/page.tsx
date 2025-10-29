@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -33,7 +34,7 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 import { useRouter } from 'next/navigation';
-import { getStorage, ref, listAll, getBlob } from 'firebase/storage';
+import { getStorage, ref, listAll, getDownloadURL } from 'firebase/storage';
 import { app } from '@/lib/firebase';
 import { getPlantDetails } from '@/ai/flows/get-plant-details-flow';
 
@@ -214,7 +215,6 @@ export default function HomePage() {
   const [latestPlant, setLatestPlant] = useState<Plant | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawnPlant, setDrawnPlant] = useState<DrawPlantOutput | null>(null);
-  const [uncompressedDrawnPlantUri, setUncompressedDrawnPlantUri] = useState<string | null>(null);
   const [isClaimingChallenge, setIsClaimingChallenge] = useState(false);
   const [nextDrawTime, setNextDrawTime] = useState('');
   const [showCommunityInfo, setShowCommunityInfo] = useState(false);
@@ -339,7 +339,10 @@ export default function HomePage() {
       
       const randomFileRef = fileList.items[Math.floor(Math.random() * fileList.items.length)];
       
-      const imageBlob = await getBlob(randomFileRef);
+      // Use getDownloadURL to bypass CORS issues
+      const downloadUrl = await getDownloadURL(randomFileRef);
+      const response = await fetch(downloadUrl);
+      const imageBlob = await response.blob();
       const imageDataUri = await blobToDataUri(imageBlob);
 
       const existingNames = gameData.plants ? Object.values(gameData.plants).map(p => p.name) : [];
@@ -350,16 +353,8 @@ export default function HomePage() {
           description,
           imageDataUri,
       };
-      
-      setUncompressedDrawnPlantUri(imageDataUri);
 
-      const compressedImageDataUri = await compressImage(drawnPlantResult.imageDataUri);
-
-      setDrawnPlant({
-          ...drawnPlantResult,
-          imageDataUri: compressedImageDataUri,
-      });
-
+      setDrawnPlant(drawnPlantResult);
 
     } catch (e: any) {
       console.error(e);
@@ -367,7 +362,7 @@ export default function HomePage() {
       toast({
         variant: 'destructive',
         title: 'Failed to draw a plant',
-        description: e.message || 'There was an issue fetching from storage. Your draw has been refunded.',
+        description: e.message || 'An unexpected error occurred. Your draw has been refunded.',
       });
     } finally {
       setIsDrawing(false);
@@ -375,10 +370,11 @@ export default function HomePage() {
   };
 
   const handleCollect = async () => {
-    if (!drawnPlant || !uncompressedDrawnPlantUri || !user) return;
+    if (!drawnPlant || !user) return;
 
     try {
-        const newPlant = await savePlant(user.uid, drawnPlant, uncompressedDrawnPlantUri);
+        const compressedImageDataUri = await compressImage(drawnPlant.imageDataUri);
+        const newPlant = await savePlant(user.uid, { ...drawnPlant, imageDataUri: compressedImageDataUri }, drawnPlant.imageDataUri);
         setLatestPlant(newPlant);
         await updateCollectionProgress(user.uid);
     } catch (e) {
@@ -391,7 +387,6 @@ export default function HomePage() {
     }
     
     setDrawnPlant(null);
-    setUncompressedDrawnPlantUri(null);
   };
   
   const handleClaimChallenge = async (challengeId: string) => {
