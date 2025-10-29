@@ -4,23 +4,41 @@
 import { getPlantDetails } from '@/ai/flows/get-plant-details-flow';
 import type { DrawPlantOutput } from '@/interfaces/plant';
 import { getStorage } from 'firebase-admin/storage';
-import { initializeApp, getApps, App } from 'firebase-admin/app';
+import { initializeApp, getApps, App, type ServiceAccount } from 'firebase-admin/app';
 import { adminConfig } from '@/lib/firebase-admin-config';
 
-let adminApp: App;
-if (!getApps().length) {
-  adminApp = initializeApp({
-    credential: adminConfig,
+// This function initializes and returns the Firebase Admin App instance,
+// handling both initial creation and subsequent retrievals.
+function getAdminApp(): App {
+  if (getApps().length > 0) {
+    return getApps()[0];
+  }
+  
+  // Ensure that the service account has all the required properties.
+  // This is a type guard to satisfy TypeScript.
+  const serviceAccount: ServiceAccount = {
+    projectId: adminConfig.projectId,
+    clientEmail: adminConfig.clientEmail,
+    privateKey: adminConfig.privateKey,
+  };
+
+  return initializeApp({
+    credential: {
+      projectId: serviceAccount.projectId,
+      clientEmail: serviceAccount.clientEmail,
+      privateKey: serviceAccount.privateKey,
+    },
     storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   });
-} else {
-  adminApp = getApps()[0];
 }
+
 
 export async function drawPlantAction(existingNames: string[]): Promise<DrawPlantOutput> {
   try {
+    const adminApp = getAdminApp();
     const storage = getStorage(adminApp);
-    const bucket = storage.bucket();
+    const bucket = storage.bucket(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET);
+    
     const [files] = await bucket.getFiles({ prefix: 'fallback-plants/' });
 
     const imageFiles = files.filter(file => !file.name.endsWith('/'));
