@@ -8,8 +8,23 @@
  * - GetPlantDetailsOutput - The return type for the getPlantDetails function.
  */
 
-import { ai } from '@/ai/genkit';
+import { genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
 import { z } from 'zod';
+
+// Initialize the Google AI plugin with the API key from environment variables.
+const ai = genkit({
+  plugins: [
+    googleAI({
+      apiKey: process.env.GEMINI_API_KEY,
+    }),
+  ],
+  // Log all traces to the console for debugging.
+  logSinks: [console.log.bind(console)],
+  // Enable tracing in development.
+  traceStore: 'dev',
+});
+
 
 export const GetPlantDetailsInputSchema = z.object({
   existingNames: z.array(z.string()).describe('An array of plant names that already exist in the user\'s collection to avoid duplication.'),
