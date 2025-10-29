@@ -11,7 +11,11 @@
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import { z } from 'zod';
-import { ai } from '@/ai/genkit';
+
+const ai = genkit({
+    plugins: [googleAI()],
+});
+
 
 export const GetPlantDetailsInputSchema = z.object({
   existingNames: z.array(z.string()).describe('An array of plant names that already exist in the user\'s collection to avoid duplication.'),
