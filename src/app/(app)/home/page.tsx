@@ -33,9 +33,7 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 import { useRouter } from 'next/navigation';
-import { getPlantDetailsAction } from '@/app/actions/draw-plant';
-import { getStorage, ref, listAll, getDownloadURL } from 'firebase/storage';
-import { app } from '@/lib/firebase';
+import { drawPlantAction } from '@/app/actions/draw-plant';
 
 
 const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
@@ -322,17 +320,13 @@ export default function HomePage() {
       
       const existingNames = gameData.plants ? Object.values(gameData.plants).map(p => p.name) : [];
       
-      // Get AI details from server action
-      const { name, description } = await getPlantDetailsAction({ existingNames });
+      const result = await drawPlantAction({ existingNames });
 
-      // Get random image from storage on client
-      const storage = getStorage(app);
-      const listRef = ref(storage, 'fallback-plants');
-      const res = await listAll(listRef);
-      const randomItem = res.items[Math.floor(Math.random() * res.items.length)];
-      const imageUrl = await getDownloadURL(randomItem);
+      if (!result.imageDataUri) {
+        throw new Error(result.description || "The AI failed to generate a plant.");
+      }
 
-      setDrawnPlant({ name, description, imageDataUri: imageUrl });
+      setDrawnPlant(result);
 
     } catch (e: any) {
       console.error("Error during handleDraw:", e);
@@ -351,9 +345,11 @@ export default function HomePage() {
     if (!drawnPlant || !user) return;
     
     try {
+        // The image from the server is already a data URI, but we still compress it
+        // to save space in the user's Firestore document. The uncompressed version
+        // is passed separately for the evolution feature.
         const compressedImageDataUri = await compressImage(drawnPlant.imageDataUri);
         
-        // Pass both original public URL and compressed data URI to savePlant
         const newPlant = await savePlant(user.uid, { ...drawnPlant, imageDataUri: compressedImageDataUri }, drawnPlant.imageDataUri);
         setLatestPlant(newPlant);
         await updateCollectionProgress(user.uid);
