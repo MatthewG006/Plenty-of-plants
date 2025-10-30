@@ -34,8 +34,6 @@ import {
 } from "@/components/ui/carousel";
 import { useRouter } from 'next/navigation';
 import { drawPlantAction } from '@/app/actions/draw-plant';
-import { getStorage, ref, listAll, getDownloadURL } from 'firebase/storage';
-import { app } from '@/lib/firebase';
 
 
 const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
@@ -322,15 +320,9 @@ export default function HomePage() {
       
       const existingNames = gameData.plants ? Object.values(gameData.plants).map(p => p.name) : [];
       
-      const { name, description } = await drawPlantAction(existingNames);
+      const drawnPlantResult = await drawPlantAction(existingNames);
       
-      const storage = getStorage(app);
-      const fallbackPlantsRef = ref(storage, 'fallback-plants');
-      const res = await listAll(fallbackPlantsRef);
-      const randomFileRef = res.items[Math.floor(Math.random() * res.items.length)];
-      const imageURL = await getDownloadURL(randomFileRef);
-      
-      setDrawnPlant({ name, description, imageDataUri: imageURL });
+      setDrawnPlant(drawnPlantResult);
 
     } catch (e: any) {
       console.error("Error during handleDraw:", e);
