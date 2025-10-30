@@ -3,12 +3,22 @@
 
 import { getApps, initializeApp, cert, getApp } from 'firebase-admin/app';
 import { getStorage } from 'firebase-admin/storage';
-import { adminConfig } from '@/lib/firebase-admin-config';
 import type { DrawPlantOutput } from '@/interfaces/plant';
 
 // This is the only exported function, as required for Server Actions.
 export async function drawPlantAction(existingNames: string[]): Promise<DrawPlantOutput> {
-  // Logic from the old getFirebaseAdminApp is now directly inside the async function.
+  
+  // Define the config directly inside the function using process.env
+  const adminConfig = {
+    project_id: process.env.FIREBASE_PROJECT_ID,
+    client_email: process.env.FIREBASE_CLIENT_EMAIL,
+    private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+  };
+
+  if (!adminConfig.project_id || !adminConfig.client_email || !adminConfig.private_key) {
+    throw new Error('Firebase Admin environment variables are not set. Check your .env.local file.');
+  }
+
   const app = getApps().length
     ? getApp()
     : initializeApp({
