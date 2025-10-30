@@ -34,6 +34,8 @@ import {
 } from "@/components/ui/carousel";
 import { useRouter } from 'next/navigation';
 import { drawPlantAction } from '@/app/actions/draw-plant';
+import { getStorage, ref, listAll, getDownloadURL } from 'firebase/storage';
+import { app } from '@/lib/firebase';
 
 
 const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
@@ -320,13 +322,22 @@ export default function HomePage() {
       
       const existingNames = gameData.plants ? Object.values(gameData.plants).map(p => p.name) : [];
       
-      const result = await drawPlantAction({ existingNames });
+      // Step 1: Get text details from server action
+      const { name, description, hint } = await drawPlantAction({ existingNames });
 
-      if (!result.imageDataUri) {
-        throw new Error(result.description || "The AI failed to generate a plant.");
+      // Step 2: Get a random image URL from client-side Firebase Storage
+      const storage = getStorage(app);
+      const listRef = ref(storage, 'fallback-plants');
+      const res = await listAll(listRef);
+      const randomItem = res.items[Math.floor(Math.random() * res.items.length)];
+      const imageUrl = await getDownloadURL(randomItem);
+
+      if (!imageUrl) {
+        throw new Error("Could not retrieve a fallback image.");
       }
-
-      setDrawnPlant(result);
+      
+      // Set the drawn plant data, including the public URL
+      setDrawnPlant({ name, description, imageDataUri: imageUrl, hint });
 
     } catch (e: any) {
       console.error("Error during handleDraw:", e);
@@ -345,9 +356,8 @@ export default function HomePage() {
     if (!drawnPlant || !user) return;
     
     try {
-        // The image from the server is already a data URI, but we still compress it
-        // to save space in the user's Firestore document. The uncompressed version
-        // is passed separately for the evolution feature.
+        // The image from `drawnPlant` is a public URL. We now compress it
+        // on the client, which is possible due to the `crossOrigin` fix.
         const compressedImageDataUri = await compressImage(drawnPlant.imageDataUri);
         
         const newPlant = await savePlant(user.uid, { ...drawnPlant, imageDataUri: compressedImageDataUri }, drawnPlant.imageDataUri);
