@@ -322,10 +322,7 @@ export default function HomePage() {
       
       const existingNames = gameData.plants ? Object.values(gameData.plants).map(p => p.name) : [];
       
-      // Step 1: Get text details from server action
-      const { name, description, hint } = await drawPlantAction({ existingNames });
-
-      // Step 2: Get a random image URL from client-side Firebase Storage
+      // Get a random image URL from client-side Firebase Storage
       const storage = getStorage(app);
       const listRef = ref(storage, 'fallback-plants');
       const res = await listAll(listRef);
@@ -335,9 +332,14 @@ export default function HomePage() {
       if (!imageUrl) {
         throw new Error("Could not retrieve a fallback image.");
       }
+
+      // Derive name from filename
+      const fileName = randomItem.name.split('.')[0]; // e.g., "sleepy-sunbeam"
+      const name = fileName.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+
+      const description = "A new friend has joined your collection!";
       
-      // Set the drawn plant data, including the public URL
-      setDrawnPlant({ name, description, imageDataUri: imageUrl, hint });
+      setDrawnPlant({ name, description, imageDataUri: imageUrl, hint: name.toLowerCase() });
 
     } catch (e: any) {
       console.error("Error during handleDraw:", e);
@@ -356,8 +358,6 @@ export default function HomePage() {
     if (!drawnPlant || !user) return;
     
     try {
-        // The image from `drawnPlant` is a public URL. We now compress it
-        // on the client, which is possible due to the `crossOrigin` fix.
         const compressedImageDataUri = await compressImage(drawnPlant.imageDataUri);
         
         const newPlant = await savePlant(user.uid, { ...drawnPlant, imageDataUri: compressedImageDataUri }, drawnPlant.imageDataUri);

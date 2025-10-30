@@ -9,7 +9,12 @@ import type { GetPlantDetailsInput } from '@/interfaces/plant';
 // server-side authentication issues and CORS problems.
 export async function drawPlantAction(input: GetPlantDetailsInput): Promise<{name: string, description: string, hint: string}> {
   
-  const { name, description } = await getPlantDetails(input);
+  // This call is failing. We will remove it and handle name/description on the client.
+  // const { name, description } = await getPlantDetails(input);
+
+  // For now, we return a placeholder. The client will override this.
+  const name = "New Plant";
+  const description = "A lovely new plant for your collection.";
 
   return { 
       name, 
