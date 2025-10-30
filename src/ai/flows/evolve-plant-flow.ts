@@ -22,6 +22,7 @@ export async function evolvePlant(input: EvolvePlantInput): Promise<EvolvePlantO
 
 const personalityPrompt = ai.definePrompt({
     name: 'plantPersonalityPrompt',
+    model: 'gemini-1.5-flash',
     input: { schema: z.object({ name: z.string() }) },
     output: { schema: z.object({ personality: z.string().describe("A single, one-word personality trait (e.g., 'bubbly', 'wise', 'sassy').") }) },
     prompt: `Based on the plant name "{{name}}", what is a fitting one-word personality trait for it?`,
