@@ -34,8 +34,6 @@ import {
 } from "@/components/ui/carousel";
 import { useRouter } from 'next/navigation';
 import { drawPlantAction } from '@/app/actions/draw-plant';
-import { getStorage, ref, listAll, getDownloadURL } from 'firebase/storage';
-import { app } from '@/lib/firebase';
 
 
 const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
@@ -249,7 +247,7 @@ export default function HomePage() {
         if (!hasSeenGameChangesInfo) {
             setShowGameChangesInfo(true);
         }
-
+        
         const hasSeenGardenInfo = localStorage.getItem('hasSeenGardenInfo_v1');
         if (!hasSeenGardenInfo) {
             setShowGardenInfo(true);
@@ -322,24 +320,9 @@ export default function HomePage() {
       
       const existingNames = gameData.plants ? Object.values(gameData.plants).map(p => p.name) : [];
       
-      // Get a random image URL from client-side Firebase Storage
-      const storage = getStorage(app);
-      const listRef = ref(storage, 'fallback-plants');
-      const res = await listAll(listRef);
-      const randomItem = res.items[Math.floor(Math.random() * res.items.length)];
-      const imageUrl = await getDownloadURL(randomItem);
-
-      if (!imageUrl) {
-        throw new Error("Could not retrieve a fallback image.");
-      }
-
-      // Derive name from filename
-      const fileName = randomItem.name.split('.')[0]; // e.g., "sleepy-sunbeam"
-      const name = fileName.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-
-      const description = "A new friend has joined your collection!";
-      
-      setDrawnPlant({ name, description, imageDataUri: imageUrl, hint: name.toLowerCase() });
+      // The server action now handles fetching the image and name
+      const drawnPlantResult = await drawPlantAction(existingNames);
+      setDrawnPlant(drawnPlantResult);
 
     } catch (e: any) {
       console.error("Error during handleDraw:", e);
@@ -358,11 +341,16 @@ export default function HomePage() {
     if (!drawnPlant || !user) return;
     
     try {
+        // The image from the server is already a data URI, but we compress it
+        // to save space in Firestore.
         const compressedImageDataUri = await compressImage(drawnPlant.imageDataUri);
         
+        // Save plant with compressed image, but pass the original as the uncompressed backup
         const newPlant = await savePlant(user.uid, { ...drawnPlant, imageDataUri: compressedImageDataUri }, drawnPlant.imageDataUri);
+        
         setLatestPlant(newPlant);
         await updateCollectionProgress(user.uid);
+
     } catch (e) {
         console.error("Failed to save plant to Firestore", e);
         toast({
