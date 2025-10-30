@@ -34,6 +34,8 @@ import {
 } from "@/components/ui/carousel";
 import { useRouter } from 'next/navigation';
 import { drawPlantAction } from '@/app/actions/draw-plant';
+import { getStorage, ref, listAll, getDownloadURL } from 'firebase/storage';
+import { app } from '@/lib/firebase';
 
 
 const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
@@ -320,9 +322,15 @@ export default function HomePage() {
       
       const existingNames = gameData.plants ? Object.values(gameData.plants).map(p => p.name) : [];
       
-      // The server action now handles fetching the image and name
-      const drawnPlantResult = await drawPlantAction(existingNames);
-      setDrawnPlant(drawnPlantResult);
+      const { name, description } = await drawPlantAction(existingNames);
+      
+      const storage = getStorage(app);
+      const fallbackPlantsRef = ref(storage, 'fallback-plants');
+      const res = await listAll(fallbackPlantsRef);
+      const randomFileRef = res.items[Math.floor(Math.random() * res.items.length)];
+      const imageURL = await getDownloadURL(randomFileRef);
+      
+      setDrawnPlant({ name, description, imageDataUri: imageURL });
 
     } catch (e: any) {
       console.error("Error during handleDraw:", e);
@@ -341,11 +349,8 @@ export default function HomePage() {
     if (!drawnPlant || !user) return;
     
     try {
-        // The image from the server is already a data URI, but we compress it
-        // to save space in Firestore.
         const compressedImageDataUri = await compressImage(drawnPlant.imageDataUri);
         
-        // Save plant with compressed image, but pass the original as the uncompressed backup
         const newPlant = await savePlant(user.uid, { ...drawnPlant, imageDataUri: compressedImageDataUri }, drawnPlant.imageDataUri);
         
         setLatestPlant(newPlant);
