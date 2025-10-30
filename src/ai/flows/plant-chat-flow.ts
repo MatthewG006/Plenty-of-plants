@@ -29,7 +29,7 @@ export async function plantChat(input: PlantChatInput): Promise<PlantChatOutput>
 
 const plantChatPrompt = ai.definePrompt({
   name: 'plantChatPrompt',
-  model: 'gemini-1.5-flash',
+  model: 'gemini-pro',
   input: { schema: z.object({
       plantName: z.string(),
       plantPersonality: z.string(),

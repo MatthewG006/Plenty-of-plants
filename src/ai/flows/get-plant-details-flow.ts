@@ -19,7 +19,7 @@ const ai = genkit({
 
 const getPlantDetailsPrompt = ai.definePrompt({
   name: 'getPlantDetailsPrompt',
-  model: 'gemini-1.5-flash',
+  model: 'gemini-pro',
   input: { schema: GetPlantDetailsInputSchema },
   output: { schema: GetPlantDetailsOutputSchema },
   prompt: `You are a creative botanist for a whimsical game about collecting digital plants.
