@@ -1,53 +1,21 @@
 
 'use server';
 
-import { getApp, getApps, initializeApp, cert } from 'firebase-admin/app';
-import { getStorage } from 'firebase-admin/storage';
-import { adminConfig } from '@/lib/firebase-admin-config';
+import { getPlantDetails } from '@/ai/flows/get-plant-details-flow';
+import type { DrawPlantOutput } from '@/interfaces/plant';
 
-// This server action is now the single source of truth for drawing a plant.
-// It fetches the image from storage and derives the name/description from the filename.
-// This avoids all client-side CORS issues and AI model dependency errors.
-export async function drawPlantAction(existingNames: string[]): Promise<{ name: string, description: string, imageDataUri: string, hint: string }> {
+// This server action is now ONLY responsible for getting the AI-generated name and description.
+// All image fetching is handled on the client to avoid server-side auth and CORS issues.
+export async function drawPlantAction(existingNames: string[]): Promise<Omit<DrawPlantOutput, 'imageDataUri' | 'hint'>> {
   try {
-    const app = getApps().length
-        ? getApp()
-        : initializeApp({
-            credential: cert(adminConfig),
-            storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-        });
-
-    const storage = getStorage(app);
-    const bucket = storage.bucket();
-    const [files] = await bucket.getFiles({ prefix: 'fallback-plants/' });
-
-    const imageFiles = files.filter(file => !file.name.endsWith('/'));
-
-    if (imageFiles.length === 0) {
-      throw new Error("No fallback plant images found in storage.");
-    }
-
-    const randomFile = imageFiles[Math.floor(Math.random() * imageFiles.length)];
-    const [fileBuffer] = await randomFile.download();
-    
-    const mimeType = randomFile.metadata.contentType || 'image/png';
-    const imageDataUri = `data:${mimeType};base64,${fileBuffer.toString('base64')}`;
-
-    // Derive name and description from filename
-    const fileName = randomFile.name.split('/').pop()?.split('.')[0] || 'new-plant';
-    const name = fileName.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-    const description = "A new friend has joined your collection!";
-    
-    return { 
-        name, 
-        description, 
-        imageDataUri,
-        hint: name.toLowerCase().split(' ').slice(0, 2).join(' ') 
-    };
-
+    const { name, description } = await getPlantDetails({ existingNames });
+    return { name, description };
   } catch (error: any) {
-    console.error("Error in drawPlantAction:", error);
-    // Rethrow the error so the client knows something went wrong.
-    throw new Error(`Failed to draw a new plant: ${error.message}`);
+    console.error("Error in drawPlantAction (getPlantDetails):", error);
+    // Provide a fallback name and description if the AI fails, so the draw doesn't fully break.
+    return {
+      name: 'Mysterious Bloom',
+      description: 'A curious plant that appeared when the AI was sleeping.'
+    }
   }
 }
