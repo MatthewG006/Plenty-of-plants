@@ -8,24 +8,11 @@ import type { DrawPlantOutput } from '@/interfaces/plant';
 // This is the only exported function, as required for Server Actions.
 export async function drawPlantAction(existingNames: string[]): Promise<DrawPlantOutput> {
   
-  // Define the config directly inside the function using process.env
+  // Define the config directly inside the function using a template literal for the key
   const adminConfig = {
     project_id: "plentyofplants-108e8",
     client_email: "firebase-adminsdk-g31c1@plentyofplants-108e8.iam.gserviceaccount.com",
-    private_key: `-----BEGIN PRIVATE KEY-----
-MIICeAIBADANBgkqhkiG9w0BAQEFAASCAmIwggJeAgEAAoGBAN0k+7A5/jybOQQm
-0P9J0GprslqNnMzYfLw+kLw/gxpBu5eon+h9395d8sZgqsNCYyU3AAYK4e1a0n1q
-/x0tggcKDNzj3f5s5g2P7F5c3gK6y9lAmJoqGkLwY3cvbS454f7a7j+DBon0QGqA
-gCiI+5vds6j+r8uYCM43Yy0gTfHlAgMBAAECgYEAqL9jBv9Q2YyG/L6XADyW5H/C
-4p1fUvV1K3L5l5sP/8wYxK2y6KVU/bNTVgR+R43dkh32fQ+lD7M0t+n//isB/+aF
-LwVjF0i4kADsox2I92PjHOSD21l47WfKbyAof9yR5P736k3QGf6m1bjs2D3u/19w
-7f4vQ1hACnEWmUv2gEECQQDy8R3V/2kHjGzQDQjKzR1y2iS1x/eWz/i7a3ZtA/2p
-M6yV5lT9/0N3+x79x/uG3U/5M/zP7wZ/kY6Z8Q7N9A9xAkEA6/0D5e/2e9b9j8c2
-g8c3j2D+o9b8z/i/k7e9w/t9X/y+y3v/s7D/a3v5s/z/y8x/t/v/y9v3/0f7e9z+
-r8tAgECQQC5Z/T9X/y+x3v/s7D/a3v5s/z/y8x/t/v/y9v3/0f7e9z+r8tAgECQQ
-C5Z/T9X/y+x3v/s7D/a3v5s/z/y8x/t/v/y9v3/0f7e9z+r8tAgECQQC5Z/T9X/
-y+x3v/s7D/a3v5s/z/y8x/t/v/y9v3/0f7e9z+r8tAgEC
------END PRIVATE KEY-----`,
+    private_key: `-----BEGIN PRIVATE KEY-----\nMIICeAIBADANBgkqhkiG9w0BAQEFAASCAmIwggJeAgEAAoGBAN0k+7A5/jybOQQm\n0P9J0GprslqNnMzYfLw+kLw/gxpBu5eon+h9395d8sZgqsNCYyU3AAYK4e1a0n1q\n/x0tggcKDNzj3f5s5g2P7F5c3gK6y9lAmJoqGkLwY3cvbS454f7a7j+DBon0QGqA\ngCiI+5vds6j+r8uYCM43Yy0gTfHlAgMBAAECgYEAqL9jBv9Q2YyG/L6XADyW5H/C\n4p1fUvV1K3L5l5sP/8wYxK2y6KVU/bNTVgR+R43dkh32fQ+lD7M0t+n//isB/+aF\nLwVjF0i4kADsox2I92PjHOSD21l47WfKbyAof9yR5P736k3QGf6m1bjs2D3u/19w\n7f4vQ1hACnEWmUv2gEECQQDy8R3V/2kHjGzQDQjKzR1y2iS1x/eWz/i7a3ZtA/2p\nM6yV5lT9/0N3+x79x/uG3U/5M/zP7wZ/kY6Z8Q7N9A9xAkEA6/0D5e/2e9b9j8c2\ng8c3j2D+o9b8z/i/k7e9w/t9X/y+y3v/s7D/a3v5s/z/y8x/t/v/y9v3/0f7e9z+\nr8tAgECQQC5Z/T9X/y+x3v/s7D/a3v5s/z/y8x/t/v/y9v3/0f7e9z+r8tAgECQQ\nC5Z/T9X/y+x3v/s7D/a3v5s/z/y8x/t/v/y9v3/0f7e9z+r8tAgECQQC5Z/T9X/\ny+x3v/s7D/a3v5s/z/y8x/t/v/y9v3/0f7e9z+r8tAgEC\n-----END PRIVATE KEY-----\n`,
   };
 
   const app = getApps().length
