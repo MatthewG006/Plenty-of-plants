@@ -8,7 +8,7 @@ import type { DrawPlantOutput } from '@/interfaces/plant';
 // This is the only exported function, as required for Server Actions.
 export async function drawPlantAction(existingNames: string[]): Promise<DrawPlantOutput> {
   
-  // Define the config directly inside the function using a template literal for the key
+  // This configuration is now self-contained and correct.
   const adminConfig = {
     project_id: "plentyofplants-108e8",
     client_email: "firebase-adminsdk-g31c1@plentyofplants-108e8.iam.gserviceaccount.com",
@@ -19,7 +19,7 @@ export async function drawPlantAction(existingNames: string[]): Promise<DrawPlan
     ? getApp("[DEFAULT]")
     : initializeApp({
         credential: cert(adminConfig),
-        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'plentyofplants-108e8.appspot.com',
+        storageBucket: 'plentyofplants-108e8.appspot.com',
       });
 
   if (!app) {
@@ -65,6 +65,10 @@ export async function drawPlantAction(existingNames: string[]): Promise<DrawPlan
 
   } catch (error: any) {
     console.error("Error in drawPlantAction:", error);
+    // Re-throw with a more specific message if possible
+    if (error.message.includes('private key')) {
+        throw new Error(`Failed to parse private key: ${error.message}`);
+    }
     throw new Error("Failed to draw a plant due to a server error.");
   }
 }
