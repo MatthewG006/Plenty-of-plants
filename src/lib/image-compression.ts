@@ -3,7 +3,8 @@
 export async function compressImage(dataUri: string, maxSize = 1024): Promise<string> {
     return new Promise((resolve, reject) => {
         const img = new window.Image();
-        img.crossOrigin = 'anonymous'; // Fix for tainted canvas error
+        // This is the crucial fix for tainted canvas errors when loading from a URL.
+        img.crossOrigin = 'anonymous'; 
         img.onload = () => {
             const canvas = document.createElement('canvas');
             let { width, height } = img;

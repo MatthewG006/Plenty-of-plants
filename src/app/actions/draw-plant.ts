@@ -1,55 +1,40 @@
 
 'use server';
 
-import { getPlantDetails } from '@/ai/flows/get-plant-details-flow';
 import { getStorage, ref, listAll, getDownloadURL } from 'firebase/storage';
-import { getApps, initializeApp, cert, getApp } from 'firebase-admin/app';
+import { getApps, initializeApp, getApp } from 'firebase/app';
+import { DrawPlantOutput } from '@/interfaces/plant';
 
-// This is the only exported function, as required for Server Actions.
-export async function drawPlantAction(existingNames: string[]): Promise<{ name: string, description: string, imageDataUri: string }> {
-  
-  // This configuration is now self-contained and correct.
-  const adminConfig = {
-    projectId: "plentyofplants-108e8",
-    clientEmail: "firebase-adminsdk-g31c1@plentyofplants-108e8.iam.gserviceaccount.com",
-    privateKey: `-----BEGIN PRIVATE KEY-----\nMIICeAIBADANBgkqhkiG9w0BAQEFAASCAmIwggJeAgEAAoGBAN0k+7A5/jybOQQm\n0P9J0GprslqNnMzYfLw+kLw/gxpBu5eon+h9395d8sZgqsNCYyU3AAYK4e1a0n1q\n/x0tggcKDNzj3f5s5g2P7F5c3gK6y9lAmJoqGkLwY3cvbS454f7a7j+DBon0QGqA\ngCiI+5vds6j+r8uYCM43Yy0gTfHlAgMBAAECgYEAqL9jBv9Q2YyG/L6XADyW5H/C\n4p1fUvV1K3L5l5sP/8wYxK2y6KVU/bNTVgR+R43dkh32fQ+lD7M0t+n//isB/+aF\nLwVjF0i4kADsox2I92PjHOSD21l47WfKbyAof9yR5P736k3QGf6m1bjs2D3u/19w\n7f4vQ1hACnEWmUv2gEECQQDy8R3V/2kHjGzQDQjKzR1y2iS1x/eWz/i7a3ZtA/2p\nM6yV5lT9/0N3+x79x/uG3U/5M/zP7wZ/kY6Z8Q7N9A9xAkEA6/0D5e/2e9b9j8c2\ng8c3j2D+o9b8z/i/k7e9w/t9X/y+y3v/s7D/a3v5s/z/y8x/t/v/y9v3/0f7e9z+\nr8tAgECQQC5Z/T9X/y+x3v/s7D/a3v5s/z/y8x/t/v/y9v3/0f7e9z+r8tAgECQQ\nC5Z/T9X/y+x3v/s7D/a3v5s/z/y8x/t/v/y9v3/0f7e9z+r8tAgECQQC5Z/T9X/\ny+x3v/s7D/a3v5s/z/y8x/t/v/y9v3/0f7e9z+r8tAgEC\n-----END PRIVATE KEY-----\n`.replace(/\\n/g, '\n'),
-  };
+// IMPORTANT: This configuration is for the CLIENT-SIDE SDK, not the Admin SDK.
+// It is safe to use in server components/actions when interacting with client-side services.
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+};
 
-  const app = getApps().length
-    ? getApp("[DEFAULT]")
-    : initializeApp({
-        credential: cert(adminConfig),
-        storageBucket: 'plentyofplants-108e8.appspot.com',
-      });
-
-  if (!app) {
-    throw new Error("Firebase Admin SDK not initialized. Check server configuration.");
-  }
-  
+// This function now uses the standard Firebase JS SDK, not the Admin SDK.
+// It fetches a public URL for a random fallback image.
+export async function drawPlantAction(existingNames: string[]): Promise<DrawPlantOutput> {
   try {
+    const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
     const storage = getStorage(app);
-    const bucket = storage.bucket();
-    const [files] = await bucket.getFiles({ prefix: 'fallback-plants/' });
-    
-    const imageFiles = files.filter(file => !file.name.endsWith('/'));
+    const fallbackPlantsRef = ref(storage, 'fallback-plants');
 
-    if (imageFiles.length === 0) {
-        throw new Error('No fallback images found in storage.');
+    const res = await listAll(fallbackPlantsRef);
+    const imageRefs = res.items;
+
+    if (imageRefs.length === 0) {
+      throw new Error('No fallback images found in storage.');
     }
 
-    const randomFile = imageFiles[Math.floor(Math.random() * imageFiles.length)];
-    
-    const [fileBuffer] = await randomFile.download();
-    
-    const fileExtension = randomFile.name.split('.').pop()?.toLowerCase();
-    let mimeType = 'image/png';
-    if (fileExtension === 'jpg' || fileExtension === 'jpeg') {
-        mimeType = 'image/jpeg';
-    }
-    
-    const imageDataUri = `data:${mimeType};base64,${fileBuffer.toString('base64')}`;
+    const randomFileRef = imageRefs[Math.floor(Math.random() * imageRefs.length)];
+    const imageURL = await getDownloadURL(randomFileRef);
 
-    const filename = randomFile.name.split('/').pop() || 'unknown';
+    const filename = randomFileRef.name.split('/').pop() || 'unknown';
     const name = filename
         .replace(/\.(png|jpg|jpeg)$/i, '')
         .replace(/[-_]/g, ' ')
@@ -60,15 +45,11 @@ export async function drawPlantAction(existingNames: string[]): Promise<{ name: 
     return {
         name: name,
         description: `A lovely ${name} that just sprouted.`,
-        imageDataUri: imageDataUri,
+        imageDataUri: imageURL,
     };
 
   } catch (error: any) {
     console.error("Error in drawPlantAction:", error);
-    // Re-throw with a more specific message if possible
-    if (error.message.includes('private key')) {
-        throw new Error(`Failed to parse private key: ${error.message}`);
-    }
-    throw new Error("Failed to draw a plant due to a server error.");
+    throw new Error("Failed to get a fallback plant due to a server error.");
   }
 }
