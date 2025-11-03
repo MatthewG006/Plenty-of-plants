@@ -320,8 +320,11 @@ export default function HomePage() {
       
       const existingNames = gameData.plants ? Object.values(gameData.plants).map(p => p.name) : [];
       
+      // The server action now provides a public URL to an image in storage
       const drawnPlantResult = await drawPlantAction(existingNames);
       
+      // The client now receives the plant data, and the image can be displayed directly.
+      // The imageDataUri is a URL, not a data URI at this point.
       setDrawnPlant(drawnPlantResult);
 
     } catch (e: any) {
@@ -341,6 +344,8 @@ export default function HomePage() {
     if (!drawnPlant || !user) return;
     
     try {
+        // Since `drawnPlant.imageDataUri` is a URL, `compressImage` can fetch and process it
+        // thanks to the `crossOrigin` attribute set in the utility function.
         const compressedImageDataUri = await compressImage(drawnPlant.imageDataUri);
         
         const newPlant = await savePlant(user.uid, { ...drawnPlant, imageDataUri: compressedImageDataUri }, drawnPlant.imageDataUri);
