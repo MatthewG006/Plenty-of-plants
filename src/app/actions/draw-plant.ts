@@ -16,20 +16,32 @@ const firebaseConfig = {
 
 // This function now fetches the image, converts it to a base64 data URI on the server,
 // and returns that to the client. This bypasses any client-side CORS issues.
-export async function drawPlantAction(existingNames: string[]): Promise<DrawPlantOutput> {
+export async function drawPlantAction(existingImageFilenames: string[]): Promise<DrawPlantOutput> {
   try {
     const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
     const storage = getStorage(app);
     const fallbackPlantsRef = ref(storage, 'fallback-plants');
 
     const res = await listAll(fallbackPlantsRef);
-    const imageRefs = res.items;
+    const allImageRefs = res.items;
 
-    if (imageRefs.length === 0) {
+    if (allImageRefs.length === 0) {
       throw new Error('No fallback images found in storage.');
     }
+    
+    // Filter out images the user already has
+    let availableImageRefs = allImageRefs.filter(imageRef => {
+        const filename = imageRef.name.split('/').pop() || '';
+        return !existingImageFilenames.includes(filename);
+    });
 
-    const randomFileRef = imageRefs[Math.floor(Math.random() * imageRefs.length)];
+    // If the user has all plants, fall back to the full list
+    if (availableImageRefs.length === 0) {
+        availableImageRefs = allImageRefs;
+    }
+
+
+    const randomFileRef = availableImageRefs[Math.floor(Math.random() * availableImageRefs.length)];
     const imageURL = await getDownloadURL(randomFileRef);
 
     // Fetch the image data on the server
@@ -55,6 +67,8 @@ export async function drawPlantAction(existingNames: string[]): Promise<DrawPlan
         name: name,
         description: `A lovely ${name} that just sprouted.`,
         imageDataUri: dataUri,
+        // Send the filename so the client can track it
+        hint: filename, 
     };
 
   } catch (error: any) {
