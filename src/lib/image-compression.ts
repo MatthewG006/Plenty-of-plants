@@ -1,10 +1,10 @@
 
 
+
 // Helper function to compress an image
 export async function compressImage(dataUri: string, maxSize = 1024): Promise<string> {
     return new Promise((resolve, reject) => {
         const img = new window.Image();
-        // This is the crucial fix for tainted canvas errors when loading from a URL.
         img.crossOrigin = 'anonymous'; 
         img.onload = () => {
             const canvas = document.createElement('canvas');
@@ -29,7 +29,6 @@ export async function compressImage(dataUri: string, maxSize = 1024): Promise<st
                 return reject(new Error('Could not get canvas context'));
             }
             ctx.drawImage(img, 0, 0, width, height);
-            // Use JPEG with a quality setting of 80%
             resolve(canvas.toDataURL('image/jpeg', 0.8));
         };
         img.onerror = reject;
@@ -37,15 +36,22 @@ export async function compressImage(dataUri: string, maxSize = 1024): Promise<st
     });
 }
 
-// Helper function to make white backgrounds transparent
+// This client-side function is no longer used for cross-origin images.
+// The core logic has been moved to a server action to bypass CORS.
+// It is kept here in case it is needed for same-origin data URIs in the future.
 export async function makeBackgroundTransparent(url: string, threshold = 240): Promise<string> {
-    if (!url || url.startsWith('data:')) {
-        return url; // Return if it's already a data URI or empty
+    if (!url) {
+        return url;
+    }
+
+    if (!url.startsWith('data:')) {
+       console.warn("makeBackgroundTransparent should be called with a data URI. URL was passed:", url);
+       // Fallback for safety, but this indicates a logic error elsewhere.
+       return url;
     }
 
     return new Promise((resolve, reject) => {
         const img = new window.Image();
-        img.crossOrigin = 'Anonymous'; // This is crucial for CORS
         img.onload = () => {
             const canvas = document.createElement('canvas');
             canvas.width = img.width;
@@ -72,8 +78,8 @@ export async function makeBackgroundTransparent(url: string, threshold = 240): P
             resolve(canvas.toDataURL('image/png'));
         };
         img.onerror = (err) => {
-            console.error("CORS or other error making background transparent, returning original image", err);
-            resolve(url); // Fallback to original URL on error
+            console.error("Error processing image data URI:", err);
+            reject(err);
         };
         img.src = url;
     });
@@ -87,7 +93,6 @@ export async function isImageBlack(dataUri: string, threshold = 10): Promise<boo
         img.crossOrigin = 'anonymous';
         img.onload = () => {
             const canvas = document.createElement('canvas');
-            // We can check a smaller version for performance
             const checkSize = 100;
             canvas.width = checkSize;
             canvas.height = checkSize;
@@ -108,25 +113,20 @@ export async function isImageBlack(dataUri: string, threshold = 10): Promise<boo
                     const r = data[i];
                     const g = data[i + 1];
                     const b = data[i + 2];
-                    // Check if the pixel is black or very dark
                     if (r < threshold && g < threshold && b < threshold) {
                         blackPixels++;
                     }
                 }
                 
-                // If over 95% of pixels are black, consider it a black image
                 const totalPixels = checkSize * checkSize;
                 resolve((blackPixels / totalPixels) > 0.95);
 
             } catch (e) {
                 console.error("Error checking image data:", e);
-                // If we can't read the data (e.g., tainted canvas), assume it's not black to be safe
                 resolve(false);
             }
         };
         img.onerror = () => {
-            // If the image fails to load, it's not a valid plant, so we can consider it a failure.
-            // This might be caught by other parts of the app, but it's good to handle here.
             resolve(true); 
         };
         img.src = dataUri;
