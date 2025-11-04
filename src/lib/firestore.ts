@@ -255,8 +255,7 @@ export async function savePlant(userId: string, plantData: DrawPlantOutput): Pro
         name: plantData.name || 'Mysterious Sprout',
         description: plantData.description || 'A new plant has arrived.',
         image: imageUrl, // Store the URL, not the data URI
-        baseImage: '',
-        form: 'Base',
+        baseImage: '', // baseImage is now set upon first evolution
         hint: (plantData.name || '').toLowerCase().split(' ').slice(0, 2).join(' '),
         level: 1,
         xp: 0,
