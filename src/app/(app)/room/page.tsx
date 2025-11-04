@@ -27,7 +27,7 @@ import { useAuth } from '@/context/AuthContext';
 import { updatePlantArrangement, updatePlant } from '@/lib/firestore';
 import { makeBackgroundTransparent, compressImage } from '@/lib/image-compression';
 import { PlantDetailDialog, EvolveConfirmationDialog, EvolvePreviewDialog, PlantChatDialog } from '@/components/plant-dialogs';
-import { evolvePlantAction } from '@/app/actions/evolve-plant';
+import { evolvePlant } from '@/ai/flows/evolve-plant-flow';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
@@ -224,7 +224,7 @@ export default function RoomPage() {
   const [evolvingPlant, setEvolvingPlant] = useState<Plant | null>(null);
   const [chattingPlant, setChattingPlant] = useState<Plant | null>(null);
   const [isEvolving, setIsEvolving] = useState(false);
-  const [evolvedPreviewData, setEvolvedPreviewData] = useState<{plantId: number; plantName: string; newForm: string, newImageUri: string; uncompressedNewImageUri: string; personality?: string } | null>(null);
+  const [evolvedPreviewData, setEvolvedPreviewData] = useState<{plantId: number; plantName: string; newForm: string, newImageUri: string; personality?: string } | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -365,7 +365,7 @@ export default function RoomPage() {
     
     setIsEvolving(true);
     try {
-        const { newImageDataUri, personality } = await evolvePlantAction({
+        const { newImageDataUri, personality } = await evolvePlant({
             name: evolvingPlant.name,
             baseImageDataUri: baseImage,
             form: evolvingPlant.form,
@@ -380,7 +380,6 @@ export default function RoomPage() {
             plantName: evolvingPlant.name, 
             newForm,
             newImageUri: compressedImage,
-            uncompressedNewImageUri: newImageDataUri,
             personality
         });
         setEvolvingPlant(null);
@@ -397,13 +396,12 @@ export default function RoomPage() {
     
     setIsEvolving(true);
     try {
-        const { plantId, newImageUri, uncompressedNewImageUri, newForm, personality } = evolvedPreviewData;
+        const { plantId, newImageUri, newForm, personality } = evolvedPreviewData;
         
         const currentPlant = allPlants[plantId];
 
         const updateData: Partial<Plant> = {
             image: newImageUri,
-            uncompressedImage: '', // Do not save the new uncompressed image to save space
             form: newForm,
             personality: personality || '',
         };
