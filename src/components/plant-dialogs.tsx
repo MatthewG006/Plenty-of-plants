@@ -8,7 +8,7 @@ import { Leaf, Loader2, Sparkles, Gem, MessageCircle, Trash2, Droplet, Coins, Re
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import type { Plant } from '@/interfaces/plant';
+import type { Plant, DrawPlantOutput } from '@/interfaces/plant';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
@@ -90,6 +90,33 @@ function GlitterAnimation() {
                 }} />
             ))}
         </div>
+    );
+}
+
+export function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlantOutput | null, open: boolean, onOpenChange: (open: boolean) => void }) {
+    if (!plant) return null;
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-sm">
+                <DialogHeader>
+                    <DialogTitle className="text-3xl text-center">A new plant!</DialogTitle>
+                    <DialogDescription className="sr-only">A dialog showing the new plant you just drew.</DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col items-center gap-4 py-4">
+                    <div className="w-64 h-64 rounded-lg overflow-hidden border-4 border-primary/50 shadow-lg bg-green-100">
+                        <Image src={plant.imageDataUri} alt={plant.name} width={256} height={256} className="object-cover w-full h-full" />
+                    </div>
+                    <h3 className="text-2xl font-semibold text-primary">{plant.name}</h3>
+                    <p className="text-muted-foreground text-center">{plant.description}</p>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button className="w-full text-lg">Collect</Button>
+                    </DialogClose>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 }
 

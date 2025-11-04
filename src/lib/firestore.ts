@@ -159,9 +159,8 @@ export async function createUserDocument(user: User): Promise<GameData> {
             description: "A happy little fern to start your collection.",
             image: "/fern.png",
             baseImage: '',
-            uncompressedImage: '', // Intentionally left blank
-            form: "Base",
             hint: "fern plant",
+            form: "Base",
             level: 1,
             xp: 0,
             lastWatered: [],
@@ -220,7 +219,7 @@ export async function createUserDocument(user: User): Promise<GameData> {
     return (await getUserGameData(user.uid))!;
 }
 
-export async function savePlant(userId: string, plantData: DrawPlantOutput, uncompressedDataUri: string): Promise<Plant> {
+export async function savePlant(userId: string, plantData: DrawPlantOutput): Promise<Plant> {
     const userDocRef = doc(db, 'users', userId);
     const gameData = await getUserGameData(userId);
 
@@ -237,8 +236,6 @@ export async function savePlant(userId: string, plantData: DrawPlantOutput, unco
         description: plantData.description || 'A new plant has arrived.',
         image: plantData.imageDataUri || '',
         baseImage: '',
-        // Do not save the uncompressed image to Firestore to save space
-        uncompressedImage: '', 
         form: 'Base',
         hint: (plantData.name || '').toLowerCase().split(' ').slice(0, 2).join(' '),
         level: 1,
