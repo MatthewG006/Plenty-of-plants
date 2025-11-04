@@ -5,8 +5,6 @@ import { getStorage, ref, listAll, getDownloadURL } from 'firebase/storage';
 import { getApps, initializeApp, getApp } from 'firebase/app';
 import { DrawPlantOutput } from '@/interfaces/plant';
 
-// IMPORTANT: This configuration is for the CLIENT-SIDE SDK, not the Admin SDK.
-// It is safe to use in server components/actions when interacting with client-side services.
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -16,8 +14,8 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// This function now uses the standard Firebase JS SDK, not the Admin SDK.
-// It fetches a public URL for a random fallback image.
+// This function now fetches the image, converts it to a base64 data URI on the server,
+// and returns that to the client. This bypasses any client-side CORS issues.
 export async function drawPlantAction(existingNames: string[]): Promise<DrawPlantOutput> {
   try {
     const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
@@ -34,6 +32,17 @@ export async function drawPlantAction(existingNames: string[]): Promise<DrawPlan
     const randomFileRef = imageRefs[Math.floor(Math.random() * imageRefs.length)];
     const imageURL = await getDownloadURL(randomFileRef);
 
+    // Fetch the image data on the server
+    const imageResponse = await fetch(imageURL);
+    if (!imageResponse.ok) {
+        throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
+    }
+    const imageBuffer = await imageResponse.arrayBuffer();
+    const imageBase64 = Buffer.from(imageBuffer).toString('base64');
+    
+    const contentType = imageResponse.headers.get('content-type') || 'image/png';
+    const dataUri = `data:${contentType};base64,${imageBase64}`;
+
     const filename = randomFileRef.name.split('/').pop() || 'unknown';
     const name = filename
         .replace(/\.(png|jpg|jpeg)$/i, '')
@@ -45,7 +54,7 @@ export async function drawPlantAction(existingNames: string[]): Promise<DrawPlan
     return {
         name: name,
         description: `A lovely ${name} that just sprouted.`,
-        imageDataUri: imageURL,
+        imageDataUri: dataUri,
     };
 
   } catch (error: any) {
