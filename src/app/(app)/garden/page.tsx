@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -14,7 +15,7 @@ import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { updateGardenArrangement, useSprinkler } from '@/lib/firestore';
 import { PlantCareDialog, PlantSwapDialog } from '@/components/plant-dialogs';
-import { makeBackgroundTransparent } from '@/lib/image-compression';
+import { getTransparentImageAction } from '@/app/actions/image-actions';
 import Link from 'next/link';
 
 
@@ -88,25 +89,25 @@ export default function GardenPage() {
   const gardenPlants = useMemo(() => gardenPlantIds.map(id => id ? allPlants[id] : null), [gardenPlantIds, allPlants]);
   
   useEffect(() => {
-    const processImages = async () => {
+    async function processImages() {
         const newImages: Record<number, string | null> = {};
-        for (const plant of gardenPlants) {
-            if (plant && plant.image) {
-                if (!plant.image.startsWith('/')) { // Don't process local placeholder images
-                    try {
-                        const transparentImage = await makeBackgroundTransparent(plant.image);
-                        newImages[plant.id] = transparentImage;
-                    } catch (e) {
-                        console.error("Failed to process image for plant:", plant.id, e);
-                        newImages[plant.id] = plant.image; 
-                    }
-                } else {
-                    newImages[plant.id] = plant.image;
+        const promises = gardenPlants.map(async (plant) => {
+            if (plant && plant.image && !plant.image.startsWith('data:')) {
+                try {
+                    const transparentImage = await getTransparentImageAction(plant.image);
+                    newImages[plant.id] = transparentImage;
+                } catch (e) {
+                    console.error("Failed to process image for plant:", plant.id, e);
+                    newImages[plant.id] = plant.image; // Fallback to original
                 }
+            } else if (plant) {
+                newImages[plant.id] = plant.image;
             }
-        }
+        });
+
+        await Promise.all(promises);
         setProcessedGardenImages(newImages);
-    };
+    }
     processImages();
   }, [gardenPlants]);
 

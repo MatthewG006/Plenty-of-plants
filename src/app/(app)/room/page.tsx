@@ -25,7 +25,8 @@ import {
 } from '@dnd-kit/core';
 import { useAuth } from '@/context/AuthContext';
 import { updatePlantArrangement, updatePlant } from '@/lib/firestore';
-import { makeBackgroundTransparent, compressImage } from '@/lib/image-compression';
+import { compressImage } from '@/lib/image-compression';
+import { getTransparentImageAction } from '@/app/actions/image-actions';
 import { PlantDetailDialog, EvolveConfirmationDialog, EvolvePreviewDialog, PlantChatDialog } from '@/components/plant-dialogs';
 import { evolvePlant } from '@/ai/flows/evolve-plant-flow';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -265,25 +266,25 @@ export default function RoomPage() {
   const deskPlants = useMemo(() => deskPlantIds.map(id => id ? allPlants[id] : null), [deskPlantIds, allPlants]);
   
   useEffect(() => {
-    const processImages = async () => {
+    async function processImages() {
         const newImages: Record<number, string | null> = {};
-        for (const plant of deskPlants) {
-            if (plant && plant.image) {
-                if (!plant.image.startsWith('/')) { 
-                    try {
-                        const transparentImage = await makeBackgroundTransparent(plant.image);
-                        newImages[plant.id] = transparentImage;
-                    } catch (e) {
-                        console.error("Failed to process image for plant:", plant.id, e);
-                        newImages[plant.id] = plant.image; 
-                    }
-                } else {
-                    newImages[plant.id] = plant.image;
+        const promises = deskPlants.map(async (plant) => {
+            if (plant && plant.image && !plant.image.startsWith('data:')) {
+                try {
+                    const transparentImage = await getTransparentImageAction(plant.image);
+                    newImages[plant.id] = transparentImage;
+                } catch (e) {
+                    console.error("Failed to process image for plant:", plant.id, e);
+                    newImages[plant.id] = plant.image; // Fallback to original
                 }
+            } else if (plant) {
+                newImages[plant.id] = plant.image;
             }
-        }
+        });
+
+        await Promise.all(promises);
         setProcessedDeskImages(newImages);
-    };
+    }
     processImages();
   }, [deskPlants]);
   
