@@ -37,10 +37,27 @@ export async function compressImage(dataUri: string, maxSize = 1024): Promise<st
 }
 
 // Helper function to make white backgrounds transparent
-export async function makeBackgroundTransparent(dataUri: string, threshold = 240): Promise<string> {
+export async function makeBackgroundTransparent(url: string, threshold = 240): Promise<string> {
+    
+    // 1. Fetch the image data and convert to a blob
+    const response = await fetch(url);
+    if (!response.ok) {
+        console.warn("Failed to fetch image for transparency, returning original url");
+        return url;
+    }
+    const blob = await response.blob();
+
+    // 2. Create a data URL from the blob
+    const dataUri = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
+
+    // 3. Process the data URL on the canvas
     return new Promise((resolve, reject) => {
         const img = new window.Image();
-        img.crossOrigin = 'anonymous';
         img.onload = () => {
             const canvas = document.createElement('canvas');
             const { width, height } = img;
@@ -71,9 +88,9 @@ export async function makeBackgroundTransparent(dataUri: string, threshold = 240
             resolve(canvas.toDataURL('image/png'));
         };
         img.onerror = (err) => {
-            // If there's an error loading the image (e.g., CORS), resolve with the original URI
-            console.warn("CORS or other error making background transparent, returning original image", err);
-            resolve(dataUri);
+            // This path is less likely now, but kept as a safeguard.
+            console.error("Error loading image data URI onto canvas:", err);
+            resolve(url);
         };
         img.src = dataUri;
     });
