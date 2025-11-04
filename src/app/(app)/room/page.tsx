@@ -25,11 +25,10 @@ import {
 } from '@dnd-kit/core';
 import { useAuth } from '@/context/AuthContext';
 import { updatePlantArrangement, updatePlant } from '@/lib/firestore';
-import { compressImage } from '@/lib/image-compression';
+import { compressImage, makeBackgroundTransparent } from '@/lib/image-compression';
 import { PlantDetailDialog, EvolveConfirmationDialog, EvolvePreviewDialog, PlantChatDialog } from '@/components/plant-dialogs';
 import { evolvePlant } from '@/ai/flows/evolve-plant-flow';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getTransparentImageAction } from '@/app/actions/image-actions';
 
 
 const NUM_POTS = 3;
@@ -269,16 +268,14 @@ export default function RoomPage() {
     async function processImages() {
         const newImages: Record<number, string | null> = {};
         const promises = deskPlants.map(async (plant) => {
-            if (plant && plant.image && !plant.image.startsWith('data:')) {
+            if (plant && plant.image) {
                 try {
-                    const transparentImage = await getTransparentImageAction(plant.image);
+                    const transparentImage = await makeBackgroundTransparent(plant.image);
                     newImages[plant.id] = transparentImage;
                 } catch (e) {
                     console.error("Failed to process image for plant:", plant.id, e);
                     newImages[plant.id] = plant.image; // Fallback to original
                 }
-            } else if (plant) {
-                newImages[plant.id] = plant.image;
             }
         });
 
