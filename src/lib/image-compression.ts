@@ -38,62 +38,10 @@ export async function compressImage(dataUri: string, maxSize = 1024): Promise<st
 
 // Helper function to make white backgrounds transparent
 export async function makeBackgroundTransparent(url: string, threshold = 240): Promise<string> {
-    
-    // 1. Fetch the image data and convert to a blob
-    const response = await fetch(url);
-    if (!response.ok) {
-        console.warn("Failed to fetch image for transparency, returning original url");
-        return url;
-    }
-    const blob = await response.blob();
-
-    // 2. Create a data URL from the blob
-    const dataUri = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-    });
-
-    // 3. Process the data URL on the canvas
-    return new Promise((resolve, reject) => {
-        const img = new window.Image();
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const { width, height } = img;
-            canvas.width = width;
-            canvas.height = height;
-
-            const ctx = canvas.getContext('2d');
-            if (!ctx) {
-                return reject(new Error('Could not get canvas context'));
-            }
-            
-            ctx.drawImage(img, 0, 0);
-            
-            const imageData = ctx.getImageData(0, 0, width, height);
-            const data = imageData.data;
-
-            for (let i = 0; i < data.length; i += 4) {
-                const r = data[i];
-                const g = data[i + 1];
-                const b = data[i + 2];
-                // If the pixel is close to white, make it transparent
-                if (r > threshold && g > threshold && b > threshold) {
-                    data[i + 3] = 0; // Set alpha to 0
-                }
-            }
-            
-            ctx.putImageData(imageData, 0, 0);
-            resolve(canvas.toDataURL('image/png'));
-        };
-        img.onerror = (err) => {
-            // This path is less likely now, but kept as a safeguard.
-            console.error("Error loading image data URI onto canvas:", err);
-            resolve(url);
-        };
-        img.src = dataUri;
-    });
+    // This function is being deprecated in favor of a server-side action
+    // to avoid client-side CORS issues. We'll return the original URL as a fallback.
+    console.warn("makeBackgroundTransparent is deprecated. Use getTransparentImageAction instead.");
+    return url;
 }
 
 // Helper function to check if an image is all black
