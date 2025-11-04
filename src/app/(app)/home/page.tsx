@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/carousel";
 import { useRouter } from 'next/navigation';
 import { drawPlantAction } from '@/app/actions/draw-plant';
+import { NewPlantDialog } from '@/components/plant-dialogs';
 
 
 const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
@@ -50,33 +51,6 @@ function getNextDrawTimeString(lastRefill: number) {
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
     return `${hours}h ${minutes}m until next draw`;
-}
-
-function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlantOutput | null, open: boolean, onOpenChange: (open: boolean) => void }) {
-    if (!plant) return null;
-
-    return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-sm">
-                <DialogHeader>
-                    <DialogTitle className="text-3xl text-center">A new plant!</DialogTitle>
-                    <DialogDescription className="sr-only">A dialog showing the new plant you just drew.</DialogDescription>
-                </DialogHeader>
-                <div className="flex flex-col items-center gap-4 py-4">
-                    <div className="w-64 h-64 rounded-lg overflow-hidden border-4 border-primary/50 shadow-lg bg-green-100">
-                        <Image src={plant.imageDataUri} alt={plant.name} width={256} height={256} className="object-cover w-full h-full" />
-                    </div>
-                    <h3 className="text-2xl font-semibold text-primary">{plant.name}</h3>
-                    <p className="text-muted-foreground text-center">{plant.description}</p>
-                </div>
-                <DialogFooter>
-                    <DialogClose asChild>
-                        <Button className="w-full text-lg">Collect</Button>
-                    </DialogClose>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
 }
 
 function CommunityInfoDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
@@ -320,11 +294,8 @@ export default function HomePage() {
       
       const existingNames = gameData.plants ? Object.values(gameData.plants).map(p => p.name) : [];
       
-      // The server action now provides a public URL to an image in storage
       const drawnPlantResult = await drawPlantAction(existingNames);
       
-      // The client now receives the plant data, and the image can be displayed directly.
-      // The imageDataUri is a URL, not a data URI at this point.
       setDrawnPlant(drawnPlantResult);
 
     } catch (e: any) {
@@ -344,11 +315,9 @@ export default function HomePage() {
     if (!drawnPlant || !user) return;
     
     try {
-        // Since `drawnPlant.imageDataUri` is a URL, `compressImage` can fetch and process it
-        // thanks to the `crossOrigin` attribute set in the utility function.
         const compressedImageDataUri = await compressImage(drawnPlant.imageDataUri);
         
-        const newPlant = await savePlant(user.uid, { ...drawnPlant, imageDataUri: compressedImageDataUri }, drawnPlant.imageDataUri);
+        const newPlant = await savePlant(user.uid, { ...drawnPlant, imageDataUri: compressedImageDataUri });
         
         setLatestPlant(newPlant);
         await updateCollectionProgress(user.uid);

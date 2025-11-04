@@ -10,12 +10,14 @@ import { useToast } from '@/hooks/use-toast';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { growSeed, savePlant, useFertilizer } from '@/lib/firestore';
-import type { Seed } from '@/interfaces/plant';
+import type { Seed, DrawPlantOutput } from '@/interfaces/plant';
 import { drawPlantAction } from '@/app/actions/draw-plant';
 import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { makeBackgroundTransparent, compressImage } from '@/lib/image-compression';
+import { NewPlantDialog } from '@/components/plant-dialogs';
+import { updateCollectionProgress } from '@/lib/challenge-manager';
 
 
 const GERMINATION_TIME_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -98,6 +100,8 @@ export default function SeedsPage() {
 
     const [isGrowing, setIsGrowing] = useState<string | null>(null);
     const [processedSeedImage, setProcessedSeedImage] = useState<string | null>(null);
+    const [grownPlant, setGrownPlant] = useState<DrawPlantOutput | null>(null);
+    const [grownPlantSeedId, setGrownPlantSeedId] = useState<string | null>(null);
 
     useEffect(() => {
         const imageToDataUri = (url: string): Promise<string> => {
@@ -138,20 +142,12 @@ export default function SeedsPage() {
 
         setIsGrowing(seed.id);
         try {
+            playSfx('success');
             const existingNames = gameData.plants ? Object.values(gameData.plants).map(p => p.name) : [];
             const drawnPlantResult = await drawPlantAction(existingNames);
             
-            const compressedImageDataUri = await compressImage(drawnPlantResult.imageDataUri);
-
-            const newPlant = await savePlant(user.uid, { ...drawnPlantResult, imageDataUri: compressedImageDataUri }, drawnPlantResult.imageDataUri);
-            
-            await growSeed(user.uid, seed.id);
-            playSfx('success');
-            
-            toast({
-                title: 'A New Plant Grew!',
-                description: `You got a ${newPlant.name} from your seed.`
-            });
+            setGrownPlant(drawnPlantResult);
+            setGrownPlantSeedId(seed.id);
 
         } catch (e: any) {
              console.error(e);
@@ -165,6 +161,33 @@ export default function SeedsPage() {
         }
     };
     
+    const handleCollectGrownPlant = async () => {
+        if (!user || !grownPlant || !grownPlantSeedId) return;
+
+        try {
+            const compressedImageDataUri = await compressImage(grownPlant.imageDataUri);
+            const newPlant = await savePlant(user.uid, { ...grownPlant, imageDataUri: compressedImageDataUri });
+            await growSeed(user.uid, grownPlantSeedId);
+            await updateCollectionProgress(user.uid);
+            
+            toast({
+                title: 'A New Plant Grew!',
+                description: `You got a ${newPlant.name} from your seed.`
+            });
+
+        } catch (e: any) {
+            console.error("Failed to save grown plant", e);
+            toast({
+                variant: "destructive",
+                title: "Storage Error",
+                description: "Could not save your new plant.",
+            });
+        }
+        
+        setGrownPlant(null);
+        setGrownPlantSeedId(null);
+    }
+
     const handleFertilizeSeed = async (seedId: string) => {
         if (!user) return;
         try {
@@ -192,64 +215,75 @@ export default function SeedsPage() {
     const canUseFertilizer = gameData.fertilizerCount > 0;
     
     return (
-        <div 
-            className="min-h-screen bg-contain bg-bottom bg-no-repeat flex flex-col"
-            style={{backgroundImage: "url('/garden-bg-sky.png')"}}
-        >
-            <header className="flex flex-col items-center gap-2 p-4 text-center bg-background/80 backdrop-blur-sm shrink-0">
-                <h1 className="text-3xl text-primary font-bold">My Garden</h1>
-                <p className="text-muted-foreground">Earn seeds when your plants level up. Wait for them to germinate, then grow them!</p>
-                <div className="flex gap-2 pt-2">
-                    <Button asChild>
-                        <Link href="/garden">
-                            <Leaf className="mr-1.5 h-4 w-4" />
-                            Plants
-                        </Link>
-                    </Button>
-                    <Button variant="secondary" asChild>
-                        <Link href="/garden/seeds">
-                            <Sprout className="mr-1.5 h-4 w-4" />
-                            Seeds
-                        </Link>
-                    </Button>
-                </div>
-            </header>
-
-            <main className="flex-grow p-4">
-                {seeds.length > 0 ? (
-                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {seeds.map(seed => {
-                            const isReady = Date.now() >= seed.startTime + GERMINATION_TIME_MS;
-                            return (
-                                <div key={seed.id} className="space-y-2">
-                                    <SeedCard 
-                                        seed={seed} 
-                                        processedImage={processedSeedImage}
-                                        onUseFertilizer={handleFertilizeSeed}
-                                        canUseFertilizer={canUseFertilizer && !isReady}
-                                    />
-                                    <Button 
-                                        className="w-full" 
-                                        disabled={!isReady || !!isGrowing}
-                                        onClick={() => handleGrowSeed(seed)}
-                                    >
-                                        {isGrowing === seed.id ? <Loader2 className="animate-spin" /> : 'Grow'}
-                                    </Button>
-                                </div>
-                            )
-                        })}
+        <>
+            <div 
+                className="min-h-screen bg-contain bg-bottom bg-no-repeat flex flex-col"
+                style={{backgroundImage: "url('/garden-bg-sky.png')"}}
+            >
+                <header className="flex flex-col items-center gap-2 p-4 text-center bg-background/80 backdrop-blur-sm shrink-0">
+                    <h1 className="text-3xl text-primary font-bold">My Garden</h1>
+                    <p className="text-muted-foreground">Earn seeds when your plants level up. Wait for them to germinate, then grow them!</p>
+                    <div className="flex gap-2 pt-2">
+                        <Button asChild>
+                            <Link href="/garden">
+                                <Leaf className="mr-1.5 h-4 w-4" />
+                                Plants
+                            </Link>
+                        </Button>
+                        <Button variant="secondary" asChild>
+                            <Link href="/garden/seeds">
+                                <Sprout className="mr-1.5 h-4 w-4" />
+                                Seeds
+                            </Link>
+                        </Button>
                     </div>
-                ) : (
-                    <Card className="text-center py-10 mt-4">
-                        <CardHeader>
-                            <CardTitle>Empty Seed Tray</CardTitle>
-                            <CardContent className="pt-4">
-                               <p className="text-muted-foreground">Water your plants in the garden. When they level up, you'll earn a new seed!</p>
-                            </CardContent>
-                        </CardHeader>
-                    </Card>
-                )}
-            </main>
-        </div>
+                </header>
+
+                <main className="flex-grow p-4">
+                    {seeds.length > 0 ? (
+                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            {seeds.map(seed => {
+                                const isReady = Date.now() >= seed.startTime + GERMINATION_TIME_MS;
+                                return (
+                                    <div key={seed.id} className="space-y-2">
+                                        <SeedCard 
+                                            seed={seed} 
+                                            processedImage={processedSeedImage}
+                                            onUseFertilizer={handleFertilizeSeed}
+                                            canUseFertilizer={canUseFertilizer && !isReady}
+                                        />
+                                        <Button 
+                                            className="w-full" 
+                                            disabled={!isReady || !!isGrowing}
+                                            onClick={() => handleGrowSeed(seed)}
+                                        >
+                                            {isGrowing === seed.id ? <Loader2 className="animate-spin" /> : 'Grow'}
+                                        </Button>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    ) : (
+                        <Card className="text-center py-10 mt-4">
+                            <CardHeader>
+                                <CardTitle>Empty Seed Tray</CardTitle>
+                                <CardContent className="pt-4">
+                                   <p className="text-muted-foreground">Water your plants in the garden. When they level up, you'll earn a new seed!</p>
+                                </CardContent>
+                            </CardHeader>
+                        </Card>
+                    )}
+                </main>
+            </div>
+            <NewPlantDialog
+                plant={grownPlant}
+                open={!!grownPlant}
+                onOpenChange={(isOpen) => {
+                    if (!isOpen) {
+                        handleCollectGrownPlant();
+                    }
+                }}
+            />
+        </>
     );
 }
