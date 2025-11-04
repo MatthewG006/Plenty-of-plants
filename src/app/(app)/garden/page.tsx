@@ -15,7 +15,7 @@ import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { updateGardenArrangement, useSprinkler } from '@/lib/firestore';
 import { PlantCareDialog, PlantSwapDialog } from '@/components/plant-dialogs';
-import { getTransparentImageAction } from '@/app/actions/image-actions';
+import { makeBackgroundTransparent } from '@/lib/image-compression';
 import Link from 'next/link';
 
 
@@ -94,7 +94,7 @@ export default function GardenPage() {
         const promises = gardenPlants.map(async (plant) => {
             if (plant && plant.image && !plant.image.startsWith('data:')) {
                 try {
-                    const transparentImage = await getTransparentImageAction(plant.image);
+                    const transparentImage = await makeBackgroundTransparent(plant.image);
                     newImages[plant.id] = transparentImage;
                 } catch (e) {
                     console.error("Failed to process image for plant:", plant.id, e);

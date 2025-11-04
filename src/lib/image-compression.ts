@@ -1,4 +1,5 @@
 
+
 // Helper function to compress an image
 export async function compressImage(dataUri: string, maxSize = 1024): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -38,11 +39,46 @@ export async function compressImage(dataUri: string, maxSize = 1024): Promise<st
 
 // Helper function to make white backgrounds transparent
 export async function makeBackgroundTransparent(url: string, threshold = 240): Promise<string> {
-    // This function is being deprecated in favor of a server-side action
-    // to avoid client-side CORS issues. We'll return the original URL as a fallback.
-    console.warn("makeBackgroundTransparent is deprecated. Use getTransparentImageAction instead.");
-    return url;
+    if (!url || url.startsWith('data:')) {
+        return url; // Return if it's already a data URI or empty
+    }
+
+    return new Promise((resolve, reject) => {
+        const img = new window.Image();
+        img.crossOrigin = 'Anonymous'; // This is crucial for CORS
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                return reject('Could not get canvas context');
+            }
+
+            ctx.drawImage(img, 0, 0);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                if (r > threshold && g > threshold && b > threshold) {
+                    data[i + 3] = 0; // Set alpha to 0 for white pixels
+                }
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+            resolve(canvas.toDataURL('image/png'));
+        };
+        img.onerror = (err) => {
+            console.error("CORS or other error making background transparent, returning original image", err);
+            resolve(url); // Fallback to original URL on error
+        };
+        img.src = url;
+    });
 }
+
 
 // Helper function to check if an image is all black
 export async function isImageBlack(dataUri: string, threshold = 10): Promise<boolean> {
