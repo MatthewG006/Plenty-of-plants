@@ -1,5 +1,7 @@
 
+
 import { doc, getDoc, setDoc, getFirestore, updateDoc, arrayUnion, DocumentData, writeBatch, increment, collection, getDocs, query, where, limit, deleteDoc, arrayRemove, runTransaction, Timestamp } from 'firebase/firestore';
+import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { app, db, auth } from './firebase';
 import type { Plant, Seed, CommunityUser, ContestSession, Contestant } from '@/interfaces/plant';
 import type { DrawPlantOutput } from '@/interfaces/plant';
@@ -226,15 +228,33 @@ export async function savePlant(userId: string, plantData: DrawPlantOutput): Pro
     if (!gameData) {
         throw new Error("User data not found, cannot save plant.");
     }
-
+    
     const allPlantIds = Object.keys(gameData.plants).map(Number);
     const lastId = allPlantIds.length > 0 ? Math.max(...allPlantIds) : 0;
+    const newPlantId = lastId + 1;
+
+    // --- New Storage Logic ---
+    const storage = getStorage(app);
+    // Create a unique path for the image in Firebase Storage
+    const imagePath = `users/${userId}/plants/${newPlantId}.jpg`;
+    const imageRef = ref(storage, imagePath);
+
+    // Upload the base64 data URI to Storage
+    // We remove the 'data:image/jpeg;base64,' prefix before uploading
+    const base64String = plantData.imageDataUri.split(',')[1];
+    const snapshot = await uploadString(imageRef, base64String, 'base64', {
+        contentType: 'image/jpeg'
+    });
+
+    // Get the public URL of the uploaded image
+    const imageUrl = await getDownloadURL(snapshot.ref);
+    // --- End New Storage Logic ---
 
     const newPlant: Plant = {
-        id: lastId + 1,
+        id: newPlantId,
         name: plantData.name || 'Mysterious Sprout',
         description: plantData.description || 'A new plant has arrived.',
-        image: plantData.imageDataUri || '',
+        image: imageUrl, // Store the URL, not the data URI
         baseImage: '',
         form: 'Base',
         hint: (plantData.name || '').toLowerCase().split(' ').slice(0, 2).join(' '),
@@ -268,6 +288,7 @@ export async function savePlant(userId: string, plantData: DrawPlantOutput): Pro
     
     return newPlant;
 }
+
 
 export async function waterPlant(userId: string, plantId: number): Promise<{ leveledUp: boolean, xpGained: number, newLevel: number, seedCollected: boolean }> {
     const userDocRef = doc(db, 'users', userId);
