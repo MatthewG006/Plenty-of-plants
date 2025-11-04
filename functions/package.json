@@ -15,7 +15,9 @@
     "node": "22"
   },
   "main": "index.js",
-  "dependencies": {},
+  "dependencies": {
+    "canvas": "^2.11.2"
+  },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.2.0",
     "@typescript-eslint/parser": "^7.2.0",
