@@ -292,9 +292,9 @@ export default function HomePage() {
       await useDraw(user.uid);
       playSfx('success');
       
-      const existingNames = gameData.plants ? Object.values(gameData.plants).map(p => p.name) : [];
+      const existingImageFilenames = gameData.plants ? Object.values(gameData.plants).map(p => p.hint) : [];
       
-      const drawnPlantResult = await drawPlantAction(existingNames);
+      const drawnPlantResult = await drawPlantAction(existingImageFilenames);
       
       setDrawnPlant(drawnPlantResult);
 
@@ -322,7 +322,7 @@ export default function HomePage() {
         setLatestPlant(newPlant);
         await updateCollectionProgress(user.uid);
 
-    } catch (e) {
+    } catch (e: any) {
         console.error("Failed to save plant to Firestore", e);
         toast({
             variant: "destructive",

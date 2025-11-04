@@ -161,7 +161,7 @@ export async function createUserDocument(user: User): Promise<GameData> {
             description: "A happy little fern to start your collection.",
             image: "/fern.png",
             baseImage: '',
-            hint: "fern plant",
+            hint: "fern.png",
             form: "Base",
             level: 1,
             xp: 0,
@@ -256,7 +256,8 @@ export async function savePlant(userId: string, plantData: DrawPlantOutput): Pro
         description: plantData.description || 'A new plant has arrived.',
         image: imageUrl, // Store the URL, not the data URI
         baseImage: '', // baseImage is now set upon first evolution
-        hint: (plantData.name || '').toLowerCase().split(' ').slice(0, 2).join(' '),
+        hint: plantData.hint || '',
+        form: 'Base',
         level: 1,
         xp: 0,
         lastWatered: [],

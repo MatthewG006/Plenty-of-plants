@@ -143,8 +143,8 @@ export default function SeedsPage() {
         setIsGrowing(seed.id);
         try {
             playSfx('success');
-            const existingNames = gameData.plants ? Object.values(gameData.plants).map(p => p.name) : [];
-            const drawnPlantResult = await drawPlantAction(existingNames);
+            const existingImageFilenames = gameData.plants ? Object.values(gameData.plants).map(p => p.hint) : [];
+            const drawnPlantResult = await drawPlantAction(existingImageFilenames);
             
             setGrownPlant(drawnPlantResult);
             setGrownPlantSeedId(seed.id);
