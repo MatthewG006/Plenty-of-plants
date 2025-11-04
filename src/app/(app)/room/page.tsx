@@ -154,7 +154,7 @@ function CollectionPlantCard({ plant, onClick }: { plant: Plant, onClick: (plant
     );
 }
 
-function DraggableDeskPlant({ plant, ...rest }: { plant: Plant } & React.HTMLAttributes<HTMLDivElement>) {
+function DraggableDeskPlant({ plant, image, ...rest }: { plant: Plant, image: string | null } & React.HTMLAttributes<HTMLDivElement>) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: `desk:${plant.id}`,
         data: { plant, source: 'desk' },
@@ -162,7 +162,7 @@ function DraggableDeskPlant({ plant, ...rest }: { plant: Plant } & React.HTMLAtt
 
     return (
         <div ref={setNodeRef} style={{ opacity: isDragging ? 0.4 : 1 }} {...listeners} {...attributes} {...rest} className={cn(rest.className, "cursor-grab active:cursor-grabbing touch-none w-full h-full z-10")}>
-            <PlantImageUI plant={plant} image={plant.image} />
+            <PlantImageUI plant={plant} image={image} />
         </div>
     );
 }
@@ -186,7 +186,8 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
             className="relative w-full h-full flex items-center justify-center"
         >
             <DraggableDeskPlant
-                plant={{...plant, image: processedImage || plant.image}}
+                plant={plant}
+                image={processedImage}
                 onClick={() => onClickPlant(plant)}
             />
             <div ref={setNodeRef} className={cn("absolute inset-0 z-0", isOver && "bg-black/20 rounded-lg")} />
