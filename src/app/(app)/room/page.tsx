@@ -352,11 +352,12 @@ export default function RoomPage() {
   const handleEvolve = async () => {
     if (!evolvingPlant || !user) return;
 
-    if (!evolvingPlant.uncompressedImage) {
+    const baseImage = evolvingPlant.form === 'Base' ? evolvingPlant.image : evolvingPlant.baseImage;
+    if (!baseImage) {
         toast({
             variant: 'destructive',
             title: 'Evolution Error',
-            description: 'The high-quality image required for evolution is missing. This plant cannot be evolved.'
+            description: 'The base image required for evolution is missing.'
         });
         setEvolvingPlant(null);
         return;
@@ -366,7 +367,7 @@ export default function RoomPage() {
     try {
         const { newImageDataUri, personality } = await evolvePlantAction({
             name: evolvingPlant.name,
-            baseImageDataUri: evolvingPlant.uncompressedImage,
+            baseImageDataUri: baseImage,
             form: evolvingPlant.form,
         });
 

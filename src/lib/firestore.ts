@@ -159,7 +159,7 @@ export async function createUserDocument(user: User): Promise<GameData> {
             description: "A happy little fern to start your collection.",
             image: "/fern.png",
             baseImage: '',
-            uncompressedImage: '', // Intentionally left blank to save space
+            uncompressedImage: '', // Intentionally left blank
             form: "Base",
             hint: "fern plant",
             level: 1,
@@ -237,8 +237,8 @@ export async function savePlant(userId: string, plantData: DrawPlantOutput, unco
         description: plantData.description || 'A new plant has arrived.',
         image: plantData.imageDataUri || '',
         baseImage: '',
-        // The uncompressed image is required for the evolution flow.
-        uncompressedImage: uncompressedDataUri,
+        // Do not save the uncompressed image to Firestore to save space
+        uncompressedImage: '', 
         form: 'Base',
         hint: (plantData.name || '').toLowerCase().split(' ').slice(0, 2).join(' '),
         level: 1,
