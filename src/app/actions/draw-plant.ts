@@ -59,6 +59,7 @@ export async function drawPlantAction(existingNames: string[]): Promise<DrawPlan
 
   } catch (error: any) {
     console.error("Error in drawPlantAction:", error);
+    // Rethrow a more generic error to the client to avoid exposing server details.
     throw new Error("Failed to get a fallback plant due to a server error.");
   }
 }
