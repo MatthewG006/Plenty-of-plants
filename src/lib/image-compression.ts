@@ -1,6 +1,7 @@
 
 
 
+
 // Helper function to compress an image
 export async function compressImage(dataUri: string, maxSize = 1024): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -36,29 +37,41 @@ export async function compressImage(dataUri: string, maxSize = 1024): Promise<st
     });
 }
 
-// This client-side function is no longer used for cross-origin images.
-// The core logic has been moved to a server action to bypass CORS.
-// It is kept here in case it is needed for same-origin data URIs in the future.
+// This function now correctly handles cross-origin images on the client by fetching
+// them as a blob and creating a local object URL, bypassing CORS issues for canvas processing.
 export async function makeBackgroundTransparent(url: string, threshold = 240): Promise<string> {
-    if (!url) {
-        return url;
+    if (!url || url.startsWith('data:')) {
+        // If it's already a data URI, process it directly.
+        return processImage(url);
     }
-
-    if (!url.startsWith('data:')) {
-       console.warn("makeBackgroundTransparent should be called with a data URI. URL was passed:", url);
-       // Fallback for safety, but this indicates a logic error elsewhere.
-       return url;
+    
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch image with status: ${response.status}`);
+        }
+        const blob = await response.blob();
+        const objectURL = URL.createObjectURL(blob);
+        const dataURL = await processImage(objectURL);
+        URL.revokeObjectURL(objectURL); // Clean up the object URL
+        return dataURL;
+    } catch (error) {
+        console.error("Failed to process image for transparency:", error);
+        return url; // Fallback to the original URL on error
     }
+}
 
-    return new Promise((resolve, reject) => {
+function processImage(url: string, threshold = 240): Promise<string> {
+     return new Promise((resolve, reject) => {
         const img = new window.Image();
+        img.crossOrigin = 'anonymous';
         img.onload = () => {
             const canvas = document.createElement('canvas');
             canvas.width = img.width;
             canvas.height = img.height;
             const ctx = canvas.getContext('2d');
             if (!ctx) {
-                return reject('Could not get canvas context');
+                return reject(new Error('Could not get canvas context'));
             }
 
             ctx.drawImage(img, 0, 0);
@@ -70,7 +83,7 @@ export async function makeBackgroundTransparent(url: string, threshold = 240): P
                 const g = data[i + 1];
                 const b = data[i + 2];
                 if (r > threshold && g > threshold && b > threshold) {
-                    data[i + 3] = 0; // Set alpha to 0 for white pixels
+                    data[i + 3] = 0; // Set alpha to 0 for white-like pixels
                 }
             }
 
@@ -78,7 +91,7 @@ export async function makeBackgroundTransparent(url: string, threshold = 240): P
             resolve(canvas.toDataURL('image/png'));
         };
         img.onerror = (err) => {
-            console.error("Error processing image data URI:", err);
+            console.error("Error loading image onto canvas:", err);
             reject(err);
         };
         img.src = url;
