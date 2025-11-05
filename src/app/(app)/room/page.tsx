@@ -251,11 +251,13 @@ export default function RoomPage() {
   
   useEffect(() => {
     async function processImages() {
-        const newImages: Record<number, string | null> = {};
-        // Filter out null IDs and plants that don't exist in allPlants yet
+        const newImages: Record<number, string> = {};
+        
         const plantsToProcess = deskPlantIds
-            .filter((id): id is number => id !== null && !!allPlants[id])
+            .filter((id): id is number => id !== null && !!allPlants[id] && !processedDeskImages[id])
             .map(id => allPlants[id]);
+
+        if (plantsToProcess.length === 0) return;
 
         const promises = plantsToProcess.map(async (plant) => {
             if (plant && plant.image) {
@@ -270,13 +272,16 @@ export default function RoomPage() {
         });
 
         await Promise.all(promises);
-        setProcessedDeskImages(currentImages => ({...currentImages, ...newImages}));
+
+        if (Object.keys(newImages).length > 0) {
+            setProcessedDeskImages(currentImages => ({...currentImages, ...newImages}));
+        }
     }
 
-    if (Object.keys(allPlants).length > 0) {
+    if (Object.keys(allPlants).length > 0 && deskPlantIds.some(id => id !== null)) {
         processImages();
     }
-}, [deskPlantIds, allPlants]);
+}, [deskPlantIds, allPlants, processedDeskImages]);
   
   const collectionPlants = useMemo(() => {
     const formOrder: { [key: string]: number } = { 'Base': 0, 'Evolved': 1, 'Final': 2 };
@@ -581,3 +586,4 @@ export default function RoomPage() {
     </DndContext>
   );
 }
+
