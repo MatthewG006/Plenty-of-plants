@@ -2,6 +2,7 @@
 
 
 
+
 // Helper function to compress an image
 export async function compressImage(dataUri: string, maxSize = 1024): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -40,11 +41,14 @@ export async function compressImage(dataUri: string, maxSize = 1024): Promise<st
 // This function now correctly handles cross-origin images on the client by fetching
 // them as a blob and creating a local object URL, bypassing CORS issues for canvas processing.
 export async function makeBackgroundTransparent(url: string, threshold = 240): Promise<string> {
-    if (!url || url.startsWith('data:')) {
-        // If it's already a data URI, process it directly.
+    if (!url) return url;
+
+    // If it's already a data URI, process it directly.
+    if (url.startsWith('data:')) {
         return processImage(url);
     }
     
+    // For external URLs (like from Firebase Storage), fetch as a blob first.
     try {
         const response = await fetch(url);
         if (!response.ok) {
@@ -53,7 +57,7 @@ export async function makeBackgroundTransparent(url: string, threshold = 240): P
         const blob = await response.blob();
         const objectURL = URL.createObjectURL(blob);
         const dataURL = await processImage(objectURL);
-        URL.revokeObjectURL(objectURL); // Clean up the object URL
+        URL.revokeObjectURL(objectURL); // Clean up the object URL after use
         return dataURL;
     } catch (error) {
         console.error("Failed to process image for transparency:", error);
