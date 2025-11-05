@@ -249,20 +249,6 @@ export default function RoomPage() {
 
   const allPlants = useMemo(() => gameData?.plants || {}, [gameData]);
 
-  const collectionPlants = useMemo(() => {
-    const formOrder: { [key: string]: number } = { 'Base': 0, 'Evolved': 1, 'Final': 2 };
-    
-    return Object.values(allPlants)
-      .filter(plant => !deskPlantIds.includes(plant.id))
-      .sort((a,b) => {
-          if (sortOption === 'level') {
-              return b.level - a.level;
-          } else {
-              return formOrder[b.form] - formOrder[a.form];
-          }
-      });
-  }, [allPlants, deskPlantIds, sortOption]);
-
   const deskPlants = useMemo(() => deskPlantIds.map(id => id ? allPlants[id] : null), [deskPlantIds, allPlants]);
   
   useEffect(() => {
@@ -284,7 +270,22 @@ export default function RoomPage() {
         setProcessedDeskImages(newImages);
     }
     processImages();
-  }, [deskPlants]);
+  }, [deskPlantIds, allPlants]); // Use deskPlantIds and allPlants to trigger the effect
+  
+  const collectionPlants = useMemo(() => {
+    const formOrder: { [key: string]: number } = { 'Base': 0, 'Evolved': 1, 'Final': 2 };
+    
+    return Object.values(allPlants)
+      .filter(plant => !deskPlantIds.includes(plant.id))
+      .sort((a,b) => {
+          if (sortOption === 'level') {
+              return b.level - a.level;
+          } else {
+              return formOrder[b.form] - formOrder[a.form];
+          }
+      });
+  }, [allPlants, deskPlantIds, sortOption]);
+
   
   const handleDragStart = (event: DragStartEvent) => {
     setActiveDragPlant(event.active.data.current?.plant);
