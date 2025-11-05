@@ -25,7 +25,7 @@ import {
 } from '@dnd-kit/core';
 import { useAuth } from '@/context/AuthContext';
 import { updatePlantArrangement, updatePlant } from '@/lib/firestore';
-import { compressImage, makeBackgroundTransparent } from '@/lib/image-compression';
+import { makeBackgroundTransparent } from '@/lib/image-compression';
 import { PlantDetailDialog, EvolveConfirmationDialog, EvolvePreviewDialog, PlantChatDialog } from '@/components/plant-dialogs';
 import { evolvePlant } from '@/ai/flows/evolve-plant-flow';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -248,13 +248,16 @@ export default function RoomPage() {
   }, [gameData]);
 
   const allPlants = useMemo(() => gameData?.plants || {}, [gameData]);
-
-  const deskPlants = useMemo(() => deskPlantIds.map(id => id ? allPlants[id] : null), [deskPlantIds, allPlants]);
   
   useEffect(() => {
     async function processImages() {
         const newImages: Record<number, string | null> = {};
-        const promises = deskPlants.map(async (plant) => {
+        // Filter out null IDs and plants that don't exist in allPlants yet
+        const plantsToProcess = deskPlantIds
+            .filter((id): id is number => id !== null && !!allPlants[id])
+            .map(id => allPlants[id]);
+
+        const promises = plantsToProcess.map(async (plant) => {
             if (plant && plant.image) {
                 try {
                     const transparentImage = await makeBackgroundTransparent(plant.image);
@@ -267,10 +270,13 @@ export default function RoomPage() {
         });
 
         await Promise.all(promises);
-        setProcessedDeskImages(newImages);
+        setProcessedDeskImages(currentImages => ({...currentImages, ...newImages}));
     }
-    processImages();
-  }, [deskPlantIds, allPlants]); // Use deskPlantIds and allPlants to trigger the effect
+
+    if (Object.keys(allPlants).length > 0) {
+        processImages();
+    }
+}, [deskPlantIds, allPlants]);
   
   const collectionPlants = useMemo(() => {
     const formOrder: { [key: string]: number } = { 'Base': 0, 'Evolved': 1, 'Final': 2 };
@@ -373,7 +379,7 @@ export default function RoomPage() {
 
         const newForm = evolvingPlant.form === 'Base' ? 'Evolved' : 'Final';
         
-        const compressedImage = await compressImage(newImageDataUri);
+        const compressedImage = await makeBackgroundTransparent(newImageDataUri);
 
         setEvolvedPreviewData({ 
             plantId: evolvingPlant.id,
@@ -477,7 +483,8 @@ export default function RoomPage() {
             style={{backgroundImage: "url('/desk.jpg')"}}
         >
             <div className="absolute inset-x-0 top-0 h-40 p-4 sm:p-6 md:p-8 grid grid-cols-3 grid-rows-1 gap-2">
-                {deskPlants.slice(0, 3).map((plant, index) => {
+                {deskPlantIds.map((plantId, index) => {
+                    const plant = plantId ? allPlants[plantId] : null;
                     return (
                         <DeskPot
                             key={plant?.id || `pot-${index}`}
