@@ -17,6 +17,7 @@ import { updateGardenArrangement, useSprinkler } from '@/lib/firestore';
 import { PlantCareDialog, PlantSwapDialog } from '@/components/plant-dialogs';
 import { makeBackgroundTransparent } from '@/lib/image-compression';
 import Link from 'next/link';
+import { getImageDataUriAction } from '@/app/actions/image-actions';
 
 
 const NUM_GARDEN_PLOTS = 12;
@@ -90,24 +91,33 @@ export default function GardenPage() {
   
   useEffect(() => {
     async function processImages() {
-        const newImages: Record<number, string | null> = {};
-        const promises = gardenPlants.map(async (plant) => {
-            if (plant && plant.image) {
-                try {
-                    const transparentImage = await makeBackgroundTransparent(plant.image);
-                    newImages[plant.id] = transparentImage;
-                } catch (e) {
-                    console.error("Failed to process image for plant:", plant.id, e);
-                    newImages[plant.id] = plant.image; // Fallback to original
-                }
+        const newImages: Record<number, string> = {};
+        const plantsToProcess = gardenPlants.filter((plant): plant is Plant => 
+            !!plant && !!plant.image && !processedGardenImages[plant.id]
+        );
+
+        if (plantsToProcess.length === 0) return;
+
+        const promises = plantsToProcess.map(async (plant) => {
+            try {
+                // Use the server action to get a data URI, bypassing CORS
+                const dataUri = await getImageDataUriAction(plant.image);
+                const transparentImage = await makeBackgroundTransparent(dataUri);
+                newImages[plant.id] = transparentImage;
+            } catch (e) {
+                console.error("Failed to process image for plant:", plant.id, e);
+                newImages[plant.id] = plant.image; // Fallback to original
             }
         });
 
         await Promise.all(promises);
-        setProcessedGardenImages(newImages);
+
+        if (Object.keys(newImages).length > 0) {
+            setProcessedGardenImages(currentImages => ({...currentImages, ...newImages}));
+        }
     }
     processImages();
-  }, [gardenPlants]);
+  }, [gardenPlants, processedGardenImages]);
 
   const collectionPlants = useMemo(() => {
     return collectionPlantIds
