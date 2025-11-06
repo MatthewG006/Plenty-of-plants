@@ -11,6 +11,7 @@ import Image from 'next/image';
 import { useAudio } from '@/context/AudioContext';
 import { useToast } from '@/hooks/use-toast';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
+import { getImageDataUriAction } from '@/app/actions/image-actions';
 
 
 export default function ParkPage() {
@@ -30,7 +31,8 @@ export default function ParkPage() {
           const plantToShow = allPlants[0]; // Display the first plant
           setDisplayPlant(plantToShow);
           try {
-            const transparentImage = await makeBackgroundTransparent(plantToShow.image);
+            const dataUri = await getImageDataUriAction(plantToShow.image);
+            const transparentImage = await makeBackgroundTransparent(dataUri);
             setProcessedImage(transparentImage);
           } catch (e) {
             console.error("Failed to process image for park display:", e);

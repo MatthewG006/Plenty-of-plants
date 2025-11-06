@@ -29,6 +29,7 @@ import { makeBackgroundTransparent } from '@/lib/image-compression';
 import { PlantDetailDialog, EvolveConfirmationDialog, EvolvePreviewDialog, PlantChatDialog } from '@/components/plant-dialogs';
 import { evolvePlant } from '@/ai/flows/evolve-plant-flow';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getImageDataUriAction } from '@/app/actions/image-actions';
 
 
 const NUM_POTS = 3;
@@ -254,7 +255,7 @@ export default function RoomPage() {
         const newImages: Record<number, string> = {};
         
         const plantsToProcess = deskPlantIds
-            .filter((id): id is number => id !== null && !!allPlants[id] && !processedDeskImages[id])
+            .filter((id): id is number => id !== null && !!allPlants[id] && !processedDeskImages[id] && allPlants[id].image)
             .map(id => allPlants[id]);
 
         if (plantsToProcess.length === 0) return;
@@ -262,7 +263,9 @@ export default function RoomPage() {
         const promises = plantsToProcess.map(async (plant) => {
             if (plant && plant.image) {
                 try {
-                    const transparentImage = await makeBackgroundTransparent(plant.image);
+                    // Use the server action to get a data URI, bypassing CORS
+                    const dataUri = await getImageDataUriAction(plant.image);
+                    const transparentImage = await makeBackgroundTransparent(dataUri);
                     newImages[plant.id] = transparentImage;
                 } catch (e) {
                     console.error("Failed to process image for plant:", plant.id, e);
@@ -281,7 +284,7 @@ export default function RoomPage() {
     if (Object.keys(allPlants).length > 0 && deskPlantIds.some(id => id !== null)) {
         processImages();
     }
-}, [deskPlantIds, allPlants, processedDeskImages]);
+}, [deskPlantIds, allPlants]);
   
   const collectionPlants = useMemo(() => {
     const formOrder: { [key: string]: number } = { 'Base': 0, 'Evolved': 1, 'Final': 2 };
@@ -586,4 +589,3 @@ export default function RoomPage() {
     </DndContext>
   );
 }
-

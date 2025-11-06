@@ -3,6 +3,7 @@
 
 
 
+
 // Helper function to compress an image
 export async function compressImage(dataUri: string, maxSize = 1024): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -38,35 +39,14 @@ export async function compressImage(dataUri: string, maxSize = 1024): Promise<st
     });
 }
 
-// This function now correctly handles cross-origin images on the client by fetching
-// them as a blob and creating a local object URL, bypassing CORS issues for canvas processing.
-export async function makeBackgroundTransparent(url: string, threshold = 240): Promise<string> {
-    if (!url) return url;
-
-    // If it's already a data URI, process it directly.
-    if (url.startsWith('data:')) {
-        return processImage(url);
+// This function takes a data URI and makes its white background transparent.
+export async function makeBackgroundTransparent(dataUri: string, threshold = 240): Promise<string> {
+    if (!dataUri || !dataUri.startsWith('data:')) {
+        // If it's not a data URI, it cannot be processed on the canvas. Return it as is.
+        return dataUri;
     }
-    
-    // For external URLs (like from Firebase Storage), fetch as a blob first.
-    try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`Failed to fetch image with status: ${response.status}`);
-        }
-        const blob = await response.blob();
-        const objectURL = URL.createObjectURL(blob);
-        const dataURL = await processImage(objectURL);
-        URL.revokeObjectURL(objectURL); // Clean up the object URL after use
-        return dataURL;
-    } catch (error) {
-        console.error("Failed to process image for transparency:", error);
-        return url; // Fallback to the original URL on error
-    }
-}
 
-function processImage(url: string, threshold = 240): Promise<string> {
-     return new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
         const img = new window.Image();
         img.crossOrigin = 'anonymous';
         img.onload = () => {
@@ -95,10 +75,10 @@ function processImage(url: string, threshold = 240): Promise<string> {
             resolve(canvas.toDataURL('image/png'));
         };
         img.onerror = (err) => {
-            console.error("Error loading image onto canvas:", err);
+            console.error("Error loading image data URI onto canvas:", err);
             reject(err);
         };
-        img.src = url;
+        img.src = dataUri;
     });
 }
 
