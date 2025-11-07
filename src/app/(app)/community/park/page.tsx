@@ -6,12 +6,10 @@ import { ArrowLeft, Loader2, MessageSquare, Trophy } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useEffect, useState } from 'react';
 import type { Plant } from '@/interfaces/plant';
-import { makeBackgroundTransparent } from '@/lib/image-compression';
 import Image from 'next/image';
 import { useAudio } from '@/context/AudioContext';
 import { useToast } from '@/hooks/use-toast';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
-import { getImageDataUriAction } from '@/app/actions/image-actions';
 
 
 export default function ParkPage() {
@@ -20,7 +18,6 @@ export default function ParkPage() {
   const { toast } = useToast();
 
   const [displayPlant, setDisplayPlant] = useState<Plant | null>(null);
-  const [processedImage, setProcessedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -30,14 +27,6 @@ export default function ParkPage() {
         if (allPlants.length > 0) {
           const plantToShow = allPlants[0]; // Display the first plant
           setDisplayPlant(plantToShow);
-          try {
-            const dataUri = await getImageDataUriAction(plantToShow.image);
-            const transparentImage = await makeBackgroundTransparent(dataUri);
-            setProcessedImage(transparentImage);
-          } catch (e) {
-            console.error("Failed to process image for park display:", e);
-            setProcessedImage(plantToShow.image); // Fallback to original
-          }
         }
       }
       setIsLoading(false);
@@ -88,7 +77,7 @@ export default function ParkPage() {
         </div>
 
         <div className="w-full h-1/3 absolute bottom-10 left-0 flex items-end justify-start p-4 pointer-events-none">
-          {processedImage ? (
+          {displayPlant ? (
             <div className="relative w-48 h-48 animate-fade-in-up">
               <div 
                 className="absolute -top-8 left-1/2 -translate-x-1/4 w-24 h-12 bg-white rounded-full flex items-center justify-center cursor-pointer pointer-events-auto shadow-lg animate-pulse-subtle"
@@ -97,10 +86,10 @@ export default function ParkPage() {
                  <MessageSquare className="w-8 h-8 text-black" />
               </div>
               <Image 
-                  src={processedImage} 
+                  src={displayPlant.image} 
                   alt={displayPlant?.name || 'A plant'} 
                   fill 
-                  className="object-contain"
+                  className="object-contain [mix-blend-mode:multiply]"
                   data-ai-hint={displayPlant?.hint}
               />
             </div>

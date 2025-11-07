@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Leaf, Loader2, Sparkles, Star } from 'lucide-react';
 import Image from 'next/image';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import type { Plant } from '@/interfaces/plant';
 import { cn } from '@/lib/utils';
@@ -25,10 +25,10 @@ import {
 } from '@dnd-kit/core';
 import { useAuth } from '@/context/AuthContext';
 import { updatePlantArrangement, updatePlant } from '@/lib/firestore';
-import { makeBackgroundTransparent } from '@/lib/image-compression';
 import { PlantDetailDialog, EvolveConfirmationDialog, EvolvePreviewDialog, PlantChatDialog } from '@/components/plant-dialogs';
 import { evolvePlant } from '@/ai/flows/evolve-plant-flow';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { makeBackgroundTransparent } from '@/lib/image-compression';
 import { getImageDataUriAction } from '@/app/actions/image-actions';
 
 
@@ -155,7 +155,7 @@ function CollectionPlantCard({ plant, onClick }: { plant: Plant, onClick: (plant
     );
 }
 
-function DraggableDeskPlant({ plant, image, ...rest }: { plant: Plant, image: string | null } & React.HTMLAttributes<HTMLDivElement>) {
+function DraggableDeskPlant({ plant, image, ...rest }: { plant: Plant, image: string } & React.HTMLAttributes<HTMLDivElement>) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: `desk:${plant.id}`,
         data: { plant, source: 'desk' },
@@ -163,7 +163,27 @@ function DraggableDeskPlant({ plant, image, ...rest }: { plant: Plant, image: st
 
     return (
         <div ref={setNodeRef} style={{ opacity: isDragging ? 0.4 : 1 }} {...listeners} {...attributes} {...rest} className={cn(rest.className, "cursor-grab active:cursor-grabbing touch-none w-full h-full z-10")}>
-            <PlantImageUI plant={plant} image={image} />
+             <div className={cn("flex items-center justify-center p-1 rounded-lg pointer-events-none w-full h-full")}>
+              <div className="relative h-32 w-32 sm:h-36 sm:w-36 flex items-center justify-center">
+                {image && image !== 'placeholder' ? (
+                    <Image 
+                        src={image} 
+                        alt={plant.name} 
+                        fill 
+                        sizes="144px" 
+                        className="object-contain [mix-blend-mode:multiply]"
+                        data-ai-hint={plant.hint} />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center rounded-lg">
+                      <Leaf className="w-12 h-12 text-transparent" />
+                    </div>
+                )}
+                {plant.hasGlitter && <GlitterAnimation />}
+                {plant.hasRedGlitter && <RedGlitterAnimation />}
+                {plant.hasSheen && <SheenAnimation />}
+                {plant.hasRainbowGlitter && <RainbowGlitterAnimation />}
+              </div>
+            </div>
         </div>
     );
 }
@@ -188,7 +208,7 @@ function DeskPot({ plant, index, onClickPlant, processedImage }: { plant: Plant 
         >
             <DraggableDeskPlant
                 plant={plant}
-                image={processedImage}
+                image={processedImage || plant.image}
                 onClick={() => onClickPlant(plant)}
             />
             <div ref={setNodeRef} className={cn("absolute inset-0 z-0", isOver && "bg-black/20 rounded-lg")} />
@@ -215,13 +235,11 @@ export default function RoomPage() {
   const { toast } = useToast();
   
   const [deskPlantIds, setDeskPlantIds] = useState<(number | null)[]>([]);
+  const [processedDeskImages, setProcessedDeskImages] = useState<Record<string, string>>({});
   
   const [activeDragPlant, setActiveDragPlant] = useState<Plant | null>(null);
   const [sortOption, setSortOption] = useState<'level' | 'stage'>('level');
   
-  const [processedDeskImages, setProcessedDeskImages] = useState<Record<number, string | null>>({});
-
-  // Dialog state management
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
   const [evolvingPlant, setEvolvingPlant] = useState<Plant | null>(null);
   const [chattingPlant, setChattingPlant] = useState<Plant | null>(null);
@@ -249,42 +267,10 @@ export default function RoomPage() {
   }, [gameData]);
 
   const allPlants = useMemo(() => gameData?.plants || {}, [gameData]);
-  
-  useEffect(() => {
-    async function processImages() {
-        const newImages: Record<number, string> = {};
-        
-        const plantsToProcess = deskPlantIds
-            .filter((id): id is number => id !== null && !!allPlants[id] && !processedDeskImages[id] && allPlants[id].image)
-            .map(id => allPlants[id]);
 
-        if (plantsToProcess.length === 0) return;
-
-        const promises = plantsToProcess.map(async (plant) => {
-            if (plant && plant.image) {
-                try {
-                    // Use the server action to get a data URI, bypassing CORS
-                    const dataUri = await getImageDataUriAction(plant.image);
-                    const transparentImage = await makeBackgroundTransparent(dataUri);
-                    newImages[plant.id] = transparentImage;
-                } catch (e) {
-                    console.error("Failed to process image for plant:", plant.id, e);
-                    newImages[plant.id] = plant.image; // Fallback to original
-                }
-            }
-        });
-
-        await Promise.all(promises);
-
-        if (Object.keys(newImages).length > 0) {
-            setProcessedDeskImages(currentImages => ({...currentImages, ...newImages}));
-        }
-    }
-
-    if (Object.keys(allPlants).length > 0 && deskPlantIds.some(id => id !== null)) {
-        processImages();
-    }
-}, [deskPlantIds, allPlants]);
+  const deskPlants = useMemo(() => {
+      return deskPlantIds.map(id => id ? allPlants[id] : null).filter(Boolean) as Plant[];
+  }, [deskPlantIds, allPlants]);
   
   const collectionPlants = useMemo(() => {
     const formOrder: { [key: string]: number } = { 'Base': 0, 'Evolved': 1, 'Final': 2 };
@@ -300,6 +286,32 @@ export default function RoomPage() {
       });
   }, [allPlants, deskPlantIds, sortOption]);
 
+  useEffect(() => {
+    const processImages = async () => {
+        const newImages: Record<string, string> = {};
+        const processingPromises = deskPlants.map(async (plant) => {
+            if (plant && plant.image && !processedDeskImages[plant.id]) {
+                try {
+                    const dataUri = await getImageDataUriAction(plant.image);
+                    const transparentImage = await makeBackgroundTransparent(dataUri);
+                    newImages[plant.id] = transparentImage;
+                } catch (error) {
+                    console.error(`Failed to process image for plant: ${plant.id}`, error);
+                    // If processing fails, use the original image
+                    newImages[plant.id] = plant.image;
+                }
+            }
+        });
+
+        await Promise.all(processingPromises);
+
+        if (Object.keys(newImages).length > 0) {
+            setProcessedDeskImages(currentImages => ({ ...currentImages, ...newImages }));
+        }
+    };
+
+    processImages();
+}, [deskPlants, processedDeskImages]);
   
   const handleDragStart = (event: DragStartEvent) => {
     setActiveDragPlant(event.active.data.current?.plant);
@@ -499,7 +511,7 @@ export default function RoomPage() {
                             plant={plant}
                             index={index}
                             onClickPlant={handleSelectPlant}
-                            processedImage={plant ? processedDeskImages[plant.id] : null}
+                            processedImage={plantId ? processedDeskImages[plantId] : null}
                         />
                     )
                 })}
