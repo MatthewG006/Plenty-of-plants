@@ -15,22 +15,21 @@ import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { updateGardenArrangement, useSprinkler } from '@/lib/firestore';
 import { PlantCareDialog, PlantSwapDialog } from '@/components/plant-dialogs';
-import { makeBackgroundTransparent } from '@/lib/image-compression';
 import Link from 'next/link';
 import { getImageDataUriAction } from '@/app/actions/image-actions';
-
+import { makeBackgroundTransparent } from '@/lib/image-compression';
 
 const NUM_GARDEN_PLOTS = 12;
 
-function PlantCard({ plant, onClick, processedImage, className }: { plant: Plant, onClick: (plant: Plant) => void, processedImage: string | null, className?: string }) {
+function PlantCard({ plant, onClick, className, processedImage }: { plant: Plant, onClick: (plant: Plant) => void, className?: string, processedImage: string | null }) {
     return (
         <Card className={cn("group overflow-hidden shadow-md w-full h-[120px] sm:h-[140px] relative cursor-pointer bg-white/70 backdrop-blur-sm", className)} onClick={() => onClick(plant)}>
             <CardContent className="p-0 flex flex-col h-full">
                 <div className="flex-grow relative flex items-center justify-center bg-black/10">
-                    {processedImage && processedImage !== 'placeholder' ? (
-                        <Image src={processedImage} alt={plant.name} fill sizes="100px" className="object-contain p-1" data-ai-hint={plant.hint} />
-                    ) : plant.image !== 'placeholder' ? (
-                        <Image src={plant.image} alt={plant.name} fill sizes="100px" className="object-cover" data-ai-hint={plant.hint} />
+                    {processedImage ? (
+                        <Image src={processedImage} alt={plant.name} fill sizes="100px" className="object-contain p-1 [mix-blend-mode:multiply]" data-ai-hint={plant.hint} />
+                    ) : plant.image && plant.image !== 'placeholder' ? (
+                        <Image src={plant.image} alt={plant.name} fill sizes="100px" className="object-contain p-1 [mix-blend-mode:multiply]" data-ai-hint={plant.hint} />
                     ) : (
                         <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
                     )}
@@ -72,14 +71,13 @@ export default function GardenPage() {
   const [activeCarePlant, setActiveCarePlant] = useState<Plant | null>(null);
   const [swapState, setSwapState] = useState<{plantToReplaceId: number | null, gardenPlotIndex: number} | null>(null);
 
-  const [processedGardenImages, setProcessedGardenImages] = useState<Record<number, string | null>>({});
   const [isUsingSprinkler, setIsUsingSprinkler] = useState(false);
+  const [processedGardenImages, setProcessedGardenImages] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (gameData) {
         setCollectionPlantIds(gameData.collectionPlantIds || []);
         const currentGardenIds = gameData.gardenPlantIds || [];
-        // Ensure gardenPlantIds has exactly NUM_GARDEN_PLOTS items
         const filledGardenIds = Array.from({ length: NUM_GARDEN_PLOTS }, (_, i) => currentGardenIds[i] || null);
         setGardenPlantIds(filledGardenIds);
     }
@@ -89,42 +87,41 @@ export default function GardenPage() {
 
   const gardenPlants = useMemo(() => gardenPlantIds.map(id => id ? allPlants[id] : null), [gardenPlantIds, allPlants]);
   
-  useEffect(() => {
-    async function processImages() {
-        const newImages: Record<number, string> = {};
-        const plantsToProcess = gardenPlants.filter((plant): plant is Plant => 
-            !!plant && !!plant.image && !processedGardenImages[plant.id]
-        );
-
-        if (plantsToProcess.length === 0) return;
-
-        const promises = plantsToProcess.map(async (plant) => {
-            try {
-                // Use the server action to get a data URI, bypassing CORS
-                const dataUri = await getImageDataUriAction(plant.image);
-                const transparentImage = await makeBackgroundTransparent(dataUri);
-                newImages[plant.id] = transparentImage;
-            } catch (e) {
-                console.error("Failed to process image for plant:", plant.id, e);
-                newImages[plant.id] = plant.image; // Fallback to original
-            }
-        });
-
-        await Promise.all(promises);
-
-        if (Object.keys(newImages).length > 0) {
-            setProcessedGardenImages(currentImages => ({...currentImages, ...newImages}));
-        }
-    }
-    processImages();
-  }, [gardenPlants, processedGardenImages]);
-
   const collectionPlants = useMemo(() => {
     return collectionPlantIds
       .map(id => allPlants[id])
       .filter(Boolean)
       .sort((a,b) => b.level - a.level);
   }, [collectionPlantIds, allPlants]);
+  
+  const gardenPlantsFiltered = useMemo(() => gardenPlants.filter(Boolean) as Plant[], [gardenPlants]);
+
+  useEffect(() => {
+    const processImages = async () => {
+        const newImages: Record<string, string> = {};
+        const processingPromises = gardenPlantsFiltered.map(async (plant) => {
+            if (plant && plant.image && !processedGardenImages[plant.id]) {
+                 try {
+                    const dataUri = await getImageDataUriAction(plant.image);
+                    const transparentImage = await makeBackgroundTransparent(dataUri);
+                    newImages[plant.id] = transparentImage;
+                } catch (error) {
+                    console.error(`Failed to process image for garden plant: ${plant.id}`, error);
+                    newImages[plant.id] = plant.image;
+                }
+            }
+        });
+
+        await Promise.all(processingPromises);
+
+        if (Object.keys(newImages).length > 0) {
+            setProcessedGardenImages(currentImages => ({ ...currentImages, ...newImages }));
+        }
+    };
+
+    processImages();
+  }, [gardenPlantsFiltered, processedGardenImages]);
+
 
   const availableForSwap = useMemo(() => {
     const gardenIds = new Set(gardenPlantIds.filter(id => id !== null));
@@ -150,17 +147,13 @@ export default function GardenPage() {
     
     const { plantToReplaceId, gardenPlotIndex } = swapState;
     
-    // Create copies of the current state
     const newGardenIds = [...gardenPlantIds];
     let newCollectionIds = [...collectionPlantIds];
     
-    // Place new plant into the garden
     newGardenIds[gardenPlotIndex] = newPlantId;
     
-    // Remove new plant from collection
     newCollectionIds = newCollectionIds.filter(id => id !== newPlantId);
     
-    // Add the old plant (if there was one) back to the collection
     if (plantToReplaceId) {
         newCollectionIds.push(plantToReplaceId);
     }
@@ -275,9 +268,9 @@ export default function GardenPage() {
                                  <PlantCard 
                                     key={plant.id} 
                                     plant={plant} 
-                                    onClick={() => handleSelectPlantForCare(allPlants[plant.id])} 
-                                    processedImage={plant ? processedGardenImages[plant.id] : null}
+                                    onClick={() => handleSelectPlantForCare(allPlants[plant.id])}
                                     className={cn(isInFirstTwoRows && "mt-[-5px]")}
+                                    processedImage={processedGardenImages[plant.id] || null}
                                   />
                              ) : (
                                  <EmptyPlotCard key={`empty-${index}`} onClick={() => handleOpenSwapDialog(null, index)} className={cn(isInFirstTwoRows && "mt-[-5px]")}/>
@@ -293,7 +286,7 @@ export default function GardenPage() {
               plant={allPlants[activeCarePlant.id]}
               open={!!activeCarePlant}
               onOpenChange={(isOpen) => !isOpen && setActiveCarePlant(null)}
-              onStartEvolution={() => {}} // Evolution handled in care dialog
+              onStartEvolution={() => {}} 
               onSwapRequest={(plantId, index) => handleOpenSwapDialog(plantId, index)}
           />
         )}

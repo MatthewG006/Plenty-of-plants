@@ -1,9 +1,5 @@
 
 
-
-
-
-
 // Helper function to compress an image
 export async function compressImage(dataUri: string, maxSize = 1024): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -42,8 +38,7 @@ export async function compressImage(dataUri: string, maxSize = 1024): Promise<st
 // This function takes a data URI and makes its white background transparent.
 export async function makeBackgroundTransparent(dataUri: string, threshold = 240): Promise<string> {
     if (!dataUri || !dataUri.startsWith('data:')) {
-        // If it's not a data URI, it cannot be processed on the canvas. Return it as is.
-        return dataUri;
+        return dataUri; // Not a processable data URI
     }
 
     return new Promise((resolve, reject) => {
@@ -59,20 +54,27 @@ export async function makeBackgroundTransparent(dataUri: string, threshold = 240
             }
 
             ctx.drawImage(img, 0, 0);
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imageData.data;
+            try {
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
 
-            for (let i = 0; i < data.length; i += 4) {
-                const r = data[i];
-                const g = data[i + 1];
-                const b = data[i + 2];
-                if (r > threshold && g > threshold && b > threshold) {
-                    data[i + 3] = 0; // Set alpha to 0 for white-like pixels
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+                    if (r > threshold && g > threshold && b > threshold) {
+                        data[i + 3] = 0; // Set alpha to 0 for white-like pixels
+                    }
                 }
-            }
 
-            ctx.putImageData(imageData, 0, 0);
-            resolve(canvas.toDataURL('image/png'));
+                ctx.putImageData(imageData, 0, 0);
+                resolve(canvas.toDataURL('image/png'));
+            } catch (e) {
+                console.error("Canvas processing error:", e);
+                // If there's a security error here, it means the data URI was somehow tainted.
+                // We'll return the original URI to avoid a crash.
+                resolve(dataUri);
+            }
         };
         img.onerror = (err) => {
             console.error("Error loading image data URI onto canvas:", err);
