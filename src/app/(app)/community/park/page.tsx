@@ -91,6 +91,7 @@ export default function ParkPage() {
                   fill 
                   className="object-contain [mix-blend-mode:multiply]"
                   data-ai-hint={displayPlant?.hint}
+                  unoptimized
               />
             </div>
           ) : !isLoading ? (

@@ -30,6 +30,7 @@ export interface GameData {
     lastDrawRefill: number;
     lastFreeDrawClaimed: number;
     lastLoginBonusClaimed: number;
+    loginStreak: number;
     sprinklerUnlocked: boolean;
     glitterCount: number;
     sheenCount: number;
@@ -85,6 +86,7 @@ export async function getUserGameData(userId: string): Promise<GameData | null> 
             lastDrawRefill: data.lastDrawRefill || Date.now(),
             lastFreeDrawClaimed: data.lastFreeDrawClaimed || 0,
             lastLoginBonusClaimed: data.lastLoginBonusClaimed || 0,
+            loginStreak: data.loginStreak || 0,
             sprinklerUnlocked: data.sprinklerUnlocked || false,
             glitterCount: data.glitterCount || 0,
             sheenCount: data.sheenCount || 0,
@@ -185,7 +187,8 @@ export async function createUserDocument(user: User): Promise<GameData> {
             draws: MAX_DRAWS,
             lastDrawRefill: Date.now(),
             lastFreeDrawClaimed: 0,
-            lastLoginBonusClaimed: Date.now(),
+            lastLoginBonusClaimed: 0,
+            loginStreak: 0,
             sprinklerUnlocked: false,
             glitterCount: 0,
             sheenCount: 0,
@@ -759,4 +762,27 @@ export async function awardContestPrize(userId: string): Promise<void> {
         redGlitterCount: increment(1),
         gold: increment(50),
     });
+}
+
+export async function claimLoginReward(userId: string, streakDay: number, reward: { type: string, amount: number }): Promise<void> {
+    const userDocRef = doc(db, 'users', userId);
+    
+    const updateData: { [key: string]: any } = {
+        lastLoginBonusClaimed: Date.now(),
+        loginStreak: streakDay % 7,
+    };
+
+    if (reward.type === 'gold') {
+        updateData.gold = increment(reward.amount);
+    } else if (reward.type === 'glitterCount') {
+        updateData.glitterCount = increment(reward.amount);
+    } else if (reward.type === 'sheenCount') {
+        updateData.sheenCount = increment(reward.amount);
+    } else if (reward.type === 'rainbowGlitterCount') {
+        updateData.rainbowGlitterCount = increment(reward.amount);
+    } else if (reward.type === 'draws') {
+        updateData.draws = increment(reward.amount);
+    }
+
+    await updateDoc(userDocRef, updateData);
 }

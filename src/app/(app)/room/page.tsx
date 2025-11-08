@@ -103,7 +103,9 @@ function PlantImageUI({ plant, image }: { plant: Plant, image: string | null }) 
                 fill 
                 sizes="144px" 
                 className="object-contain"
-                data-ai-hint={plant.hint} />
+                data-ai-hint={plant.hint}
+                unoptimized
+            />
         ) : (
             <div className="w-full h-full flex items-center justify-center rounded-lg">
               <Leaf className="w-12 h-12 text-transparent" />
@@ -137,7 +139,7 @@ function CollectionPlantCard({ plant, onClick }: { plant: Plant, onClick: (plant
                 <CardContent className="p-0">
                     <div className="aspect-square relative flex items-center justify-center bg-muted/30">
                       {plant.image !== 'placeholder' ? (
-                        <Image src={plant.image} alt={plant.name} fill sizes="100px" className="object-cover" data-ai-hint={plant.hint} />
+                        <Image src={plant.image} alt={plant.name} fill sizes="100px" className="object-cover" data-ai-hint={plant.hint} unoptimized />
                       ) : (
                         <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
                       )}
@@ -172,7 +174,9 @@ function DraggableDeskPlant({ plant, image, ...rest }: { plant: Plant, image: st
                         fill 
                         sizes="144px" 
                         className="object-contain [mix-blend-mode:multiply]"
-                        data-ai-hint={plant.hint} />
+                        data-ai-hint={plant.hint}
+                        unoptimized
+                    />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center rounded-lg">
                       <Leaf className="w-12 h-12 text-transparent" />
