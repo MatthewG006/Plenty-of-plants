@@ -18,11 +18,11 @@ export interface Challenge {
 }
 
 export const challenges: Record<string, Omit<Challenge, 'progress' | 'claimed'>> = {
-    collectPlants: {
-        id: 'collectPlants',
-        title: 'Plant Collector',
-        description: 'Collect 3 new plants.',
-        target: 3,
+    dailyLogin: {
+        id: 'dailyLogin',
+        title: 'Daily Check-In',
+        description: 'Log in to the game.',
+        target: 1,
         reward: 5,
     },
     waterPlants: {
@@ -30,14 +30,21 @@ export const challenges: Record<string, Omit<Challenge, 'progress' | 'claimed'>>
         title: 'Green Thumb',
         description: 'Water your plants 5 times.',
         target: 5,
-        reward: 5,
+        reward: 10,
+    },
+    collectPlants: {
+        id: 'collectPlants',
+        title: 'Plant Collector',
+        description: 'Collect 3 new plants.',
+        target: 3,
+        reward: 15,
     },
     evolvePlant: {
         id: 'evolvePlant',
         title: 'Evolutionist',
         description: 'Evolve 1 of your plants.',
         target: 1,
-        reward: 10,
+        reward: 20,
     },
 };
 
@@ -159,3 +166,4 @@ export async function claimChallengeReward(userId: string, challengeId: string) 
         [`challenges.${challengeId}.claimed`]: true
     });
 }
+
