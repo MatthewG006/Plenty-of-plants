@@ -18,6 +18,7 @@ import { PlantCareDialog, PlantSwapDialog } from '@/components/plant-dialogs';
 import Link from 'next/link';
 import { getImageDataUriAction } from '@/app/actions/image-actions';
 import { makeBackgroundTransparent } from '@/lib/image-compression';
+import { updateChallengeProgress } from '@/lib/challenge-manager';
 
 const NUM_GARDEN_PLOTS = 12;
 
@@ -158,6 +159,7 @@ export default function GardenPage() {
     
     try {
         await updateGardenArrangement(user.uid, newCollectionIds, newGardenIds);
+        await updateChallengeProgress(user.uid, 'addToGarden');
         playSfx('success');
         toast({
             title: "Garden Updated",

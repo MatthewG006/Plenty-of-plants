@@ -18,10 +18,10 @@ export interface Challenge {
 }
 
 export const challenges: Record<string, Omit<Challenge, 'progress' | 'claimed'>> = {
-    dailyLogin: {
-        id: 'dailyLogin',
-        title: 'Daily Check-In',
-        description: 'Log in to the game.',
+    addToGarden: {
+        id: 'addToGarden',
+        title: 'Gardener',
+        description: 'Add a plant to your garden.',
         target: 1,
         reward: 5,
     },
@@ -134,17 +134,8 @@ export const updateApplySheenProgress = (userId: string) => updateChallengeProgr
 
 
 export const updateLoginProgress = async (userId: string) => {
-    const gameData = await getUserGameData(userId);
-    if (!gameData) return;
-    
-    // Only set progress to 1 if it's not already set for the day.
-    const challengeState = gameData.challenges?.['dailyLogin'];
-    if (!challengeState || challengeState.progress < 1) {
-        const userDocRef = doc(db, 'users', userId);
-         await updateDoc(userDocRef, {
-            [`challenges.dailyLogin.progress`]: 1
-        });
-    }
+    // This function is no longer tied to a specific login challenge,
+    // but can be kept for future use if a login streak or similar is added back.
 }
 
 // Claim reward
@@ -166,4 +157,3 @@ export async function claimChallengeReward(userId: string, challengeId: string) 
         [`challenges.${challengeId}.claimed`]: true
     });
 }
-
