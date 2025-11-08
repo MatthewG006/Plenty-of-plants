@@ -18,13 +18,6 @@ export interface Challenge {
 }
 
 export const challenges: Record<string, Omit<Challenge, 'progress' | 'claimed'>> = {
-    dailyLogin: {
-        id: 'dailyLogin',
-        title: 'Daily Login',
-        description: 'Log in each day to claim a bonus!',
-        target: 1,
-        reward: 20,
-    },
     collectPlants: {
         id: 'collectPlants',
         title: 'Plant Collector',

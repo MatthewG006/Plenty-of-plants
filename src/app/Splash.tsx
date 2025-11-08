@@ -1,6 +1,7 @@
+
 'use client';
 
-import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
@@ -10,12 +11,24 @@ import { Loader2 } from 'lucide-react';
 export default function Splash() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [showSplash, setShowSplash] = useState(false);
+
+  useEffect(() => {
+    if (!loading) {
+      if (sessionStorage.getItem('hasEntered')) {
+        router.replace(user ? '/home' : '/login');
+      } else {
+        setShowSplash(true);
+      }
+    }
+  }, [loading, user, router]);
 
   const handleEnter = () => {
+    sessionStorage.setItem('hasEntered', 'true');
     router.push(user ? '/home' : '/login');
   };
 
-  if (loading) {
+  if (!showSplash) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-splash-image">
         <Loader2 className="h-12 w-12 animate-spin text-white" />
@@ -27,7 +40,7 @@ export default function Splash() {
     <div className="flex h-screen w-full flex-col items-center justify-between p-4 bg-splash-image">
       <div className="flex-grow-[1] z-10" />
       <div className="z-10 flex flex-col items-center justify-center text-center animate-fade-in-up">
-        <Image src="/logo.png" alt="Plenty of Plants Logo" width={320} height={320} className="" data-ai-hint="plant logo" priority />
+        <Image src="/logo.png" alt="Plenty of Plants Logo" width={320} height={320} className="" data-ai-hint="plant logo" priority unoptimized />
         <p className="text-lg text-white font-bold -mt-16" style={{ textShadow: '0 2px 4px rgba(0,0,0,1)' }}>
           Your Digital Conservatory Awaits.
         </p>

@@ -1,9 +1,10 @@
 
+
 'use client';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings, User, Check, X, Loader2, Leaf, Award, Coins, Info, Clock, Users, Sprout } from 'lucide-react';
+import { Settings, User, Check, X, Loader2, Leaf, Award, Coins, Info, Clock, Users, Sprout, Gift, Star, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useRef, useMemo } from 'react';
@@ -23,7 +24,7 @@ import { useDraw, MAX_DRAWS, refillDraws, refundDraw } from '@/lib/draw-manager'
 import { useAudio } from '@/context/AudioContext';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/context/AuthContext';
-import { savePlant } from '@/lib/firestore';
+import { savePlant, claimLoginReward } from '@/lib/firestore';
 import { compressImage } from '@/lib/image-compression';
 import { Challenge, challenges, secondaryChallenges, claimChallengeReward, checkAndResetChallenges, updateCollectionProgress, updateLoginProgress } from '@/lib/challenge-manager';
 import Autoplay from "embla-carousel-autoplay"
@@ -39,6 +40,71 @@ import { NewPlantDialog } from '@/components/plant-dialogs';
 
 const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
 
+
+const loginRewards = [
+    { day: 1, type: 'gold', amount: 10, icon: Coins },
+    { day: 2, type: 'glitterCount', amount: 1, icon: Sparkles },
+    { day: 3, type: 'gold', amount: 20, icon: Coins },
+    { day: 4, type: 'sheenCount', amount: 1, icon: Star },
+    { day: 5, type: 'gold', amount: 30, icon: Coins },
+    { day: 6, type: 'rainbowGlitterCount', amount: 1, icon: Sparkles },
+    { day: 7, type: 'draws', amount: 1, icon: Gift },
+];
+
+function isYesterday(timestamp: number): boolean {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const someDate = new Date(timestamp);
+    return someDate.getDate() === yesterday.getDate() &&
+           someDate.getMonth() === yesterday.getMonth() &&
+           someDate.getFullYear() === yesterday.getFullYear();
+}
+
+function isToday(timestamp: number): boolean {
+    const today = new Date();
+    const someDate = new Date(timestamp);
+    return someDate.getDate() === today.getDate() &&
+           someDate.getMonth() === today.getMonth() &&
+           someDate.getFullYear() === today.getFullYear();
+}
+
+
+function LoginRewardDialog({ open, onOpenChange, onClaim, streakDay, claimedToday }: { open: boolean, onOpenChange: (open: boolean) => void, onClaim: () => void, streakDay: number, claimedToday: boolean }) {
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-md">
+                <DialogHeader>
+                    <div className="mx-auto bg-accent rounded-full p-3 mb-2">
+                        <Gift className="h-8 w-8 text-accent-foreground" />
+                    </div>
+                    <DialogTitle className="text-2xl text-center">Daily Login Bonus</DialogTitle>
+                    <DialogDescription className="text-center pt-2">
+                        Log in every day to earn rewards! Your current streak is {streakDay} day(s).
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid grid-cols-4 gap-2 py-4">
+                    {loginRewards.map((reward, index) => {
+                        const day = index + 1;
+                        const isClaimed = day <= streakDay;
+                        const isToday = day === streakDay + 1;
+                        return (
+                            <div key={day} className={cn("flex flex-col items-center justify-center p-2 rounded-lg text-center aspect-square", isClaimed ? "bg-muted text-muted-foreground" : "bg-card", isToday && !claimedToday && "shadow-[0_0_15px_3px] shadow-yellow-400/80 border-2 border-yellow-400")}>
+                                <p className="text-xs font-bold">Day {day}</p>
+                                <reward.icon className={cn("w-6 h-6 my-1", isClaimed ? "text-muted-foreground" : "text-primary")} />
+                                <p className="text-xs">{reward.amount} {reward.type === 'gold' ? 'Gold' : reward.type === 'draws' ? 'Draw' : 'Pack'}</p>
+                            </div>
+                        )
+                    })}
+                </div>
+                 <DialogFooter>
+                    <Button onClick={onClaim} disabled={claimedToday} className="w-full">
+                        {claimedToday ? "Claimed for Today" : "Claim Reward"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
 
 function getNextDrawTimeString(lastRefill: number) {
     const now = Date.now();
@@ -192,6 +258,7 @@ export default function HomePage() {
   const [showCommunityInfo, setShowCommunityInfo] = useState(false);
   const [showGameChangesInfo, setShowGameChangesInfo] = useState(false);
   const [showGardenInfo, setShowGardenInfo] = useState(false);
+  const [showLoginReward, setShowLoginReward] = useState(false);
 
   const autoplayPlugin = useRef(
     Autoplay({ delay: 4000, stopOnInteraction: true })
@@ -225,6 +292,11 @@ export default function HomePage() {
         const hasSeenGardenInfo = localStorage.getItem('hasSeenGardenInfo_v1');
         if (!hasSeenGardenInfo) {
             setShowGardenInfo(true);
+        }
+        
+        const lastClaimed = gameData.lastLoginBonusClaimed || 0;
+        if (!isToday(lastClaimed)) {
+            setShowLoginReward(true);
         }
     }
   }, [user, gameData, toast]);
@@ -356,6 +428,37 @@ export default function HomePage() {
     }
   };
   
+  const handleClaimLoginReward = async () => {
+    if (!user || !gameData) return;
+
+    const lastClaimed = gameData.lastLoginBonusClaimed || 0;
+    if (isToday(lastClaimed)) {
+        toast({ title: "Already Claimed", description: "You've already claimed your login bonus for today." });
+        return;
+    }
+    
+    let currentStreak = gameData.loginStreak || 0;
+    if (!isYesterday(lastClaimed)) {
+        currentStreak = 0; // Reset streak if they missed a day
+    }
+    
+    const rewardIndex = currentStreak % loginRewards.length;
+    const reward = loginRewards[rewardIndex];
+
+    try {
+        await claimLoginReward(user.uid, currentStreak + 1, reward);
+        playSfx('success');
+        toast({
+            title: `Day ${currentStreak + 1} Reward Claimed!`,
+            description: `You got ${reward.amount} ${reward.type === 'gold' ? 'Gold' : reward.type === 'draws' ? 'Draw(s)' : 'Pack(s)'}!`,
+        });
+        setShowLoginReward(false);
+    } catch (e: any) {
+        console.error("Failed to claim login reward", e);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not claim login reward.' });
+    }
+};
+
   const arePrimaryChallengesComplete = useMemo(() => {
       if (!gameData?.challenges) return false;
       return Object.values(challenges).every(challengeDef => {
@@ -375,6 +478,13 @@ export default function HomePage() {
   }
 
   const userChallenges = gameData.challenges;
+
+  const lastClaimed = gameData.lastLoginBonusClaimed || 0;
+  const claimedToday = isToday(lastClaimed);
+  let currentStreak = gameData.loginStreak || 0;
+  if (!isYesterday(lastClaimed) && !isToday(lastClaimed) && currentStreak > 0) {
+      currentStreak = 0; // Show that streak is reset if they missed more than a day
+  }
 
   return (
     <>
@@ -416,6 +526,8 @@ export default function HomePage() {
                           height={192}
                           className="object-cover w-full h-full"
                           data-ai-hint={latestPlant.hint}
+   priority
+   unoptimized
                         />
                     ) : (
                         <div className="w-full h-full bg-muted flex items-center justify-center">
@@ -543,6 +655,13 @@ export default function HomePage() {
         <CommunityInfoDialog open={showCommunityInfo} onOpenChange={handleCloseCommunityInfo} />
         <GameChangesInfoDialog open={showGameChangesInfo} onOpenChange={handleCloseGameChangesInfo} />
         <GardenInfoDialog open={showGardenInfo} onOpenChange={handleCloseGardenInfo} />
+        <LoginRewardDialog 
+            open={showLoginReward}
+            onOpenChange={setShowLoginReward}
+            onClaim={handleClaimLoginReward}
+            streakDay={currentStreak}
+            claimedToday={claimedToday}
+        />
       </div>
       <footer className="text-center text-xs text-muted-foreground pb-2">
         <p>&copy; 2025 Sky Mountain Graphics. All Rights Reserved.</p>
@@ -550,3 +669,4 @@ export default function HomePage() {
     </>
   );
 }
+

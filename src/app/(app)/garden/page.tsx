@@ -5,9 +5,9 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Leaf, Loader2, Plus, Droplets, Sprout, ChevronsRight } from 'lucide-react';
+import { Leaf, Loader2, Plus, Droplets, Sprout } from 'lucide-react';
 import Image from 'next/image';
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import type { Plant } from '@/interfaces/plant';
 import { cn } from '@/lib/utils';
@@ -22,14 +22,13 @@ import { makeBackgroundTransparent } from '@/lib/image-compression';
 const NUM_GARDEN_PLOTS = 12;
 
 function PlantCard({ plant, onClick, className, processedImage }: { plant: Plant, onClick: (plant: Plant) => void, className?: string, processedImage: string | null }) {
+    const imageSrc = processedImage || plant.image;
     return (
         <Card className={cn("group overflow-hidden shadow-md w-full h-[120px] sm:h-[140px] relative cursor-pointer bg-white/70 backdrop-blur-sm", className)} onClick={() => onClick(plant)}>
             <CardContent className="p-0 flex flex-col h-full">
                 <div className="flex-grow relative flex items-center justify-center bg-black/10">
-                    {processedImage ? (
-                        <Image src={processedImage} alt={plant.name} fill sizes="100px" className="object-contain p-1 [mix-blend-mode:multiply]" data-ai-hint={plant.hint} />
-                    ) : plant.image && plant.image !== 'placeholder' ? (
-                        <Image src={plant.image} alt={plant.name} fill sizes="100px" className="object-contain p-1 [mix-blend-mode:multiply]" data-ai-hint={plant.hint} />
+                    {imageSrc && imageSrc !== 'placeholder' ? (
+                        <Image src={imageSrc} alt={plant.name} fill sizes="100px" className="object-contain p-1" data-ai-hint={plant.hint} unoptimized />
                     ) : (
                         <Leaf className="w-1/2 h-1/2 text-muted-foreground/40" />
                     )}
@@ -67,12 +66,12 @@ export default function GardenPage() {
 
   const [collectionPlantIds, setCollectionPlantIds] = useState<number[]>([]);
   const [gardenPlantIds, setGardenPlantIds] = useState<(number | null)[]>([]);
-  
+  const [processedGardenImages, setProcessedGardenImages] = useState<Record<string, string>>({});
+
   const [activeCarePlant, setActiveCarePlant] = useState<Plant | null>(null);
   const [swapState, setSwapState] = useState<{plantToReplaceId: number | null, gardenPlotIndex: number} | null>(null);
 
   const [isUsingSprinkler, setIsUsingSprinkler] = useState(false);
-  const [processedGardenImages, setProcessedGardenImages] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (gameData) {
@@ -93,22 +92,20 @@ export default function GardenPage() {
       .filter(Boolean)
       .sort((a,b) => b.level - a.level);
   }, [collectionPlantIds, allPlants]);
-  
-  const gardenPlantsFiltered = useMemo(() => gardenPlants.filter(Boolean) as Plant[], [gardenPlants]);
 
   useEffect(() => {
     const processImages = async () => {
         const newImages: Record<string, string> = {};
-        const processingPromises = gardenPlantsFiltered.map(async (plant) => {
-            if (plant && plant.image && !processedGardenImages[plant.id]) {
-                 try {
-                    const dataUri = await getImageDataUriAction(plant.image);
-                    const transparentImage = await makeBackgroundTransparent(dataUri);
-                    newImages[plant.id] = transparentImage;
-                } catch (error) {
-                    console.error(`Failed to process image for garden plant: ${plant.id}`, error);
-                    newImages[plant.id] = plant.image;
-                }
+        const plantsToProcess = gardenPlants.filter(p => p && p.image && !processedGardenImages[p.id]) as Plant[];
+        
+        const processingPromises = plantsToProcess.map(async (plant) => {
+            try {
+                const dataUri = await getImageDataUriAction(plant.image);
+                const transparentImage = await makeBackgroundTransparent(dataUri);
+                newImages[plant.id] = transparentImage;
+            } catch (error) {
+                console.error(`Failed to process image for garden plant: ${plant.id}`, error);
+                newImages[plant.id] = plant.image; // Fallback to original
             }
         });
 
@@ -119,9 +116,10 @@ export default function GardenPage() {
         }
     };
 
-    processImages();
-  }, [gardenPlantsFiltered, processedGardenImages]);
-
+    if (gardenPlants.length > 0) {
+        processImages();
+    }
+}, [gardenPlants, processedGardenImages]);
 
   const availableForSwap = useMemo(() => {
     const gardenIds = new Set(gardenPlantIds.filter(id => id !== null));
@@ -258,6 +256,8 @@ export default function GardenPage() {
                     width={1024} 
                     height={512} 
                     className="w-full h-auto"
+                    priority
+                    unoptimized
                 />
 
                 <div className="absolute inset-0 top-[5%] left-[4%] right-[4%] bottom-[10%]">

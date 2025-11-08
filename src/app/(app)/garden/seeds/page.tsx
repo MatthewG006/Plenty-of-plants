@@ -56,9 +56,9 @@ function SeedCard({ seed, processedImage, onUseFertilizer, canUseFertilizer }: {
                 <CardContent className="p-0 flex flex-col items-center justify-center gap-2">
                     <div className="w-28 h-28 relative">
                         {processedImage ? (
-                            <Image src={processedImage} alt="Ready Seed" fill className="object-contain animate-glow brightness-125 saturate-150" data-ai-hint="seed icon" />
+                            <Image src={processedImage} alt="Ready Seed" fill sizes="112px" className="object-contain animate-glow brightness-125 saturate-150" data-ai-hint="seed icon" unoptimized />
                         ) : (
-                             <Image src="/seed.png" alt="Ready Seed" fill className="object-contain animate-glow brightness-125 saturate-150" data-ai-hint="seed icon" />
+                             <Image src="/seed.png" alt="Ready Seed" fill sizes="112px" className="object-contain animate-glow brightness-125 saturate-150" data-ai-hint="seed icon" unoptimized />
                         )}
                     </div>
                     <p className="font-bold text-primary mt-2">Ready to Grow!</p>
@@ -72,9 +72,9 @@ function SeedCard({ seed, processedImage, onUseFertilizer, canUseFertilizer }: {
             <CardContent className="p-0 flex flex-col items-center justify-center gap-2">
                  <div className="w-24 h-24 relative">
                     {processedImage ? (
-                        <Image src={processedImage} alt="Germinating Seed" fill className="object-contain opacity-70" data-ai-hint="seed icon" />
+                        <Image src={processedImage} alt="Germinating Seed" fill sizes="96px" className="object-contain opacity-70" data-ai-hint="seed icon" unoptimized />
                     ) : (
-                        <Image src="/seed.png" alt="Germinating Seed" fill className="object-contain opacity-70" data-ai-hint="seed icon" />
+                        <Image src="/seed.png" alt="Germinating Seed" fill sizes="96px" className="object-contain opacity-70" data-ai-hint="seed icon" unoptimized />
                     )}
                 </div>
                 <p className="text-xl font-bold text-primary tabular-nums">{`${String(time.hours).padStart(2, '0')}:${String(time.minutes).padStart(2, '0')}:${String(time.seconds).padStart(2, '0')}`}</p>
