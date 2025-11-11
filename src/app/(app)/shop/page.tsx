@@ -72,6 +72,15 @@ function VideoAdDialog({ open, onOpenChange, onSkip, countdown }: { open: boolea
   );
 }
 
+// Extend the Window interface to include our custom Android interface
+declare global {
+  interface Window {
+    AndroidAdInterface?: {
+      showDailyFreeDrawAd: () => void;
+    };
+  }
+}
+
 export default function ShopPage() {
   const { user, gameData } = useAuth();
   const { toast } = useToast();
@@ -119,7 +128,7 @@ export default function ShopPage() {
     }
   }, [user, playSfx, toast]);
 
-  const handleSkipAd = useCallback(() => {
+    const handleSkipAd = useCallback(() => {
       if (countdownTimerRef.current) {
           clearInterval(countdownTimerRef.current);
       }
@@ -154,9 +163,33 @@ export default function ShopPage() {
     }
   }, [showAd]);
 
+  useEffect(() => {
+    // This function will be called by the native Android wrapper after a real ad is watched.
+    const handleAdReward = () => {
+      console.log('Reward callback triggered from native code.');
+      handleClaimFreeDraw();
+    };
+
+    // Make the reward function globally accessible for the native bridge
+    (window as any).onRewardUser = handleAdReward;
+
+    // Cleanup the global function when the component unmounts
+    return () => {
+      delete (window as any).onRewardUser;
+    };
+  }, [handleClaimFreeDraw]);
+
 
   const handlePreClaimFreeDraw = () => {
-      setShowAd(true);
+      // Check if the native Android interface exists
+      if (window.AndroidAdInterface && typeof window.AndroidAdInterface.showDailyFreeDrawAd === 'function') {
+        // If it exists, call the native function to show the real ad
+        window.AndroidAdInterface.showDailyFreeDrawAd();
+      } else {
+        // If not, fall back to the placeholder ad dialog
+        console.log("Android ad interface not found. Showing placeholder.");
+        setShowAd(true);
+      }
   };
   
 
