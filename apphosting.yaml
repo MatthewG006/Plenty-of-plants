@@ -1,5 +1,14 @@
 # Settings to manage and configure a Firebase App Hosting backend.
 # https://firebase.google.com/docs/app-hosting/configure
 
-# By removing the runConfig, we will use the default timeouts, which are
-# more appropriate for this application and resolve the startup probe conflict.
+run:
+  command: npm run start
+  # We can remove the CPU and memory settings to use the default values.
+
+# The server will be listening on port 3000, so we need to set the
+# discovery mechanism to use that port.
+# We can also remove the health check settings to use the default values,
+# which are more appropriate for this application and resolve the startup
+# probe conflict.
+
+# The environment variables are not needed for this application.
