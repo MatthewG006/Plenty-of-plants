@@ -265,7 +265,7 @@ export function PlantCareDialog({ plant, open, onOpenChange, onStartEvolution, o
             } else {
                  toast({
                     title: 'Watered!',
-                    description: `${plant.name} gained ${result.xpGained} XP.`,
+                    description: `${plant.name} gained ${result.xpGained} XP and you earned 5 gold.`,
                 });
             }
 
