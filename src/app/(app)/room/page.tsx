@@ -26,8 +26,10 @@ import { useAuth } from '@/context/AuthContext';
 import { updatePlantArrangement, updatePlant } from '@/lib/firestore';
 import { PlantDetailDialog, EvolveConfirmationDialog, EvolvePreviewDialog, PlantChatDialog } from '@/components/plant-dialogs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { makeBackgroundTransparent } from '@/lib/image-compression';
+import { makeBackgroundTransparent, isImageBlack, compressImage } from '@/lib/image-compression';
 import { getImageDataUriAction } from '@/app/actions/image-actions';
+import { evolvePlantAction } from '@/ai/flows/evolve-plant-flow';
+import { updateEvolutionProgress } from '@/lib/challenge-manager';
 
 
 const NUM_POTS = 3;
@@ -379,7 +381,47 @@ export default function RoomPage() {
 
   const handleEvolve = async () => {
     if (!evolvingPlant || !user) return;
-    toast({ variant: 'destructive', title: "Evolution Failed", description: "Evolution is temporarily disabled." });
+    setIsEvolving(true);
+    setEvolvingPlant(null);
+
+    try {
+        const imageToUse = evolvingPlant.form === 'Evolved' ? (evolvingPlant.baseImage || evolvingPlant.image) : evolvingPlant.image;
+        const dataUri = await getImageDataUriAction(imageToUse);
+        
+        const result = await evolvePlantAction({
+            name: evolvingPlant.name,
+            baseImageDataUri: dataUri,
+            form: evolvingPlant.form,
+        });
+
+        if (await isImageBlack(result.newImageDataUri)) {
+            throw new Error("AI generated a black image, please try again.");
+        }
+        
+        const compressedImage = await compressImage(result.newImageDataUri);
+
+        const newForm = evolvingPlant.form === 'Base' ? 'Evolved' : 'Final';
+        
+        setEvolvedPreviewData({
+            plantId: evolvingPlant.id,
+            plantName: evolvingPlant.name,
+            newForm: newForm,
+            newImageUri: compressedImage,
+            personality: result.personality,
+        });
+        
+        await updateEvolutionProgress(user.uid);
+
+    } catch (e: any) {
+        console.error("Evolution failed:", e);
+        toast({
+            variant: "destructive",
+            title: "Evolution Failed",
+            description: e.message || "The AI could not evolve your plant. Please try again later.",
+        });
+    } finally {
+        setIsEvolving(false);
+    }
   };
   
   const handleConfirmEvolution = async () => {
