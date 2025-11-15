@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import * as React from 'react';
@@ -26,7 +25,6 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { updatePlantArrangement, updatePlant } from '@/lib/firestore';
 import { PlantDetailDialog, EvolveConfirmationDialog, EvolvePreviewDialog, PlantChatDialog } from '@/components/plant-dialogs';
-import { evolvePlant } from '@/ai/flows/evolve-plant-flow';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { makeBackgroundTransparent } from '@/lib/image-compression';
 import { getImageDataUriAction } from '@/app/actions/image-actions';
@@ -381,44 +379,7 @@ export default function RoomPage() {
 
   const handleEvolve = async () => {
     if (!evolvingPlant || !user) return;
-
-    const baseImage = evolvingPlant.form === 'Base' ? evolvingPlant.image : evolvingPlant.baseImage;
-    if (!baseImage) {
-        toast({
-            variant: 'destructive',
-            title: 'Evolution Error',
-            description: 'The base image required for evolution is missing.'
-        });
-        setEvolvingPlant(null);
-        return;
-    }
-    
-    setIsEvolving(true);
-    try {
-        const { newImageDataUri, personality } = await evolvePlant({
-            name: evolvingPlant.name,
-            baseImageDataUri: baseImage,
-            form: evolvingPlant.form,
-        });
-
-        const newForm = evolvingPlant.form === 'Base' ? 'Evolved' : 'Final';
-        
-        const compressedImage = await makeBackgroundTransparent(newImageDataUri);
-
-        setEvolvedPreviewData({ 
-            plantId: evolvingPlant.id,
-            plantName: evolvingPlant.name, 
-            newForm,
-            newImageUri: compressedImage,
-            personality
-        });
-        setEvolvingPlant(null);
-    } catch (e) {
-        console.error("Evolution failed", e);
-        toast({ variant: 'destructive', title: "Evolution Failed", description: "Could not evolve your plant. Please try again." });
-        setIsEvolving(false);
-        setEvolvingPlant(null);
-    }
+    toast({ variant: 'destructive', title: "Evolution Failed", description: "Evolution is temporarily disabled." });
   };
   
   const handleConfirmEvolution = async () => {
@@ -605,3 +566,5 @@ export default function RoomPage() {
     </DndContext>
   );
 }
+
+    
