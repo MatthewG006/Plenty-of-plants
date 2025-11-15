@@ -49,6 +49,22 @@ export interface GameData {
     plantChatTokens: number;
 }
 
+// Helper function to upload an image data URI and get its URL
+export async function uploadImageAndGetURL(userId: string, plantId: number, imageDataUri: string): Promise<string> {
+    const storage = getStorage(app);
+    // Use a unique path for the image, including a timestamp to bust caches on re-evolution
+    const imagePath = `users/${userId}/plants/${plantId}-${Date.now()}.jpg`;
+    const imageRef = ref(storage, imagePath);
+
+    const base64String = imageDataUri.split(',')[1];
+    const snapshot = await uploadString(imageRef, base64String, 'base64', {
+        contentType: 'image/jpeg'
+    });
+
+    return getDownloadURL(snapshot.ref);
+}
+
+
 // Helper to check if a timestamp is from the current day
 function isToday(timestamp: number): boolean {
     const today = new Date();
@@ -236,22 +252,7 @@ export async function savePlant(userId: string, plantData: DrawPlantOutput): Pro
     const lastId = allPlantIds.length > 0 ? Math.max(...allPlantIds) : 0;
     const newPlantId = lastId + 1;
 
-    // --- New Storage Logic ---
-    const storage = getStorage(app);
-    // Create a unique path for the image in Firebase Storage
-    const imagePath = `users/${userId}/plants/${newPlantId}.jpg`;
-    const imageRef = ref(storage, imagePath);
-
-    // Upload the base64 data URI to Storage
-    // We remove the 'data:image/jpeg;base64,' prefix before uploading
-    const base64String = plantData.imageDataUri.split(',')[1];
-    const snapshot = await uploadString(imageRef, base64String, 'base64', {
-        contentType: 'image/jpeg'
-    });
-
-    // Get the public URL of the uploaded image
-    const imageUrl = await getDownloadURL(snapshot.ref);
-    // --- End New Storage Logic ---
+    const imageUrl = await uploadImageAndGetURL(userId, newPlantId, plantData.imageDataUri);
 
     const newPlant: Plant = {
         id: newPlantId,

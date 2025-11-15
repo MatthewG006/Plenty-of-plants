@@ -23,7 +23,7 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { useAuth } from '@/context/AuthContext';
-import { updatePlantArrangement, updatePlant } from '@/lib/firestore';
+import { updatePlantArrangement, updatePlant, uploadImageAndGetURL } from '@/lib/firestore';
 import { PlantDetailDialog, EvolveConfirmationDialog, EvolvePreviewDialog, PlantChatDialog } from '@/components/plant-dialogs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { makeBackgroundTransparent, isImageBlack, compressImage } from '@/lib/image-compression';
@@ -432,13 +432,17 @@ export default function RoomPage() {
         const { plantId, newImageUri, newForm, personality } = evolvedPreviewData;
         
         const currentPlant = allPlants[plantId];
+        
+        // Upload the new image data URI to storage to get a permanent URL
+        const finalImageUrl = await uploadImageAndGetURL(user.uid, plantId, newImageUri);
 
         const updateData: Partial<Plant> = {
-            image: newImageUri,
+            image: finalImageUrl,
             form: newForm,
             personality: personality || '',
         };
         
+        // Preserve the original image when evolving from Base to Evolved
         if (newForm === 'Evolved' && currentPlant && !currentPlant.baseImage) {
             updateData.baseImage = currentPlant.image;
         }
@@ -450,7 +454,7 @@ export default function RoomPage() {
             description: `${evolvedPreviewData.plantName} has evolved!`,
         });
 
-    } catch (e) {
+    } catch (e: any) {
         console.error("Failed to save evolution", e);
         toast({ variant: 'destructive', title: "Save Failed", description: "Could not save your evolved plant." });
     } finally {
@@ -608,5 +612,3 @@ export default function RoomPage() {
     </DndContext>
   );
 }
-
-    
