@@ -5,7 +5,10 @@
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
-    ]
+    ],
+    "appHosting": {
+      "backendId": "plenty-of-plants"
+    }
   },
   "firestore": {
     "rules": "firestore.rules"
