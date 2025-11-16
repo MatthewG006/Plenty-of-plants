@@ -101,7 +101,7 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
           audio.currentTime = 0;
           audio.play().catch(e => console.error("SFX play failed", e));
       }
-  }, [sfxVolume, audioRefs]);
+  }, [sfxVolume]);
 
 
   return (

@@ -19,6 +19,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { grantAdReward } from '@/app/actions/grant-ad-reward';
 
 
 const DRAW_COST_IN_GOLD = 50;
@@ -78,6 +79,7 @@ declare global {
     AndroidAdInterface?: {
       showDailyFreeDrawAd: () => void;
     };
+    onRewardUser?: () => void;
   }
 }
 
@@ -88,6 +90,7 @@ export default function ShopPage() {
   
   const [dailyDrawClaimed, setDailyDrawClaimed] = useState(false);
   const [nextDrawTime, setNextDrawTime] = useState(getNextDrawTimeString());
+  const [isAdLoading, setIsAdLoading] = useState(false);
   const [showAd, setShowAd] = useState(false);
   const [countdown, setCountdown] = useState(5);
   const countdownTimerRef =  useRef<NodeJS.Timeout | null>(null);
@@ -108,33 +111,38 @@ export default function ShopPage() {
       return () => clearInterval(timer);
   }, [user]);
 
-  const handleClaimFreeDraw = useCallback(async () => {
+  const onAdReward = useCallback(async () => {
     if (!user) return;
-    const result = await claimFreeDraw(user.uid);
-
+    
+    // Call the secure server action to grant the reward
+    const result = await grantAdReward(user.uid);
+    
     if (result.success) {
       playSfx('reward');
       toast({
         title: "Free Draw Claimed!",
-        description: "Come back tomorrow for another one.",
+        description: "You've received one free draw. Happy growing!",
       });
-      setDailyDrawClaimed(true);
+      setDailyDrawClaimed(true); // Update UI to reflect the claim
     } else {
       toast({
         variant: "destructive",
-        title: result.reason === 'max_draws' ? "Max Draws Reached" : "Already Claimed",
-        description: result.reason === 'max_draws' ? "You already have the maximum number of draws." : "You can claim your next free draw tomorrow.",
+        title: "Reward Grant Failed",
+        description: result.message || "Could not grant reward. Please try again later.",
       });
     }
+    setIsAdLoading(false);
   }, [user, playSfx, toast]);
 
-    const handleSkipAd = useCallback(() => {
+
+  // This effect simulates the ad flow for web fallback
+  const handleSkipAd = useCallback(() => {
       if (countdownTimerRef.current) {
           clearInterval(countdownTimerRef.current);
       }
       setShowAd(false);
-      handleClaimFreeDraw();
-  }, [handleClaimFreeDraw]);
+      onAdReward();
+  }, [onAdReward]);
   
   useEffect(() => {
     if (showAd) {
@@ -165,29 +173,25 @@ export default function ShopPage() {
 
   useEffect(() => {
     // This function will be called by the native Android wrapper after a real ad is watched.
-    const handleAdReward = () => {
-      console.log('Reward callback triggered from native code.');
-      handleClaimFreeDraw();
-    };
-
-    // Make the reward function globally accessible for the native bridge
-    (window as any).onRewardUser = handleAdReward;
+    window.onRewardUser = onAdReward;
 
     // Cleanup the global function when the component unmounts
     return () => {
-      delete (window as any).onRewardUser;
+      delete window.onRewardUser;
     };
-  }, [handleClaimFreeDraw]);
+  }, [onAdReward]);
 
 
   const handlePreClaimFreeDraw = () => {
+      setIsAdLoading(true);
       // Check if the native Android interface exists
       if (window.AndroidAdInterface && typeof window.AndroidAdInterface.showDailyFreeDrawAd === 'function') {
-        // If it exists, call the native function to show the real ad
+        // If it exists, call the native function to show the real ad.
+        // The native code will then call `window.onRewardUser()` upon completion.
         window.AndroidAdInterface.showDailyFreeDrawAd();
       } else {
-        // If not, fall back to the placeholder ad dialog
-        console.log("Android ad interface not found. Showing placeholder.");
+        // If not, fall back to the placeholder ad dialog for web testing.
+        console.log("Android ad interface not found. Showing placeholder ad flow.");
         setShowAd(true);
       }
   };
@@ -416,8 +420,8 @@ export default function ShopPage() {
           </CardHeader>
           <CardContent className="flex flex-col items-start gap-4">
             <p className="text-2xl font-bold text-chart-3">FREE</p>
-            <Button onClick={handlePreClaimFreeDraw} className="w-full font-semibold" disabled={drawCount >= MAX_DRAWS || dailyDrawClaimed}>
-              {dailyDrawClaimed ? "Claimed for Today" : drawCount >= MAX_DRAWS ? "Draws Full" : "Claim"}
+            <Button onClick={handlePreClaimFreeDraw} className="w-full font-semibold" disabled={isAdLoading || drawCount >= MAX_DRAWS || dailyDrawClaimed}>
+              {isAdLoading ? <Loader2 className="animate-spin" /> : dailyDrawClaimed ? "Claimed for Today" : drawCount >= MAX_DRAWS ? "Draws Full" : "Watch Ad for Free Draw"}
             </Button>
             {dailyDrawClaimed && (
                 <div className="text-xs text-muted-foreground text-center w-full flex items-center justify-center gap-1.5">
