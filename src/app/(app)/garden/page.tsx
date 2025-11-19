@@ -224,7 +224,6 @@ export default function GardenPage() {
   const handleEvolve = async () => {
     if (!evolvingPlant || !user) return;
     setIsEvolving(true);
-    setEvolvingPlant(null);
 
     try {
         const imageToUse = evolvingPlant.form === 'Evolved' ? (evolvingPlant.baseImage || evolvingPlant.image) : evolvingPlant.image;
@@ -263,6 +262,7 @@ export default function GardenPage() {
         });
     } finally {
         setIsEvolving(false);
+        setEvolvingPlant(null);
     }
   };
   
@@ -396,7 +396,7 @@ export default function GardenPage() {
         
         <EvolveConfirmationDialog
             plant={evolvingPlant}
-            open={!!evolvingPlant && !isEvolving}
+            open={!!evolvingPlant}
             onConfirm={handleEvolve}
             onCancel={() => setEvolvingPlant(null)}
             isEvolving={isEvolving}
