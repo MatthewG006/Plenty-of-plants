@@ -346,7 +346,7 @@ export function PlantCareDialog({ plant, open, onOpenChange, onStartEvolution, o
                 </div>
                 <DialogFooter className="pt-2 flex-col sm:flex-col sm:space-x-0 gap-2">
                     {shouldEvolve && !isMaxLevel ? (
-                        <Button onClick={() => { onOpenChange(false); onStartEvolution(plant); }} className="w-full">
+                        <Button onClick={() => onStartEvolution(plant)} className="w-full">
                             <Sparkles className="mr-2 h-4 w-4" />
                             Evolve Plant
                         </Button>
@@ -650,7 +650,7 @@ export function PlantDetailDialog({ plant, open, onOpenChange, onStartEvolution,
                      </Card>
 
                     {shouldEvolve && !isMaxLevel && (
-                         <Button onClick={() => { onOpenChange(false); onStartEvolution(plant); }} className="w-full">
+                         <Button onClick={() => onStartEvolution(plant)} className="w-full">
                             <Sparkles className="mr-2 h-4 w-4" />
                             Evolve Plant
                         </Button>
