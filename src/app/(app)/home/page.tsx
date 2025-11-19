@@ -72,7 +72,7 @@ function isToday(timestamp: number): boolean {
 function LoginRewardDialog({ open, onOpenChange, onClaim, streakDay, claimedToday }: { open: boolean, onOpenChange: (open: boolean) => void, onClaim: () => void, streakDay: number, claimedToday: boolean }) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-sm">
                 <DialogHeader>
                     <div className="mx-auto bg-accent rounded-full p-3 mb-2">
                         <Gift className="h-8 w-8 text-accent-foreground" />

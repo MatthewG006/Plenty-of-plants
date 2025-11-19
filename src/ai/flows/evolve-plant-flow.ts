@@ -18,11 +18,14 @@ const ai = genkit({
 
 const EvolvePlantPrompt = ai.definePrompt({
     name: 'evolvePlantPrompt',
-    model: 'gemini-1.5-flash-preview',
+    model: googleAI.model('gemini-2.5-flash-image-preview'),
     input: { schema: EvolvePlantInputSchema },
     output: { schema: EvolvePlantOutputSchema },
+    config: {
+        responseModalities: ['TEXT', 'IMAGE'],
+    },
     prompt: `You are an expert botanist artist for a whimsical game about collecting digital plants.
-Your task is to evolve a plant into its next, more majestic form.
+Your task is to evolve a plant into its next, more majestic form. You will generate a new image for the plant.
 
 **CRITICAL INSTRUCTIONS:**
 1.  You will be given the plant's name, its current form ("Base" or "Evolved"), and an image of its current form.
@@ -45,11 +48,15 @@ const evolvePlantFlow = ai.defineFlow(
         outputSchema: EvolvePlantOutputSchema,
     },
     async (input) => {
-        const { output } = await EvolvePlantPrompt(input);
-        if (!output) {
+        const { output, media } = await EvolvePlantPrompt(input);
+        if (!output || !media) {
             throw new Error("The AI failed to generate an evolved plant.");
         }
-        return output;
+        
+        return {
+            newImageDataUri: media.url,
+            personality: output.personality,
+        };
     }
 );
 
