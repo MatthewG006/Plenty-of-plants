@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -23,13 +24,11 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { useAuth } from '@/context/AuthContext';
-import { updatePlantArrangement, updatePlant, uploadImageAndGetURL } from '@/lib/firestore';
-import { PlantDetailDialog, EvolveConfirmationDialog, EvolvePreviewDialog, PlantChatDialog } from '@/components/plant-dialogs';
+import { updatePlantArrangement, updatePlant } from '@/lib/firestore';
+import { PlantDetailDialog, PlantChatDialog } from '@/components/plant-dialogs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { makeBackgroundTransparent, isImageBlack, compressImage } from '@/lib/image-compression';
+import { makeBackgroundTransparent } from '@/lib/image-compression';
 import { getImageDataUriAction } from '@/app/actions/image-actions';
-import { evolvePlantAction } from '@/ai/flows/evolve-plant-flow';
-import { updateEvolutionProgress } from '@/lib/challenge-manager';
 
 
 const NUM_POTS = 3;
@@ -236,7 +235,6 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
 
 export default function RoomPage() {
   const { user, gameData } = useAuth();
-  const { toast } = useToast();
   
   const [deskPlantIds, setDeskPlantIds] = useState<(number | null)[]>([]);
   const [processedDeskImages, setProcessedDeskImages] = useState<Record<string, string>>({});
@@ -245,10 +243,7 @@ export default function RoomPage() {
   const [sortOption, setSortOption] = useState<'level' | 'stage'>('level');
   
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
-  const [evolvingPlant, setEvolvingPlant] = useState<Plant | null>(null);
   const [chattingPlant, setChattingPlant] = useState<Plant | null>(null);
-  const [isEvolving, setIsEvolving] = useState(false);
-  const [evolvedPreviewData, setEvolvedPreviewData] = useState<{plantId: number; plantName: string; newForm: string, newImageUri: string; personality?: string } | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -375,93 +370,8 @@ export default function RoomPage() {
   };
     
   const handleStartEvolution = (plant: Plant) => {
-    setSelectedPlant(null);
-    setEvolvingPlant(plant);
+    // This is now handled in the garden
   }
-
-  const handleEvolve = async () => {
-    if (!evolvingPlant || !user) return;
-    setIsEvolving(true);
-    setEvolvingPlant(null);
-
-    try {
-        const imageToUse = evolvingPlant.form === 'Evolved' ? (evolvingPlant.baseImage || evolvingPlant.image) : evolvingPlant.image;
-        const dataUri = await getImageDataUriAction(imageToUse);
-        
-        const result = await evolvePlantAction({
-            name: evolvingPlant.name,
-            baseImageDataUri: dataUri,
-            form: evolvingPlant.form,
-        });
-
-        if (await isImageBlack(result.newImageDataUri)) {
-            throw new Error("AI generated a black image, please try again.");
-        }
-        
-        const compressedImage = await compressImage(result.newImageDataUri);
-
-        const newForm = evolvingPlant.form === 'Base' ? 'Evolved' : 'Final';
-        
-        setEvolvedPreviewData({
-            plantId: evolvingPlant.id,
-            plantName: evolvingPlant.name,
-            newForm: newForm,
-            newImageUri: compressedImage,
-            personality: result.personality,
-        });
-        
-        await updateEvolutionProgress(user.uid);
-
-    } catch (e: any) {
-        console.error("Evolution failed:", e);
-        toast({
-            variant: "destructive",
-            title: "Evolution Failed",
-            description: e.message || "The AI could not evolve your plant. Please try again later.",
-        });
-    } finally {
-        setIsEvolving(false);
-    }
-  };
-  
-  const handleConfirmEvolution = async () => {
-    if (!user || !evolvedPreviewData || !gameData) return;
-    
-    setIsEvolving(true);
-    try {
-        const { plantId, newImageUri, newForm, personality } = evolvedPreviewData;
-        
-        const currentPlant = allPlants[plantId];
-        
-        // Upload the new image data URI to storage to get a permanent URL
-        const finalImageUrl = await uploadImageAndGetURL(user.uid, plantId, newImageUri);
-
-        const updateData: Partial<Plant> = {
-            image: finalImageUrl,
-            form: newForm,
-            personality: personality || '',
-        };
-        
-        // Preserve the original image when evolving from Base to Evolved
-        if (newForm === 'Evolved' && currentPlant && !currentPlant.baseImage) {
-            updateData.baseImage = currentPlant.image;
-        }
-
-        await updatePlant(user.uid, plantId, updateData);
-        
-        toast({
-            title: "Evolution Complete!",
-            description: `${evolvedPreviewData.plantName} has evolved!`,
-        });
-
-    } catch (e: any) {
-        console.error("Failed to save evolution", e);
-        toast({ variant: 'destructive', title: "Save Failed", description: "Could not save your evolved plant." });
-    } finally {
-        setIsEvolving(false);
-        setEvolvedPreviewData(null);
-    }
-  };
   
   const handleSelectPlant = (plant: Plant) => {
     setSelectedPlant(allPlants[plant.id]);
@@ -579,22 +489,6 @@ export default function RoomPage() {
             open={!!chattingPlant}
             onOpenChange={(isOpen) => !isOpen && setChattingPlant(null)}
             userId={user.uid}
-        />
-
-        <EvolveConfirmationDialog
-            plant={evolvingPlant}
-            open={!!evolvingPlant && !isEvolving}
-            onConfirm={handleEvolve}
-            onCancel={() => setEvolvingPlant(null)}
-            isEvolving={isEvolving}
-        />
-
-        <EvolvePreviewDialog
-            plantName={evolvedPreviewData?.plantName || ''}
-            newForm={evolvedPreviewData?.newForm || ''}
-            newImageUri={evolvedPreviewData?.newImageUri || ''}
-            open={!!evolvedPreviewData}
-            onConfirm={handleConfirmEvolution}
         />
         
         <DragOverlay>

@@ -5,7 +5,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Leaf, Loader2, Plus, Droplets, Sprout } from 'lucide-react';
+import { Leaf, Loader2, Plus, Droplets, Sprout, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -13,12 +13,13 @@ import type { Plant } from '@/interfaces/plant';
 import { cn } from '@/lib/utils';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { updateGardenArrangement, useSprinkler } from '@/lib/firestore';
-import { PlantCareDialog, PlantSwapDialog } from '@/components/plant-dialogs';
+import { updateGardenArrangement, useSprinkler, updatePlant, uploadImageAndGetURL } from '@/lib/firestore';
+import { PlantCareDialog, PlantSwapDialog, EvolveConfirmationDialog, EvolvePreviewDialog } from '@/components/plant-dialogs';
 import Link from 'next/link';
 import { getImageDataUriAction } from '@/app/actions/image-actions';
-import { makeBackgroundTransparent } from '@/lib/image-compression';
-import { updateChallengeProgress } from '@/lib/challenge-manager';
+import { makeBackgroundTransparent, isImageBlack, compressImage } from '@/lib/image-compression';
+import { updateChallengeProgress, updateEvolutionProgress } from '@/lib/challenge-manager';
+import { evolvePlantAction } from '@/ai/flows/evolve-plant-flow';
 
 const NUM_GARDEN_PLOTS = 12;
 
@@ -73,6 +74,9 @@ export default function GardenPage() {
   const [swapState, setSwapState] = useState<{plantToReplaceId: number | null, gardenPlotIndex: number} | null>(null);
 
   const [isUsingSprinkler, setIsUsingSprinkler] = useState(false);
+  const [evolvingPlant, setEvolvingPlant] = useState<Plant | null>(null);
+  const [isEvolving, setIsEvolving] = useState(false);
+  const [evolvedPreviewData, setEvolvedPreviewData] = useState<{plantId: number; plantName: string; newForm: string, newImageUri: string; personality?: string } | null>(null);
 
   useEffect(() => {
     if (gameData) {
@@ -212,6 +216,93 @@ export default function GardenPage() {
     }
   };
 
+  const handleStartEvolution = (plant: Plant) => {
+    setActiveCarePlant(null);
+    setEvolvingPlant(plant);
+  };
+  
+  const handleEvolve = async () => {
+    if (!evolvingPlant || !user) return;
+    setIsEvolving(true);
+    setEvolvingPlant(null);
+
+    try {
+        const imageToUse = evolvingPlant.form === 'Evolved' ? (evolvingPlant.baseImage || evolvingPlant.image) : evolvingPlant.image;
+        const dataUri = await getImageDataUriAction(imageToUse);
+        
+        const result = await evolvePlantAction({
+            name: evolvingPlant.name,
+            baseImageDataUri: dataUri,
+            form: evolvingPlant.form,
+        });
+
+        if (await isImageBlack(result.newImageDataUri)) {
+            throw new Error("AI generated a black image, please try again.");
+        }
+        
+        const compressedImage = await compressImage(result.newImageDataUri);
+
+        const newForm = evolvingPlant.form === 'Base' ? 'Evolved' : 'Final';
+        
+        setEvolvedPreviewData({
+            plantId: evolvingPlant.id,
+            plantName: evolvingPlant.name,
+            newForm: newForm,
+            newImageUri: compressedImage,
+            personality: result.personality,
+        });
+        
+        await updateEvolutionProgress(user.uid);
+
+    } catch (e: any) {
+        console.error("Evolution failed:", e);
+        toast({
+            variant: "destructive",
+            title: "Evolution Failed",
+            description: e.message || "The AI could not evolve your plant. Please try again later.",
+        });
+    } finally {
+        setIsEvolving(false);
+    }
+  };
+  
+  const handleConfirmEvolution = async () => {
+    if (!user || !evolvedPreviewData || !gameData) return;
+    
+    setIsEvolving(true);
+    try {
+        const { plantId, newImageUri, newForm, personality } = evolvedPreviewData;
+        
+        const currentPlant = allPlants[plantId];
+        
+        const finalImageUrl = await uploadImageAndGetURL(user.uid, plantId, newImageUri);
+
+        const updateData: Partial<Plant> = {
+            image: finalImageUrl,
+            form: newForm,
+            personality: personality || '',
+        };
+        
+        if (newForm === 'Evolved' && currentPlant && !currentPlant.baseImage) {
+            updateData.baseImage = currentPlant.image;
+        }
+
+        await updatePlant(user.uid, plantId, updateData);
+        
+        toast({
+            title: "Evolution Complete!",
+            description: `${evolvedPreviewData.plantName} has evolved!`,
+        });
+
+    } catch (e: any) {
+        console.error("Failed to save evolution", e);
+        toast({ variant: 'destructive', title: "Save Failed", description: "Could not save your evolved plant." });
+    } finally {
+        setIsEvolving(false);
+        setEvolvedPreviewData(null);
+    }
+  };
+
   if (!user || !gameData) {
     return (
         <div className="flex h-screen w-full items-center justify-center bg-white">
@@ -221,6 +312,7 @@ export default function GardenPage() {
   }
 
   return (
+    <>
       <div 
         className="min-h-screen bg-contain bg-bottom bg-no-repeat flex flex-col"
         style={{backgroundImage: "url('/garden-bg-sky.png')"}}
@@ -288,7 +380,7 @@ export default function GardenPage() {
               plant={allPlants[activeCarePlant.id]}
               open={!!activeCarePlant}
               onOpenChange={(isOpen) => !isOpen && setActiveCarePlant(null)}
-              onStartEvolution={() => {}} 
+              onStartEvolution={handleStartEvolution} 
               onSwapRequest={(plantId, index) => handleOpenSwapDialog(plantId, index)}
           />
         )}
@@ -301,6 +393,23 @@ export default function GardenPage() {
                 onSelectPlant={handlePlantSwap}
             />
         )}
+        
+        <EvolveConfirmationDialog
+            plant={evolvingPlant}
+            open={!!evolvingPlant && !isEvolving}
+            onConfirm={handleEvolve}
+            onCancel={() => setEvolvingPlant(null)}
+            isEvolving={isEvolving}
+        />
+
+        <EvolvePreviewDialog
+            plantName={evolvedPreviewData?.plantName || ''}
+            newForm={evolvedPreviewData?.newForm || ''}
+            newImageUri={evolvedPreviewData?.newImageUri || ''}
+            open={!!evolvedPreviewData}
+            onConfirm={handleConfirmEvolution}
+        />
       </div>
+      </>
   );
 }
