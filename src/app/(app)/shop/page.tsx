@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,7 @@ const SPRINKLER_COST_IN_GOLD = 250;
 const WATER_REFILL_COST_IN_GOLD = 15;
 const BUNDLE_COST_IN_GOLD = 250;
 const PLANT_CHAT_COST_IN_RUBIES = 1;
+
 
 function VideoAdDialog({ open, onOpenChange, onSkip, countdown }: { open: boolean; onOpenChange: (open: boolean) => void; onSkip: () => void; countdown: number; }) {
   return (
@@ -351,15 +353,20 @@ export default function ShopPage() {
     }
   };
 
-  const handleRubyPurchaseSuccess = async () => {
-    if (!user) return;
+  const handlePurchaseSuccess = async (endpoint: string, successMessage: string, errorMessage: string, data?: any) => {
     try {
-      await updateUserRubies(user.uid, 5);
-      toast({ title: 'Purchase Successful!', description: 'You received 5 Rubies.' });
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user?.uid, ...(data || {}) }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      toast({ title: 'Purchase Successful!', description: successMessage });
     } catch (e) {
-      toast({ variant: 'destructive', title: 'Reward Error', description: 'Failed to grant rubies.' });
+      toast({ variant: 'destructive', title: 'Reward Error', description: errorMessage });
     }
   };
+
 
   
   if (!user || !gameData) {
@@ -423,21 +430,53 @@ export default function ShopPage() {
           </CardHeader>
           <CardContent className="space-y-4">
              {payPalClientId ? (
-                <div className="p-4 rounded-lg bg-muted/50 space-y-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="font-bold text-primary">Ruby Pack</p>
-                            <p className="text-sm text-muted-foreground">Get 5 rubies to unlock special features.</p>
-                        </div>
-                        <p className="font-bold text-lg text-primary">$0.99</p>
-                    </div>
-                    <PayPalPurchase 
-                        clientId={payPalClientId} 
-                        amount="0.99"
-                        description="5 Rubies Pack"
-                        onSuccess={handleRubyPurchaseSuccess}
-                    />
-                </div>
+                <>
+                  <div className="p-4 rounded-lg bg-muted/50 space-y-4">
+                      <div className="flex items-center justify-between">
+                          <div>
+                              <p className="font-bold text-primary">Ruby Pack</p>
+                              <p className="text-sm text-muted-foreground">Get 5 rubies to unlock special features.</p>
+                          </div>
+                          <p className="font-bold text-lg text-primary">$0.99</p>
+                      </div>
+                      <PayPalPurchase
+                          clientId={payPalClientId} 
+                          amount="0.99"
+                          description="5 Rubies Pack"
+                          onSuccess={() => handlePurchaseSuccess('/api/on-ruby-purchase', 'You received 5 Rubies.', 'Failed to grant rubies.')}
+                      />
+                  </div>
+                  <div className="p-4 rounded-lg bg-muted/50 space-y-4">
+                      <div className="flex items-center justify-between">
+                          <div>
+                              <p className="font-bold text-primary">Fertilizer</p>
+                              <p className="text-sm text-muted-foreground">Reduce seed time by 8 hours.</p>
+                          </div>
+                          <p className="font-bold text-lg text-primary">$0.50</p>
+                      </div>
+                      <PayPalPurchase
+                          clientId={payPalClientId} 
+                          amount="0.50"
+                          description="Fertilizer Pack"
+                          onSuccess={() => handlePurchaseSuccess('/api/on-fertilizer-purchase', 'You received 1 fertilizer.', 'Failed to grant fertilizer.')}
+                      />
+                  </div>
+                   <div className="p-4 rounded-lg bg-muted/50 space-y-4">
+                      <div className="flex items-center justify-between">
+                          <div>
+                              <p className="font-bold text-primary">Seasonal Plant Pack</p>
+                              <p className="text-sm text-muted-foreground">Get a unique, limited-time plant!</p>
+                          </div>
+                          <p className="font-bold text-lg text-primary">$5.00</p>
+                      </div>
+                      <PayPalPurchase
+                          clientId={payPalClientId} 
+                          amount="5.00"
+                          description="Seasonal Plant Pack"
+                          onSuccess={() => handlePurchaseSuccess('/api/on-seasonal-purchase', 'You received a new seasonal plant!', 'Failed to grant seasonal plant.')}
+                      />
+                  </div>
+                </>
              ) : (
                 <div className="text-center text-muted-foreground">Loading payment options...</div>
              )}
@@ -666,3 +705,5 @@ export default function ShopPage() {
     </div>
   );
 }
+
+    
