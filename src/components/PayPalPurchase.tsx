@@ -20,14 +20,6 @@ async function checkTwa() {
   }
 }
 
-function isInstalledPwa() {
-  try {
-    if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
-    if ((window.navigator as any).standalone === true) return true;
-  } catch (e) {}
-  return false;
-}
-
 export default function PayPalPurchase({ clientId }: { clientId: string }) {
   const [enabled, setEnabled] = useState(false);
   const [ready, setReady] = useState(false);
@@ -35,9 +27,8 @@ export default function PayPalPurchase({ clientId }: { clientId: string }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const twa = await checkTwa();
-      const installed = isInstalledPwa();
-      const browserMode = !twa && !installed;
+      const isTwa = await checkTwa();
+      const browserMode = !isTwa; // Only disable for TWA
       if (cancelled) return;
       setEnabled(browserMode);
       if (!browserMode) return;
@@ -45,8 +36,12 @@ export default function PayPalPurchase({ clientId }: { clientId: string }) {
       // Dynamically add PayPal SDK
       const script = document.createElement('script');
       script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD`;
-      script.onload = () => setReady(true);
-      script.onerror = () => setReady(false);
+      script.onload = () => {
+        if (!cancelled) setReady(true);
+      };
+      script.onerror = () => {
+        if (!cancelled) setReady(false);
+      };
       document.head.appendChild(script);
     })();
     return () => { cancelled = true; };
@@ -79,6 +74,6 @@ export default function PayPalPurchase({ clientId }: { clientId: string }) {
     }).render('#paypal-button-container');
   }, [ready]);
 
-  if (!enabled) return <div>Purchases are available only in the browser.</div>;
+  if (!enabled) return <div>Purchases are available only in the native app.</div>;
   return <div id="paypal-area"><div id="paypal-button-container"></div></div>;
 }
