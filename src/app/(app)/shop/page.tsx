@@ -22,6 +22,15 @@ import {
 import { grantAdReward } from '@/app/actions/grant-ad-reward';
 import PayPalPurchase from '@/components/PayPalPurchase';
 
+const DRAW_COST_IN_GOLD = 50;
+const GLITTER_COST_IN_GOLD = 25;
+const SHEEN_COST_IN_GOLD = 50;
+const RAINBOW_GLITTER_COST_IN_GOLD = 75;
+const RED_GLITTER_COST_IN_GOLD = 100;
+const SPRINKLER_COST_IN_GOLD = 250;
+const WATER_REFILL_COST_IN_GOLD = 15;
+const BUNDLE_COST_IN_GOLD = 250;
+const PLANT_CHAT_COST_IN_RUBIES = 1;
 
 function VideoAdDialog({ open, onOpenChange, onSkip, countdown }: { open: boolean; onOpenChange: (open: boolean) => void; onSkip: () => void; countdown: number; }) {
   return (
