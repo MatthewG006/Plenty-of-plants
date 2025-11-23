@@ -78,6 +78,19 @@ export default function ShopPage() {
   const [showAd, setShowAd] = useState(false);
   const [countdown, setCountdown] = useState(5);
   const countdownTimerRef =  useRef<NodeJS.Timeout | null>(null);
+  const [payPalClientId, setPayPalClientId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Fetch the client ID from our secure API route
+    fetch('/api/paypal-client-id')
+      .then(res => res.json())
+      .then(data => {
+        if (data.clientId) {
+          setPayPalClientId(data.clientId);
+        }
+      })
+      .catch(err => console.error("Failed to fetch PayPal client ID", err));
+  }, []);
 
   const onAdReward = useCallback(async () => {
     if (!user) return;
@@ -406,7 +419,11 @@ export default function ShopPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-             <PayPalPurchase clientId={process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || ""} />
+             {payPalClientId ? (
+                <PayPalPurchase clientId={payPalClientId} />
+             ) : (
+                <div className="text-center text-muted-foreground">Loading payment options...</div>
+             )}
           </CardContent>
         </Card>
 
