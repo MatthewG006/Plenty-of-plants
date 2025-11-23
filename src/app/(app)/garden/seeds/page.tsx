@@ -5,7 +5,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Clock, Sprout, ChevronsRight, Leaf, Zap } from 'lucide-react';
+import { Loader2, Clock, Sprout, ChevronsRight, Leaf, Zap, Share2 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAudio } from '@/context/AudioContext';
@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import { makeBackgroundTransparent, compressImage } from '@/lib/image-compression';
 import { NewPlantDialog } from '@/components/plant-dialogs';
 import { updateCollectionProgress } from '@/lib/challenge-manager';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
 const GERMINATION_TIME_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -249,7 +250,15 @@ export default function SeedsPage() {
                     </div>
                 </header>
 
-                <main className="flex-grow p-4">
+                <Alert className="m-4 mt-0 rounded-t-none border-t-0 bg-accent/50">
+                  <Share2 className="h-4 w-4" />
+                  <AlertTitle>Want more seeds?</AlertTitle>
+                  <AlertDescription>
+                    Get 3 more spots in your seed bag! Go to your <Button variant="link" asChild className="p-0 h-auto"><Link href="/profile">Profile</Link></Button> and share the game.
+                  </AlertDescription>
+                </Alert>
+
+                <main className="flex-grow p-4 pt-0">
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {Array.from({ length: seedBagSize }).map((_, index) => {
                             const seed = seeds[index];
@@ -300,4 +309,3 @@ export default function SeedsPage() {
         </>
     );
 }
-
