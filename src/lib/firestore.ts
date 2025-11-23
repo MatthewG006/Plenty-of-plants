@@ -17,7 +17,6 @@ const XP_PER_LEVEL = 1000;
 const GOLD_PER_WATERING = 5;
 const EVOLUTION_LEVEL = 10;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-const MAX_SEEDS = 9;
 
 export interface GameData {
     gold: number;
@@ -26,6 +25,8 @@ export interface GameData {
     deskPlantIds: (number | null)[];
     gardenPlantIds: (number | null)[];
     seeds: Seed[];
+    seedBagSize: number; // New field for inventory limit
+    referrerId?: string; // New field for referral tracking
     draws: number;
     lastDrawRefill: number;
     lastFreeDrawClaimed: number;
@@ -98,6 +99,8 @@ export async function getUserGameData(userId: string): Promise<GameData | null> 
             deskPlantIds: data.deskPlantIds || Array(NUM_POTS).fill(null),
             gardenPlantIds: data.gardenPlantIds || Array(NUM_GARDEN_PLOTS).fill(null),
             seeds: data.seeds || [],
+            seedBagSize: data.seedBagSize || 3,
+            referrerId: data.referrerId,
             draws: data.draws ?? MAX_DRAWS,
             lastDrawRefill: data.lastDrawRefill || Date.now(),
             lastFreeDrawClaimed: data.lastFreeDrawClaimed || 0,
@@ -165,7 +168,7 @@ export async function getPlantById(userId: string, plantId: number): Promise<Pla
 // The document's ID is the user's unique authentication ID (user.uid).
 // This document holds all the persistent data for that specific player. Each player is
 // its own document, rather than being a "node" in a larger tree.
-export async function createUserDocument(user: User): Promise<GameData> {
+export async function createUserDocument(user: User, referrerId?: string): Promise<GameData> {
     const docRef = doc(db, 'users', user.uid);
     const docSnap = await getDoc(docRef);
 
@@ -200,6 +203,8 @@ export async function createUserDocument(user: User): Promise<GameData> {
             deskPlantIds: Array(NUM_POTS).fill(null),
             gardenPlantIds: Array(NUM_GARDEN_PLOTS).fill(null),
             seeds: [],
+            seedBagSize: 3, // Initial size
+            referrerId: referrerId,
             draws: MAX_DRAWS,
             lastDrawRefill: Date.now(),
             lastFreeDrawClaimed: 0,
@@ -233,6 +238,18 @@ export async function createUserDocument(user: User): Promise<GameData> {
             gameId: `#${user.uid.slice(0, 8).toUpperCase()}`,
             ...newGameData,
         });
+
+        // If there's a referrer, reward them
+        if (referrerId) {
+            try {
+                const referrerDocRef = doc(db, 'users', referrerId);
+                await updateDoc(referrerDocRef, {
+                    seedBagSize: increment(3)
+                });
+            } catch (e) {
+                console.error("Failed to reward referrer:", e);
+            }
+        }
 
         return newGameData;
     }
@@ -323,7 +340,7 @@ export async function waterPlant(userId: string, plantId: number): Promise<{ lev
         leveledUp = true;
         
         // Add a seed if there's space
-        if (gameData.seeds.length < MAX_SEEDS) {
+        if (gameData.seeds.length < gameData.seedBagSize) {
             await addSeed(userId);
             seedCollected = true;
         }
@@ -446,7 +463,7 @@ export async function useSprinkler(userId: string): Promise<{ plantsWatered: num
                 currentXp -= XP_PER_LEVEL;
                 currentLevel += 1;
                 // Add a seed if there's space
-                if ((gameData.seeds.length + seedsToAdd.length) < MAX_SEEDS) {
+                if ((gameData.seeds.length + seedsToAdd.length) < gameData.seedBagSize) {
                     seedsToAdd.push({ id: uuidv4(), startTime: Date.now() });
                 }
             }
@@ -704,8 +721,8 @@ export async function addSeed(userId: string): Promise<void> {
     const gameData = await getUserGameData(userId);
     if (!gameData) return;
 
-    if (gameData.seeds && gameData.seeds.length >= MAX_SEEDS) {
-        return; // Seed tray is full
+    if (gameData.seeds && gameData.seeds.length >= gameData.seedBagSize) {
+        return; // Seed bag is full
     }
 
     const newSeed: Seed = {
@@ -787,3 +804,4 @@ export async function claimLoginReward(userId: string, streakDay: number, reward
 
     await updateDoc(userDocRef, updateData);
 }
+

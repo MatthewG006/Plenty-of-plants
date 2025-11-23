@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Link from 'next/link';
@@ -6,17 +7,19 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { createUserDocument } from '@/lib/firestore';
 
-export default function SignupPage() {
+function SignupForm() {
   const router = useRouter();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const referrerId = searchParams.get('ref') || undefined;
   
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -43,8 +46,8 @@ export default function SignupPage() {
 
       await updateProfile(user, { displayName: username });
       
-      // Ensure the user document is created before navigating
-      await createUserDocument(user);
+      // Pass the referrerId to the user document creation function
+      await createUserDocument(user, referrerId);
 
       // On successful signup, route to the home page.
       router.push('/home'); 
@@ -101,3 +104,13 @@ export default function SignupPage() {
     </div>
   );
 }
+
+
+export default function SignupPage() {
+    return (
+        <Suspense fallback={<div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+            <SignupForm />
+        </Suspense>
+    )
+}
+
