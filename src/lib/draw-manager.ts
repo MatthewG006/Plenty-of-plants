@@ -78,17 +78,7 @@ export async function refundDraw(userId: string) {
     }
 }
 
-export async function hasClaimedDailyDraw(userId: string): Promise<boolean> {
-    const gameData = await getUserGameData(userId);
-    if (!gameData || !gameData.lastFreeDrawClaimed) {
-        return false;
-    }
-    const lastClaimDate = new Date(gameData.lastFreeDrawClaimed).toDateString();
-    const todayDate = new Date().toDateString();
-    return lastClaimDate === todayDate;
-}
-
-export async function claimFreeDraw(userId: string, options?: { bypassTimeCheck?: boolean, cost?: number }): Promise<{ success: boolean; newCount: number; reason?: 'max_draws' | 'already_claimed' | 'not_enough_gold' }> {
+export async function claimFreeDraw(userId: string, options?: { useGold?: boolean, cost?: number }): Promise<{ success: boolean; newCount: number; reason?: 'max_draws' | 'not_enough_gold' }> {
   const gameData = await getUserGameData(userId);
   if (!gameData) return { success: false, newCount: 0 };
   
@@ -98,11 +88,7 @@ export async function claimFreeDraw(userId: string, options?: { bypassTimeCheck?
     return { success: false, newCount: currentDraws, reason: 'max_draws' };
   }
   
-  if (!options?.bypassTimeCheck && await hasClaimedDailyDraw(userId)) {
-    return { success: false, newCount: currentDraws, reason: 'already_claimed' };
-  }
-  
-  if (options?.cost && gameData.gold < options.cost) {
+  if (options?.useGold && gameData.gold < (options.cost || 0)) {
       return { success: false, newCount: currentDraws, reason: 'not_enough_gold' };
   }
 
@@ -114,11 +100,7 @@ export async function claimFreeDraw(userId: string, options?: { bypassTimeCheck?
       draws: newCount,
   };
   
-  if (!options?.bypassTimeCheck) {
-      updateData.lastFreeDrawClaimed = now;
-  }
-  
-  if (options?.cost && options.cost > 0) {
+  if (options?.useGold && options.cost && options.cost > 0) {
       updateData.gold = increment(-options.cost);
   }
   
