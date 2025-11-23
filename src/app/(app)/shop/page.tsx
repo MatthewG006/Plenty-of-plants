@@ -20,17 +20,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { grantAdReward } from '@/app/actions/grant-ad-reward';
-
-
-const DRAW_COST_IN_GOLD = 50;
-const SPRINKLER_COST_IN_GOLD = 100;
-const SHEEN_COST_IN_GOLD = 50;
-const RAINBOW_GLITTER_COST_IN_GOLD = 60;
-const RED_GLITTER_COST_IN_GOLD = 50;
-const GLITTER_COST_IN_GOLD = 50;
-const WATER_REFILL_COST_IN_GOLD = 15;
-const BUNDLE_COST_IN_GOLD = 215;
-const PLANT_CHAT_COST_IN_RUBIES = 5;
+import PayPalPurchase from '@/components/PayPalPurchase';
 
 
 function VideoAdDialog({ open, onOpenChange, onSkip, countdown }: { open: boolean; onOpenChange: (open: boolean) => void; onSkip: () => void; countdown: number; }) {
@@ -407,24 +397,7 @@ export default function ShopPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-3 rounded-lg bg-purple-50">
-                <div>
-                    <h4 className="font-semibold text-purple-800">Seasonal Plant Pack</h4>
-                    <p className="text-sm text-purple-600">Get 5 exclusive seasonal plants!</p>
-                </div>
-                 <Button onClick={handlePremiumPurchase} className="bg-purple-500 hover:bg-purple-600">
-                    $4.99
-                </Button>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-purple-50">
-                <div>
-                    <h4 className="font-semibold text-purple-800">Fertilizer</h4>
-                    <p className="text-sm text-purple-600">Reduces seed time by 8 hours.</p>
-                </div>
-                 <Button onClick={handlePremiumPurchase} className="bg-purple-500 hover:bg-purple-600">
-                    $0.50
-                </Button>
-            </div>
+             <PayPalPurchase clientId={process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || ""} />
           </CardContent>
         </Card>
 
@@ -650,5 +623,3 @@ export default function ShopPage() {
     </div>
   );
 }
-
-    
