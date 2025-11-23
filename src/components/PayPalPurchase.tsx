@@ -20,9 +20,17 @@ async function checkTwa() {
   }
 }
 
-export default function PayPalPurchase({ clientId }: { clientId: string }) {
+interface PayPalPurchaseProps {
+    clientId: string;
+    amount: string;
+    description: string;
+    onSuccess: () => void;
+}
+
+export default function PayPalPurchase({ clientId, amount, description, onSuccess }: PayPalPurchaseProps) {
   const [enabled, setEnabled] = useState(false);
   const [ready, setReady] = useState(false);
+  const buttonContainerId = `paypal-button-container-${description.replace(/\s+/g, '-')}`;
 
   useEffect(() => {
     let cancelled = false;
@@ -33,29 +41,39 @@ export default function PayPalPurchase({ clientId }: { clientId: string }) {
       setEnabled(browserMode);
       if (!browserMode) return;
 
-      // Dynamically add PayPal SDK
-      const script = document.createElement('script');
-      script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD`;
-      script.onload = () => {
-        if (!cancelled) setReady(true);
-      };
-      script.onerror = () => {
-        if (!cancelled) setReady(false);
-      };
-      document.head.appendChild(script);
+      if (!document.querySelector('script[src*="paypal.com"]')) {
+        const script = document.createElement('script');
+        script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD`;
+        script.onload = () => {
+          if (!cancelled) setReady(true);
+        };
+        script.onerror = () => {
+          if (!cancelled) setReady(false);
+        };
+        document.head.appendChild(script);
+      } else {
+        setReady(true);
+      }
     })();
     return () => { cancelled = true; };
   }, [clientId]);
 
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || !enabled) return;
     if (!window.paypal) return;
+
+    // Clear previous button before rendering a new one
+    const container = document.getElementById(buttonContainerId);
+    if (container) {
+        container.innerHTML = '';
+    }
+
     window.paypal.Buttons({
       createOrder: async (_: any, actions: any) => {
         const r = await fetch('/createPaypalOrder', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ amount: '1.00', description: 'Gacha pack' })
+          body: JSON.stringify({ amount, description })
         });
         const j = await r.json();
         if (!r.ok) throw new Error(j.error || 'create failed');
@@ -68,12 +86,21 @@ export default function PayPalPurchase({ clientId }: { clientId: string }) {
           body: JSON.stringify({ orderID: data.orderID })
         });
         const j = await r.json();
-        if (!r.ok) { alert('Payment failed'); return; }
-        alert('Payment success');
+        if (!r.ok) { 
+            alert(`Payment failed: ${j.error || 'Unknown error'}`); 
+            return; 
+        }
+        onSuccess();
+      },
+      onError: (err: any) => {
+        console.error("PayPal button error:", err);
+        alert("An error occurred with the PayPal payment. Please try again.");
       }
-    }).render('#paypal-button-container');
-  }, [ready]);
+    }).render(`#${buttonContainerId}`);
+  }, [ready, enabled, buttonContainerId, amount, description, onSuccess]);
 
-  if (!enabled) return <div>Purchases are available only in the native app.</div>;
-  return <div id="paypal-area"><div id="paypal-button-container"></div></div>;
+  if (!enabled) return <div className="text-center text-sm text-muted-foreground">Purchases are available only in the web browser.</div>;
+  if (!ready) return <div className="text-center text-sm text-muted-foreground">Loading payment button...</div>;
+
+  return <div id={buttonContainerId}></div>;
 }

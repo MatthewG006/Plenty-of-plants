@@ -10,7 +10,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAudio } from '@/context/AudioContext';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/context/AuthContext';
-import { purchaseCosmetic, purchaseSprinkler, purchaseWaterRefill, purchaseBundle, purchasePlantChat } from '@/lib/firestore';
+import { purchaseCosmetic, purchaseSprinkler, purchaseWaterRefill, purchaseBundle, purchasePlantChat, updateUserRubies } from '@/lib/firestore';
 import { useRouter } from 'next/navigation';
 import {
   Dialog,
@@ -351,12 +351,15 @@ export default function ShopPage() {
     }
   };
 
-  const handlePremiumPurchase = () => {
-    toast({
-        title: "Coming Soon!",
-        description: "Real-money purchases are not yet implemented."
-    });
-  }
+  const handleRubyPurchaseSuccess = async () => {
+    if (!user) return;
+    try {
+      await updateUserRubies(user.uid, 5);
+      toast({ title: 'Purchase Successful!', description: 'You received 5 Rubies.' });
+    } catch (e) {
+      toast({ variant: 'destructive', title: 'Reward Error', description: 'Failed to grant rubies.' });
+    }
+  };
 
   
   if (!user || !gameData) {
@@ -420,7 +423,21 @@ export default function ShopPage() {
           </CardHeader>
           <CardContent className="space-y-4">
              {payPalClientId ? (
-                <PayPalPurchase clientId={payPalClientId} />
+                <div className="p-4 rounded-lg bg-muted/50 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="font-bold text-primary">Ruby Pack</p>
+                            <p className="text-sm text-muted-foreground">Get 5 rubies to unlock special features.</p>
+                        </div>
+                        <p className="font-bold text-lg text-primary">$0.99</p>
+                    </div>
+                    <PayPalPurchase 
+                        clientId={payPalClientId} 
+                        amount="0.99"
+                        description="5 Rubies Pack"
+                        onSuccess={handleRubyPurchaseSuccess}
+                    />
+                </div>
              ) : (
                 <div className="text-center text-muted-foreground">Loading payment options...</div>
              )}
