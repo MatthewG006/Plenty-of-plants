@@ -1,7 +1,8 @@
+
 'use server';
 
 import { auth, db } from "@/lib/firebase";
-import { claimFreeDraw, hasClaimedDailyDraw } from "@/lib/draw-manager";
+import { claimFreeDraw } from "@/lib/draw-manager";
 
 /**
  * A secure server action to grant a rewarded ad reward.
@@ -15,16 +16,8 @@ export async function grantAdReward(userId: string): Promise<{ success: boolean;
     }
 
     try {
-        // Server-side check to ensure the user hasn't already claimed the reward today.
-        // This is a crucial security step to prevent replay attacks.
-        const alreadyClaimed = await hasClaimedDailyDraw(userId);
-        if (alreadyClaimed) {
-            return { success: false, message: "Daily draw has already been claimed." };
-        }
-
-        // Use the existing claimFreeDraw logic to grant the reward.
-        // The `bypassTimeCheck` is true because we've already done the check.
-        const result = await claimFreeDraw(userId, { bypassTimeCheck: true });
+        // The daily check is removed. We grant a draw as long as they are not at max capacity.
+        const result = await claimFreeDraw(userId);
 
         if (result.success) {
             return { success: true, message: "Free draw granted successfully." };
@@ -38,3 +31,5 @@ export async function grantAdReward(userId: string): Promise<{ success: boolean;
         return { success: false, message: "An unexpected server error occurred." };
     }
 }
+
+    

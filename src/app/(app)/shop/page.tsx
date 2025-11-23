@@ -4,7 +4,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { claimFreeDraw, MAX_DRAWS, hasClaimedDailyDraw } from '@/lib/draw-manager';
+import { claimFreeDraw, MAX_DRAWS } from '@/lib/draw-manager';
 import { Gift, Coins, Leaf, Clock, Loader2, Droplets, Sparkles, Zap, Pipette, RefreshCw, Star, Package, Gem, MessageCircle, ShoppingCart, Video } from 'lucide-react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAudio } from '@/context/AudioContext';
@@ -32,19 +32,6 @@ const WATER_REFILL_COST_IN_GOLD = 15;
 const BUNDLE_COST_IN_GOLD = 215;
 const PLANT_CHAT_COST_IN_RUBIES = 5;
 
-
-function getNextDrawTimeString() {
-    const now = new Date();
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(0, 0, 0, 0);
-    
-    const diff = tomorrow.getTime() - now.getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-    return `${hours}h ${minutes}m`;
-}
 
 function VideoAdDialog({ open, onOpenChange, onSkip, countdown }: { open: boolean; onOpenChange: (open: boolean) => void; onSkip: () => void; countdown: number; }) {
   return (
@@ -88,28 +75,10 @@ export default function ShopPage() {
   const { toast } = useToast();
   const { playSfx } = useAudio();
   
-  const [dailyDrawClaimed, setDailyDrawClaimed] = useState(false);
-  const [nextDrawTime, setNextDrawTime] = useState(getNextDrawTimeString());
   const [isAdLoading, setIsAdLoading] = useState(false);
   const [showAd, setShowAd] = useState(false);
   const [countdown, setCountdown] = useState(5);
   const countdownTimerRef =  useRef<NodeJS.Timeout | null>(null);
-
-  
-  useEffect(() => {
-      const checkClaimed = async () => {
-        if (user) {
-            setDailyDrawClaimed(await hasClaimedDailyDraw(user.uid));
-        }
-      };
-      checkClaimed();
-
-      const timer = setInterval(() => {
-          setNextDrawTime(getNextDrawTimeString());
-      }, 60000);
-
-      return () => clearInterval(timer);
-  }, [user]);
 
   const onAdReward = useCallback(async () => {
     if (!user) return;
@@ -120,10 +89,9 @@ export default function ShopPage() {
     if (result.success) {
       playSfx('reward');
       toast({
-        title: "Free Draw Claimed!",
+        title: "Draw Replenished!",
         description: "You've received one free draw. Happy growing!",
       });
-      setDailyDrawClaimed(true); // Update UI to reflect the claim
     } else {
       toast({
         variant: "destructive",
@@ -320,7 +288,7 @@ export default function ShopPage() {
     }
 
     try {
-        const result = await claimFreeDraw(user.uid, { bypassTimeCheck: true, cost: DRAW_COST_IN_GOLD });
+        const result = await claimFreeDraw(user.uid, { useGold: true, cost: DRAW_COST_IN_GOLD });
         if (result.success) {
             playSfx('reward');
             toast({ title: "Purchase Successful!", description: `You bought 1 draw for ${DRAW_COST_IN_GOLD} gold.` });
@@ -413,22 +381,16 @@ export default function ShopPage() {
             <div className="flex items-center gap-4">
               <Gift className="h-8 w-8 text-primary" />
               <div>
-                <CardTitle className="text-xl">Daily Free Draw</CardTitle>
-                <CardDescription>Claim one free draw every day after watching an ad.</CardDescription>
+                <CardTitle className="text-xl">Replenish a Draw</CardTitle>
+                <CardDescription>Watch an ad to get a free draw.</CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent className="flex flex-col items-start gap-4">
             <p className="text-2xl font-bold text-chart-3">FREE</p>
-            <Button onClick={handlePreClaimFreeDraw} className="w-full font-semibold" disabled={isAdLoading || drawCount >= MAX_DRAWS || dailyDrawClaimed}>
-              {isAdLoading ? <Loader2 className="animate-spin" /> : dailyDrawClaimed ? "Claimed for Today" : drawCount >= MAX_DRAWS ? "Draws Full" : "Watch Ad for Free Draw"}
+            <Button onClick={handlePreClaimFreeDraw} className="w-full font-semibold" disabled={isAdLoading || drawCount >= MAX_DRAWS}>
+              {isAdLoading ? <Loader2 className="animate-spin" /> : drawCount >= MAX_DRAWS ? "Draws Full" : "Watch Ad for Free Draw"}
             </Button>
-            {dailyDrawClaimed && (
-                <div className="text-xs text-muted-foreground text-center w-full flex items-center justify-center gap-1.5">
-                    <Clock className="w-3 h-3" />
-                    <span>Next free draw in {nextDrawTime}</span>
-                </div>
-            )}
           </CardContent>
         </Card>
 
@@ -688,3 +650,5 @@ export default function ShopPage() {
     </div>
   );
 }
+
+    

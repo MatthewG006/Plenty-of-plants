@@ -254,7 +254,7 @@ export default function SeedsPage() {
                   <Share2 className="h-4 w-4" />
                   <AlertTitle>Want more seeds?</AlertTitle>
                   <AlertDescription>
-                    Get 3 more spots in your seed bag! Go to your <Button variant="link" asChild className="p-0 h-auto"><Link href="/profile">Profile</Link></Button> and share the game.
+                    Get 3 more slots in your seed bag! Go to your <Button variant="link" asChild className="p-0 h-auto"><Link href="/profile">Profile</Link></Button> and share the game.
                   </AlertDescription>
                 </Alert>
 
