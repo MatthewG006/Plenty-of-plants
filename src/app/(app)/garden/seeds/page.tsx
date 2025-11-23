@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -92,6 +93,14 @@ function SeedCard({ seed, processedImage, onUseFertilizer, canUseFertilizer }: {
     );
 }
 
+function EmptySeedSlot() {
+    return (
+        <div className="h-48 border-2 border-dashed border-muted-foreground/20 rounded-lg flex flex-col items-center justify-center text-muted-foreground/60">
+            <Sprout className="w-10 h-10 mb-2" />
+            <span className="text-sm">Empty Slot</span>
+        </div>
+    )
+}
 
 export default function SeedsPage() {
     const { user, gameData } = useAuth();
@@ -213,6 +222,7 @@ export default function SeedsPage() {
 
     const seeds = gameData.seeds || [];
     const canUseFertilizer = gameData.fertilizerCount > 0;
+    const seedBagSize = gameData.seedBagSize || 3;
     
     return (
         <>
@@ -221,8 +231,8 @@ export default function SeedsPage() {
                 style={{backgroundImage: "url('/garden-bg-sky.png')"}}
             >
                 <header className="flex flex-col items-center gap-2 p-4 text-center bg-background/80 backdrop-blur-sm shrink-0">
-                    <h1 className="text-3xl text-primary font-bold">My Garden</h1>
-                    <p className="text-muted-foreground">Earn seeds when your plants level up. Wait for them to germinate, then grow them!</p>
+                    <h1 className="text-3xl text-primary font-bold">My Seed Bag</h1>
+                    <p className="text-muted-foreground">You have {seedBagSize - seeds.length} empty seed slots. Earn seeds when your plants level up.</p>
                     <div className="flex gap-2 pt-2">
                         <Button asChild>
                             <Link href="/garden">
@@ -240,9 +250,10 @@ export default function SeedsPage() {
                 </header>
 
                 <main className="flex-grow p-4">
-                    {seeds.length > 0 ? (
-                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            {seeds.map(seed => {
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {Array.from({ length: seedBagSize }).map((_, index) => {
+                            const seed = seeds[index];
+                            if (seed) {
                                 const isReady = Date.now() >= seed.startTime + GERMINATION_TIME_MS;
                                 return (
                                     <div key={seed.id} className="space-y-2">
@@ -260,15 +271,17 @@ export default function SeedsPage() {
                                             {isGrowing === seed.id ? <Loader2 className="animate-spin" /> : 'Grow'}
                                         </Button>
                                     </div>
-                                )
-                            })}
-                        </div>
-                    ) : (
+                                );
+                            }
+                            return <EmptySeedSlot key={`empty-${index}`} />;
+                        })}
+                    </div>
+                    {seeds.length === 0 && (
                         <Card className="text-center py-10 mt-4">
                             <CardHeader>
-                                <CardTitle>Empty Seed Tray</CardTitle>
+                                <CardTitle>Empty Seed Bag</CardTitle>
                                 <CardContent className="pt-4">
-                                   <p className="text-muted-foreground">Water your plants in the garden. When they level up, you'll earn a new seed!</p>
+                                   <p className="text-muted-foreground">Water your plants in the garden. When they level up, you might earn a new seed!</p>
                                 </CardContent>
                             </CardHeader>
                         </Card>
@@ -287,3 +300,4 @@ export default function SeedsPage() {
         </>
     );
 }
+

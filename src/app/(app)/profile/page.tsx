@@ -1,10 +1,11 @@
 
+
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { User, LogOut, Coins, Loader2, Leaf, Sparkles, CheckCircle2, Trash2 } from 'lucide-react';
+import { User, LogOut, Coins, Loader2, Leaf, Sparkles, CheckCircle2, Trash2, Share2 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import type { Plant } from '@/interfaces/plant';
@@ -229,6 +230,28 @@ export default function ProfilePage() {
     }
   };
 
+  const handleShare = () => {
+    if (user && navigator.share) {
+        const referralLink = `${window.location.origin}/signup?ref=${user.uid}`;
+        navigator.share({
+            title: 'Join me on Plenty of Plants!',
+            text: 'Collect and grow beautiful AI-generated plants with me!',
+            url: referralLink,
+        }).then(() => {
+            toast({ title: 'Link Shared!', description: 'Thank you for sharing the game!' });
+        }).catch((error) => {
+            console.error('Error sharing:', error);
+            // Fallback for when share fails but is supported
+            navigator.clipboard.writeText(referralLink);
+            toast({ title: 'Link Copied!', description: 'Your referral link has been copied to the clipboard.' });
+        });
+    } else if (user) {
+        const referralLink = `${window.location.origin}/signup?ref=${user.uid}`;
+        navigator.clipboard.writeText(referralLink);
+        toast({ title: 'Link Copied!', description: 'Your referral link has been copied to the clipboard.' });
+    }
+  };
+
   if (!user || !gameData) {
     return (
         <div className="flex h-screen w-full items-center justify-center">
@@ -271,6 +294,8 @@ export default function ProfilePage() {
           <InfoRow label="Plants Collected" value={plantsCollected} valueClassName="text-xs" />
           <Separator />
           <InfoRow label="Plants Evolved" value={plantsEvolved} valueClassName="text-xs" />
+           <Separator />
+          <InfoRow label="Seed Bag Size" value={gameData.seedBagSize} valueClassName="text-xs" />
         </CardContent>
       </Card>
       
@@ -299,6 +324,10 @@ export default function ProfilePage() {
       <div className="flex flex-col gap-4">
         <Button onClick={handleSaveShowcase} disabled={isSaving}>
             {isSaving ? <Loader2 className="animate-spin" /> : 'Save Showcase Selection'}
+        </Button>
+        <Button variant="secondary" onClick={handleShare}>
+            <Share2 className="mr-2 h-4 w-4" />
+            Share & Expand Seed Bag
         </Button>
         <AlertDialog>
             <AlertDialogTrigger asChild>
