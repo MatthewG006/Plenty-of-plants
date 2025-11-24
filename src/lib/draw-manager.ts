@@ -79,12 +79,18 @@ export async function refundDraw(userId: string) {
 }
 
 export async function claimFreeDraw(userId: string, options?: { useGold?: boolean, cost?: number }): Promise<{ success: boolean; newCount: number; reason?: 'max_draws' | 'not_enough_gold' }> {
+  const userDocRef = doc(db, 'users', userId);
   const gameData = await getUserGameData(userId);
   if (!gameData) return { success: false, newCount: 0 };
-  
+
   let currentDraws = gameData.draws || 0;
 
   if (currentDraws >= MAX_DRAWS) {
+    // Even if draws are full, we may need to update the timer if it's the first time claiming today
+    // and there's no specific gold cost associated (i.e., it's a free ad-based draw).
+    if (!options?.useGold) {
+        await updateDoc(userDocRef, { lastDrawRefill: Date.now() });
+    }
     return { success: false, newCount: currentDraws, reason: 'max_draws' };
   }
   
@@ -95,7 +101,6 @@ export async function claimFreeDraw(userId: string, options?: { useGold?: boolea
   const newCount = currentDraws + 1;
   const now = Date.now();
   
-  const userDocRef = doc(db, 'users', userId);
   const updateData: any = {
       draws: newCount,
   };
@@ -104,7 +109,8 @@ export async function claimFreeDraw(userId: string, options?: { useGold?: boolea
       updateData.gold = increment(-options.cost);
   }
   
-  // If we just added the last draw to become full, we don't need a timer.
+  // If we just added the last draw to become full, the timer is now irrelevant until a draw is used.
+  // We can set it to now, which correctly reflects the state.
   if (newCount === MAX_DRAWS) {
       updateData.lastDrawRefill = now;
   }
@@ -113,5 +119,3 @@ export async function claimFreeDraw(userId: string, options?: { useGold?: boolea
 
   return { success: true, newCount: newCount };
 }
-
-    
