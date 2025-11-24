@@ -1,27 +1,23 @@
-
 import { NextResponse } from 'next/server';
-import { doc, updateDoc, increment } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { purchaseTimeReducer } from '@/lib/firestore';
 
-export async function POST(request: Request) {
-    try {
-        const { userId } = await request.json();
-        if (!userId) {
-            return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
-        }
+export async function POST(req: Request) {
+  try {
+    const { userId } = await req.json();
 
-        const userDocRef = doc(db, 'users', userId);
-
-        await updateDoc(userDocRef, {
-            fertilizerCount: increment(1)
-        });
-
-        return NextResponse.json({ status: 'success' });
-
-    } catch (error: any) {
-        console.error('Internal Server Error:', error);
-        return NextResponse.json({ error: error.message || 'An internal error occurred' }, { status: 500 });
+    if (!userId) {
+      return new NextResponse('User ID is required.', { status: 400 });
     }
-}
 
-    
+    await purchaseTimeReducer(userId);
+
+    return NextResponse.json({ success: true, message: 'Fertilizer purchased successfully.' });
+  } catch (error) {
+    console.error('Fertilizer Purchase API Error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+    return new NextResponse(
+      JSON.stringify({ message: `Failed to process fertilizer purchase: ${errorMessage}` }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+}

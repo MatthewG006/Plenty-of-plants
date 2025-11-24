@@ -11,7 +11,7 @@ export default function PublicRoute({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     if (!loading && user) {
-      router.push("/");
+      router.push("/home");
     }
   }, [user, loading, router]);
 

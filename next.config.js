@@ -31,13 +31,6 @@ const nextConfig = {
     NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
     NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
   },
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      // These modules are not used in the client bundle, so we can ignore them.
-      config.externals.push('@opentelemetry/instrumentation', 'require-in-the-middle');
-    }
-    return config
-  }
 };
-// Triggering a rebuild to fix module loading error
+
 module.exports = nextConfig;

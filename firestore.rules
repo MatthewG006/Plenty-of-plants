@@ -17,7 +17,18 @@ service cloud.firestore {
       // to update *only* the 'likes' and 'gold' fields.
       allow update: if request.auth != null 
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'gold', 'likedUsers']);
+      
+      // A user can read and write to all of their own subcollections.
+      // This includes game data, plants, arrangements, etc.
+      match /{allPaths=**} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
 
+    // Rules for the 'community-plants' collection
+    match /community-plants/{plantId} {
+        // Allow any authenticated user to read community plants
+        allow read: if request.auth != null;
     }
 
     // Rules for the 'contestSessions' collection
