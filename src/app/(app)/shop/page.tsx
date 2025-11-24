@@ -354,16 +354,19 @@ export default function ShopPage() {
   };
 
   const handlePurchaseSuccess = async (endpoint: string, successMessage: string, errorMessage: string, details?: any) => {
+    if (!user) return;
     try {
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user?.uid, ...(details || {}) }),
+        body: JSON.stringify({ userId: user.uid, ...(details || {}) }),
       });
       if (!res.ok) throw new Error(await res.text());
+      playSfx('reward');
       toast({ title: 'Purchase Successful!', description: successMessage });
-    } catch (e) {
-      toast({ variant: 'destructive', title: 'Reward Error', description: errorMessage });
+    } catch (e: any) {
+      console.error(`Error rewarding purchase for ${endpoint}:`, e);
+      toast({ variant: 'destructive', title: 'Reward Error', description: `${errorMessage}: ${e.message}` });
     }
   };
 
@@ -465,16 +468,13 @@ export default function ShopPage() {
                       <div className="flex items-center justify-between">
                           <div>
                               <p className="font-bold text-primary">Seasonal Plant Pack</p>
-                              <p className="text-sm text-muted-foreground">Get 5 unique, limited-time plants!</p>
+                              <p className="text-sm text-muted-foreground">Get unique, limited-time plants! Check back for new releases.</p>
                           </div>
                           <p className="font-bold text-lg text-primary">$5.00</p>
                       </div>
-                      <PayPalPurchase
-                          clientId={payPalClientId} 
-                          amount="5.00"
-                          description="Seasonal Plant Pack"
-                          onSuccess={(details) => handlePurchaseSuccess('/api/on-seasonal-purchase', 'You received a new seasonal plant!', 'Failed to grant seasonal plant.', details)}
-                      />
+                      <Button disabled className="w-full">
+                        Coming Soon!
+                      </Button>
                   </div>
                 </>
              ) : (
@@ -705,7 +705,3 @@ export default function ShopPage() {
     </div>
   );
 }
-
-    
-
-    
