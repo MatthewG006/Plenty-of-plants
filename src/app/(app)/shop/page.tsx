@@ -411,7 +411,7 @@ export default function ShopPage() {
           <CardContent className="flex flex-col items-start gap-4">
             <p className="text-2xl font-bold text-chart-3">FREE</p>
             <Button onClick={handlePreClaimFreeDraw} className="w-full font-semibold" disabled={isAdLoading || drawCount >= MAX_DRAWS}>
-              {isAdLoading ? <Loader2 className="animate-spin" /> : drawCount >= MAX_DRAWS ? "Draws Full" : "Watch Ad for Free Draw"}
+              {isAdLoading ? <Loader2 className="animate-spin" /> : drawCount >= MAX_DRAWS ? "Draws Full" : "Watch Ad"}
             </Button>
           </CardContent>
         </Card>
