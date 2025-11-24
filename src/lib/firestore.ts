@@ -1,807 +1,645 @@
 
+import {
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  updateDoc,
+  collection,
+  query,
+  where,
+  increment,
+  arrayUnion,
+  arrayRemove,
+  writeBatch,
+  deleteDoc,
+  orderBy,
+  limit,
+  startAfter,
+  Timestamp,
+} from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db } from '@/lib/firebase';
+import type { Plant, PlantArrangement, User, DailyChallenge, GameData, PlantId, CosmeticId } from '@/lib/types';
+import { CHALLENGE_DATA } from '@/challenge-data';
+import { प्लांट } from '@/plant-data';
+import { cos } from 'react-spring';
 
-import { doc, getDoc, setDoc, getFirestore, updateDoc, arrayUnion, DocumentData, writeBatch, increment, collection, getDocs, query, where, limit, deleteDoc, arrayRemove, runTransaction, Timestamp } from 'firebase/firestore';
-import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
-import { app, db, auth } from './firebase';
-import type { Plant, Seed, CommunityUser, ContestSession, Contestant } from '@/interfaces/plant';
-import type { DrawPlantOutput } from '@/interfaces/plant';
-import { User } from 'firebase/auth';
-import { MAX_DRAWS } from './draw-manager';
-import { v4 as uuidv4 } from 'uuid';
+export type { Plant, PlantArrangement, User, DailyChallenge, GameData, PlantId, CosmeticId };
 
-export const NUM_POTS = 3;
-export const NUM_GARDEN_PLOTS = 12;
-const MAX_WATERINGS_PER_DAY = 4;
-const XP_PER_WATERING = 200;
-const XP_PER_LEVEL = 1000;
-const GOLD_PER_WATERING = 5;
-const EVOLUTION_LEVEL = 10;
-const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const BASE_GOLD_REWARD = 2;
 
-export interface GameData {
-    gold: number;
-    plants: Record<string, Plant>;
-    collectionPlantIds: number[];
-    deskPlantIds: (number | null)[];
-    gardenPlantIds: (number | null)[];
-    seeds: Seed[];
-    seedBagSize: number; // New field for inventory limit
-    referrerId?: string; // New field for referral tracking
-    draws: number;
-    lastDrawRefill: number;
-    lastFreeDrawClaimed: number;
-    lastLoginBonusClaimed: number;
-    loginStreak: number;
-    sprinklerUnlocked: boolean;
-    glitterCount: number;
-    sheenCount: number;
-    rainbowGlitterCount: number;
-    redGlitterCount: number;
-    fertilizerCount: number;
-    showcasePlantIds: number[];
-    challenges: Record<string, { progress: number, claimed: boolean }>;
-    challengesStartDate: number;
-    likes: number;
-    likedUsers: Record<string, number>; // UID -> timestamp
-    autoWaterUnlocked?: boolean;
-    autoWaterEnabled?: boolean;
-    waterRefillCount: number;
-    rubyCount: number;
-    plantChatTokens: number;
-}
+export async function createUserDocument(user: { uid: string; email: string | null }): Promise<void> {
+  const userRef = doc(db, 'users', user.uid);
+  const userSnap = await getDoc(userRef);
 
-// Helper function to upload an image data URI and get its URL
-export async function uploadImageAndGetURL(userId: string, plantId: number, imageDataUri: string): Promise<string> {
-    const storage = getStorage(app);
-    // Use a unique path for the image, including a timestamp to bust caches on re-evolution
-    const imagePath = `users/${userId}/plants/${plantId}-${Date.now()}.jpg`;
-    const imageRef = ref(storage, imagePath);
-
-    const base64String = imageDataUri.split(',')[1];
-    const snapshot = await uploadString(imageRef, base64String, 'base64', {
-        contentType: 'image/jpeg'
-    });
-
-    return getDownloadURL(snapshot.ref);
-}
-
-
-// Helper to check if a timestamp is from the current day
-function isToday(timestamp: number): boolean {
-    const today = new Date();
-    const someDate = new Date(timestamp);
-    return someDate.getDate() === today.getDate() &&
-           someDate.getMonth() === today.getMonth() &&
-           someDate.getFullYear() === today.getFullYear();
-}
-
-export async function getUserGameData(userId: string): Promise<GameData | null> {
-    const docRef = doc(db, 'users', userId);
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-        const data = docSnap.data();
-        
-        let likedUsersData = data.likedUsers || {};
-        // Backwards compatibility for old array format
-        if (Array.isArray(data.likedUsers)) {
-            likedUsersData = data.likedUsers.reduce((acc: Record<string, number>, uid: string) => {
-                acc[uid] = 1; // Give old likes a timestamp of 1 to make them permanent but identifiable
-                return acc;
-            }, {});
-        }
-
-        // Ensure default values if fields are missing
-        return {
-            gold: data.gold || 0,
-            plants: data.plants || {},
-            collectionPlantIds: data.collectionPlantIds || [],
-            deskPlantIds: data.deskPlantIds || Array(NUM_POTS).fill(null),
-            gardenPlantIds: data.gardenPlantIds || Array(NUM_GARDEN_PLOTS).fill(null),
-            seeds: data.seeds || [],
-            seedBagSize: data.seedBagSize || 3,
-            referrerId: data.referrerId,
-            draws: data.draws ?? MAX_DRAWS,
-            lastDrawRefill: data.lastDrawRefill || Date.now(),
-            lastFreeDrawClaimed: data.lastFreeDrawClaimed || 0,
-            lastLoginBonusClaimed: data.lastLoginBonusClaimed || 0,
-            loginStreak: data.loginStreak || 0,
-            sprinklerUnlocked: data.sprinklerUnlocked || false,
-            glitterCount: data.glitterCount || 0,
-            sheenCount: data.sheenCount || 0,
-            rainbowGlitterCount: data.rainbowGlitterCount || 0,
-            redGlitterCount: data.redGlitterCount || 0,
-            fertilizerCount: data.fertilizerCount || 0,
-            showcasePlantIds: data.showcasePlantIds || [],
-            challenges: data.challenges || {},
-            challengesStartDate: data.challengesStartDate || 0,
-            likes: data.likes || 0,
-            likedUsers: likedUsersData,
-            autoWaterUnlocked: data.autoWaterUnlocked || false,
-            autoWaterEnabled: data.autoWaterEnabled || false,
-            waterRefillCount: data.waterRefillCount || 0,
-            rubyCount: data.rubyCount || 0,
-            plantChatTokens: data.plantChatTokens || 0,
-        };
-    } else {
-        return null;
-    }
-}
-
-export async function getCommunityUsers(): Promise<CommunityUser[]> {
-    const usersCollection = collection(db, 'users');
-    const querySnapshot = await getDocs(usersCollection);
-
-    const communityUsers: CommunityUser[] = [];
-
-    querySnapshot.forEach(docSnap => {
-        const data = docSnap.data();
-        const allPlants = data.plants || {};
-        const showcasePlantIds = data.showcasePlantIds || [];
-        
-        const showcasePlants = showcasePlantIds
-            .map((id: number) => allPlants[id])
-            .filter(Boolean);
-
-        communityUsers.push({
-            uid: docSnap.id,
-            username: data.username || 'Anonymous',
-            avatarColor: data.avatarColor || 'hsl(120, 70%, 85%)',
-            showcasePlants: showcasePlants,
-            likes: data.likes || 0,
-            gold: data.gold || 0,
-        });
-    });
-
-    return communityUsers.sort((a, b) => b.likes - a.likes);
-}
-
-
-export async function getPlantById(userId: string, plantId: number): Promise<Plant | null> {
-    const gameData = await getUserGameData(userId);
-    if (!gameData || !gameData.plants) return null;
-
-    return gameData.plants[plantId] || null;
-}
-
-// This function creates a personal document for each new user in the 'users' collection.
-// The document's ID is the user's unique authentication ID (user.uid).
-// This document holds all the persistent data for that specific player. Each player is
-// its own document, rather than being a "node" in a larger tree.
-export async function createUserDocument(user: User, referrerId?: string): Promise<GameData> {
-    const docRef = doc(db, 'users', user.uid);
-    const docSnap = await getDoc(docRef);
-
-    if (!docSnap.exists()) {
-        const hue = Math.floor(Math.random() * 360);
-        const avatarColor = `hsl(${hue}, 70%, 85%)`;
-
-        const startingPlant: Plant = {
-            id: 1,
-            name: "Friendly Fern",
-            description: "A happy little fern to start your collection.",
-            image: "/fern.png",
-            baseImage: '',
-            hint: "fern.png",
-            form: "Base",
-            level: 1,
-            xp: 0,
-            lastWatered: [],
-            hasGlitter: false,
-            hasSheen: false,
-            hasRainbowGlitter: false,
-            hasRedGlitter: false,
-            personality: '',
-            chatEnabled: false,
-            conversationHistory: [],
-        };
-        
-        const newGameData: GameData = {
-            gold: 20, // Start with bonus
-            plants: { '1': startingPlant },
-            collectionPlantIds: [],
-            deskPlantIds: Array(NUM_POTS).fill(null),
-            gardenPlantIds: Array(NUM_GARDEN_PLOTS).fill(null),
-            seeds: [],
-            seedBagSize: 3, // Initial size
-            referrerId: referrerId,
-            draws: MAX_DRAWS,
-            lastDrawRefill: Date.now(),
-            lastFreeDrawClaimed: 0,
-            lastLoginBonusClaimed: 0,
-            loginStreak: 0,
-            sprinklerUnlocked: false,
-            glitterCount: 0,
-            sheenCount: 0,
-            rainbowGlitterCount: 0,
-            redGlitterCount: 0,
-            fertilizerCount: 0,
-            showcasePlantIds: [],
-            challenges: {},
-            challengesStartDate: Date.now(),
-            likes: 0,
-            likedUsers: {},
-            autoWaterUnlocked: false,
-            autoWaterEnabled: false,
-            waterRefillCount: 0,
-            rubyCount: 0,
-            plantChatTokens: 0,
-        };
-
-        newGameData.deskPlantIds[0] = 1;
-
-
-        await setDoc(docRef, {
-            email: user.email,
-            username: user.displayName,
-            avatarColor: avatarColor,
-            gameId: `#${user.uid.slice(0, 8).toUpperCase()}`,
-            ...newGameData,
-        });
-
-        // If there's a referrer, reward them
-        if (referrerId) {
-            try {
-                const referrerDocRef = doc(db, 'users', referrerId);
-                await updateDoc(referrerDocRef, {
-                    seedBagSize: increment(3)
-                });
-            } catch (e) {
-                console.error("Failed to reward referrer:", e);
-            }
-        }
-
-        return newGameData;
-    }
-    
-    return (await getUserGameData(user.uid))!;
-}
-
-export async function savePlant(userId: string, plantData: DrawPlantOutput): Promise<Plant> {
-    const userDocRef = doc(db, 'users', userId);
-    const gameData = await getUserGameData(userId);
-
-    if (!gameData) {
-        throw new Error("User data not found, cannot save plant.");
-    }
-    
-    const allPlantIds = Object.keys(gameData.plants).map(Number);
-    const lastId = allPlantIds.length > 0 ? Math.max(...allPlantIds) : 0;
-    const newPlantId = lastId + 1;
-
-    const imageUrl = await uploadImageAndGetURL(userId, newPlantId, plantData.imageDataUri);
-
-    const newPlant: Plant = {
-        id: newPlantId,
-        name: plantData.name || 'Mysterious Sprout',
-        description: plantData.description || 'A new plant has arrived.',
-        image: imageUrl, // Store the URL, not the data URI
-        baseImage: '', // baseImage is now set upon first evolution
-        hint: plantData.hint || '',
-        form: 'Base',
-        level: 1,
-        xp: 0,
-        lastWatered: [],
-        hasGlitter: false,
-        hasSheen: false,
-        hasRainbowGlitter: false,
-        hasRedGlitter: false,
-        personality: '',
-        chatEnabled: false,
-        conversationHistory: [],
+  if (!userSnap.exists()) {
+    const { uid, email } = user;
+    const initialUserData: User = {
+      email: email || '',
+      uid,
+      likes: 0,
+      showcasePlants: [],
+      lastOnline: new Date(),
+      // @ts-ignore
+      createdAt: new Date(),
     };
-    
-    const firstEmptyPotIndex = gameData.deskPlantIds.findIndex(id => id === null);
+    await setDoc(userRef, initialUserData);
 
-    const updatePayload: { [key: string]: any } = {
-        [`plants.${newPlant.id}`]: newPlant,
+    const gameDataRef = doc(db, 'users', uid, 'game-data', 'data');
+    const initialGameData: GameData = {
+      gold: 50,
+      draws: 2,
+      lastDrawRefill: Date.now(),
+      fertilizer: 0,
+      waterRefills: 0,
+      sprinklers: 0,
+      sheen: 0,
+      glitter: 0,
+      redGlitter: 0,
+      rainbowGlitter: 0,
+      loginRewards: {
+        lastClaimed: 0,
+        streak: 0,
+      },
+      ownedCosmetics: ['plant-pot-brown'],
+      ownedPlants: ['plant-pothos'],
+      plantChats: [],
+      activeChallenges: [],
+      completedChallenges: [],
+      seasonalCurrency: 0,
     };
-    
-    if (firstEmptyPotIndex !== -1) {
-        const newDeskPlantIds = [...gameData.deskPlantIds];
-        newDeskPlantIds[firstEmptyPotIndex] = newPlant.id;
-        updatePayload.deskPlantIds = newDeskPlantIds;
-    } else {
-        updatePayload.collectionPlantIds = arrayUnion(newPlant.id);
-    }
-    
-    await updateDoc(userDocRef, updatePayload);
-    
-    return newPlant;
+    await setDoc(gameDataRef, initialGameData);
+  }
 }
 
-
-export async function waterPlant(userId: string, plantId: number): Promise<{ leveledUp: boolean, xpGained: number, newLevel: number, seedCollected: boolean }> {
-    const userDocRef = doc(db, 'users', userId);
-    const gameData = await getUserGameData(userId);
-
-    if (!gameData) {
-        throw new Error("User data not found.");
-    }
-
-    const plant = gameData.plants[plantId];
-    if (!plant) {
-        throw new Error("Plant not found.");
-    }
-
-    const timesWateredToday = plant.lastWatered.filter(isToday).length;
-    if (timesWateredToday >= MAX_WATERINGS_PER_DAY) {
-        throw new Error("This plant has been fully watered for today.");
-    }
-
-    let currentXp = plant.xp + XP_PER_WATERING;
-    let currentLevel = plant.level;
-    let leveledUp = false;
-    let seedCollected = false;
-
-    while (currentXp >= XP_PER_LEVEL) {
-        currentXp -= XP_PER_LEVEL;
-        currentLevel += 1;
-        leveledUp = true;
-        
-        // Add a seed if there's space
-        if (gameData.seeds.length < gameData.seedBagSize) {
-            await addSeed(userId);
-            seedCollected = true;
-        }
-    }
-
-    const updates: { [key: string]: any } = {
-        [`plants.${plantId}.xp`]: currentXp,
-        [`plants.${plantId}.level`]: currentLevel,
-        [`plants.${plantId}.lastWatered`]: arrayUnion(Date.now()),
-        gold: increment(GOLD_PER_WATERING)
-    };
-
-    await updateDoc(userDocRef, updates);
-
-    return { leveledUp, xpGained: XP_PER_WATERING, newLevel: currentLevel, seedCollected };
+export async function getUser(uid: string): Promise<User | null> {
+  const userRef = doc(db, 'users', uid);
+  const userSnap = await getDoc(userRef);
+  return userSnap.exists() ? (userSnap.data() as User) : null;
 }
 
+export async function getUserGameData(uid: string): Promise<GameData | null> {
+  const gameDataRef = doc(db, 'users', uid, 'game-data', 'data');
+  const gameDataSnap = await getDoc(gameDataRef);
+  return gameDataSnap.exists() ? (gameDataSnap.data() as GameData) : null;
+}
 
-export async function updatePlantArrangement(userId: string, collectionPlantIds: number[], deskPlantIds: (number | null)[]) {
-    await updateDoc(doc(db, 'users', userId), { 
-        collectionPlantIds: collectionPlantIds, 
-        deskPlantIds: deskPlantIds
+export async function getPlant(uid: string, plantId: string): Promise<Plant | null> {
+  const plantRef = doc(db, 'users', uid, 'plants', plantId);
+  const plantSnap = await getDoc(plantRef);
+  return plantSnap.exists() ? (plantSnap.data() as Plant) : null;
+}
+
+export async function getPlants(uid: string): Promise<Plant[]> {
+  const plantsRef = collection(db, 'users', uid, 'plants');
+  const plantsSnap = await getDocs(plantsRef);
+  return plantsSnap.docs.map((doc) => doc.data() as Plant);
+}
+
+export async function savePlant(uid: string, plant: Plant): Promise<void> {
+  const plantRef = doc(db, 'users', uid, 'plants', plant.id);
+  await setDoc(plantRef, plant);
+}
+
+export async function deletePlant(uid: string, plantId: string): Promise<void> {
+  const plantRef = doc(db, 'users', uid, 'plants', plantId);
+  await deleteDoc(plantRef);
+}
+
+export async function updatePlant(uid: string, plantId: string, updates: Partial<Plant>): Promise<void> {
+  const plantRef = doc(db, 'users', uid, 'plants', plantId);
+  await updateDoc(plantRef, updates);
+}
+
+export async function getGardenArrangement(uid: string): Promise<PlantArrangement | null> {
+  const gardenRef = doc(db, 'users', uid, 'arrangements', 'garden');
+  const gardenSnap = await getDoc(gardenRef);
+  return gardenSnap.exists() ? (gardenSnap.data() as PlantArrangement) : null;
+}
+
+export async function updateGardenArrangement(uid: string, arrangement: PlantArrangement): Promise<void> {
+  const gardenRef = doc(db, 'users', uid, 'arrangements', 'garden');
+  await setDoc(gardenRef, arrangement, { merge: true });
+}
+
+export async function waterPlant(uid: string, plantId: string): Promise<void> {
+  const plantRef = doc(db, 'users', uid, 'plants', plantId);
+  await updateDoc(plantRef, {
+    lastWatered: new Date(),
+    isThirsty: false,
+  });
+}
+
+export async function growSeed(uid: string, seedId: string, plantId: PlantId): Promise<void> {
+  const batch = writeBatch(db);
+
+  const seedRef = doc(db, 'users', uid, 'seeds', seedId);
+  batch.delete(seedRef);
+
+  const newPlantData: Plant = {
+    id: plantId,
+    lastWatered: new Date(),
+    isThirsty: false,
+    isDead: false,
+    customImage: null,
+    level: 1,
+    xp: 0,
+    showcased: false,
+    hasBeenWatered: false,
+    conversations: [],
+    fertilizerApplied: false,
+    cosmetic: 'plant-pot-brown',
+    lastLove: new Date(),
+  };
+
+  const plantRef = doc(db, 'users', uid, 'plants', plantId);
+  batch.set(plantRef, newPlantData);
+
+  await batch.commit();
+}
+
+export async function useFertilizer(uid: string, plantId: string): Promise<{ success: boolean }> {
+  const gameDataRef = doc(db, 'users', uid, 'game-data', 'data');
+  const gameDataSnap = await getDoc(gameDataRef);
+
+  if (gameDataSnap.exists() && gameDataSnap.data().fertilizer > 0) {
+    const plantRef = doc(db, 'users', uid, 'plants', plantId);
+    await updateDoc(plantRef, {
+      fertilizerApplied: true,
     });
-}
-
-export async function updateGardenArrangement(userId: string, collectionPlantIds: number[], gardenPlantIds: (number | null)[]) {
-    await updateDoc(doc(db, 'users', userId), {
-        collectionPlantIds: collectionPlantIds,
-        gardenPlantIds: gardenPlantIds
+    await updateDoc(gameDataRef, {
+      fertilizer: increment(-1),
     });
+    return { success: true };
+  }
+  return { success: false };
 }
 
-export async function updatePlant(userId: string, plantId: number, plantUpdateData: Partial<Plant> | { [key: string]: any }) {
-    const userDocRef = doc(db, 'users', userId);
-    
-    let updates: { [key: string]: any } = {};
-    
-    // This allows for updating top-level fields on the user document if needed,
-    // though it's primarily designed for updating nested plant properties.
-    if (plantId === 0) {
-        updates = { ...plantUpdateData };
-    } else {
-        for (const [key, value] of Object.entries(plantUpdateData)) {
-            updates[`plants.${plantId}.${key}`] = value;
-        }
-    }
+export async function useSprinkler(uid: string): Promise<{ success: boolean }> {
+  const gameDataRef = doc(db, 'users', uid, 'game-data', 'data');
+  const gameDataSnap = await getDoc(gameDataRef);
 
-    if (Object.keys(updates).length > 0) {
-        await updateDoc(userDocRef, updates);
-    }
-}
-
-
-export async function updateUserGold(userId: string, amount: number) {
-    const userDocRef = doc(db, 'users', userId);
-    await updateDoc(userDocRef, {
-        gold: increment(amount)
-    });
-}
-
-export async function updateUserRubies(userId: string, amount: number) {
-    const userDocRef = doc(db, 'users', userId);
-    await updateDoc(userDocRef, {
-        rubyCount: increment(amount)
-    });
-}
-
-export async function purchaseSprinkler(userId: string, cost: number): Promise<void> {
-    const userDocRef = doc(db, 'users', userId);
-    const gameData = await getUserGameData(userId);
-
-    if (!gameData || gameData.gold < cost) {
-        throw new Error("Not enough gold to purchase.");
-    }
-     if (gameData.sprinklerUnlocked) {
-        throw new Error("Sprinkler already owned.");
-    }
-    
-    await updateDoc(userDocRef, {
-        gold: increment(-cost),
-        sprinklerUnlocked: true
-    });
-}
-
-export async function useSprinkler(userId: string): Promise<{ plantsWatered: number; seedsCollected: number; newlyEvolvablePlants: number[] }> {
-    const userDocRef = doc(db, 'users', userId);
-    const gameData = await getUserGameData(userId);
-
-    if (!gameData) {
-        throw new Error("User data not found.");
-    }
-
-    const allPlants = Object.values(gameData.plants || {});
-    if (allPlants.length === 0) {
-        return { plantsWatered: 0, seedsCollected: 0, newlyEvolvablePlants: [] };
-    }
-
-    let totalPlantsWatered = 0;
-    const newlyEvolvablePlants: number[] = [];
-    let seedsToAdd: Seed[] = [];
-    const updates: { [key: string]: any } = {};
-
-    for (const plant of allPlants) {
-        const timesWateredToday = plant.lastWatered.filter(isToday).length;
-        if (timesWateredToday >= MAX_WATERINGS_PER_DAY) {
-            continue; // Already fully watered today
-        }
-        
-        const wateringsToApply = MAX_WATERINGS_PER_DAY - timesWateredToday;
-        
-        let currentXp = plant.xp;
-        let currentLevel = plant.level;
-        const wasEvolvable = (currentLevel >= EVOLUTION_LEVEL && plant.form === 'Base') || (currentLevel >= 25 && plant.form === 'Evolved');
-        const newTimestamps = [...plant.lastWatered];
-        
-        for (let i = 0; i < wateringsToApply; i++) {
-            newTimestamps.push(Date.now() + i); // Add unique timestamp for each watering
-            currentXp += XP_PER_WATERING;
-            while(currentXp >= XP_PER_LEVEL) {
-                currentXp -= XP_PER_LEVEL;
-                currentLevel += 1;
-                // Add a seed if there's space
-                if ((gameData.seeds.length + seedsToAdd.length) < gameData.seedBagSize) {
-                    seedsToAdd.push({ id: uuidv4(), startTime: Date.now() });
-                }
-            }
-        }
-        
-        updates[`plants.${plant.id}.xp`] = currentXp;
-        updates[`plants.${plant.id}.level`] = currentLevel;
-        updates[`plants.${plant.id}.lastWatered`] = newTimestamps;
-
-        const isNowEvolvable = (currentLevel >= EVOLUTION_LEVEL && plant.form === 'Base') || (currentLevel >= 25 && plant.form === 'Evolved');
-        if (isNowEvolvable && !wasEvolvable) {
-            newlyEvolvablePlants.push(plant.id);
-        }
-        
-        if (wateringsToApply > 0) {
-            totalPlantsWatered++;
-        }
-    }
-
-    if (totalPlantsWatered > 0) {
-        if (seedsToAdd.length > 0) {
-            updates.seeds = arrayUnion(...seedsToAdd);
-        }
-        await updateDoc(userDocRef, updates);
-    }
-    
-    return { plantsWatered: totalPlantsWatered, seedsCollected: seedsToAdd.length, newlyEvolvablePlants };
-}
-
-
-export async function purchaseCosmetic(userId: string, cosmetic: 'glitterCount' | 'sheenCount' | 'rainbowGlitterCount' | 'redGlitterCount', quantity: number, cost: number) {
-    const userDocRef = doc(db, 'users', userId);
-    const gameData = await getUserGameData(userId);
-
-    if (!gameData || gameData.gold < cost) {
-        throw new Error("Not enough gold to purchase.");
-    }
-
-    await updateDoc(userDocRef, {
-        gold: increment(-cost),
-        [cosmetic]: increment(quantity)
-    });
-}
-
-export async function purchaseBundle(userId: string, cost: number): Promise<void> {
-    const userDocRef = doc(db, 'users', userId);
-    const gameData = await getUserGameData(userId);
-
-    if (!gameData || gameData.gold < cost) {
-        throw new Error("Not enough gold to purchase the bundle.");
-    }
-
-    await updateDoc(userDocRef, {
-        gold: increment(-cost),
-        glitterCount: increment(1),
-        sheenCount: increment(1),
-        rainbowGlitterCount: increment(1),
-        redGlitterCount: increment(1),
-        waterRefillCount: increment(1),
-    });
-}
-
-export async function useGlitter(userId: string) {
-    const userDocRef = doc(db, 'users', userId);
-    const gameData = await getUserGameData(userId);
-
-    if (!gameData || gameData.glitterCount <= 0) {
-        throw new Error("No glitter to use.");
-    }
-
-    await updateDoc(userDocRef, {
-        glitterCount: increment(-1)
-    });
-}
-
-export async function useSheen(userId: string) {
-    const userDocRef = doc(db, 'users', userId);
-    const gameData = await getUserGameData(userId);
-
-    if (!gameData || gameData.sheenCount <= 0) {
-        throw new Error("No sheen packs to use.");
-    }
-
-    await updateDoc(userDocRef, {
-        sheenCount: increment(-1)
-    });
-}
-
-export async function useRainbowGlitter(userId: string) {
-    const userDocRef = doc(db, 'users', userId);
-    const gameData = await getUserGameData(userId);
-
-    if (!gameData || gameData.rainbowGlitterCount <= 0) {
-        throw new Error("No rainbow glitter packs to use.");
-    }
-
-    await updateDoc(userDocRef, {
-        rainbowGlitterCount: increment(-1)
-    });
-}
-
-export async function useRedGlitter(userId: string) {
-    const userDocRef = doc(db, 'users', userId);
-    const gameData = await getUserGameData(userId);
-
-    if (!gameData || gameData.redGlitterCount <= 0) {
-        throw new Error("No red glitter packs to use.");
-    }
-
-    await updateDoc(userDocRef, {
-        redGlitterCount: increment(-1)
-    });
-}
-
-export async function deletePlant(userId: string, plantId: number) {
-    const userDocRef = doc(db, 'users', userId);
-    const gameData = await getUserGameData(userId);
-
-    if (!gameData || !gameData.plants[plantId]) {
-        throw new Error("Plant not found for deletion.");
-    }
-
-    // This creates a new object without the deleted plant's key.
-    const { [`${plantId}`]: _, ...remainingPlants } = gameData.plants;
-
-    const newDeskPlantIds = gameData.deskPlantIds.map(id => (id === plantId ? null : id));
-    const newGardenPlantIds = gameData.gardenPlantIds.map(id => (id === plantId ? null : id));
-    const newCollectionPlantIds = gameData.collectionPlantIds.filter(id => id !== plantId);
-    const newShowcasePlantIds = gameData.showcasePlantIds.filter(id => id !== plantId);
-
-    await updateDoc(userDocRef, {
-        plants: remainingPlants,
-        deskPlantIds: newDeskPlantIds,
-        gardenPlantIds: newGardenPlantIds,
-        collectionPlantIds: newCollectionPlantIds,
-        showcasePlantIds: newShowcasePlantIds,
-    });
-}
-
-
-export async function updateShowcasePlants(userId: string, plantIds: number[]) {
-    const userDocRef = doc(db, 'users', userId);
-    await updateDoc(userDocRef, {
-        showcasePlantIds: plantIds,
-    });
-}
-
-export async function likeUser(likerUid: string, likedUid: string) {
-    const likerDocRef = doc(db, 'users', likerUid);
-    const likedDocRef = doc(db, 'users', likedUid);
-    const likerData = await getUserGameData(likerUid);
-
-    if (!likerData) throw new Error("Liker data not found.");
-    if (likerUid === likedUid) throw new Error("You cannot like yourself.");
-    
-    const now = Date.now();
-    const lastLikedTimestamp = likerData.likedUsers[likedUid];
-
-    if (lastLikedTimestamp && (now - lastLikedTimestamp < ONE_DAY_MS)) {
-        throw new Error("You have already liked this user today.");
-    }
-
+  if (gameDataSnap.exists() && gameDataSnap.data().sprinklers > 0) {
+    const plantsRef = collection(db, 'users', uid, 'plants');
+    const plantsSnap = await getDocs(plantsRef);
     const batch = writeBatch(db);
-    batch.update(likerDocRef, { [`likedUsers.${likedUid}`]: now });
-    batch.update(likedDocRef, {
-        likes: increment(1),
-        gold: increment(5)
+
+    plantsSnap.forEach((plantDoc) => {
+      batch.update(plantDoc.ref, {
+        lastWatered: new Date(),
+        isThirsty: false,
+      });
     });
+
     await batch.commit();
-}
-
-export async function purchaseWaterRefill(userId: string, cost: number): Promise<void> {
-    const userDocRef = doc(db, 'users', userId);
-    const gameData = await getUserGameData(userId);
-
-    if (!gameData || gameData.gold < cost) {
-        throw new Error("Not enough gold to purchase.");
-    }
-
-    await updateDoc(userDocRef, {
-        gold: increment(-cost),
-        waterRefillCount: increment(1)
+    await updateDoc(gameDataRef, {
+      sprinklers: increment(-1),
     });
+
+    return { success: true };
+  }
+  return { success: false };
 }
 
-export async function useWaterRefill(userId: string, plantId: number): Promise<void> {
-    const userDocRef = doc(db, 'users', userId);
-    const gameData = await getUserGameData(userId);
+export async function claimLoginReward(uid: string): Promise<{
+  success: boolean;
+  reward?: {
+    type: string;
+    amount: number;
+  };
+}> {
+  const gameDataRef = doc(db, 'users', uid, 'game-data', 'data');
+  const gameDataSnap = await getDoc(gameDataRef);
 
-    if (!gameData || gameData.waterRefillCount <= 0) {
-        throw new Error("No water refills available.");
-    }
-    
-    const plant = gameData.plants[plantId];
-    if (!plant) {
-        throw new Error("Plant not found.");
-    }
+  if (!gameDataSnap.exists()) {
+    return { success: false };
+  }
 
-    // Reset waterings for the day by filtering out today's timestamps
-    const previousWaterings = plant.lastWatered.filter(ts => !isToday(ts));
+  const gameData = gameDataSnap.data() as GameData;
 
-    await updateDoc(userDocRef, {
-        waterRefillCount: increment(-1),
-        [`plants.${plantId}.lastWatered`]: previousWaterings,
-    });
-}
-
-export async function purchasePlantChat(userId: string, cost: number): Promise<void> {
-    const userDocRef = doc(db, 'users', userId);
-    const gameData = await getUserGameData(userId);
-
-    if (!gameData || gameData.rubyCount < cost) {
-        throw new Error("Not enough rubies to purchase.");
-    }
-    
-    await updateDoc(userDocRef, {
-        rubyCount: increment(-cost),
-        plantChatTokens: increment(1)
-    });
-}
-
-export async function unlockPlantChat(userId: string, plantId: number): Promise<void> {
-    const userDocRef = doc(db, 'users', userId);
-    const gameData = await getUserGameData(userId);
-
-    if (!gameData || gameData.plantChatTokens <= 0) {
-        throw new Error("You don't have a Plant Chat token to use.");
-    }
-    const plant = gameData.plants[plantId];
-    if (!plant) {
-        throw new Error("Plant not found.");
-    }
-    if (plant.chatEnabled) {
-        throw new Error("Chat is already unlocked for this plant.");
-    }
-
-    await updateDoc(userDocRef, {
-        plantChatTokens: increment(-1),
-        [`plants.${plantId}.chatEnabled`]: true,
-    });
-}
-
-export async function addConversationHistory(userId: string, plantId: number, userMessage: string, modelMessage: string) {
-    const userDocRef = doc(db, 'users', userId);
-    await updateDoc(userDocRef, {
-        [`plants.${plantId}.conversationHistory`]: arrayUnion(
-            { role: 'user', content: userMessage },
-            { role: 'model', content: modelMessage }
-        )
-    });
-}
-
-export async function addSeed(userId: string): Promise<void> {
-    const userDocRef = doc(db, 'users', userId);
-    const gameData = await getUserGameData(userId);
-    if (!gameData) return;
-
-    if (gameData.seeds && gameData.seeds.length >= gameData.seedBagSize) {
-        return; // Seed bag is full
-    }
-
-    const newSeed: Seed = {
-        id: uuidv4(),
-        startTime: Date.now(),
+  // If loginRewards is not initialized, create it.
+  if (!gameData.loginRewards) {
+    gameData.loginRewards = {
+      lastClaimed: 0,
+      streak: 0,
     };
+  }
 
-    await updateDoc(userDocRef, {
-        seeds: arrayUnion(newSeed)
-    });
-}
+  const now = new Date();
+  const lastClaimed = new Date(gameData.loginRewards.lastClaimed);
+  const diffTime = now.getTime() - lastClaimed.getTime();
+  const diffDays = diffTime / (1000 * 3600 * 24);
 
-export async function growSeed(userId: string, seedId: string): Promise<void> {
-    const userDocRef = doc(db, 'users', userId);
-    const gameData = await getUserGameData(userId);
-    if (!gameData || !gameData.seeds) return;
-
-    const seedToRemove = gameData.seeds.find(s => s.id === seedId);
-    if (!seedToRemove) return;
-
-    await updateDoc(userDocRef, {
-        seeds: arrayRemove(seedToRemove)
-    });
-}
-
-export async function useFertilizer(userId: string, seedId: string): Promise<void> {
-    const userDocRef = doc(db, 'users', userId);
-    const gameData = await getUserGameData(userId);
-
-    if (!gameData || gameData.fertilizerCount <= 0) {
-        throw new Error("No fertilizer available.");
-    }
-    
-    const seedToFertilize = gameData.seeds.find(s => s.id === seedId);
-    if (!seedToFertilize) {
-        throw new Error("Seed not found.");
+  if (diffDays >= 1) {
+    let streak = gameData.loginRewards.streak;
+    if (diffDays < 2) {
+      streak++;
+    } else {
+      streak = 1;
     }
 
-    const eightHoursInMs = 8 * 60 * 60 * 1000;
-    const newStartTime = seedToFertilize.startTime - eightHoursInMs;
+    const reward = getRewardForStreak(streak);
+    await updateDoc(gameDataRef, {
+      'loginRewards.lastClaimed': now.getTime(),
+      'loginRewards.streak': streak,
+      [reward.type]: increment(reward.amount),
+    });
 
-    const newSeeds = gameData.seeds.map(s => 
-        s.id === seedId ? { ...s, startTime: newStartTime } : s
+    return { success: true, reward };
+  }
+  return { success: false };
+}
+
+function getRewardForStreak(streak: number): {
+  type: string;
+  amount: number;
+} {
+  const day = streak % 7 === 0 ? 7 : streak % 7;
+  switch (day) {
+    case 1:
+      return { type: 'gold', amount: 10 };
+    case 2:
+      return { type: 'fertilizer', amount: 1 };
+    case 3:
+      return { type: 'waterRefill', amount: 1 };
+    case 4:
+      return { type: 'sprinkler', amount: 1 };
+    case 5:
+      return { type: 'sheen', amount: 1 };
+    case 6:
+      return { type: 'glitter', amount: 1 };
+    case 7:
+      return { type: 'draws', amount: 1 };
+    default:
+      return { type: 'gold', amount: 10 };
+  }
+}
+
+export async function getActiveChallenges(uid: string): Promise<DailyChallenge[]> {
+  const gameDataRef = doc(db, 'users', uid, 'game-data', 'data');
+  const gameDataSnap = await getDoc(gameDataRef);
+  const gameData = gameDataSnap.data() as GameData;
+
+  if (gameData.activeChallenges.length < 3) {
+    // Not enough active challenges, so let's add some more.
+    const numToAdd = 3 - gameData.activeChallenges.length;
+    const newChallenges = getNewChallenges(numToAdd, gameData.completedChallenges);
+
+    await updateDoc(gameDataRef, {
+      activeChallenges: arrayUnion(...newChallenges),
+    });
+
+    return [...gameData.activeChallenges, ...newChallenges];
+  }
+  return gameData.activeChallenges;
+}
+
+function getNewChallenges(num: number, completed: string[]): DailyChallenge[] {
+  const available = CHALLENGE_DATA.filter((c) => !completed.includes(c.id));
+  const selected: DailyChallenge[] = [];
+
+  for (let i = 0; i < num; i++) {
+    if (available.length === 0) break;
+    const randomIndex = Math.floor(Math.random() * available.length);
+    const challenge = available.splice(randomIndex, 1)[0];
+    selected.push({
+      ...challenge,
+      progress: 0,
+    });
+  }
+
+  return selected;
+}
+
+export async function updateChallengeProgress(uid: string, challengeId: string, progress: number): Promise<void> {
+  const gameDataRef = doc(db, 'users', uid, 'game-data', 'data');
+  const gameDataSnap = await getDoc(gameDataRef);
+  const gameData = gameDataSnap.data() as GameData;
+
+  const challenge = gameData.activeChallenges.find((c) => c.id === challengeId);
+
+  if (challenge) {
+    challenge.progress = progress;
+
+    await updateDoc(gameDataRef, {
+      activeChallenges: gameData.activeChallenges,
+    });
+  }
+}
+
+export async function claimChallengeReward(uid: string, challengeId: string): Promise<{ success: boolean }> {
+  const gameDataRef = doc(db, 'users', uid, 'game-data', 'data');
+  const gameDataSnap = await getDoc(gameDataRef);
+  const gameData = gameDataSnap.data() as GameData;
+
+  const challenge = gameData.activeChallenges.find((c) => c.id === challengeId);
+
+  if (challenge && challenge.progress >= challenge.goal) {
+    await updateDoc(gameDataRef, {
+      activeChallenges: arrayRemove(challenge),
+      completedChallenges: arrayUnion(challengeId),
+      gold: increment(challenge.reward),
+    });
+    return { success: true };
+  }
+  return { success: false };
+}
+
+export async function getCommunityPlants(
+  startAfterDoc?: any,
+  limitNum: number = 10
+): Promise<{ plants: Plant[]; lastVisible: any }> {
+  let q = query(collection(db, 'community-plants'), orderBy('createdAt', 'desc'), limit(limitNum));
+
+  if (startAfterDoc) {
+    q = query(q, startAfter(startAfterDoc));
+  }
+
+  const querySnapshot = await getDocs(q);
+  const plants = querySnapshot.docs.map((doc) => doc.data() as Plant);
+  const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
+
+  return { plants, lastVisible };
+}
+
+export async function updateShowcasePlants(uid: string, plantIds: string[]): Promise<void> {
+  const userRef = doc(db, 'users', uid);
+  await updateDoc(userRef, {
+    showcasePlants: plantIds,
+  });
+}
+
+export async function uploadImageAndGetURL(uid: string, plantId: string, file: File): Promise<string> {
+  const storage = getStorage();
+  const storageRef = ref(storage, `users/${uid}/plants/${plantId}/${file.name}`);
+  await uploadBytes(storageRef, file);
+  const downloadURL = await getDownloadURL(storageRef);
+  return downloadURL;
+}
+
+export async function purchaseCosmetic(uid: string, cosmeticId: CosmeticId, cost: number): Promise<{ success: boolean }> {
+  const gameDataRef = doc(db, 'users', uid, 'game-data', 'data');
+  const gameDataSnap = await getDoc(gameDataRef);
+  const gameData = gameDataSnap.data() as GameData;
+
+  if (gameData.gold >= cost) {
+    await updateDoc(gameDataRef, {
+      gold: increment(-cost),
+      ownedCosmetics: arrayUnion(cosmeticId),
+    });
+    return { success: true };
+  }
+  return { success: false };
+}
+
+export async function purchaseWaterRefill(uid: string, cost: number): Promise<{ success: boolean }> {
+  const gameDataRef = doc(db, 'users', uid, 'game-data', 'data');
+  const gameDataSnap = await getDoc(gameDataRef);
+  const gameData = gameDataSnap.data() as GameData;
+
+  if (gameData.gold >= cost) {
+    await updateDoc(gameDataRef, {
+      gold: increment(-cost),
+      waterRefills: increment(1),
+    });
+    return { success: true };
+  }
+  return { success: false };
+}
+
+export async function useWaterRefill(uid: string, plantId: string): Promise<{ success: boolean }> {
+  const gameDataRef = doc(db, 'users', uid, 'game-data', 'data');
+  const gameDataSnap = await getDoc(gameDataRef);
+  const gameData = gameDataSnap.data() as GameData;
+
+  if (gameData.waterRefills > 0) {
+    const plantRef = doc(db, 'users', uid, 'plants', plantId);
+    await updateDoc(plantRef, {
+      lastWatered: new Date(),
+      isThirsty: false,
+    });
+    await updateDoc(gameDataRef, {
+      waterRefills: increment(-1),
+    });
+    return { success: true };
+  }
+  return { success: false };
+}
+
+export async function purchaseSprinkler(uid: string, cost: number): Promise<{ success: boolean }> {
+  const gameDataRef = doc(db, 'users', uid, 'game-data', 'data');
+  const gameDataSnap = await getDoc(gameDataRef);
+  const gameData = gameDataSnap.data() as GameData;
+
+  if (gameData.gold >= cost) {
+    await updateDoc(gameDataRef, {
+      gold: increment(-cost),
+      sprinklers: increment(1),
+    });
+    return { success: true };
+  }
+  return { success: false };
+}
+
+export async function useGlitter(uid: string, plantId: string): Promise<{ success: boolean }> {
+  const gameDataRef = doc(db, 'users', uid, 'game-data', 'data');
+  const gameDataSnap = await getDoc(gameDataRef);
+  const gameData = gameDataSnap.data() as GameData;
+
+  if (gameData.glitter > 0) {
+    const plantRef = doc(db, 'users', uid, 'plants', plantId);
+    await updateDoc(plantRef, {
+      cosmetic: 'plant-pot-glitter',
+    });
+    await updateDoc(gameDataRef, {
+      glitter: increment(-1),
+    });
+    return { success: true };
+  }
+  return { success: false };
+}
+
+export async function useSheen(uid: string, plantId: string): Promise<{ success: boolean }> {
+  const gameDataRef = doc(db, 'users', uid, 'game-data', 'data');
+  const gameDataSnap = await getDoc(gameDataRef);
+  const gameData = gameDataSnap.data() as GameData;
+
+  if (gameData.sheen > 0) {
+    const plantRef = doc(db, 'users', uid, 'plants', plantId);
+    await updateDoc(plantRef, {
+      cosmetic: 'plant-pot-sheen',
+    });
+    await updateDoc(gameDataRef, {
+      sheen: increment(-1),
+    });
+    return { success: true };
+  }
+  return { success: false };
+}
+
+export async function useRedGlitter(uid: string, plantId: string): Promise<{ success: boolean }> {
+  const gameDataRef = doc(db, 'users', uid, 'game-data', 'data');
+  const gameDataSnap = await getDoc(gameDataRef);
+  const gameData = gameDataSnap.data() as GameData;
+
+  if (gameData.redGlitter > 0) {
+    const plantRef = doc(db, 'users', uid, 'plants', plantId);
+    await updateDoc(plantRef, {
+      cosmetic: 'plant-pot-red-glitter',
+    });
+    await updateDoc(gameDataRef, {
+      redGlitter: increment(-1),
+    });
+    return { success: true };
+  }
+  return { success: false };
+}
+
+export async function useRainbowGlitter(uid: string, plantId: string): Promise<{ success: boolean }> {
+  const gameDataRef = doc(db, 'users', uid, 'game-data', 'data');
+  const gameDataSnap = await getDoc(gameDataRef);
+  const gameData = gameDataSnap.data() as GameData;
+
+  if (gameData.rainbowGlitter > 0) {
+    const plantRef = doc(db, 'users', uid, 'plants', plantId);
+    await updateDoc(plantRef, {
+      cosmetic: 'plant-pot-rainbow-glitter',
+    });
+    await updateDoc(gameDataRef, {
+      rainbowGlitter: increment(-1),
+    });
+    return { success: true };
+  }
+  return { success: false };
+}
+
+export async function purchasePlantChat(uid: string, plantId: PlantId): Promise<{ success: boolean, reason?: 'not_enough_gold' | 'already_owned' }> {
+  const plantData = प्लांट[plantId];
+  if (!plantData) {
+    throw new Error(`Plant with id ${plantId} not found`);
+  }
+  const cost = plantData.chatCost;
+
+  const gameDataRef = doc(db, 'users', uid, 'game-data', 'data');
+  const gameDataSnap = await getDoc(gameDataRef);
+  const gameData = gameDataSnap.data() as GameData;
+
+  if (gameData.plantChats.includes(plantId)) {
+    return { success: false, reason: 'already_owned' };
+  }
+  
+  if (gameData.gold >= cost) {
+    await updateDoc(gameDataRef, {
+      gold: increment(-cost),
+      plantChats: arrayUnion(plantId),
+    });
+    return { success: true };
+  }
+  return { success: false, reason: 'not_enough_gold' };
+}
+
+export async function unlockPlantChat(uid: string, plantId: PlantId): Promise<void> {
+  const gameDataRef = doc(db, 'users', uid, 'game-data', 'data');
+  await updateDoc(gameDataRef, {
+    plantChats: arrayUnion(plantId),
+  });
+}
+
+export async function addConversationHistory(uid: string, plantId: PlantId, message: string, response: string): Promise<void> {
+  const plantRef = doc(db, 'users', uid, 'plants', plantId);
+  await updateDoc(plantRef, {
+    conversations: arrayUnion({
+      sentAt: new Date(),
+      message,
+      response,
+    }),
+  });
+}
+
+export async function purchaseBundle(
+  uid: string,
+  bundle: {
+    id: string;
+    items: {
+      type: 'fertilizer' | 'waterRefill' | 'sprinkler' | 'sheen' | 'glitter' | 'redGlitter' | 'rainbowGlitter';
+      amount: number;
+    }[];
+    cost: number;
+  }
+): Promise<{ success: boolean, reason?: 'not_enough_gold' }> {
+  const gameDataRef = doc(db, 'users', uid, 'game-data', 'data');
+  const gameDataSnap = await getDoc(gameDataRef);
+  const gameData = gameDataSnap.data() as GameData;
+
+  if (gameData.gold >= bundle.cost) {
+    const updates = bundle.items.reduce(
+      (acc, item) => ({
+        ...acc,
+        [item.type]: increment(item.amount),
+      }),
+      {}
     );
+    updates.gold = increment(-bundle.cost);
 
-    await updateDoc(userDocRef, {
-        fertilizerCount: increment(-1),
-        seeds: newSeeds,
-    });
+    await updateDoc(gameDataRef, updates);
+    return { success: true };
+  }
+  return { success: false, reason: 'not_enough_gold' };
 }
 
-export async function awardContestPrize(userId: string): Promise<void> {
-    const userDocRef = doc(db, 'users', userId);
-    await updateDoc(userDocRef, {
-        redGlitterCount: increment(1),
-        gold: increment(50),
-    });
+export async function updatePlantArrangement(uid: string, arrangementId: string, arrangement: PlantArrangement): Promise<void> {
+  const arrangementRef = doc(db, 'users', uid, 'arrangements', arrangementId);
+  await setDoc(arrangementRef, arrangement, { merge: true });
 }
 
-export async function claimLoginReward(userId: string, streakDay: number, reward: { type: string, amount: number }): Promise<void> {
-    const userDocRef = doc(db, 'users', userId);
-    
-    const updateData: { [key: string]: any } = {
-        lastLoginBonusClaimed: Date.now(),
-        loginStreak: streakDay % 7,
-    };
+export async function likeUser(uid: string): Promise<void> {
+  const userRef = doc(db, 'users', uid);
+  await updateDoc(userRef, {
+    likes: increment(1),
+  });
+}
 
-    if (reward.type === 'gold') {
-        updateData.gold = increment(reward.amount);
-    } else if (reward.type === 'glitterCount') {
-        updateData.glitterCount = increment(reward.amount);
-    } else if (reward.type === 'sheenCount') {
-        updateData.sheenCount = increment(reward.amount);
-    } else if (reward.type === 'rainbowGlitterCount') {
-        updateData.rainbowGlitterCount = increment(reward.amount);
-    } else if (reward.type === 'draws') {
-        updateData.draws = increment(reward.amount);
+export const purchaseTimeReducer = async (userId: string) => {
+  const userDocRef = doc(db, 'users', userId);
+  const gamedataDocRef = doc(db, 'users', userId, 'game-data', 'data');
+
+  try {
+    const gamedataSnapshot = await getDoc(gamedataDocRef);
+
+    if (!gamedataSnapshot.exists()) {
+      throw new Error(`Game data does not exist for user ${userId}`);
     }
 
-    await updateDoc(userDocRef, updateData);
-}
+    const currentFertilizer = gamedataSnapshot.data().fertilizer || 0;
 
+    await updateDoc(gamedataDocRef, {
+      fertilizer: currentFertilizer + 5,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'An unknown error occurred';
+    throw new Error(`Failed to reduce purchase time for user ${userId}: ${message}`);
+  }
+};
+
+export const purchaseSeasonalPlantPack = async (userId: string) => {
+  const userDocRef = doc(db, 'users', userId);
+  const gamedataDocRef = doc(db, 'users', userId, 'game-data', 'data');
+
+  try {
+    const gamedataSnapshot = await getDoc(gamedataDocRef);
+
+    if (!gamedataSnapshot.exists()) {
+      throw new Error(`Game data does not exist for user ${userId}`);
+    }
+
+    const currentSeasonalCurrency = gamedataSnapshot.data().seasonalCurrency || 0;
+
+    await updateDoc(gamedataDocRef, {
+      seasonalCurrency: currentSeasonalCurrency + 25,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'An unknown error occurred';
+    throw new Error(`Failed to purchase seasonal plant pack for user ${userId}: ${message}`);
+  }
+};
