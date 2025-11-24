@@ -353,12 +353,12 @@ export default function ShopPage() {
     }
   };
 
-  const handlePurchaseSuccess = async (endpoint: string, successMessage: string, errorMessage: string, data?: any) => {
+  const handlePurchaseSuccess = async (endpoint: string, successMessage: string, errorMessage: string, details?: any) => {
     try {
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user?.uid, ...(data || {}) }),
+        body: JSON.stringify({ userId: user?.uid, ...(details || {}) }),
       });
       if (!res.ok) throw new Error(await res.text());
       toast({ title: 'Purchase Successful!', description: successMessage });
@@ -443,7 +443,7 @@ export default function ShopPage() {
                           clientId={payPalClientId} 
                           amount="0.99"
                           description="5 Rubies Pack"
-                          onSuccess={() => handlePurchaseSuccess('/api/on-ruby-purchase', 'You received 5 Rubies.', 'Failed to grant rubies.')}
+                          onSuccess={(details) => handlePurchaseSuccess('/api/on-ruby-purchase', 'You received 5 Rubies.', 'Failed to grant rubies.', details)}
                       />
                   </div>
                   <div className="p-4 rounded-lg bg-muted/50 space-y-4">
@@ -458,14 +458,14 @@ export default function ShopPage() {
                           clientId={payPalClientId} 
                           amount="0.50"
                           description="Fertilizer Pack"
-                          onSuccess={() => handlePurchaseSuccess('/api/on-fertilizer-purchase', 'You received 1 fertilizer.', 'Failed to grant fertilizer.')}
+                          onSuccess={(details) => handlePurchaseSuccess('/api/on-fertilizer-purchase', 'You received 1 fertilizer.', 'Failed to grant fertilizer.', details)}
                       />
                   </div>
                    <div className="p-4 rounded-lg bg-muted/50 space-y-4">
                       <div className="flex items-center justify-between">
                           <div>
                               <p className="font-bold text-primary">Seasonal Plant Pack</p>
-                              <p className="text-sm text-muted-foreground">Get a unique, limited-time plant!</p>
+                              <p className="text-sm text-muted-foreground">Get 5 unique, limited-time plants!</p>
                           </div>
                           <p className="font-bold text-lg text-primary">$5.00</p>
                       </div>
@@ -473,7 +473,7 @@ export default function ShopPage() {
                           clientId={payPalClientId} 
                           amount="5.00"
                           description="Seasonal Plant Pack"
-                          onSuccess={() => handlePurchaseSuccess('/api/on-seasonal-purchase', 'You received a new seasonal plant!', 'Failed to grant seasonal plant.')}
+                          onSuccess={(details) => handlePurchaseSuccess('/api/on-seasonal-purchase', 'You received a new seasonal plant!', 'Failed to grant seasonal plant.', details)}
                       />
                   </div>
                 </>
@@ -705,5 +705,7 @@ export default function ShopPage() {
     </div>
   );
 }
+
+    
 
     
