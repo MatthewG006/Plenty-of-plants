@@ -326,7 +326,7 @@ export default function HomePage() {
     if (gameData?.plants) {
         const allPlants = Object.values(gameData.plants);
         if (allPlants.length > 0) {
-          const latest = allPlants.reduce((latest, plant) => (plant.id > latest.id ? plant : latest), allPlants[0]);
+          const latest = allPlants.reduce((latest: Plant, plant: Plant) => (plant.id > latest.id ? plant : latest), allPlants[0] as Plant);
           setLatestPlant(latest);
         } else {
           setLatestPlant(null);
@@ -669,4 +669,3 @@ export default function HomePage() {
     </>
   );
 }
-

@@ -97,7 +97,13 @@ export default function ContestPage() {
     const { playSfx } = useAudio();
     const router = useRouter();
     const params = useParams();
-    const sessionId = params.sessionId as string;
+    const sessionId = params?.sessionId as string;
+
+    useEffect(() => {
+        if (!sessionId) {
+            router.push('/community/contest');
+        }
+    }, [sessionId, router]);
     
     const [isLoading, setIsLoading] = useState(true);
     const [isStarting, setIsStarting] = useState(false);

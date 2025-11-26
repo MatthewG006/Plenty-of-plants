@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { growSeed, savePlant, useFertilizer } from '@/lib/firestore';
-import type { Seed, DrawPlantOutput } from '@/interfaces/plant';
+import type { Seed, DrawPlantOutput, Plant } from '@/interfaces/plant';
 import { drawPlantAction } from '@/app/actions/draw-plant';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -153,7 +153,7 @@ export default function SeedsPage() {
         setIsGrowing(seed.id);
         try {
             playSfx('success');
-            const existingImageFilenames = gameData.plants ? Object.values(gameData.plants).map(p => p.hint) : [];
+            const existingImageFilenames = gameData.plants ? (Object.values(gameData.plants) as Plant[]).map(p => p.hint) : [];
             const drawnPlantResult = await drawPlantAction(existingImageFilenames);
             
             setGrownPlant(drawnPlantResult);

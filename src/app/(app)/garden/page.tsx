@@ -19,7 +19,7 @@ import Link from 'next/link';
 import { getImageDataUriAction } from '@/app/actions/image-actions';
 import { makeBackgroundTransparent, isImageBlack, compressImage } from '@/lib/image-compression';
 import { updateChallengeProgress, updateEvolutionProgress } from '@/lib/challenge-manager';
-import { evolvePlantAction } from '@/ai/flows/evolve-plant-flow';
+import { evolvePlantAction } from '@/app/actions/evolve-plant';
 
 const NUM_GARDEN_PLOTS = 12;
 

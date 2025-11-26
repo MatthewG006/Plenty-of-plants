@@ -6,15 +6,14 @@
       "**/.*",
       "**/node_modules/**"
     ],
-    "appHosting": {
-      "backendId": "plenty-of-plants"
-    }
+    "rewrites": [
+      {
+        "source": "**",
+        "function": "nextServer"
+      }
+    ]
   },
-  "firestore": {
-    "rules": "firestore.rules"
-  },
-  "storage": {
-    "rules": "storage.rules",
-    "cors": "storage.cors.json"
+  "functions": {
+    "source": "functions"
   }
 }
