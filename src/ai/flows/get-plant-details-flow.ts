@@ -8,14 +8,8 @@
  * - GetPlantDetailsOutput - The return type for the getPlantDetails function.
  */
 
-import { genkit } from 'genkit';
-import { googleAI } from '@genkit-ai/google-genai';
 import { GetPlantDetailsInputSchema, GetPlantDetailsOutputSchema, type GetPlantDetailsInput, type GetPlantDetailsOutput } from '@/interfaces/plant';
-
-// This is the correct initialization. The `ai` object is configured with plugins.
-const ai = genkit({
-    plugins: [googleAI()],
-});
+import { ai } from '@/lib/genkit';
 
 const getPlantDetailsPrompt = ai.definePrompt({
   name: 'getPlantDetailsPrompt',

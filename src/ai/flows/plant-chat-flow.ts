@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A flow for chatting with a plant.
@@ -7,14 +6,9 @@
  * - PlantChatInput - The input type for the plantChat function.
  * - PlantChatOutput - The return type for the plantChat function.
  */
-import { genkit } from 'genkit';
-import { googleAI } from '@genkit-ai/google-genai';
 import {z} from 'zod';
 import { PlantChatInputSchema, type PlantChatInput } from '@/interfaces/chat';
-
-const ai = genkit({
-    plugins: [googleAI()],
-});
+import { ai } from '@/lib/genkit';
 
 
 export type PlantChatOutput = z.infer<typeof PlantChatOutputSchema>;

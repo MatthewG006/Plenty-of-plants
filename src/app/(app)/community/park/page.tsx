@@ -23,7 +23,7 @@ export default function ParkPage() {
   useEffect(() => {
     async function setupPlant() {
       if (gameData?.plants) {
-        const allPlants = Object.values(gameData.plants);
+        const allPlants: Plant[] = Object.values(gameData.plants);
         if (allPlants.length > 0) {
           const plantToShow = allPlants[0]; // Display the first plant
           setDisplayPlant(plantToShow);
