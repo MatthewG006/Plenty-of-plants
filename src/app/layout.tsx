@@ -22,7 +22,7 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="apple-touch-icon" href="/icon-512.png" />
       </head>
-      <body className="font-body antialiased" suppressHydrationWarning={true}>
+      <body className="font-body antialiased">
         <Providers>
           {children}
           <Toaster />
