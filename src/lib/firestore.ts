@@ -23,7 +23,6 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db } from '@/lib/firebase';
 import type { Plant, GameData } from '@/interfaces/plant';
 import { DrawPlantOutput } from '@/interfaces/plant';
-import { challenges, secondaryChallenges } from './challenge-manager';
 
 
 // Helper to check if a Firestore timestamp is from today
@@ -52,6 +51,7 @@ export async function createUserDocument(user: { uid: string; email: string | nu
       uid,
       likes: 0,
       gold: 50,
+      rubyCount: 0,
       showcasePlantIds: [],
       lastLoginBonusClaimed: 0,
       loginStreak: 0,

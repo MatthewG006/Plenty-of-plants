@@ -14,3 +14,8 @@ export const PlantChatInputSchema = z.object({
   form: z.string().describe("The current form of the plant (e.g., 'Base', 'Evolved', 'Final')."),
 });
 export type PlantChatInput = z.infer<typeof PlantChatInputSchema>;
+
+export const PlantChatOutputSchema = z.object({
+  response: z.string().describe("The plant's response to the user."),
+});
+export type PlantChatOutput = z.infer<typeof PlantChatOutputSchema>;

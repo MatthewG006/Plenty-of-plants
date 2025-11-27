@@ -3,7 +3,8 @@
 
 import { doc, updateDoc, increment, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
-import { getUserGameData, type GameData } from './firestore';
+import { getUserGameData } from './firestore';
+import type { GameData } from '@/interfaces/plant';
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
