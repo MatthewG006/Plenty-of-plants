@@ -8,6 +8,10 @@ export function generateMetadata(): Metadata {
     title: 'Plenty of Plants',
     description: 'Collect and grow your own digital plant collection!',
     manifest: '/manifest.webmanifest',
+    icons: {
+      icon: '/favicon.ico',
+      apple: '/icon-512.png',
+    }
   };
 }
 
@@ -18,10 +22,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="apple-touch-icon" href="/icon-512.png" />
-      </head>
       <body className="font-body antialiased">
         <Providers>
           {children}
