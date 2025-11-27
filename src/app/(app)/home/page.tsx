@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -364,7 +363,7 @@ export default function HomePage() {
       await useDraw(user.uid);
       playSfx('success');
       
-      const existingImageFilenames = gameData.plants ? Object.values(gameData.plants).map(p => p.hint) : [];
+      const existingImageFilenames = gameData.plants ? (Object.values(gameData.plants) as Plant[]).map(p => p.hint) : [];
       
       const drawnPlantResult = await drawPlantAction(existingImageFilenames);
       
@@ -669,3 +668,5 @@ export default function HomePage() {
     </>
   );
 }
+
+    
