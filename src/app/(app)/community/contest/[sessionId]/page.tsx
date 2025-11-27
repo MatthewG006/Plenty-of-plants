@@ -141,17 +141,19 @@ export default function ContestPage() {
 
                 const newContestantRef = doc(contestantsRef);
                 const { id: plantNumericId, ...plantData } = plant;
-                const newContestant = {
+                const newContestant: Omit<Contestant, 'lastSeen'> = {
                     ...plantData,
                     id: newContestantRef.id,
                     ownerId: userId,
                     ownerName: displayName,
                     votes: 0,
                     voterIds: [],
-                    lastSeen: serverTimestamp(),
                 };
 
-                transaction.set(newContestantRef, newContestant);
+                transaction.set(newContestantRef, {
+                    ...newContestant,
+                    lastSeen: serverTimestamp(),
+                });
                 transaction.update(sessionRef, { contestantCount: increment(1) });
             });
             return { success: true };
