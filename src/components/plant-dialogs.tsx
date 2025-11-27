@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { deletePlant, unlockPlantChat, addConversationHistory, updatePlant, updateUserGold, updateUserRubies, useWaterRefill, addSeed, useGlitter, useSheen, useRainbowGlitter, useRedGlitter, waterPlant } from '@/lib/firestore';
+import { deletePlant, unlockPlantChat, addConversationHistory, updatePlant, updateUserRubies, useWaterRefill, addSeed, useGlitter, useSheen, useRainbowGlitter, useRedGlitter, waterPlant } from '@/lib/firestore';
 import { AlertDialog, AlertDialogTrigger, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription as AlertDialogDescriptionComponent } from '@/components/ui/alert-dialog';
 import { plantChatAction } from '@/app/actions/plant-chat';
 import { Textarea } from '@/components/ui/textarea';
