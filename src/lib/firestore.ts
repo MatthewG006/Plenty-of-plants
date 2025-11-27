@@ -46,7 +46,7 @@ export async function createUserDocument(user: { uid: string; email: string | nu
     // Generate a random hue for the avatar background
     const avatarColor = `hsl(${Math.floor(Math.random() * 360)}, 70%, 85%)`;
 
-    const initialUserData = {
+    const initialUserData: GameData = {
       email: email || '',
       username: displayName || 'PlantLover',
       uid,

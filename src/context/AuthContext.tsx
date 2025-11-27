@@ -5,7 +5,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
-import type { GameData } from "@/lib/firestore";
+import type { GameData } from "@/interfaces/plant";
 import { createUserDocument } from "@/lib/firestore";
 
 type AuthContextType = {
