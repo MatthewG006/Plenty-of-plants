@@ -1,13 +1,2 @@
-import { Html, Head, Main, NextScript } from 'next/document';
-
-export default function Document() {
-  return (
-    <Html lang="en">
-      <Head />
-      <body>
-        <Main />
-        <NextScript />
-      </body>
-    </Html>
-  );
-}
+// This file is disabled. The project uses the App Router, not the Pages Router.
+// The presence of this file was causing build errors.
