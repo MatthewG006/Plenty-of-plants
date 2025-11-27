@@ -3,7 +3,7 @@
 
 import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
 import { db } from './firebase';
-import type { GameData } from './firestore';
+import type { GameData } from '@/interfaces/plant';
 import { getUserGameData } from './firestore';
 
 export const MAX_DRAWS = 2;
