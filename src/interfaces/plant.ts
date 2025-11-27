@@ -60,6 +60,27 @@ export interface ContestSession {
     winner?: Contestant;
 }
 
+export interface GameData {
+  plants: { [key: number]: Plant };
+  collectionPlantIds: number[];
+  deskPlantIds: (number | null)[];
+  gardenPlantIds: (number | null)[];
+  seeds: Seed[];
+  showcasePlantIds: number[];
+  gold: number;
+  rubyCount: number;
+  draws: number;
+  lastDrawRefill: number;
+  lastLoginBonusClaimed: number;
+  loginStreak: number;
+  glitterCount: number;
+  sheenCount: number;
+  rainbowGlitterCount: number;
+alida: string,
+    hostName: string,
+    winner?: Contestant;
+}
+
 
 // Schemas for AI Flows
 
