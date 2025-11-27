@@ -19,7 +19,7 @@ function SignupForm() {
   const router = useRouter();
   const { toast } = useToast();
   const searchParams = useSearchParams();
-  const referrerId = searchParams.get('ref') || undefined;
+  const referrerId = searchParams?.get('ref') || undefined;
   
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -113,4 +113,5 @@ export default function SignupPage() {
         </Suspense>
     )
 }
+
 
