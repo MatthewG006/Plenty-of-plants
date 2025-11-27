@@ -165,7 +165,7 @@ export default function ProfilePage() {
 
   const allPlants = useMemo(() => {
     if (!gameData?.plants) return [];
-    return Object.values(gameData.plants).sort((a, b) => b.level - a.level);
+    return (Object.values(gameData.plants) as Plant[]).sort((a, b) => b.level - a.level);
   }, [gameData]);
 
   const [selectedPlantIds, setSelectedPlantIds] = useState<number[]>([]);
@@ -175,7 +175,7 @@ export default function ProfilePage() {
     if (gameData?.plants) {
         const allPlants = Object.values(gameData.plants);
         setPlantsCollected(allPlants.length);
-        const evolvedCount = allPlants.filter(p => p.form !== 'Base').length;
+        const evolvedCount = allPlants.filter(p => (p as Plant).form !== 'Base').length;
         setPlantsEvolved(evolvedCount);
     }
     if (gameData?.showcasePlantIds) {
