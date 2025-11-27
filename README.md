@@ -1,4 +1,4 @@
-b
+rub
 
 import { streamObject } from 'ai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
