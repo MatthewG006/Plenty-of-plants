@@ -61,6 +61,9 @@ export interface ContestSession {
 }
 
 export interface GameData {
+  uid: string;
+  username: string;
+  email: string;
   plants: { [key: number]: Plant };
   collectionPlantIds: number[];
   deskPlantIds: (number | null)[];
@@ -76,9 +79,18 @@ export interface GameData {
   glitterCount: number;
   sheenCount: number;
   rainbowGlitterCount: number;
-alida: string,
-    hostName: string,
-    winner?: Contestant;
+  redGlitterCount: number;
+  waterRefillCount: number;
+  fertilizerCount: number;
+  sprinklerUnlocked: boolean;
+  plantChatTokens: number;
+  seedBagSize: number;
+  challenges: { [key: string]: { progress: number, claimed: boolean } };
+  challengesStartDate: number;
+  createdAt: Timestamp;
+  avatarColor: string;
+  likes: number;
+  likedUsers: { [key: string]: number }; // Maps liked user's UID to a timestamp
 }
 
 
