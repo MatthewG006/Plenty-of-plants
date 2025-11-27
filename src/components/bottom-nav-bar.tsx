@@ -23,15 +23,17 @@ export default function BottomNavBar() {
     playSfx('tap');
   };
 
+  if (!pathname) {
+    return null; // Or a loading skeleton
+  }
+
   const adjustedPathname = pathname.startsWith('/app') ? pathname.substring(4) : pathname;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 h-16 border-t bg-card/95 backdrop-blur-sm z-10 flex justify-center">
       <div className="grid h-full w-full max-w-md grid-cols-5 items-center">
         {navItems.map((item) => {
-          const isActive = (item.href === '/home')
-            ? adjustedPathname === item.href
-            : adjustedPathname.startsWith(item.href);
+          const isActive = adjustedPathname.startsWith(item.href);
 
           return (
             <Link 
