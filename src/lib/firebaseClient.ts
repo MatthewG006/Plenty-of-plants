@@ -1,11 +1,3 @@
-// lib/firebaseClient.ts
-import { initializeApp, getApps } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-
-const firebaseConfig = { /* your config from console */ };
-
-if (!getApps().length) initializeApp(firebaseConfig);
-
-export const auth = getAuth();
-export const db = getFirestore();
+// This file is disabled as it is a remnant of a previous project structure
+// and was causing build conflicts. The current Firebase initialization
+// is handled in src/lib/firebase.ts.

@@ -173,9 +173,9 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (gameData?.plants) {
-        const allPlants = Object.values(gameData.plants);
-        setPlantsCollected(allPlants.length);
-        const evolvedCount = allPlants.filter(p => (p as Plant).form !== 'Base').length;
+        const allPlantsList = Object.values(gameData.plants) as Plant[];
+        setPlantsCollected(allPlantsList.length);
+        const evolvedCount = allPlantsList.filter(p => p.form !== 'Base').length;
         setPlantsEvolved(evolvedCount);
     }
     if (gameData?.showcasePlantIds) {
@@ -355,5 +355,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-    
