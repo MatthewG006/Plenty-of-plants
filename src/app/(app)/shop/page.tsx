@@ -353,13 +353,13 @@ export default function ShopPage() {
     }
   };
 
-  const handlePurchaseSuccess = async (endpoint: string, successMessage: string, errorMessage: string, details?: any) => {
+  const handlePurchaseSuccess = async (endpoint: string, successMessage: string, errorMessage: string) => {
     if (!user) return;
     try {
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.uid, ...(details || {}) }),
+        body: JSON.stringify({ userId: user.uid }),
       });
       if (!res.ok) throw new Error(await res.text());
       playSfx('reward');
@@ -446,7 +446,7 @@ export default function ShopPage() {
                           clientId={payPalClientId} 
                           amount="0.99"
                           description="5 Rubies Pack"
-                          onSuccess={(details) => handlePurchaseSuccess('/api/on-ruby-purchase', 'You received 5 Rubies.', 'Failed to grant rubies.', details)}
+                          onSuccess={() => handlePurchaseSuccess('/api/on-ruby-purchase', 'You received 5 Rubies.', 'Failed to grant rubies.')}
                       />
                   </div>
                   <div className="p-4 rounded-lg bg-muted/50 space-y-4">
@@ -461,7 +461,7 @@ export default function ShopPage() {
                           clientId={payPalClientId} 
                           amount="0.50"
                           description="Fertilizer Pack"
-                          onSuccess={(details) => handlePurchaseSuccess('/api/on-fertilizer-purchase', 'You received 1 fertilizer.', 'Failed to grant fertilizer.', details)}
+                          onSuccess={() => handlePurchaseSuccess('/api/on-fertilizer-purchase', 'You received 1 fertilizer.', 'Failed to grant fertilizer.')}
                       />
                   </div>
                    <div className="p-4 rounded-lg bg-muted/50 space-y-4">
@@ -472,9 +472,12 @@ export default function ShopPage() {
                           </div>
                           <p className="font-bold text-lg text-primary">$5.00</p>
                       </div>
-                      <Button disabled className="w-full">
-                        Coming Soon!
-                      </Button>
+                      <PayPalPurchase
+                          clientId={payPalClientId}
+                          amount="5.00"
+                          description="Seasonal Plant Pack"
+                          onSuccess={() => handlePurchaseSuccess('/api/on-seasonal-purchase', 'Your new seasonal plant has been added to your collection!', 'Failed to grant seasonal plant.')}
+                      />
                   </div>
                 </>
              ) : (
