@@ -274,7 +274,7 @@ export default function RoomPage() {
   const collectionPlants = useMemo(() => {
     const formOrder: { [key: string]: number } = { 'Base': 0, 'Evolved': 1, 'Final': 2 };
     
-    return Object.values(allPlants)
+    return (Object.values(allPlants) as Plant[])
       .filter(plant => !deskPlantIds.includes(plant.id))
       .sort((a,b) => {
           if (sortOption === 'level') {
@@ -506,3 +506,5 @@ export default function RoomPage() {
     </DndContext>
   );
 }
+
+    
