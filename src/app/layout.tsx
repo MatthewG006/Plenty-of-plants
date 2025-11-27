@@ -1,12 +1,15 @@
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { Providers } from '@/components/providers';
+import type { Metadata } from 'next';
 
-export const metadata = {
-  title: 'Plenty of Plants',
-  description: 'Collect and grow your own digital plant collection!',
-  manifest: '/manifest.webmanifest',
-};
+export function generateMetadata(): Metadata {
+  return {
+    title: 'Plenty of Plants',
+    description: 'Collect and grow your own digital plant collection!',
+    manifest: '/manifest.webmanifest',
+  };
+}
 
 export default function RootLayout({
   children,
