@@ -56,20 +56,22 @@ export default function DailyRewardManager() {
   const [isEligible, setIsEligible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [currentStreak, setCurrentStreak] = useState(0);
+  const [hasBeenShownThisSession, setHasBeenShownThisSession] = useState(false);
 
   useEffect(() => {
-    if (user && gameData) {
+    if (user && gameData && !hasBeenShownThisSession) {
         const lastClaimed = gameData.lastLoginBonusClaimed || 0;
         
         if (!isToday(lastClaimed)) {
             setIsEligible(true);
+            setHasBeenShownThisSession(true); // Mark as shown for this session
             const wasYesterday = isYesterday(lastClaimed);
             setCurrentStreak(wasYesterday ? (gameData.loginStreak || 0) : 0);
         } else {
             setIsEligible(false);
         }
     }
-  }, [user, gameData]);
+  }, [user, gameData, hasBeenShownThisSession]);
 
   const handleClaimReward = async () => {
     if (!user) return;
@@ -106,6 +108,11 @@ export default function DailyRewardManager() {
         setIsLoading(false);
     }
   };
+
+  const handleClose = () => {
+    setIsEligible(false);
+    playSfx('tap');
+  };
   
   if (!isEligible) {
     return null;
@@ -114,10 +121,10 @@ export default function DailyRewardManager() {
   const rewardDayIndex = currentStreak % LOGIN_REWARDS.length;
 
   return (
-    <AlertDialog open={isEligible} onOpenChange={() => {}}>
+    <AlertDialog open={isEligible} onOpenChange={setIsEligible}>
       <AlertDialogContent>
          <DialogClose asChild>
-            <button className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+            <button onClick={handleClose} className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
                 <X className="h-4 w-4" />
                 <span className="sr-only">Close</span>
             </button>
