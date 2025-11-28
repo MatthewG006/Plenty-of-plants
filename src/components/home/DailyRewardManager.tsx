@@ -13,18 +13,20 @@ import {
   AlertDialogFooter,
   AlertDialogAction,
 } from '@/components/ui/alert-dialog';
-import { Award, Coins, Gift, Loader2 } from 'lucide-react';
+import { Award, Coins, Gift, Loader2, Sparkles, Star, X } from 'lucide-react';
 import { useAudio } from '@/context/AudioContext';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+import { DialogClose } from '@/components/ui/dialog';
 
 const LOGIN_REWARDS = [
-    { day: 1, type: 'gold', amount: 10 },
-    { day: 2, type: 'gold', amount: 15 },
-    { day: 3, type: 'draws', amount: 1 },
-    { day: 4, type: 'gold', amount: 25 },
-    { day: 5, type: 'glitterCount', amount: 1 },
-    { day: 6, type: 'gold', amount: 50 },
-    { day: 7, type: 'draws', amount: 2 },
+    { day: 1, type: 'gold', amount: 10, icon: Coins },
+    { day: 2, type: 'glitterCount', amount: 1, icon: Sparkles, label: '1 Pack' },
+    { day: 3, type: 'gold', amount: 20, icon: Coins },
+    { day: 4, type: 'sheenCount', amount: 1, icon: Star, label: '1 Pack' },
+    { day: 5, type: 'gold', amount: 30, icon: Coins },
+    { day: 6, type: 'rainbowGlitterCount', amount: 1, icon: Sparkles, label: '1 Pack' },
+    { day: 7, type: 'draws', amount: 1, icon: Gift },
 ];
 
 function isToday(timestamp: number): boolean {
@@ -39,8 +41,7 @@ function isToday(timestamp: number): boolean {
 function isYesterday(timestamp: number): boolean {
     if (!timestamp) return false;
     const today = new Date();
-    const yesterday = new Date(today.setDate(today.getDate() - 1));
-    const someDate = new Date(timestamp);
+    const yesterday = new Date(new Date().setDate(today.getDate() - 1));
     return someDate.getDate() === yesterday.getDate() &&
            someDate.getMonth() === yesterday.getMonth() &&
            someDate.getFullYear() === yesterday.getFullYear();
@@ -62,7 +63,7 @@ export default function DailyRewardManager() {
         if (!isToday(lastClaimed)) {
             setIsEligible(true);
             const wasYesterday = isYesterday(lastClaimed);
-            setCurrentStreak(wasYesterday ? gameData.loginStreak : 0);
+            setCurrentStreak(wasYesterday ? (gameData.loginStreak || 0) : 0);
         } else {
             setIsEligible(false);
         }
@@ -81,9 +82,16 @@ export default function DailyRewardManager() {
     try {
         await claimLoginReward(user.uid, newStreak, reward);
         playSfx('reward');
+        let rewardLabel = '';
+        if (reward.label) {
+            rewardLabel = reward.label;
+        } else {
+            rewardLabel = `${reward.amount} ${reward.type === 'draws' ? 'draw(s)' : 'gold'}`;
+        }
+
         toast({
             title: `Day ${newStreak} Reward Claimed!`,
-            description: `You received ${reward.amount} ${reward.type === 'draws' ? 'draw(s)' : 'gold'}!`,
+            description: `You received ${rewardLabel}!`,
         });
         setIsEligible(false); // Close dialog and prevent re-opening
     } catch (error: any) {
@@ -102,33 +110,48 @@ export default function DailyRewardManager() {
     return null;
   }
   
-  const rewardIndex = currentStreak % LOGIN_REWARDS.length;
-  const reward = LOGIN_REWARDS[rewardIndex];
-  const Icon = reward.type === 'draws' ? Gift : Coins;
+  const rewardDayIndex = currentStreak % LOGIN_REWARDS.length;
 
   return (
     <AlertDialog open={isEligible} onOpenChange={() => {}}>
       <AlertDialogContent>
-        <AlertDialogHeader>
-          <div className="flex justify-center mb-4">
+         <DialogClose asChild>
+            <button className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+                <X className="h-4 w-4" />
+                <span className="sr-only">Close</span>
+            </button>
+        </DialogClose>
+        <AlertDialogHeader className="items-center text-center">
+          <div className="flex justify-center mb-2">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-              <Award className="w-8 h-8 text-primary" />
+              <Gift className="w-8 h-8 text-primary" />
             </div>
           </div>
-          <AlertDialogTitle className="text-center text-2xl">Daily Login Reward!</AlertDialogTitle>
-          <AlertDialogDescription className="text-center pt-2">
-            Welcome back! Your login streak is <span className="font-bold text-primary">{currentStreak + 1} day(s)</span>.
-            <div className="mt-4 p-4 bg-muted/50 rounded-lg flex items-center justify-center gap-4">
-                <Icon className="w-8 h-8 text-yellow-500" />
-                <div className="text-left">
-                    <p className="font-semibold text-foreground">Today's Reward:</p>
-                    <p className="text-lg font-bold text-primary">{reward.amount} {reward.type === 'draws' ? 'Draw(s)' : 'Gold'}</p>
-                </div>
-            </div>
+          <AlertDialogTitle className="text-2xl">Daily Login Bonus</AlertDialogTitle>
+          <AlertDialogDescription>
+            Log in every day to earn rewards! Your current streak is {currentStreak} day(s).
           </AlertDialogDescription>
         </AlertDialogHeader>
+        <div className="grid grid-cols-4 gap-2 text-center">
+            {LOGIN_REWARDS.map((reward, index) => {
+                const Icon = reward.icon;
+                const isCurrentDay = index === rewardDayIndex;
+                let rewardText = reward.label || `${reward.amount} ${reward.type === 'draws' ? 'Draw' : 'Gold'}`;
+                
+                return (
+                    <div key={reward.day} className={cn(
+                        "p-2 rounded-lg border-2",
+                        isCurrentDay ? "border-yellow-400 bg-yellow-100/50 shadow-md" : "border-transparent bg-muted/50"
+                    )}>
+                        <p className={cn("text-xs font-bold", isCurrentDay ? "text-yellow-600" : "text-muted-foreground")}>Day {reward.day}</p>
+                        <Icon className={cn("w-6 h-6 mx-auto my-1", isCurrentDay ? "text-primary" : "text-muted-foreground/70")} />
+                        <p className="text-xs font-semibold">{rewardText}</p>
+                    </div>
+                )
+            })}
+        </div>
         <AlertDialogFooter>
-          <AlertDialogAction onClick={handleClaimReward} className="w-full" disabled={isLoading}>
+          <AlertDialogAction onClick={handleClaimReward} className="w-full text-lg h-12" disabled={isLoading}>
             {isLoading ? <Loader2 className="animate-spin" /> : 'Claim Reward'}
           </AlertDialogAction>
         </AlertDialogFooter>
