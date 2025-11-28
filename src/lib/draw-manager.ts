@@ -83,7 +83,7 @@ export async function claimFreeDraw(userId: string, options?: { useGold?: boolea
   const gameData = await getUserGameData(userId);
   if (!gameData) return { success: false, newCount: 0 };
 
-  let currentDraws = gameData.draws || 0;
+  const currentDraws = gameData.draws ?? 0;
 
   if (currentDraws >= MAX_DRAWS) {
     // Even if draws are full, we may need to update the timer if it's the first time claiming today
