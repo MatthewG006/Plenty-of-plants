@@ -75,7 +75,7 @@
   }
 
   .bg-splash-image {
-    background-image: linear-gradient(to top, rgba(83, 223, 129, 0.8), rgba(83, 223, 129, 0.05)), url('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/park.png');
+    background-image: linear-gradient(to top, rgba(83, 223, 129, 0.8), rgba(83, 223, 129, 0.05)), url('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/splash-bg.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
