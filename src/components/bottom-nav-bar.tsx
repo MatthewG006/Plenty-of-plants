@@ -30,7 +30,7 @@ export default function BottomNavBar() {
   const adjustedPathname = pathname.startsWith('/app') ? pathname.substring(4) : pathname;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 h-16 border-t bg-card/95 backdrop-blur-sm z-40 flex justify-center">
+    <nav className="fixed bottom-0 left-0 right-0 h-16 border-t bg-card/95 backdrop-blur-sm z-50 flex justify-center">
       <div className="grid h-full w-full max-w-md grid-cols-5 items-center">
         {navItems.map((item) => {
           const isActive = adjustedPathname.startsWith(item.href);
