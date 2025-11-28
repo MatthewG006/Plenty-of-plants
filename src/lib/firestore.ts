@@ -76,6 +76,7 @@ export async function createUserDocument(user: { uid: string; email: string | nu
       collectionPlantIds: [],
       seeds: [],
       likedUsers: {},
+      seenPopups: [],
     };
     await setDoc(userRef, initialUserData);
 
@@ -134,6 +135,7 @@ export async function savePlant(uid: string, plantData: DrawPlantOutput): Promis
         personality: '',
         chatEnabled: false,
         conversationHistory: [],
+        acquiredDate: new Date().toISOString(),
     };
     
     transaction.update(userRef, {
@@ -657,11 +659,19 @@ export async function purchaseSeasonalPlantPack(userId: string) {
           personality: 'Crisp',
           chatEnabled: false,
           conversationHistory: [],
+          acquiredDate: new Date().toISOString(),
       };
       
       transaction.update(userRef, {
         [`plants.${nextId}`]: newPlant,
         'collectionPlantIds': arrayUnion(nextId),
       });
+    });
+}
+
+export async function markPopupAsSeen(uid: string, popupId: string): Promise<void> {
+    const userRef = doc(db, 'users', uid);
+    await updateDoc(userRef, {
+        seenPopups: arrayUnion(popupId)
     });
 }

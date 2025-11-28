@@ -92,6 +92,7 @@ export interface GameData {
   avatarColor: string;
   likes: number;
   likedUsers: { [key: string]: number }; // Maps liked user's UID to a timestamp
+  seenPopups: string[];
 }
 
 
