@@ -60,43 +60,59 @@ export default function PayPalPurchase({ clientId, amount, description, onSucces
 
   useEffect(() => {
     if (!ready || !enabled) return;
-    if (!window.paypal) return;
+    
+    // Ensure the PayPal Buttons SDK is loaded and ready
+    if (!window.paypal || typeof window.paypal.Buttons !== 'function') {
+      return;
+    }
 
-    // Clear previous button before rendering a new one
+    // Ensure the container is clean before rendering a new button
     const container = document.getElementById(buttonContainerId);
     if (container) {
         container.innerHTML = '';
+    } else {
+        console.error(`PayPal button container #${buttonContainerId} not found.`);
+        return;
     }
 
-    window.paypal.Buttons({
-      createOrder: async (_: any, actions: any) => {
-        const r = await fetch('/createPaypalOrder', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ amount, description })
-        });
-        const j = await r.json();
-        if (!r.ok) throw new Error(j.error || 'create failed');
-        return j.id;
-      },
-      onApprove: async (data: any) => {
-        const r = await fetch('/capturePaypalOrder', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ orderID: data.orderID })
-        });
-        const j = await r.json();
-        if (!r.ok) { 
-            alert(`Payment failed: ${j.error || 'Unknown error'}`); 
-            return; 
+    try {
+      window.paypal.Buttons({
+        createOrder: async (_: any, actions: any) => {
+          const r = await fetch('/createPaypalOrder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount, description })
+          });
+          const j = await r.json();
+          if (!r.ok) throw new Error(j.error || 'create failed');
+          return j.id;
+        },
+        onApprove: async (data: any) => {
+          try {
+            const r = await fetch('/capturePaypalOrder', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ orderID: data.orderID })
+            });
+            const j = await r.json();
+            if (!r.ok) { 
+                alert(`Payment failed: ${j.error || 'Unknown error'}`); 
+                return; 
+            }
+            onSuccess();
+          } catch(err: any) {
+             console.error("Capture order error:", err);
+             alert(`An error occurred while finalizing your payment: ${err.message}`);
+          }
+        },
+        onError: (err: any) => {
+          console.error("PayPal button error:", err);
+          alert("An error occurred with the PayPal payment. Please try again or check the console for details.");
         }
-        onSuccess();
-      },
-      onError: (err: any) => {
-        console.error("PayPal button error:", err);
-        alert("An error occurred with the PayPal payment. Please try again.");
-      }
-    }).render(`#${buttonContainerId}`);
+      }).render(`#${buttonContainerId}`);
+    } catch (error) {
+      console.error("Failed to render PayPal Buttons:", error);
+    }
   }, [ready, enabled, buttonContainerId, amount, description, onSuccess]);
 
   if (!enabled) return <div className="text-center text-sm text-muted-foreground">Purchases are available only in the web browser.</div>;
