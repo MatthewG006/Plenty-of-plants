@@ -40,6 +40,7 @@ function isToday(timestamp: number): boolean {
 
 function isYesterday(timestamp: number): boolean {
     if (!timestamp) return false;
+    const someDate = new Date(timestamp);
     const today = new Date();
     const yesterday = new Date(new Date().setDate(today.getDate() - 1));
     return someDate.getDate() === yesterday.getDate() &&
