@@ -7,10 +7,10 @@ export function generateMetadata(): Metadata {
   return {
     title: 'Plenty of Plants',
     description: 'Collect and grow your own digital plant collection!',
-    manifest: '/manifest.webmanifest',
+    manifest: 'https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/manifest.webmanifest',
     icons: {
-      icon: '/favicon.ico',
-      apple: '/icon-512.png',
+      icon: 'https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/favicon.ico',
+      apple: 'https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/icon-512.png',
     }
   };
 }

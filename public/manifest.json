@@ -5,12 +5,12 @@
   "description": "Collect and grow your own digital plant collection!",
   "icons": [
     {
-      "src": "/icons/icon-192x192.png",
+      "src": "https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/icons/icon-512x512.png",
+      "src": "https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
     }

@@ -52,7 +52,7 @@ export default function ParkPage() {
     <>
       <div
         className="min-h-screen bg-cover bg-center flex flex-col items-center justify-between text-white p-4 relative"
-        style={{ backgroundImage: "url('/park.png')" }}
+        style={{ backgroundImage: "url('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/park.png')" }}
       >
         <div className="absolute top-4 left-4 z-10">
             <Button asChild variant="secondary">
