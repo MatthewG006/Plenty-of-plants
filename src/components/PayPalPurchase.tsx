@@ -118,5 +118,9 @@ export default function PayPalPurchase({ clientId, amount, description, onSucces
   if (!enabled) return <div className="text-center text-sm text-muted-foreground">Purchases are available only in the web browser.</div>;
   if (!ready) return <div className="text-center text-sm text-muted-foreground">Loading payment button...</div>;
 
-  return <div id={buttonContainerId}></div>;
+  return (
+    <div className="relative z-0">
+      <div id={buttonContainerId}></div>
+    </div>
+  );
 }
