@@ -36,14 +36,14 @@ const PlantADayInputSchema = z.object({
 });
 
 // MODEL INSTANCE (correct Genkit v1 usage)
-const geminiFlash = googleAI('gemini-1.5-flash');
+const geminiFlash = googleAI({ model: 'gemini-1.5-flash'});
 
 /**
  * PLANT A DAY FLOW
  */
 export const plantaday = defineFlow(
+  "plantaday",
   {
-    name: "plantaday",
     inputSchema: PlantADayInputSchema,
     outputSchema: PlantSchema,
   },
@@ -94,13 +94,13 @@ async function generatePlantDescription(
   plantName: string,
   context: string
 ): Promise<z.infer<typeof PlantDescriptionSchema>> {
-  const prompt = `Generate a creative and engaging description for a new, fictional plant species called "${plantName}".
+  const prompt = `Generate a creative and engaging description for a new, fictional plant species called \"${plantName}\".
   This description will be used in a mobile game where users collect and care for various plants.
   The description should be concise, appealing, and suitable for a general audience.
   It should include the following elements:
   - Overview: A brief, captivating introduction to the plant.
   - Nickname: A catchy and memorable nickname for the plant.
-  - Description: A more detailed look at the plant's appearance, characteristics, and any unique features.
+  - Description: A more detailed look at the plant\'s appearance, characteristics, and any unique features.
   - Care Instructions: Simple, easy-to-follow care instructions.
   - Fun Fact: An interesting and surprising fact about the plant.
   - Rarity: Assign a rarity level to the plant (e.g., Common, Uncommon, Rare, Epic, Legendary).
@@ -137,15 +137,15 @@ async function generatePlantDescription(
  * GENERATE IMAGE PROMPT FLOW
  */
 export const generateImagePrompt = defineFlow(
+  "generateImagePrompt",
   {
-    name: "generateImagePrompt",
     inputSchema: PlantSchema,
     outputSchema: z.string(),
   },
   async (plant) => {
     try {
       const prompt = `Generate a prompt for an image generation model to create a visually stunning image of a ${plant.name}.
-      The prompt should be detailed and specific, focusing on the plant's unique features as described below.
+      The prompt should be detailed and specific, focusing on the plant\'s unique features as described below.
       The image should be vibrant, high-resolution, and have a clean, minimalist aesthetic.
       Description:
       - Overview: ${plant.description.overview}
