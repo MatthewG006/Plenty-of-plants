@@ -41,7 +41,7 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
       setMusicVolumeState(parseFloat(savedMusicVolume));
     }
 
-    musicRef.current = new Audio('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/music.mp3');
+    musicRef.current = new Audio('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/music/music.mp3');
     musicRef.current.loop = true;
 
     audioRefs.tap.current = new Audio('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/sfx/tap.mp3');
