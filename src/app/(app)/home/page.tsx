@@ -1,6 +1,9 @@
 
 'use client';
 
+import ChallengeList from '@/components/home/ChallengeList';
+import Draws from '@/components/home/Draws';
+
 export default function HomePage() {
 
   return (
@@ -14,7 +17,8 @@ export default function HomePage() {
         </header>
 
         <main className="space-y-6">
-
+          <Draws />
+          <ChallengeList />
         </main>
 
 
