@@ -20,6 +20,7 @@ export interface Plant {
   personality: string;
   chatEnabled: boolean;
   conversationHistory: { role: 'user' | 'model', content: string }[];
+  acquiredDate: string;
 }
 
 export interface Seed {
