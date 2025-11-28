@@ -385,7 +385,7 @@ export default function ShopPage() {
   const drawCount = gameData.draws;
 
   return (
-    <div className="p-4 pb-20">
+    <div className="p-4 pb-4">
       <header className="flex flex-col items-center justify-center pb-4 text-center">
         <h1 className="text-3xl text-primary">Shop</h1>
         <div className="flex items-center gap-4 mt-2">
@@ -708,4 +708,5 @@ export default function ShopPage() {
     </div>
   );
 }
+
 
