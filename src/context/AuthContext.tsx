@@ -26,20 +26,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-      console.log("Auth state changed:", user ? user.uid : "no user");
-      setUser(user);
-      if (!user) {
-        setGameData(null);
-        setLoading(false);
-      }
-    });
+    if (typeof window !== 'undefined') {
+      const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+        console.log("Auth state changed:", user ? user.uid : "no user");
+        setUser(user);
+        if (!user) {
+          setGameData(null);
+          setLoading(false);
+        }
+      });
 
-    return () => unsubscribeAuth();
+      return () => unsubscribeAuth();
+    }
   }, []);
 
   useEffect(() => {
-    if (user) {
+    if (user && typeof window !== 'undefined') {
       const userDocRef = doc(db, 'users', user.uid);
       
       const unsubscribeFirestore = onSnapshot(userDocRef, (docSnap) => {
@@ -65,7 +67,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AuthContext.Provider value={{ user, gameData, loading }}>
-      {children}
+      {!loading ? children : null}
     </AuthContext.Provider>
   );
 };

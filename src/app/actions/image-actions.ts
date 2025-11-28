@@ -8,7 +8,7 @@ export async function getImageDataUriAction(imageUrl: string): Promise<string> {
     let absoluteUrl = imageUrl;
     // If the URL is relative (starts with '/'), construct an absolute URL
     if (imageUrl.startsWith('/')) {
-        const heads = headers();
+        const heads = await headers();
         const host = heads.get('host');
         if (!host) {
             throw new Error('Could not determine host from headers.');

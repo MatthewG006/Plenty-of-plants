@@ -17,26 +17,11 @@ interface AudioContextType {
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
 
 export const AudioProvider = ({ children }: { children: ReactNode }) => {
-  const [sfxVolume, setSfxVolumeState] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const savedVolume = localStorage.getItem('sfxVolume');
-      return savedVolume !== null ? parseFloat(savedVolume) : 0.75;
-    }
-    return 0.75;
-  });
-
-  const [musicVolume, setMusicVolumeState] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const savedVolume = localStorage.getItem('musicVolume');
-      return savedVolume !== null ? parseFloat(savedVolume) : 0.2;
-    }
-    return 0.2;
-  });
-  
+  const [sfxVolume, setSfxVolumeState] = useState(0.75);
+  const [musicVolume, setMusicVolumeState] = useState(0.2);
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   
   const musicRef = useRef<HTMLAudioElement | null>(null);
-
   const audioRefs = {
     tap: useRef<HTMLAudioElement | null>(null),
     success: useRef<HTMLAudioElement | null>(null),
@@ -46,17 +31,30 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Initialize all audio elements once on the client
-      musicRef.current = new Audio('/music.mp3');
-      musicRef.current.loop = true;
-
-      audioRefs.tap.current = new Audio('/sfx/tap.mp3');
-      audioRefs.success.current = new Audio('/sfx/success.mp3');
-      audioRefs.reward.current = new Audio('/sfx/reward.mp3');
-      audioRefs.chime.current = new Audio('/sfx/chime.mp3');
-      audioRefs.watering.current = new Audio('/sfx/watering.mp3');
+    const savedSfxVolume = localStorage.getItem('sfxVolume');
+    if (savedSfxVolume !== null) {
+      setSfxVolumeState(parseFloat(savedSfxVolume));
     }
+
+    const savedMusicVolume = localStorage.getItem('musicVolume');
+    if (savedMusicVolume !== null) {
+      setMusicVolumeState(parseFloat(savedMusicVolume));
+    }
+
+    musicRef.current = new Audio('/music.mp3');
+    musicRef.current.loop = true;
+
+    audioRefs.tap.current = new Audio('/sfx/tap.mp3');
+    audioRefs.success.current = new Audio('/sfx/success.mp3');
+    audioRefs.reward.current = new Audio('/sfx/reward.mp3');
+    audioRefs.chime.current = new Audio('/sfx/chime.mp3');
+    audioRefs.watering.current = new Audio('/sfx/watering.mp3');
+
+    return () => {
+      if (musicRef.current) {
+        musicRef.current.pause();
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -95,17 +93,27 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
   }, [isMusicPlaying]);
 
   const playSfx = useCallback((sound: keyof typeof audioRefs) => {
-      const audio = audioRefs[sound].current;
-      if (audio) {
-          audio.volume = sfxVolume;
-          audio.currentTime = 0;
-          audio.play().catch(e => console.error("SFX play failed", e));
-      }
-  }, [sfxVolume]);
+    const audio = audioRefs[sound].current;
+    if (audio) {
+        audio.volume = sfxVolume;
+        audio.currentTime = 0;
+        audio.play().catch(e => console.error("SFX play failed", e));
+    }
+}, [sfxVolume, audioRefs]);
 
+  const contextValue = {
+    sfxVolume,
+    setSfxVolume,
+    musicVolume,
+    setMusicVolume,
+    isMusicPlaying,
+    toggleMusic,
+    startMusic,
+    playSfx,
+  };
 
   return (
-    <AudioContext.Provider value={{ sfxVolume, setSfxVolume, musicVolume, setMusicVolume, isMusicPlaying, toggleMusic, startMusic, playSfx }}>
+    <AudioContext.Provider value={contextValue}>
       {children}
     </AudioContext.Provider>
   );
