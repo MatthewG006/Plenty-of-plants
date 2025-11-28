@@ -1,17 +1,26 @@
-
+// src/app/api/genai/plant-image-prompt/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { generateImagePrompt } from "../../../../genkit";
+import { generateImage } from "../../../../genkit";
 
-export async function POST(req: NextRequest): Promise<NextResponse> {
-  const plant = await req.json();
-
+export async function POST(req: NextRequest) {
   try {
-    const imagePrompt = await generateImagePrompt.run(plant);
-    return NextResponse.json({ imagePrompt }, { status: 200 });
-  } catch (error) {
-    console.error("Error running generatePlantImagePromptFlow:", error);
+    const body = await req.json();
+    const { plantName } = body;
+
+    if (!plantName || typeof plantName !== "string") {
+      return NextResponse.json(
+        { error: "plantName is required and must be a string." },
+        { status: 400 }
+      );
+    }
+
+    const result = await generateImage(plantName);
+
+    return NextResponse.json(result, { status: 200 });
+  } catch (err) {
+    console.error("Error generating plant image:", err);
     return NextResponse.json(
-      { error: "Error generating plant image prompt." },
+      { error: "Failed to generate plant image." },
       { status: 500 }
     );
   }

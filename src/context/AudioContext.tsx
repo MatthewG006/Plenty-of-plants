@@ -41,14 +41,14 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
       setMusicVolumeState(parseFloat(savedMusicVolume));
     }
 
-    musicRef.current = new Audio('/music.mp3');
+    musicRef.current = new Audio('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/music.mp3');
     musicRef.current.loop = true;
 
-    audioRefs.tap.current = new Audio('/sfx/tap.mp3');
-    audioRefs.success.current = new Audio('/sfx/success.mp3');
-    audioRefs.reward.current = new Audio('/sfx/reward.mp3');
-    audioRefs.chime.current = new Audio('/sfx/chime.mp3');
-    audioRefs.watering.current = new Audio('/sfx/watering.mp3');
+    audioRefs.tap.current = new Audio('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/sfx/tap.mp3');
+    audioRefs.success.current = new Audio('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/sfx/success.mp3');
+    audioRefs.reward.current = new Audio('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/sfx/reward.mp3');
+    audioRefs.chime.current = new Audio('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/sfx/chime.mp3');
+    audioRefs.watering.current = new Audio('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/sfx/watering.mp3');
 
     return () => {
       if (musicRef.current) {

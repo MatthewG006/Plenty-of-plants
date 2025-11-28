@@ -1,24 +1,19 @@
+// src/app/api/genai/plant-a-day/route.ts
+import { NextResponse } from "next/server";
+import { plantADay } from "../../../../genkit"; // Make sure this matches genkit.ts export
 
-import { NextRequest, NextResponse } from "next/server";
-import { plantaday } from "../../../../genkit";
-
-export async function POST(req: NextRequest): Promise<NextResponse> {
-  const { plantName, context } = await req.json();
-
-  if (!plantName || !context) {
-    return NextResponse.json(
-      { error: "plantName and context are required" },
-      { status: 400 }
-    );
-  }
-
+export async function GET() {
   try {
-    const plant = await plantaday.run({ plantName, context });
-    return NextResponse.json(plant, { status: 200 });
+    const plant = await plantADay();
+
+    return NextResponse.json({
+      success: true,
+      plant,
+    });
   } catch (error) {
-    console.error("Error running plantADayFlow:", error);
+    console.error("Error fetching plant of the day:", error);
     return NextResponse.json(
-      { error: "Error generating plant of the day." },
+      { success: false, message: "Failed to get plant of the day" },
       { status: 500 }
     );
   }
