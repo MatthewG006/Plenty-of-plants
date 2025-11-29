@@ -1,4 +1,5 @@
 
+
 import {
   doc,
   getDoc,
@@ -643,10 +644,10 @@ export async function purchaseSeasonalPlantPack(userId: string) {
       // Example seasonal plant data
       newPlant = {
           id: nextId,
-          name: "Winter Wonder",
-          description: "A frosty plant that glitters with the cold of winter.",
-          image: "https://firebasestorage.googleapis.com/v0/b/plenty-of-plants.appspot.com/o/seasonal%2Fwinter-wonder.png?alt=media&token=18b6225e-33e3-4638-89be-262148195449",
-          hint: 'winter-wonder.png',
+          name: "Fern",
+          description: "A leafy green fern, perfect for a touch of nature.",
+          image: "https://firebasestorage.googleapis.com/v0/b/plentyofplants-108e8.firebasestorage.app/o/fallback-plants%2FFern.png?alt=media&token=8419d6f5-c491-46a2-83c3-931406731ef7",
+          hint: 'fern.png',
           level: 1,
           xp: 0,
           form: 'Base',
@@ -675,3 +676,4 @@ export async function markPopupAsSeen(uid: string, popupId: string): Promise<voi
         seenPopups: arrayUnion(popupId)
     });
 }
+
