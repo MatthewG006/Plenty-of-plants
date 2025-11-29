@@ -92,18 +92,46 @@ export default function ShopPage() {
       delete window.onRewardUser;
     };
   }, [onAdReward]);
+  
+  const handleWebReward = async () => {
+    if (!user) return;
+    setIsAdLoading(true);
+    try {
+        const result = await claimFreeDraw(user.uid);
+        if (result.success) {
+            playSfx('reward');
+            toast({
+                title: "Draw Replenished!",
+                description: "You've received one free draw. Happy growing!",
+            });
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Reward Grant Failed",
+                description: result.reason || "Could not grant reward. Please try again later.",
+            });
+        }
+    } catch (e: any) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: e.message || "An unexpected error occurred.",
+        });
+    } finally {
+        setIsAdLoading(false);
+    }
+  }
 
   const handlePreClaimFreeDraw = () => {
-      setIsAdLoading(true);
       // Check if the native Android interface exists
       if (window.AndroidAdInterface && typeof window.AndroidAdInterface.showDailyFreeDrawAd === 'function') {
         // If it exists, call the native function to show the real ad.
         // The native code will then call `window.onRewardUser()` upon completion.
+        setIsAdLoading(true);
         window.AndroidAdInterface.showDailyFreeDrawAd();
       } else {
-        // If not, this is a web browser. Grant the reward immediately without an ad.
-        console.log("Android ad interface not found. Granting reward directly for web.");
-        onAdReward();
+        // If not, this is a web browser. Grant the reward directly.
+        handleWebReward();
       }
   };
   
@@ -634,3 +662,6 @@ export default function ShopPage() {
 
 
 
+
+
+    
