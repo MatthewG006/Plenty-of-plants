@@ -95,7 +95,6 @@ export async function claimFreeDraw(userId: string, options?: { useGold?: boolea
       }
 
       const newCount = currentDraws + 1;
-      const now = Date.now();
       
       const updateData: any = {
         draws: newCount,
@@ -103,10 +102,6 @@ export async function claimFreeDraw(userId: string, options?: { useGold?: boolea
       
       if (options?.useGold && options.cost && options.cost > 0) {
         updateData.gold = gameData.gold - options.cost;
-      }
-      
-      if (currentDraws < MAX_DRAWS && newCount === MAX_DRAWS) {
-        updateData.lastDrawRefill = now;
       }
 
       transaction.update(userDocRef, updateData);

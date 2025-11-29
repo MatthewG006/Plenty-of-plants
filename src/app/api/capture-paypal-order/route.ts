@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 
 const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID!;
 const PAYPAL_APP_SECRET = process.env.PAYPAL_APP_SECRET!;
-// Use 'https://api-m.sandbox.paypal.com' for sandbox
 const PAYPAL_API_BASE = 'https://api-m.sandbox.paypal.com'; 
 
 async function getAccessToken() {
@@ -17,6 +16,8 @@ async function getAccessToken() {
     });
 
     if (!response.ok) {
+        const errorBody = await response.text();
+        console.error('Failed to get PayPal access token:', errorBody);
         throw new Error('Failed to get PayPal access token');
     }
     
@@ -43,14 +44,11 @@ export async function POST(request: Request) {
             console.error('PayPal Capture Error:', captureData);
             return NextResponse.json({ error: captureData.message || 'Failed to capture order' }, { status: response.status });
         }
-
-        // Here you would typically save the transaction details to your database
-        // For example: await saveTransaction(captureData);
-
-        return NextResponse.json({ status: 'success', captureData });
+        
+        return NextResponse.json(captureData);
 
     } catch (error: any) {
-        console.error('Internal Server Error:', error);
+        console.error('Internal Server Error (Capture Order):', error);
         return NextResponse.json({ error: error.message || 'An internal error occurred' }, { status: 500 });
     }
 }
