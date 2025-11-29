@@ -10,7 +10,7 @@ export default {
   theme: {
     extend: {
       backgroundImage: {
-        'splash-image': "url('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/splash-bg.png')",
+        'splash-image': "linear-gradient(to top, rgba(83, 223, 129, 0.8), rgba(83, 223, 129, 0.05)), url('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/splash-bg.png')",
         'splash-bg': "url('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/splash-bg.png')",
       },
       fontFamily: {
