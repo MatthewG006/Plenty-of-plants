@@ -77,29 +77,27 @@ export default function PayPalPurchase({ clientId, amount, description, onSucces
 
     try {
       window.paypal.Buttons({
-        createOrder: async (_: any, actions: any) => {
-          const r = await fetch('/createPaypalOrder', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ amount, description })
-          });
-          const j = await r.json();
-          if (!r.ok) throw new Error(j.error || 'create failed');
-          return j.id;
-        },
-        onApprove: async (data: any) => {
-          try {
-            const r = await fetch('/capturePaypalOrder', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ orderID: data.orderID })
+        createOrder: (_: any, actions: any) => {
+            return actions.order.create({
+                purchase_units: [{
+                    amount: {
+                        value: amount,
+                        currency_code: 'USD'
+                    },
+                    description: description
+                }]
             });
-            const j = await r.json();
-            if (!r.ok) { 
-                alert(`Payment failed: ${j.error || 'Unknown error'}`); 
-                return; 
+        },
+        onApprove: async (data: any, actions: any) => {
+          try {
+            const details = await actions.order.capture();
+            // Check if the capture was successful
+            if (details.status === 'COMPLETED') {
+                onSuccess();
+            } else {
+                // Handle cases like PENDING, etc.
+                alert(`Payment status: ${details.status}. Please contact support if payment does not complete.`);
             }
-            onSuccess();
           } catch(err: any) {
              console.error("Capture order error:", err);
              alert(`An error occurred while finalizing your payment: ${err.message}`);
