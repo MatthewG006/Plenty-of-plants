@@ -1,6 +1,6 @@
-
 'use client';
 import { useEffect, useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 declare global {
     interface Window {
@@ -17,55 +17,36 @@ interface PayPalPurchaseProps {
 
 export default function PayPalPurchase({ clientId, amount, description, onSuccess }: PayPalPurchaseProps) {
   const [ready, setReady] = useState(false);
-  const [browserMode, setBrowserMode] = useState(false);
+  const [browserMode, setBrowserMode] = useState(true); // Default to true, TWA not supported for this
+  const { toast } = useToast();
   const buttonContainerId = `paypal-button-container-${description.replace(/\s+/g, '-')}`;
 
   useEffect(() => {
-    const checkTwa = async () => {
-      try {
-        // Use an absolute URL to avoid auth proxy interception in dev environments.
-        const res = await fetch(`${window.location.origin}/detectTwa`);
-        const data = await res.json();
-        setBrowserMode(!data.isTwa);
-      } catch (err) {
-        console.error("Could not detect TWA, defaulting to browser mode.", err);
-        setBrowserMode(true);
-      }
-    };
-    checkTwa();
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    
-    if (!browserMode) return;
-
     if (!document.querySelector('script[src*="paypal.com"]')) {
       const script = document.createElement('script');
       script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD`;
-      script.onload = () => {
-        if (!cancelled) setReady(true);
-      };
+      script.onload = () => setReady(true);
       script.onerror = () => {
-        if (!cancelled) setReady(false);
+        toast({
+          variant: 'destructive',
+          title: 'Payment Error',
+          description: 'Could not load the PayPal script. Please try refreshing the page.',
+        });
+        setReady(false);
       };
       document.head.appendChild(script);
     } else {
       setReady(true);
     }
-    
-    return () => { cancelled = true; };
-  }, [clientId, browserMode]);
+  }, [clientId, toast]);
 
   useEffect(() => {
     if (!ready || !browserMode) return;
     
-    // Ensure the PayPal Buttons SDK is loaded and ready
     if (!window.paypal || typeof window.paypal.Buttons !== 'function') {
       return;
     }
 
-    // Ensure the container is clean before rendering a new button
     const container = document.getElementById(buttonContainerId);
     if (container) {
         container.innerHTML = '';
@@ -76,50 +57,69 @@ export default function PayPalPurchase({ clientId, amount, description, onSucces
 
     try {
       window.paypal.Buttons({
-        createOrder: (_: any, actions: any) => {
-            return actions.order.create({
-                purchase_units: [{
-                    amount: {
-                        value: amount,
-                        currency_code: 'USD'
-                    },
-                    description: description
-                }],
-                application_context: {
-                    shipping_preference: 'NO_SHIPPING'
-                }
-            });
-        },
-        onApprove: async (data: any, actions: any) => {
+        async createOrder() {
           try {
-            const details = await actions.order.capture();
-            // Check if the capture was successful
-            if (details.status === 'COMPLETED') {
-                onSuccess();
+            const response = await fetch('/api/create-paypal-order', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ amount, description }),
+            });
+            const order = await response.json();
+            if (order.id) {
+              return order.id;
             } else {
-                // Handle cases like PENDING, etc.
-                alert(`Payment status: ${details.status}. Please contact support if payment does not complete.`);
+              throw new Error(order.error || 'Failed to create order.');
+            }
+          } catch (err: any) {
+            console.error('Create order error:', err);
+            toast({ variant: 'destructive', title: 'Payment Error', description: err.message });
+            throw err;
+          }
+        },
+        async onApprove(data: any) {
+          try {
+            const response = await fetch('/api/capture-paypal-order', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ orderID: data.orderID }),
+            });
+            const details = await response.json();
+            if (details.error) {
+              throw new Error(details.error);
+            }
+            if (details.status === 'COMPLETED') {
+              onSuccess();
+            } else {
+              toast({
+                variant: 'destructive',
+                title: 'Payment Incomplete',
+                description: `Payment status: ${details.status}. Please contact support.`
+              });
             }
           } catch(err: any) {
              console.error("Capture order error:", err);
-             alert(`An error occurred while finalizing your payment: ${err.message}`);
+             toast({ variant: 'destructive', title: 'Payment Finalization Error', description: err.message });
           }
         },
         onError: (err: any) => {
           console.error("PayPal button error:", err);
-          alert("An error occurred with the PayPal payment. Please try again or check the console for details.");
+          toast({
+            variant: 'destructive',
+            title: 'PayPal Error',
+            description: 'An unexpected error occurred with PayPal. Please try again.',
+          });
         }
       }).render(`#${buttonContainerId}`);
     } catch (error) {
       console.error("Failed to render PayPal Buttons:", error);
     }
-  }, [ready, browserMode, buttonContainerId, amount, description, onSuccess]);
+  }, [ready, browserMode, buttonContainerId, amount, description, onSuccess, toast]);
 
   if (!browserMode) return null;
-  if (!ready) return <div className="text-center text-sm text-muted-foreground">Loading payment button...</div>;
+  if (!ready) return <div className="text-center text-sm text-muted-foreground h-10">Loading payment button...</div>;
 
   return (
-    <div className="relative z-0">
+    <div className="relative z-0 min-h-[40px]">
       <div id={buttonContainerId}></div>
     </div>
   );
