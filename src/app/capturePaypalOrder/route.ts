@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 
 const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID!;
 const PAYPAL_APP_SECRET = process.env.PAYPAL_APP_SECRET!;
-// Use 'https://api-m.paypal.com' for production
-const PAYPAL_API_BASE = 'https://api.paypal.com'; 
+// Use 'https://api-m.sandbox.paypal.com' for sandbox
+const PAYPAL_API_BASE = 'https://api-m.sandbox.paypal.com'; 
 
 async function getAccessToken() {
     const auth = Buffer.from(`${PAYPAL_CLIENT_ID}:${PAYPAL_APP_SECRET}`).toString('base64');
