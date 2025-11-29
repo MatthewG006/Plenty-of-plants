@@ -17,13 +17,27 @@ interface PayPalPurchaseProps {
 
 export default function PayPalPurchase({ clientId, amount, description, onSuccess }: PayPalPurchaseProps) {
   const [ready, setReady] = useState(false);
+  const [browserMode, setBrowserMode] = useState(false);
   const buttonContainerId = `paypal-button-container-${description.replace(/\s+/g, '-')}`;
+
+  useEffect(() => {
+    const checkTwa = async () => {
+      try {
+        // Use an absolute URL to avoid auth proxy interception in dev environments.
+        const res = await fetch(`${window.location.origin}/detectTwa`);
+        const data = await res.json();
+        setBrowserMode(!data.isTwa);
+      } catch (err) {
+        console.error("Could not detect TWA, defaulting to browser mode.", err);
+        setBrowserMode(true);
+      }
+    };
+    checkTwa();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
     
-    // Always enabled for web context, no need for TWA check.
-    const browserMode = true; 
     if (!browserMode) return;
 
     if (!document.querySelector('script[src*="paypal.com"]')) {
@@ -41,10 +55,10 @@ export default function PayPalPurchase({ clientId, amount, description, onSucces
     }
     
     return () => { cancelled = true; };
-  }, [clientId]);
+  }, [clientId, browserMode]);
 
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || !browserMode) return;
     
     // Ensure the PayPal Buttons SDK is loaded and ready
     if (!window.paypal || typeof window.paypal.Buttons !== 'function') {
@@ -96,8 +110,9 @@ export default function PayPalPurchase({ clientId, amount, description, onSucces
     } catch (error) {
       console.error("Failed to render PayPal Buttons:", error);
     }
-  }, [ready, buttonContainerId, amount, description, onSuccess]);
+  }, [ready, browserMode, buttonContainerId, amount, description, onSuccess]);
 
+  if (!browserMode) return null;
   if (!ready) return <div className="text-center text-sm text-muted-foreground">Loading payment button...</div>;
 
   return (
