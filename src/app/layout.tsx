@@ -7,7 +7,7 @@ export function generateMetadata(): Metadata {
   return {
     title: 'Plenty of Plants',
     description: 'Collect and grow your own digital plant collection!',
-    manifest: 'https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/manifest.webmanifest',
+    manifest: '/manifest.webmanifest',
     icons: {
       icon: 'https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/favicon.ico',
       apple: 'https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/icon-512.png',
