@@ -346,7 +346,7 @@ export default function GardenPage() {
         <main className="flex-grow flex flex-col justify-end p-2">
             <div className="w-full max-w-4xl mx-auto relative">
                 <Image 
-                    src="https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/garden-bg.png" 
+                    src="https://firebasestorage.googleapis.com/v0/b/plentyofplants-108e8.firebasestorage.app/o/garden-bg.png?alt=media&token=7e37009b-d6fd-474d-9e1d-d9d48675b919" 
                     alt="Garden plots" 
                     width={1024} 
                     height={512} 
