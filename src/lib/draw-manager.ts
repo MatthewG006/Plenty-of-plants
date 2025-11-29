@@ -85,32 +85,29 @@ export async function claimFreeDraw(userId: string, options?: { useGold?: boolea
 
       const gameData = userDoc.data() as GameData;
       let currentDraws = gameData.draws ?? 0;
+      
+      if (currentDraws >= MAX_DRAWS) {
+        return { success: false, newCount: currentDraws, reason: 'max_draws' };
+      }
 
+      const updateData: { [key: string]: any } = { draws: increment(1) };
+      
       if (options?.useGold) {
         const cost = options.cost || 0;
         if ((gameData.gold ?? 0) < cost) {
           return { success: false, newCount: currentDraws, reason: 'not_enough_gold' };
         }
-      }
-
-      if (currentDraws >= MAX_DRAWS) {
-        return { success: false, newCount: currentDraws, reason: 'max_draws' };
-      }
-
-      const newCount = currentDraws + 1;
-      const updateData: { [key: string]: any } = { draws: newCount };
-
-      if (options?.useGold) {
-        updateData.gold = increment(-(options.cost || 0));
+        updateData.gold = increment(-cost);
       }
       
-      if (newCount === MAX_DRAWS) {
+      // If going from 1 to 2 draws (becoming full), reset the timer.
+      if (currentDraws + 1 === MAX_DRAWS) {
         updateData.lastDrawRefill = Date.now();
       }
 
       transaction.update(userDocRef, updateData);
 
-      return { success: true, newCount: newCount };
+      return { success: true, newCount: currentDraws + 1 };
     });
   } catch (error: any) {
     console.error("claimFreeDraw transaction failed: ", error);
