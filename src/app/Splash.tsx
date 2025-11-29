@@ -6,11 +6,13 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { useAudio } from '@/context/AudioContext';
 
 export default function Splash() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [showSplash, setShowSplash] = useState(false);
+  const { startMusic } = useAudio();
 
   useEffect(() => {
     if (!loading) {
@@ -24,6 +26,7 @@ export default function Splash() {
 
   const handleEnter = () => {
     sessionStorage.setItem('hasEntered', 'true');
+    startMusic();
     router.push(user ? '/home' : '/login');
   };
 
