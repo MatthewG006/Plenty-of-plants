@@ -10,8 +10,8 @@ export default {
   theme: {
     extend: {
       backgroundImage: {
-        'splash-image': "linear-gradient(to top, rgba(83, 223, 129, 0.8), rgba(83, 223, 129, 0.05)), url('https://firebasestorage.googleapis.com/v0/b/plentyofplants-108e8.appspot.com/o/splash-bg.png?alt=media&token=ba86f593-e391-48c8-99cc-babbfb594b1b')",
-        'splash-bg': "url('https://firebasestorage.googleapis.com/v0/b/plentyofplants-108e8.appspot.com/o/splash-bg.png?alt=media&token=ba86f593-e391-48c8-99cc-babbfb594b1b')",
+        'splash-image': "linear-gradient(to top, rgba(83, 223, 129, 0.8), rgba(83, 223, 129, 0.05)), url('https://firebasestorage.googleapis.com/v0/b/plentyofplants-108e8.firebasestorage.app/o/splash-bg.png?alt=media&token=ba86f593-e391-48c8-99cc-babbfb594b1b')",
+        'splash-bg': "url('https://firebasestorage.googleapis.com/v0/b/plentyofplants-108e8.firebasestorage.app/o/splash-bg.png?alt=media&token=ba86f593-e391-48c8-99cc-babbfb594b1b')",
       },
       fontFamily: {
         body: ['PT Sans', 'sans-serif'],
