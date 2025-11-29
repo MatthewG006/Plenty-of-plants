@@ -86,11 +86,6 @@ export async function claimFreeDraw(userId: string, options?: { useGold?: boolea
   const currentDraws = gameData.draws ?? 0;
 
   if (currentDraws >= MAX_DRAWS) {
-    // Even if draws are full, we may need to update the timer if it's the first time claiming today
-    // and there's no specific gold cost associated (i.e., it's a free ad-based draw).
-    if (!options?.useGold) {
-        await updateDoc(userDocRef, { lastDrawRefill: Date.now() });
-    }
     return { success: false, newCount: currentDraws, reason: 'max_draws' };
   }
   
@@ -110,7 +105,6 @@ export async function claimFreeDraw(userId: string, options?: { useGold?: boolea
   }
   
   // If we just added the last draw to become full, the timer is now irrelevant until a draw is used.
-  // We can set it to now, which correctly reflects the state.
   if (newCount === MAX_DRAWS) {
       updateData.lastDrawRefill = now;
   }
