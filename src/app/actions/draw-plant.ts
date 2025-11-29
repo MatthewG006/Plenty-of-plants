@@ -57,6 +57,7 @@ export async function drawPlantAction(existingImageFilenames: string[]): Promise
 
     const filename = randomFileRef.name.split('/').pop() || 'unknown';
     const name = filename
+        .toLowerCase() // Convert to lowercase to ensure consistency
         .replace(/\.(png|jpg|jpeg)$/i, '')
         .replace(/[-_]/g, ' ')
         .split(' ')
