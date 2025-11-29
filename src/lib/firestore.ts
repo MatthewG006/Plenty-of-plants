@@ -118,11 +118,14 @@ export async function savePlant(uid: string, plantData: DrawPlantOutput): Promis
 
     const nextId = (Object.keys(allPlants).reduce((maxId, id) => Math.max(parseInt(id, 10), maxId), 0) + 1);
 
+    // Upload the image to storage and get the URL
+    const imageUrl = await uploadImageAndGetURL(uid, nextId, plantData.imageDataUri);
+
     newPlant = {
         id: nextId,
         name: plantData.name,
         description: plantData.description,
-        image: plantData.imageDataUri,
+        image: imageUrl, // Save the storage URL, not the data URI
         hint: plantData.hint || '',
         level: 1,
         xp: 0,
@@ -435,13 +438,13 @@ export async function updatePlant(uid: string, plantId: number, data: Partial<Pl
 
 export async function uploadImageAndGetURL(uid: string, plantId: number, dataUri: string): Promise<string> {
     const storage = getStorage();
-    const storageRef = ref(storage, `users/${uid}/plants/${plantId}/evolved_${Date.now()}.png`);
+    const storageRef = ref(storage, `users/${uid}/plants/${plantId}/${Date.now()}.jpg`);
     
     // Convert data URI to Blob
     const response = await fetch(dataUri);
     const blob = await response.blob();
     
-    await uploadBytes(storageRef, blob);
+    await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
     const downloadURL = await getDownloadURL(storageRef);
     return downloadURL;
 }
@@ -677,3 +680,6 @@ export async function markPopupAsSeen(uid: string, popupId: string): Promise<voi
     });
 }
 
+
+
+    
