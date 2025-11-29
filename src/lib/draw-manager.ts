@@ -1,7 +1,7 @@
 
 'use client';
 
-import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, increment, runTransaction } from 'firebase/firestore';
 import { db } from './firebase';
 import type { GameData } from '@/interfaces/plant';
 import { getUserGameData } from './firestore';
@@ -67,50 +67,57 @@ export async function useDraw(userId: string) {
 }
 
 export async function refundDraw(userId: string) {
-    const gameData = await getUserGameData(userId);
-    if (!gameData) return;
-
-    if (gameData.draws < MAX_DRAWS) {
-        const userDocRef = doc(db, 'users', userId);
-        await updateDoc(userDocRef, {
-            draws: increment(1)
-        });
-    }
+    const userDocRef = doc(db, 'users', userId);
+    await updateDoc(userDocRef, {
+        draws: increment(1)
+    });
 }
 
-export async function claimFreeDraw(userId: string, options?: { useGold?: boolean, cost?: number }): Promise<{ success: boolean; newCount: number; reason?: 'max_draws' | 'not_enough_gold' }> {
+export async function claimFreeDraw(userId: string, options?: { useGold?: boolean, cost?: number }): Promise<{ success: boolean; newCount: number; reason?: string }> {
   const userDocRef = doc(db, 'users', userId);
-  const gameData = await getUserGameData(userId);
-  if (!gameData) return { success: false, newCount: 0 };
 
-  const currentDraws = gameData.draws ?? 0;
+  try {
+    const result = await runTransaction(db, async (transaction) => {
+      const userDoc = await transaction.get(userDocRef);
+      if (!userDoc.exists()) {
+        throw new Error("User document does not exist.");
+      }
 
-  if (currentDraws >= MAX_DRAWS) {
-    return { success: false, newCount: currentDraws, reason: 'max_draws' };
+      const gameData = userDoc.data() as GameData;
+      const currentDraws = gameData.draws ?? 0;
+
+      if (currentDraws >= MAX_DRAWS) {
+        return { success: false, newCount: currentDraws, reason: 'max_draws' };
+      }
+
+      if (options?.useGold && gameData.gold < (options.cost || 0)) {
+        return { success: false, newCount: currentDraws, reason: 'not_enough_gold' };
+      }
+
+      const newCount = currentDraws + 1;
+      const now = Date.now();
+      
+      const updateData: any = {
+        draws: newCount,
+      };
+      
+      if (options?.useGold && options.cost && options.cost > 0) {
+        updateData.gold = gameData.gold - options.cost;
+      }
+      
+      if (currentDraws < MAX_DRAWS && newCount === MAX_DRAWS) {
+        updateData.lastDrawRefill = now;
+      }
+
+      transaction.update(userDocRef, updateData);
+
+      return { success: true, newCount };
+    });
+
+    return result;
+
+  } catch (error: any) {
+    console.error("claimFreeDraw transaction failed: ", error);
+    return { success: false, newCount: 0, reason: error.message || "An unexpected error occurred." };
   }
-  
-  if (options?.useGold && gameData.gold < (options.cost || 0)) {
-      return { success: false, newCount: currentDraws, reason: 'not_enough_gold' };
-  }
-
-  const newCount = currentDraws + 1;
-  const now = Date.now();
-  
-  const updateData: any = {
-      draws: increment(1),
-  };
-  
-  if (options?.useGold && options.cost && options.cost > 0) {
-      updateData.gold = increment(-options.cost);
-  }
-  
-  // If we just added the last draw to become full, the timer is now irrelevant until a draw is used.
-  // Or if the timer wasn't running, start it now.
-  if (newCount === MAX_DRAWS || currentDraws === 0) {
-      updateData.lastDrawRefill = now;
-  }
-
-  await updateDoc(userDocRef, updateData);
-
-  return { success: true, newCount: newCount };
 }
