@@ -2,7 +2,7 @@
 'use server';
 
 import { auth, db } from "@/lib/firebase";
-import { claimFreeDraw } from "@/lib/draw-manager";
+import { claimFreeDraw, MAX_DRAWS } from "@/lib/draw-manager";
 
 /**
  * A secure server action to grant a rewarded ad reward.
@@ -16,13 +16,15 @@ export async function grantAdReward(userId: string): Promise<{ success: boolean;
     }
 
     try {
-        // The daily check is removed. We grant a draw as long as they are not at max capacity.
         const result = await claimFreeDraw(userId);
 
         if (result.success) {
             return { success: true, message: "Free draw granted successfully." };
         } else {
             // Forward the reason from the draw manager (e.g., 'max_draws').
+            if (result.reason === 'max_draws') {
+                return { success: false, message: `Your draws are full! You can have a maximum of ${MAX_DRAWS}.` };
+            }
             return { success: false, message: result.reason || "Failed to grant reward." };
         }
 
