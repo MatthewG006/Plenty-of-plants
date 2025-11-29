@@ -4,7 +4,9 @@
       "https://6000-firebase-studio-1751997679759.cluster-ux5mmlia3zhhask7riihruxydo.cloudworkstations.dev",
       "*"
     ],
-    "method": ["GET"],
+    "method": [
+      "GET"
+    ],
     "maxAgeSeconds": 3600
   }
 ]
