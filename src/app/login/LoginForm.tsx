@@ -48,7 +48,6 @@ export default function LoginForm() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-splash-image p-4">
       <Card className="w-full max-w-md shadow-lg bg-background/90 backdrop-blur-sm">
         <CardHeader className="text-center">
           <Alert className="mb-4 bg-accent/80 border-primary/20">
@@ -100,6 +99,5 @@ export default function LoginForm() {
           </p>
         </CardContent>
       </Card>
-    </main>
   );
 }
