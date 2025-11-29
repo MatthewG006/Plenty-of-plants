@@ -42,7 +42,7 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
       setMusicVolumeState(parseFloat(savedMusicVolume));
     }
 
-    musicRef.current = new Audio('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/music/music.mp3');
+    musicRef.current = new Audio('https://firebasestorage.googleapis.com/v0/b/plentyofplants-108e8.firebasestorage.app/o/music.mp3?alt=media&token=fd2b3a33-d2de-4170-a8c4-712df9a4cf7a');
     musicRef.current.loop = true;
     musicRef.current.oncanplaythrough = () => {
       setIsMusicLoaded(true);
