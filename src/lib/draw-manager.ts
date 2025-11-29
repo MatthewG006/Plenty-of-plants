@@ -77,7 +77,7 @@ export async function claimFreeDraw(userId: string, options?: { useGold?: boolea
   const userDocRef = doc(db, 'users', userId);
 
   try {
-    const result = await runTransaction(db, async (transaction) => {
+    return await runTransaction(db, async (transaction) => {
       const userDoc = await transaction.get(userDocRef);
       if (!userDoc.exists()) {
         throw new Error("User document does not exist.");
@@ -90,26 +90,28 @@ export async function claimFreeDraw(userId: string, options?: { useGold?: boolea
         return { success: false, newCount: currentDraws, reason: 'max_draws' };
       }
 
-      if (options?.useGold && gameData.gold < (options.cost || 0)) {
-        return { success: false, newCount: currentDraws, reason: 'not_enough_gold' };
-      }
+      const updateData: { [key: string]: any } = {};
 
+      if (options?.useGold) {
+        const cost = options.cost || 0;
+        if (gameData.gold < cost) {
+          return { success: false, newCount: currentDraws, reason: 'not_enough_gold' };
+        }
+        updateData.gold = increment(-cost);
+      }
+      
       const newCount = currentDraws + 1;
-      
-      const updateData: any = {
-        draws: newCount,
-      };
-      
-      if (options?.useGold && options.cost && options.cost > 0) {
-        updateData.gold = gameData.gold - options.cost;
+      updateData.draws = newCount;
+
+      // If we are filling up to the max, reset the timer to now.
+      if (newCount === MAX_DRAWS) {
+        updateData.lastDrawRefill = Date.now();
       }
 
       transaction.update(userDocRef, updateData);
 
       return { success: true, newCount };
     });
-
-    return result;
 
   } catch (error: any) {
     console.error("claimFreeDraw transaction failed: ", error);
