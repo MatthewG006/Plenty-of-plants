@@ -84,7 +84,10 @@ export default function PayPalPurchase({ clientId, amount, description, onSucces
                         currency_code: 'USD'
                     },
                     description: description
-                }]
+                }],
+                application_context: {
+                    shipping_preference: 'NO_SHIPPING'
+                }
             });
         },
         onApprove: async (data: any, actions: any) => {
