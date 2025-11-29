@@ -8,18 +8,6 @@ declare global {
     }
 }
 
-async function checkTwa() {
-  try {
-    const r = await fetch('/detectTwa', { cache: 'no-store' });
-    if (!r.ok) return false;
-    const j = await r.json();
-    return j.isTwa;
-  } catch (e) {
-    console.warn('TWA check failed', e);
-    return false;
-  }
-}
-
 interface PayPalPurchaseProps {
     clientId: string;
     amount: string;
@@ -28,38 +16,35 @@ interface PayPalPurchaseProps {
 }
 
 export default function PayPalPurchase({ clientId, amount, description, onSuccess }: PayPalPurchaseProps) {
-  const [enabled, setEnabled] = useState(false);
   const [ready, setReady] = useState(false);
   const buttonContainerId = `paypal-button-container-${description.replace(/\s+/g, '-')}`;
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      const isTwa = await checkTwa();
-      const browserMode = !isTwa; // Only disable for TWA
-      if (cancelled) return;
-      setEnabled(browserMode);
-      if (!browserMode) return;
+    
+    // Always enabled for web context, no need for TWA check.
+    const browserMode = true; 
+    if (!browserMode) return;
 
-      if (!document.querySelector('script[src*="paypal.com"]')) {
-        const script = document.createElement('script');
-        script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD`;
-        script.onload = () => {
-          if (!cancelled) setReady(true);
-        };
-        script.onerror = () => {
-          if (!cancelled) setReady(false);
-        };
-        document.head.appendChild(script);
-      } else {
-        setReady(true);
-      }
-    })();
+    if (!document.querySelector('script[src*="paypal.com"]')) {
+      const script = document.createElement('script');
+      script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD`;
+      script.onload = () => {
+        if (!cancelled) setReady(true);
+      };
+      script.onerror = () => {
+        if (!cancelled) setReady(false);
+      };
+      document.head.appendChild(script);
+    } else {
+      setReady(true);
+    }
+    
     return () => { cancelled = true; };
   }, [clientId]);
 
   useEffect(() => {
-    if (!ready || !enabled) return;
+    if (!ready) return;
     
     // Ensure the PayPal Buttons SDK is loaded and ready
     if (!window.paypal || typeof window.paypal.Buttons !== 'function') {
@@ -111,9 +96,8 @@ export default function PayPalPurchase({ clientId, amount, description, onSucces
     } catch (error) {
       console.error("Failed to render PayPal Buttons:", error);
     }
-  }, [ready, enabled, buttonContainerId, amount, description, onSuccess]);
+  }, [ready, buttonContainerId, amount, description, onSuccess]);
 
-  if (!enabled) return <div className="text-center text-sm text-muted-foreground">Purchases are available only in the web browser.</div>;
   if (!ready) return <div className="text-center text-sm text-muted-foreground">Loading payment button...</div>;
 
   return (
