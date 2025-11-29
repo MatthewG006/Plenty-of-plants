@@ -48,11 +48,11 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
       setIsMusicLoaded(true);
     };
 
-    audioRefs.tap.current = new Audio('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/sfx/tap.mp3');
-    audioRefs.success.current = new Audio('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/sfx/success.mp3');
-    audioRefs.reward.current = new Audio('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/sfx/reward.mp3');
-    audioRefs.chime.current = new Audio('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/sfx/chime.mp3');
-    audioRefs.watering.current = new Audio('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/sfx/watering.mp3');
+    audioRefs.tap.current = new Audio('https://firebasestorage.googleapis.com/v0/b/plentyofplants-108e8.firebasestorage.app/o/sfx%2Ftap.mp3?alt=media&token=6dbbd628-0acf-45c5-b780-99432544fd58');
+    audioRefs.success.current = new Audio('https://firebasestorage.googleapis.com/v0/b/plentyofplants-108e8.firebasestorage.app/o/sfx%2Fsuccess.mp3?alt=media&token=f2fd0fb6-312e-49ab-9af2-1208f571429f');
+    audioRefs.reward.current = new Audio('https://firebasestorage.googleapis.com/v0/b/plentyofplants-108e8.firebasestorage.app/o/sfx%2Freward.mp3?alt=media&token=a8568de4-10f2-4592-ad1f-a499f8bbfc7d');
+    audioRefs.chime.current = new Audio('https://firebasestorage.googleapis.com/v0/b/plentyofplants-108e8.firebasestorage.app/o/sfx%2Fchime.mp3?alt=media&token=ce6f19b8-e743-4f32-80d8-78dc551335ec');
+    audioRefs.watering.current = new Audio('https://firebasestorage.googleapis.com/v0/b/plentyofplants-108e8.firebasestorage.app/o/sfx%2Fwatering.mp3?alt=media&token=44a13f8a-303a-4f85-a577-002a7a32e278');
 
     return () => {
       if (musicRef.current) {
