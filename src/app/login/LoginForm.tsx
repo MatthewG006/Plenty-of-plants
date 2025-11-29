@@ -48,7 +48,7 @@ export default function LoginForm() {
   };
 
   return (
-      <Card className="w-full max-w-md shadow-lg backdrop-blur-sm">
+      <Card className="w-full max-w-md shadow-lg bg-background/80 backdrop-blur-sm">
         <CardHeader className="text-center">
           <Alert className="mb-4 bg-accent/80 border-primary/20">
             <Megaphone className="h-4 w-4" />
