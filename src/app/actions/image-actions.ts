@@ -2,31 +2,45 @@
 'use server';
 
 import { headers } from 'next/headers';
+import fs from 'fs/promises';
+import path from 'path';
 
 export async function getImageDataUriAction(imageUrl: string): Promise<string> {
   try {
-    let absoluteUrl = imageUrl;
-    // If the URL is relative (starts with '/'), construct an absolute URL
+    let imageBuffer: ArrayBuffer;
+    let contentType: string;
+
+    // Check if the imageUrl is a relative path to a local file
     if (imageUrl.startsWith('/')) {
-        const heads = await headers();
-        const host = heads.get('host');
-        if (!host) {
-            throw new Error('Could not determine host from headers.');
+        const filePath = path.join(process.cwd(), 'public', imageUrl);
+        imageBuffer = await fs.readFile(filePath);
+        
+        const extension = path.extname(filePath).toLowerCase();
+        switch (extension) {
+            case '.png':
+                contentType = 'image/png';
+                break;
+            case '.jpg':
+            case '.jpeg':
+                contentType = 'image/jpeg';
+                break;
+            case '.gif':
+                contentType = 'image/gif';
+                break;
+            default:
+                contentType = 'application/octet-stream';
         }
-        // Use http for local development, otherwise https
-        const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
-        absoluteUrl = `${protocol}://${host}${imageUrl}`;
+    } else {
+        // Otherwise, treat it as a full URL
+        const imageResponse = await fetch(imageUrl);
+        if (!imageResponse.ok) {
+            throw new Error(`Failed to fetch image from ${imageUrl}: ${imageResponse.statusText}`);
+        }
+        imageBuffer = await imageResponse.arrayBuffer();
+        contentType = imageResponse.headers.get('content-type') || 'image/png';
     }
 
-    // Fetch the image data on the server using the absolute URL
-    const imageResponse = await fetch(absoluteUrl);
-    if (!imageResponse.ok) {
-        throw new Error(`Failed to fetch image from ${absoluteUrl}: ${imageResponse.statusText}`);
-    }
-    const imageBuffer = await imageResponse.arrayBuffer();
     const imageBase64 = Buffer.from(imageBuffer).toString('base64');
-    
-    const contentType = imageResponse.headers.get('content-type') || 'image/png';
     const dataUri = `data:${contentType};base64,${imageBase64}`;
 
     return dataUri;
