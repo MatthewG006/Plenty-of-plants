@@ -97,7 +97,7 @@ export async function claimFreeDraw(userId: string, options?: { useGold?: boolea
   const now = Date.now();
   
   const updateData: any = {
-      draws: newCount,
+      draws: increment(1),
   };
   
   if (options?.useGold && options.cost && options.cost > 0) {
@@ -105,7 +105,8 @@ export async function claimFreeDraw(userId: string, options?: { useGold?: boolea
   }
   
   // If we just added the last draw to become full, the timer is now irrelevant until a draw is used.
-  if (newCount === MAX_DRAWS) {
+  // Or if the timer wasn't running, start it now.
+  if (newCount === MAX_DRAWS || currentDraws === 0) {
       updateData.lastDrawRefill = now;
   }
 
