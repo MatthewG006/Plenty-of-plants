@@ -9,6 +9,10 @@ export default {
   ],
   theme: {
     extend: {
+      backgroundImage: {
+        'splash-image': "url('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/splash-bg.png')",
+        'splash-bg': "url('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/splash-bg.png')",
+      },
       fontFamily: {
         body: ['PT Sans', 'sans-serif'],
         headline: ['PT Sans', 'sans-serif'],

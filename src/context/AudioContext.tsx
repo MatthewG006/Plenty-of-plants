@@ -20,6 +20,7 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
   const [sfxVolume, setSfxVolumeState] = useState(0.75);
   const [musicVolume, setMusicVolumeState] = useState(0.2);
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+  const [isMusicLoaded, setIsMusicLoaded] = useState(false);
   
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const audioRefs = {
@@ -43,6 +44,9 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
 
     musicRef.current = new Audio('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/music/music.mp3');
     musicRef.current.loop = true;
+    musicRef.current.oncanplaythrough = () => {
+      setIsMusicLoaded(true);
+    };
 
     audioRefs.tap.current = new Audio('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/sfx/tap.mp3');
     audioRefs.success.current = new Audio('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/sfx/success.mp3');
@@ -74,12 +78,12 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const startMusic = useCallback(() => {
-    if (musicRef.current && musicRef.current.paused) {
+    if (musicRef.current && musicRef.current.paused && isMusicLoaded) {
       musicRef.current.play().then(() => {
           setIsMusicPlaying(true);
       }).catch(e => console.error("Music play failed on start:", e));
     }
-  }, []);
+  }, [isMusicLoaded]);
 
   const toggleMusic = useCallback(() => {
     if (musicRef.current) {
