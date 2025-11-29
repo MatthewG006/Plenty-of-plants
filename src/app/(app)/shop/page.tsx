@@ -33,34 +33,6 @@ const WATER_REFILL_COST_IN_GOLD = 15;
 const BUNDLE_COST_IN_GOLD = 250;
 const PLANT_CHAT_COST_IN_RUBIES = 1;
 
-
-function VideoAdDialog({ open, onOpenChange, onSkip, countdown }: { open: boolean; onOpenChange: (open: boolean) => void; onSkip: () => void; countdown: number; }) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md p-0" onPointerDownOutside={(e) => e.preventDefault()} >
-        <DialogHeader>
-          <DialogTitle className="sr-only">Video Ad</DialogTitle>
-          <DialogDescription className="sr-only">A placeholder for a video ad.</DialogDescription>
-        </DialogHeader>
-        <div className="aspect-video bg-black flex flex-col items-center justify-center text-white relative">
-          <Video className="w-16 h-16 text-muted-foreground" />
-          <p className="text-lg font-semibold mt-4">Video Ad Placeholder</p>
-          <p className="text-sm text-muted-foreground">Your ad would be shown here.</p>
-          <div className="absolute bottom-4 right-4">
-            {countdown > 0 ? (
-              <p className="text-sm bg-black/50 rounded-full px-3 py-1">Reward in {countdown}...</p>
-            ) : (
-              <Button onClick={onSkip} variant="secondary" size="sm">
-                Skip
-              </Button>
-            )}
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 // Extend the Window interface to include our custom Android interface
 declare global {
   interface Window {
@@ -77,9 +49,6 @@ export default function ShopPage() {
   const { playSfx } = useAudio();
   
   const [isAdLoading, setIsAdLoading] = useState(false);
-  const [showAd, setShowAd] = useState(false);
-  const [countdown, setCountdown] = useState(5);
-  const countdownTimerRef =  useRef<NodeJS.Timeout | null>(null);
   const [payPalClientId, setPayPalClientId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -93,11 +62,9 @@ export default function ShopPage() {
       .catch(err => console.error("Failed to fetch PayPal client ID:", err));
   }, []);
 
-
   const onAdReward = useCallback(async () => {
     if (!user) return;
     
-    // Call the secure server action to grant the reward
     const result = await grantAdReward(user.uid);
     
     if (result.success) {
@@ -116,43 +83,6 @@ export default function ShopPage() {
     setIsAdLoading(false);
   }, [user, playSfx, toast]);
 
-
-  // This effect simulates the ad flow for web fallback
-  const handleSkipAd = useCallback(() => {
-      if (countdownTimerRef.current) {
-          clearInterval(countdownTimerRef.current);
-      }
-      setShowAd(false);
-      onAdReward();
-  }, [onAdReward]);
-  
-  useEffect(() => {
-    if (showAd) {
-      setCountdown(5);
-      countdownTimerRef.current = setInterval(() => {
-        setCountdown(prev => {
-          if (prev <= 1) {
-            if (countdownTimerRef.current) {
-                clearInterval(countdownTimerRef.current);
-            }
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else {
-      if (countdownTimerRef.current) {
-        clearInterval(countdownTimerRef.current);
-      }
-    }
-    
-    return () => {
-        if (countdownTimerRef.current) {
-            clearInterval(countdownTimerRef.current);
-        }
-    }
-  }, [showAd]);
-
   useEffect(() => {
     // This function will be called by the native Android wrapper after a real ad is watched.
     window.onRewardUser = onAdReward;
@@ -163,7 +93,6 @@ export default function ShopPage() {
     };
   }, [onAdReward]);
 
-
   const handlePreClaimFreeDraw = () => {
       setIsAdLoading(true);
       // Check if the native Android interface exists
@@ -172,9 +101,9 @@ export default function ShopPage() {
         // The native code will then call `window.onRewardUser()` upon completion.
         window.AndroidAdInterface.showDailyFreeDrawAd();
       } else {
-        // If not, fall back to the placeholder ad dialog for web testing.
-        console.log("Android ad interface not found. Showing placeholder ad flow.");
-        setShowAd(true);
+        // If not, this is a web browser. Grant the reward immediately without an ad.
+        console.log("Android ad interface not found. Granting reward directly for web.");
+        onAdReward();
       }
   };
   
@@ -699,14 +628,9 @@ export default function ShopPage() {
             </Card>
         </div>
       </div>
-      <VideoAdDialog
-        open={showAd}
-        onOpenChange={setShowAd}
-        onSkip={handleSkipAd}
-        countdown={countdown}
-      />
     </div>
   );
 }
+
 
 
