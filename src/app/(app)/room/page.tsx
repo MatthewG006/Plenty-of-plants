@@ -421,7 +421,7 @@ export default function RoomPage() {
 
         <section 
             className="relative h-48 max-w-lg mx-auto rounded-lg bg-cover bg-center"
-            style={{backgroundImage: `url('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/desk.jpg')`}}
+            style={{backgroundImage: `url('https://firebasestorage.googleapis.com/v0/b/plentyofplants-108e8.firebasestorage.app/o/desk.jpg?alt=media&token=0e97dc73-7fc5-478c-bcf2-ab71420179d6')`}}
         >
             <div className="absolute inset-x-0 top-0 h-40 p-4 sm:p-6 md:p-8 grid grid-cols-3 grid-rows-1 gap-2">
                 {deskPlantIds.map((plantId, index) => {
