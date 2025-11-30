@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from '@/context/AuthContext';
 import { useDraw, refillDraws, MAX_DRAWS } from '@/lib/draw-manager';
 import { useToast } from '@/hooks/use-toast';
-import { Check, Leaf, Loader2 } from 'lucide-react';
+import { Check, X, Loader2 } from 'lucide-react';
 import { useAudio } from '@/context/AudioContext';
 import type { DrawPlantOutput } from '@/interfaces/plant';
 import { savePlant, getUserGameData } from '@/lib/firestore';
@@ -133,7 +133,7 @@ export default function Draws() {
                                 {index < draws ? (
                                     <Check className="w-8 h-8 text-primary" />
                                 ) : (
-                                    <Leaf className="w-6 h-6 text-primary/40" />
+                                    <X className="w-8 h-8 text-destructive" />
                                 )}
                             </div>
                         ))}
