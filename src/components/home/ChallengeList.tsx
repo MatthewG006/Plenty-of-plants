@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -99,7 +100,7 @@ export default function ChallengeList() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="text-2xl font-semibold flex items-center">
+                <CardTitle className="text-2xl font-semibold flex items-center justify-center">
                     {currentIcon}
                     {currentTitle}
                 </CardTitle>

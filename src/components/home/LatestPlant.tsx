@@ -40,7 +40,7 @@ export default function LatestPlant() {
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Your Latest Plant</CardTitle>
+          <CardTitle className="text-center">Your Latest Plant</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col items-center space-y-4">
           <div className="w-48 h-48 rounded-lg overflow-hidden border-2 border-primary/20 p-2 bg-white">
