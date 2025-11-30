@@ -574,7 +574,7 @@ export default function ShopPage() {
                     <Coins className="h-6 w-6 text-yellow-500" />
                     <p className="text-2xl font-bold text-yellow-600">{GLITTER_COST_IN_GOLD}</p>
                 </div>
-                <Button onClick={handleBuyGlitter} className="w-self-semibold" disabled={goldCount < GLITTER_COST_IN_GOLD}>
+                <Button onClick={handleBuyGlitter} className="w-full font-semibold" disabled={goldCount < GLITTER_COST_IN_GOLD}>
                     {goldCount < GLITTER_COST_IN_GOLD ? "Not Enough Gold" : "Buy Glitter (+1)"}
                 </Button>
                  <p className="text-xs text-muted-foreground text-center w-full">
