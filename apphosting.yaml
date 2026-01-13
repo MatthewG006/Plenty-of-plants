@@ -1,4 +1,17 @@
 # The main branch is the production branch.
+env:
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: "AIzaSyBxgn4A1fMUdIwUKdDh4KWyjJTSle2dXQE"
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: "plentyofplants-108e8.firebaseapp.com"
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: "plentyofplants-108e8"
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: "plentyofplants-108e8.firebasestorage.app"
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "317861154450"
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: "1:317861154450:web:3a586f3cc5b1c42e64e04b"
 run:
   # The command to run to start the server. This is required.
   command: npm run start
