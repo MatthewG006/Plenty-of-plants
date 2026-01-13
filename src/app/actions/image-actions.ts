@@ -13,8 +13,9 @@ export async function getImageDataUriAction(imageUrl: string): Promise<string> {
     // Check if the imageUrl is a relative path to a local file
     if (imageUrl.startsWith('/')) {
         const filePath = path.join(process.cwd(), 'public', imageUrl);
-        imageBuffer = await fs.readFile(filePath);
-        
+        const fileBuffer = await fs.readFile(filePath);
+        imageBuffer = fileBuffer.buffer.slice(fileBuffer.byteOffset, fileBuffer.byteOffset + fileBuffer.byteLength);
+
         const extension = path.extname(filePath).toLowerCase();
         switch (extension) {
             case '.png':
