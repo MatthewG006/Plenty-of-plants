@@ -7,17 +7,15 @@ import LatestPlant from './LatestPlant';
 import GameTips from './GameTips';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { User, Settings } from 'lucide-react';
+import { User, Settings, LogIn } from 'lucide-react';
 import Link from 'next/link';
-// import PopupManager from './PopupManager';
-// import DailyRewardManager from './DailyRewardManager';
+import { useAuth } from '@/context/AuthContext';
 
 export default function HomeContent() {
+  const { user } = useAuth();
 
   return (
     <>
-      {/* <PopupManager /> */}
-      {/* <DailyRewardManager /> */}
       <div className="p-4 space-y-6 bg-white pb-20">
         <header className="flex items-center justify-between">
           <div className="w-10">
@@ -36,10 +34,25 @@ export default function HomeContent() {
         </header>
 
         <main className="space-y-6">
-          <Draws />
-          <LatestPlant />
-          <Separator />
-          <ChallengeList />
+          {user ? (
+            <>
+              <Draws />
+              <LatestPlant />
+              <Separator />
+              <ChallengeList />
+            </>
+          ) : (
+             <div className="text-center p-4 border-2 border-dashed border-primary/20 rounded-lg">
+                <h2 className="text-xl font-semibold text-primary">Welcome!</h2>
+                <p className="text-muted-foreground mt-2 mb-4">Log in to start collecting and growing your unique AI-generated plants.</p>
+                <Button asChild size="lg">
+                    <Link href="/login">
+                        <LogIn className="mr-2 h-5 w-5" />
+                        Login to Play
+                    </Link>
+                </Button>
+             </div>
+          )}
           <Separator />
           <GameTips />
         </main>

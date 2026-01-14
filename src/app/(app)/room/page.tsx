@@ -5,7 +5,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Leaf, Loader2, Sparkles, Star } from 'lucide-react';
+import { Leaf, Loader2, Sparkles, Star, LogIn } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -29,6 +29,7 @@ import { PlantDetailDialog } from '@/components/plant-dialogs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { makeBackgroundTransparent } from '@/lib/image-compression';
 import { getImageDataUriAction } from '@/app/actions/image-actions';
+import Link from 'next/link';
 
 
 const NUM_POTS = 3;
@@ -390,8 +391,18 @@ export default function RoomPage() {
         <div className="p-4 space-y-4 bg-white min-h-screen">
             <header className="flex flex-col items-center gap-2 p-4 text-center">
               <h1 className="text-3xl text-primary text-center">My Room</h1>
-              <p className="text-muted-foreground text-sm">You need to be logged in to view your room.</p>
             </header>
+            <Card className="text-center py-10">
+                <CardHeader>
+                    <CardTitle>Arrange Your Plants</CardTitle>
+                    <CardDescription>Log in to arrange your plants on your desk and manage your collection.</CardDescription>
+                </CardHeader>
+                 <CardContent>
+                    <Button asChild>
+                        <Link href="/login"><LogIn className="mr-2 h-4 w-4" />Log In</Link>
+                    </Button>
+                </CardContent>
+            </Card>
         </div>
     );
   }

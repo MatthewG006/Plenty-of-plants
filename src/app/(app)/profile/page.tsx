@@ -5,7 +5,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { User, LogOut, Coins, Loader2, Leaf, Sparkles, CheckCircle2, Trash2, Share2 } from 'lucide-react';
+import { User, LogOut, Coins, Loader2, Leaf, Sparkles, CheckCircle2, Trash2, Share2, LogIn } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import type { Plant } from '@/interfaces/plant';
@@ -28,6 +28,7 @@ import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { updateShowcasePlants } from '@/lib/firestore';
+import Link from 'next/link';
 
 const MAX_SHOWCASE_PLANTS = 5;
 
@@ -268,9 +269,14 @@ export default function ProfilePage() {
             </header>
             <Card className="text-center py-10">
                 <CardHeader>
-                    <CardTitle>Please Log In</CardTitle>
-                    <CardDescription>You must be logged in to view your profile.</CardDescription>
+                    <CardTitle>View Your Profile</CardTitle>
+                    <CardDescription>Log in to view your profile, manage your collection, and set up your community showcase.</CardDescription>
                 </CardHeader>
+                 <CardContent>
+                    <Button asChild>
+                        <Link href="/login"><LogIn className="mr-2 h-4 w-4" />Log In</Link>
+                    </Button>
+                </CardContent>
             </Card>
         </div>
     );

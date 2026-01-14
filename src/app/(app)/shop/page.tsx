@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { claimFreeDraw, MAX_DRAWS } from '@/lib/draw-manager';
-import { Gift, Coins, Leaf, Clock, Loader2, Droplets, Sparkles, Zap, Pipette, RefreshCw, Star, Package, Gem, MessageCircle, ShoppingCart, Video } from 'lucide-react';
+import { Gift, Coins, Leaf, Clock, Loader2, Droplets, Sparkles, Zap, Pipette, RefreshCw, Star, Package, Gem, MessageCircle, ShoppingCart, Video, LogIn } from 'lucide-react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAudio } from '@/context/AudioContext';
 import { Separator } from '@/components/ui/separator';
@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dialog';
 import { grantAdReward } from '@/app/actions/grant-ad-reward';
 import PayPalPurchase from '@/components/PayPalPurchase';
+import Link from 'next/link';
 
 const DRAW_COST_IN_GOLD = 50;
 const GLITTER_COST_IN_GOLD = 25;
@@ -342,8 +343,18 @@ export default function ShopPage() {
         <div className="p-4 pb-4">
             <header className="flex flex-col items-center justify-center pb-4 text-center">
                 <h1 className="text-3xl text-primary">Shop</h1>
-                <p className="text-muted-foreground mt-2">Please log in to view the shop.</p>
             </header>
+             <Card className="text-center py-10">
+                <CardHeader>
+                    <CardTitle>Browse the Shop</CardTitle>
+                    <CardDescription>Log in to purchase items, cosmetics, and special bundles for your collection.</CardDescription>
+                </CardHeader>
+                 <CardContent>
+                    <Button asChild>
+                        <Link href="/login"><LogIn className="mr-2 h-4 w-4" />Log In</Link>
+                    </Button>
+                </CardContent>
+            </Card>
         </div>
       );
   }
@@ -638,10 +649,3 @@ export default function ShopPage() {
     </div>
   );
 }
-
-
-
-
-
-    
-    

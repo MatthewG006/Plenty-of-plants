@@ -17,56 +17,17 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   gameData: null,
-  loading: false, // Set to false for public access mode
+  loading: false,
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [gameData, setGameData] = useState<GameData | null>(null);
-  const [loading, setLoading] = useState(false); // Set to false for public access
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    // This is all commented out for public access mode.
-    // When re-enabling auth, uncomment this block.
-    /*
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      if (!user) {
-        setGameData(null);
-        setLoading(false);
-      }
-    });
-    return () => unsubscribeAuth();
-    */
-  }, []);
-
-  useEffect(() => {
-    // This is all commented out for public access mode.
-    // When re-enabling auth, uncomment this block.
-    /*
-    if (user) {
-      setLoading(true);
-      const userDocRef = doc(db, 'users', user.uid);
-      
-      const unsubscribeFirestore = onSnapshot(userDocRef, (docSnap) => {
-        if (docSnap.exists()) {
-          setGameData(docSnap.data() as GameData);
-        } else {
-            createUserDocument(user).then(newGameData => {
-                setGameData(newGameData);
-            });
-        }
-        setLoading(false);
-      }, (error) => {
-        console.error("Firestore subscription error:", error);
-        setGameData(null);
-        setLoading(false);
-      });
-
-      return () => unsubscribeFirestore();
-    }
-    */
-  }, [user]);
+  // This provider is in "Public Access Mode".
+  // All authentication is disabled to allow crawlers to access content.
+  // To re-enable authentication, you would uncomment the useEffect hooks below.
 
   return (
     <AuthContext.Provider value={{ user, gameData, loading }}>
