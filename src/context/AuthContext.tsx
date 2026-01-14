@@ -17,7 +17,7 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   gameData: null,
-  loading: true,
+  loading: false, // Set to false for public access mode
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -26,45 +26,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(false); // Set to false for public access
 
   useEffect(() => {
-    // This is the real authentication listener.
-    // const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-    //   console.log("Auth state changed:", user ? user.uid : "no user");
-    //   setUser(user);
-    //   if (!user) {
-    //     // If no user is logged in, clear data and finish loading.
-    //     setGameData(null);
-    //     setLoading(false);
-    //   }
-    // });
-    // return () => unsubscribeAuth();
+    // This is all commented out for public access mode.
+    // When re-enabling auth, uncomment this block.
+    /*
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+      if (!user) {
+        setGameData(null);
+        setLoading(false);
+      }
+    });
+    return () => unsubscribeAuth();
+    */
   }, []);
 
   useEffect(() => {
-    // This effect runs when the user object changes.
-    // It sets up the real-time listener for the user's game data.
-    // if (user) {
-    //   setLoading(true);
-    //   const userDocRef = doc(db, 'users', user.uid);
+    // This is all commented out for public access mode.
+    // When re-enabling auth, uncomment this block.
+    /*
+    if (user) {
+      setLoading(true);
+      const userDocRef = doc(db, 'users', user.uid);
       
-    //   const unsubscribeFirestore = onSnapshot(userDocRef, (docSnap) => {
-    //     if (docSnap.exists()) {
-    //       setGameData(docSnap.data() as GameData);
-    //     } else {
-    //         // This case handles a brand new user. We create their document
-    //         // and onSnapshot will be triggered again with the new data.
-    //         createUserDocument(user).then(newGameData => {
-    //             setGameData(newGameData);
-    //         });
-    //     }
-    //     setLoading(false);
-    //   }, (error) => {
-    //     console.error("Firestore subscription error:", error);
-    //     setGameData(null);
-    //     setLoading(false);
-    //   });
+      const unsubscribeFirestore = onSnapshot(userDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          setGameData(docSnap.data() as GameData);
+        } else {
+            createUserDocument(user).then(newGameData => {
+                setGameData(newGameData);
+            });
+        }
+        setLoading(false);
+      }, (error) => {
+        console.error("Firestore subscription error:", error);
+        setGameData(null);
+        setLoading(false);
+      });
 
-    //   return () => unsubscribeFirestore();
-    // }
+      return () => unsubscribeFirestore();
+    }
+    */
   }, [user]);
 
   return (
