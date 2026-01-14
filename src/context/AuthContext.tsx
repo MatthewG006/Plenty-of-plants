@@ -26,22 +26,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-        console.log("Auth state changed:", user ? user.uid : "no user");
-        setUser(user);
-        if (!user) {
-          setGameData(null);
-          setLoading(false);
-        }
-      });
+    // This is the real authentication listener.
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      console.log("Auth state changed:", user ? user.uid : "no user");
+      setUser(user);
+      if (!user) {
+        // If no user is logged in, clear data and finish loading.
+        setGameData(null);
+        setLoading(false);
+      }
+    });
 
-      return () => unsubscribeAuth();
-    }
+    return () => unsubscribeAuth();
+
+    /*
+    // Mock user logic is commented out to enable real authentication.
+    const mockUser = {
+      uid: "bN5Pn6XwNgbZWG1ZqLLtFNnx8jF2",
+      email: "prknitex@gmail.com",
+      displayName: "prknitex",
+    } as User;
+    setUser(mockUser);
+    */
+    
   }, []);
 
   useEffect(() => {
-    if (user && typeof window !== 'undefined') {
+    // This effect runs when the user object changes.
+    // It sets up the real-time listener for the user's game data.
+    if (user) {
+      setLoading(true);
       const userDocRef = doc(db, 'users', user.uid);
       
       const unsubscribeFirestore = onSnapshot(userDocRef, (docSnap) => {
@@ -67,7 +81,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AuthContext.Provider value={{ user, gameData, loading }}>
-      {!loading ? children : null}
+      {children}
     </AuthContext.Provider>
   );
 };
