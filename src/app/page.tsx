@@ -1,3 +1,4 @@
+
 'use client';
 
 import HomePage from "./(app)/home/page";

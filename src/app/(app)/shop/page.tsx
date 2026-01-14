@@ -338,7 +338,7 @@ export default function ShopPage() {
       );
   }
   
-  if (!user || !gameData) {
+  if (!user) {
       return (
         <div className="p-4 pb-4">
             <header className="flex flex-col items-center justify-center pb-4 text-center">
@@ -359,9 +359,9 @@ export default function ShopPage() {
       );
   }
   
-  const goldCount = gameData.gold;
-  const rubyCount = gameData.rubyCount;
-  const drawCount = gameData.draws;
+  const goldCount = gameData?.gold || 0;
+  const rubyCount = gameData?.rubyCount || 0;
+  const drawCount = gameData?.draws || 0;
 
   return (
     <div className="p-4 pb-4">
@@ -454,7 +454,7 @@ export default function ShopPage() {
                 {rubyCount < PLANT_CHAT_COST_IN_RUBIES ? "Not Enough Rubies" : "Buy Chat Token"}
             </Button>
             <p className="text-xs text-muted-foreground text-center w-full">
-                You have {gameData.plantChatTokens} token(s)
+                You have {gameData?.plantChatTokens || 0} token(s)
             </p>
           </CardContent>
         </Card>
@@ -519,8 +519,8 @@ export default function ShopPage() {
                     <Coins className="h-6 w-6 text-yellow-500" />
                     <p className="text-2xl font-bold text-yellow-600">{SPRINKLER_COST_IN_GOLD}</p>
                 </div>
-                <Button onClick={handleBuySprinkler} className="w-full font-semibold" disabled={gameData.sprinklerUnlocked || goldCount < SPRINKLER_COST_IN_GOLD}>
-                    {gameData.sprinklerUnlocked ? "Owned" : goldCount < SPRINKLER_COST_IN_GOLD ? "Not Enough Gold" : "Buy"}
+                <Button onClick={handleBuySprinkler} className="w-full font-semibold" disabled={gameData?.sprinklerUnlocked || goldCount < SPRINKLER_COST_IN_GOLD}>
+                    {gameData?.sprinklerUnlocked ? "Owned" : goldCount < SPRINKLER_COST_IN_GOLD ? "Not Enough Gold" : "Buy"}
                 </Button>
               </CardContent>
             </Card>
@@ -544,7 +544,7 @@ export default function ShopPage() {
                     {goldCount < WATER_REFILL_COST_IN_GOLD ? "Not Enough Gold" : "Buy (+1)"}
                 </Button>
                 <p className="text-xs text-muted-foreground text-center w-full">
-                    You have {gameData.waterRefillCount} refill(s)
+                    You have {gameData?.waterRefillCount || 0} refill(s)
                 </p>
               </CardContent>
             </Card>
@@ -568,7 +568,7 @@ export default function ShopPage() {
                     {goldCount < GLITTER_COST_IN_GOLD ? "Not Enough Gold" : "Buy Glitter (+1)"}
                 </Button>
                  <p className="text-xs text-muted-foreground text-center w-full">
-                    You have {gameData.glitterCount} pack(s)
+                    You have {gameData?.glitterCount || 0} pack(s)
                 </p>
               </CardContent>
             </Card>
@@ -592,7 +592,7 @@ export default function ShopPage() {
                     {goldCount < SHEEN_COST_IN_GOLD ? "Not Enough Gold" : "Buy Sheen (+1)"}
                 </Button>
                  <p className="text-xs text-muted-foreground text-center w-full">
-                    You have {gameData.sheenCount} sheen pack(s)
+                    You have {gameData?.sheenCount || 0} sheen pack(s)
                 </p>
               </CardContent>
             </Card>
@@ -616,7 +616,7 @@ export default function ShopPage() {
                     {goldCount < RAINBOW_GLITTER_COST_IN_GOLD ? "Not Enough Gold" : "Buy Glitter (+1)"}
                 </Button>
                  <p className="text-xs text-muted-foreground text-center w-full">
-                    You have {gameData.rainbowGlitterCount} pack(s)
+                    You have {gameData?.rainbowGlitterCount || 0} pack(s)
                 </p>
               </CardContent>
             </Card>
@@ -640,7 +640,7 @@ export default function ShopPage() {
                     {goldCount < RED_GLITTER_COST_IN_GOLD ? "Not Enough Gold" : "Buy Glitter (+1)"}
                 </Button>
                  <p className="text-xs text-muted-foreground text-center w-full">
-                    You have {gameData.redGlitterCount} pack(s)
+                    You have {gameData?.redGlitterCount || 0} pack(s)
                 </p>
               </CardContent>
             </Card>

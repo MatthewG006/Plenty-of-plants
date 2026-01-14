@@ -386,7 +386,7 @@ export default function RoomPage() {
     );
   }
 
-  if (!user || !gameData) {
+  if (!user) {
      return (
         <div className="p-4 space-y-4 bg-white min-h-screen">
             <header className="flex flex-col items-center gap-2 p-4 text-center">
@@ -424,19 +424,19 @@ export default function RoomPage() {
             <div className="flex justify-center gap-4 text-sm text-muted-foreground mb-4 flex-wrap">
                 <div className="flex items-center gap-1.5 p-2 rounded-lg bg-yellow-100/80 border border-yellow-300/80">
                     <Sparkles className="w-5 h-5 text-yellow-500" />
-                    <span>{gameData.glitterCount}</span>
+                    <span>{gameData?.glitterCount || 0}</span>
                 </div>
                  <div className="flex items-center gap-1.5 p-2 rounded-lg bg-blue-100/80 border border-blue-300/80">
                     <Star className="w-5 h-5 text-blue-500" />
-                    <span>{gameData.sheenCount}</span>
+                    <span>{gameData?.sheenCount || 0}</span>
                 </div>
                  <div className="flex items-center gap-1.5 p-2 rounded-lg bg-pink-100/80 border border-pink-300/80">
                     <Sparkles className="w-5 h-5 text-pink-500" />
-                    <span>{gameData.rainbowGlitterCount}</span>
+                    <span>{gameData?.rainbowGlitterCount || 0}</span>
                 </div>
                  <div className="flex items-center gap-1.5 p-2 rounded-lg bg-red-100/80 border border-red-300/80">
                     <Sparkles className="w-5 h-5 text-red-500" />
-                    <span>{gameData.redGlitterCount}</span>
+                    <span>{gameData?.redGlitterCount || 0}</span>
                 </div>
             </div>
         </section>
