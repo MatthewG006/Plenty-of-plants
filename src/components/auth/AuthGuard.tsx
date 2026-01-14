@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
@@ -6,18 +7,18 @@ import { useEffect } from "react";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-  const router = useRouter();
+  // const { user, loading } = useAuth();
+  // const router = useRouter();
 
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login");
-    }
-  }, [user, loading, router]);
+  // useEffect(() => {
+  //   if (!loading && !user) {
+  //     router.push("/login");
+  //   }
+  // }, [user, loading, router]);
 
-  if (loading || !user) {
-    return <LoadingSpinner />;
-  }
+  // if (loading || !user) {
+  //   return <LoadingSpinner />;
+  // }
 
   return <>{children}</>;
 }
