@@ -44,7 +44,7 @@ export default function ParkPage() {
     });
   };
   
-  if (authLoading || isLoading) {
+  if (authLoading || (isLoading && authLoading)) {
     return <LoadingSpinner />;
   }
 

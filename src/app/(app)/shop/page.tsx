@@ -44,7 +44,7 @@ declare global {
 }
 
 export default function ShopPage() {
-  const { user, gameData } = useAuth();
+  const { user, gameData, loading } = useAuth();
   const { toast } = useToast();
   const { playSfx } = useAudio();
   
@@ -329,10 +329,21 @@ export default function ShopPage() {
 
 
   
-  if (!user || !gameData) {
+  if (loading) {
       return (
         <div className="flex h-screen w-full items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      );
+  }
+  
+  if (!user || !gameData) {
+      return (
+        <div className="p-4 pb-4">
+            <header className="flex flex-col items-center justify-center pb-4 text-center">
+                <h1 className="text-3xl text-primary">Shop</h1>
+                <p className="text-muted-foreground mt-2">Please log in to view the shop.</p>
+            </header>
         </div>
       );
   }
