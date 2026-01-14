@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -379,7 +380,7 @@ export default function ContestPage() {
         }
     };
 
-    if (isLoading || isJoining || isStarting) {
+    if (authLoading || (isLoading && !session)) {
         return (
             <div className="flex h-screen w-full items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -390,7 +391,7 @@ export default function ContestPage() {
         );
     }
     
-    if (error || !session) {
+    if (error || (!authLoading && !session && !isLoading)) {
         return (
              <Card className="m-4 text-center py-10 border-destructive">
                 <CardHeader>
@@ -409,6 +410,15 @@ export default function ContestPage() {
                 </CardContent>
             </Card>
         )
+    }
+
+    if (!session) {
+         return (
+            <div className="flex h-screen w-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="ml-2">Loading session...</p>
+            </div>
+        );
     }
 
 
@@ -471,12 +481,12 @@ export default function ContestPage() {
                                     Start Contest
                                 </Button>
                             )}
-                            {!hasEntered && timeRemaining > 0 && contestants.length < playerPositions.length ? (
+                            {!hasEntered && timeRemaining > 0 && contestants.length < playerPositions.length && user && (
                                 <Button className="w-full" onClick={() => setShowPlantSelection(true)} variant={isHost ? "secondary" : "default"}>
                                     <Trophy className="mr-2" />
                                     Enter Your Plant!
                                 </Button>
-                            ) : null}
+                            )}
                             <p className="text-xs text-muted-foreground text-center">
                                 {isHost ? (contestants.length < 2 ? "Waiting for more players..." : "You can start the contest now.") : "Waiting for the host to start the contest..."}
                             </p>

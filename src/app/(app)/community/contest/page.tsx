@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -39,7 +40,7 @@ const safeTimestampToISO = (ts: any): string => {
 
 
 export default function ContestLobbyPage() {
-    const { user, gameData } = useAuth();
+    const { user, gameData, loading } = useAuth();
     const { toast } = useToast();
     const { playSfx } = useAudio();
     const router = useRouter();
@@ -121,7 +122,12 @@ export default function ContestLobbyPage() {
 
         async function loadContests() {
             // This now checks for a truthy user, not just defined
-            if (!user) {
+            if (!user && !loading) {
+                console.log("No user, not loading contests.");
+                setIsLoading(false);
+                return;
+            }
+             if (loading) {
                 console.log("Waiting for auth to initialize...");
                 return;
             }
@@ -141,22 +147,16 @@ export default function ContestLobbyPage() {
             }
         }
         
-        // This is the critical fix: only run when user is truthy (logged in).
-        if (user) {
-            loadContests();
-            interval = setInterval(loadContests, 30000);
-        } else if (user === null) {
-            // If we know the user is logged out, stop loading.
-            setIsLoading(false);
-        }
-
+        loadContests();
+        interval = setInterval(loadContests, 30000);
+        
         return () => {
             if (interval) {
                 clearInterval(interval);
             }
         };
 
-    }, [user, toast]);
+    }, [user, loading, toast]);
 
     const handleStartNewContest = () => {
         if (!user) return;

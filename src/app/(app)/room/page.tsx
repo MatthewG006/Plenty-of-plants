@@ -4,7 +4,7 @@
 
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Leaf, Loader2, Sparkles, Star } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -234,7 +234,7 @@ function DroppableCollectionArea({ children }: { children: React.ReactNode }) {
 
 
 export default function RoomPage() {
-  const { user, gameData } = useAuth();
+  const { user, gameData, loading } = useAuth();
   
   const [deskPlantIds, setDeskPlantIds] = useState<(number | null)[]>([]);
   const [processedDeskImages, setProcessedDeskImages] = useState<Record<string, string>>({});
@@ -377,10 +377,21 @@ export default function RoomPage() {
     setSelectedPlant(allPlants[plant.id]);
   };
 
-  if (!user || !gameData) {
+  if (loading) {
     return (
         <div className="flex h-screen w-full items-center justify-center bg-white">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    );
+  }
+
+  if (!user || !gameData) {
+     return (
+        <div className="p-4 space-y-4 bg-white min-h-screen">
+            <header className="flex flex-col items-center gap-2 p-4 text-center">
+              <h1 className="text-3xl text-primary text-center">My Room</h1>
+              <p className="text-muted-foreground text-sm">You need to be logged in to view your room.</p>
+            </header>
         </div>
     );
   }

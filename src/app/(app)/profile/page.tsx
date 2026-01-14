@@ -156,7 +156,7 @@ function ShowcasePlantCard({ plant, isSelected, onSelect }: { plant: Plant, isSe
 
 
 export default function ProfilePage() {
-  const { user, gameData } = useAuth();
+  const { user, gameData, loading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -252,10 +252,26 @@ export default function ProfilePage() {
     }
   };
 
-  if (!user || !gameData) {
+  if (loading) {
     return (
         <div className="flex h-screen w-full items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    );
+  }
+
+  if (!user || !gameData) {
+     return (
+        <div className="p-4 space-y-6 pb-24">
+            <header className="pb-4">
+                <h1 className="text-3xl text-primary text-center">My Profile</h1>
+            </header>
+            <Card className="text-center py-10">
+                <CardHeader>
+                    <CardTitle>Please Log In</CardTitle>
+                    <CardDescription>You must be logged in to view your profile.</CardDescription>
+                </CardHeader>
+            </Card>
         </div>
     );
   }

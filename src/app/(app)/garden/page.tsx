@@ -62,7 +62,7 @@ function EmptyPlotCard({ onClick, className }: { onClick: () => void, className?
 }
 
 export default function GardenPage() {
-  const { user, gameData } = useAuth();
+  const { user, gameData, loading } = useAuth();
   const { toast } = useToast();
   const { playSfx } = useAudio();
 
@@ -304,12 +304,26 @@ export default function GardenPage() {
     }
   };
 
-  if (!user || !gameData) {
+  if (loading) {
     return (
         <div className="flex h-screen w-full items-center justify-center bg-white">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
     );
+  }
+  
+  if (!user || !gameData) {
+     return (
+        <div 
+            className="min-h-screen bg-contain bg-bottom bg-no-repeat flex flex-col"
+            style={{backgroundImage: "url('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/garden-bg-sky.png')"}}
+        >
+            <header className="flex flex-col items-center gap-2 p-4 text-center bg-background/80 backdrop-blur-sm shrink-0">
+                <h1 className="text-3xl text-primary font-bold">My Garden</h1>
+                <p className="text-muted-foreground">You need to be logged in to view your garden.</p>
+            </header>
+        </div>
+     );
   }
 
   return (
