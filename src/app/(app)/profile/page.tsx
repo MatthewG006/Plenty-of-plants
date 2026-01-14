@@ -261,7 +261,7 @@ export default function ProfilePage() {
     );
   }
 
-  if (!user || !gameData) {
+  if (!user) {
      return (
         <div className="p-4 space-y-6 pb-24">
             <header className="pb-4">
@@ -286,8 +286,8 @@ export default function ProfilePage() {
       username: user.displayName || 'PlantLover',
       email: user.email || 'you@example.com',
       gameId: `#${user.uid.slice(0, 8).toUpperCase()}`,
-      gold: gameData.gold || 0,
-      avatarColor: (gameData as any).avatarColor || 'hsl(120, 70%, 85%)'
+      gold: gameData?.gold || 0,
+      avatarColor: (gameData as any)?.avatarColor || 'hsl(120, 70%, 85%)'
   }
 
   return (
@@ -317,7 +317,7 @@ export default function ProfilePage() {
           <Separator />
           <InfoRow label="Plants Evolved" value={plantsEvolved} valueClassName="text-xs" />
            <Separator />
-          <InfoRow label="Seed Bag Size" value={gameData.seedBagSize} valueClassName="text-xs" />
+          <InfoRow label="Seed Bag Size" value={gameData?.seedBagSize || 3} valueClassName="text-xs" />
         </CardContent>
       </Card>
       
