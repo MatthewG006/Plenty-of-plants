@@ -9,15 +9,15 @@ import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { User, Settings } from 'lucide-react';
 import Link from 'next/link';
-import PopupManager from './PopupManager';
-import DailyRewardManager from './DailyRewardManager';
+// import PopupManager from './PopupManager';
+// import DailyRewardManager from './DailyRewardManager';
 
 export default function HomeContent() {
 
   return (
     <>
-      <PopupManager />
-      <DailyRewardManager />
+      {/* <PopupManager /> */}
+      {/* <DailyRewardManager /> */}
       <div className="p-4 space-y-6 bg-white pb-20">
         <header className="flex items-center justify-between">
           <div className="w-10">
