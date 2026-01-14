@@ -12,10 +12,17 @@ import { useAudio } from '@/context/AudioContext';
 export default function Splash() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const [showSplash, setShowSplash] = useState(false);
+  // const [showSplash, setShowSplash] = useState(false);
   const { startMusic } = useAudio();
 
   useEffect(() => {
+    // This logic now bypasses the splash screen entirely and redirects.
+    // This makes '/home' the effective entry point for all users.
+    if (!loading) {
+      router.replace('/home');
+    }
+    // The original logic is commented out to disable the splash screen.
+    /*
     if (!loading) {
       if (sessionStorage.getItem('hasEntered')) {
         router.replace(user ? '/home' : '/login');
@@ -23,6 +30,7 @@ export default function Splash() {
         setShowSplash(true);
       }
     }
+    */
   }, [loading, user, router]);
 
   const handleEnter = () => {
@@ -31,6 +39,15 @@ export default function Splash() {
     router.push(user ? '/home' : '/login');
   };
 
+  // Render a loading spinner during the brief redirect period.
+  // The original splash screen UI is commented out.
+  return (
+    <div className="flex h-screen w-full flex-col items-center justify-center bg-splash-image bg-cover bg-center">
+      <Loader2 className="h-12 w-12 animate-spin text-white" />
+    </div>
+  );
+
+  /*
   if (!showSplash) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-splash-image bg-cover bg-center">
@@ -54,4 +71,5 @@ export default function Splash() {
       <div className="flex-grow-[3] z-10" />
     </div>
   );
+  */
 }
