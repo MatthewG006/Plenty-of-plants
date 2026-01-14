@@ -18,18 +18,26 @@ export default function HomeContent() {
     <>
       <div className="p-4 space-y-6 bg-white pb-20">
         <header className="flex items-center justify-between">
-          <div className="w-10">
-            <Button asChild variant="ghost" size="icon">
-              <Link href="/profile"><User /></Link>
-            </Button>
+           <div className="w-10">
+            {user && (
+              <Button asChild variant="ghost" size="icon">
+                <Link href="/profile"><User /></Link>
+              </Button>
+            )}
           </div>
           <h1 className="text-3xl text-primary font-bold text-center">
             Plenty Of Plants
           </h1>
           <div className="w-10">
-             <Button asChild variant="ghost" size="icon">
-              <Link href="/settings"><Settings /></Link>
-            </Button>
+             {user ? (
+               <Button asChild variant="ghost" size="icon">
+                <Link href="/settings"><Settings /></Link>
+              </Button>
+             ) : (
+               <Button asChild variant="ghost" size="icon">
+                <Link href="/login"><LogIn /></Link>
+              </Button>
+             )}
           </div>
         </header>
 
