@@ -261,7 +261,7 @@ export default function ProfilePage() {
     );
   }
 
-  if (!user) {
+  if (!user || !gameData) {
      return (
         <div className="p-4 space-y-6 pb-24">
             <header className="pb-4">

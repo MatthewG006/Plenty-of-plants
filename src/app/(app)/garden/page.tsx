@@ -313,7 +313,7 @@ export default function GardenPage() {
   }
   
   const renderContent = () => {
-    if (!user) {
+    if (!user || !gameData) {
       return (
         <main className="flex-grow flex items-center justify-center p-4">
           <Card className="text-center py-10 w-full max-w-md">
