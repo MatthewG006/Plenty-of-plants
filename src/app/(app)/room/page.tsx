@@ -386,7 +386,7 @@ export default function RoomPage() {
     );
   }
 
-  if (!user) {
+  if (!user || !gameData) {
      return (
         <div className="p-4 space-y-4 bg-white min-h-screen">
             <header className="flex flex-col items-center gap-2 p-4 text-center">

@@ -338,7 +338,7 @@ export default function ShopPage() {
       );
   }
   
-  if (!user) {
+  if (!user || !gameData) {
       return (
         <div className="p-4 pb-4">
             <header className="flex flex-col items-center justify-center pb-4 text-center">
