@@ -124,6 +124,14 @@ export default function ShopPage() {
   }
 
   const handlePreClaimFreeDraw = () => {
+      if (!user) {
+        toast({
+            title: "Login Required",
+            description: "You need to be logged in to claim a free draw.",
+            action: <Button asChild><Link href="/login">Login</Link></Button>
+        });
+        return;
+      }
       // Check if the native Android interface exists
       if (window.AndroidAdInterface && typeof window.AndroidAdInterface.showDailyFreeDrawAd === 'function') {
         // If it exists, call the native function to show the real ad.
@@ -136,120 +144,118 @@ export default function ShopPage() {
       }
   };
   
+    const handlePurchase = async (purchaseFn: () => Promise<void>) => {
+        if (!user) {
+            toast({
+                title: 'Login Required',
+                description: 'You must be logged in to make a purchase.',
+                action: <Button asChild><Link href="/login">Login</Link></Button>
+            });
+            return;
+        }
+        await purchaseFn();
+    }
 
-    const handleBuyWaterRefill = async () => {
-        if (!user || !gameData) return;
-
+    const handleBuyWaterRefill = () => handlePurchase(async () => {
+        if (!gameData) return;
         if (gameData.gold < WATER_REFILL_COST_IN_GOLD) {
             toast({ variant: "destructive", title: "Not Enough Gold", description: `You need ${WATER_REFILL_COST_IN_GOLD} gold.` });
             return;
         }
-
         try {
-            await purchaseWaterRefill(user.uid, WATER_REFILL_COST_IN_GOLD);
+            await purchaseWaterRefill(user!.uid, WATER_REFILL_COST_IN_GOLD);
             playSfx('reward');
             toast({ title: "Purchase Successful!", description: `You bought 1 Water Refill.` });
         } catch (e: any) {
             console.error("Failed to purchase water refill", e);
             toast({ variant: "destructive", title: "Error", description: e.message || "Could not complete the purchase." });
         }
-    };
+    });
 
-    const handleBuyGlitter = async () => {
-      if (!user || !gameData) return;
-
+    const handleBuyGlitter = () => handlePurchase(async () => {
+      if (!gameData) return;
       if (gameData.gold < GLITTER_COST_IN_GOLD) {
           toast({ variant: "destructive", title: "Not Enough Gold", description: `You need ${GLITTER_COST_IN_GOLD} gold.` });
           return;
       }
-
       try {
-          await purchaseCosmetic(user.uid, 'glitterCount', 1, GLITTER_COST_IN_GOLD);
+          await purchaseCosmetic(user!.uid, 'glitterCount', 1, GLITTER_COST_IN_GOLD);
           playSfx('reward');
           toast({ title: "Purchase Successful!", description: `You bought 1 Glitter Pack!` });
       } catch (e: any) {
           console.error("Failed to purchase glitter", e);
           toast({ variant: "destructive", title: "Error", description: "Could not complete the purchase." });
       }
-  };
+  });
 
 
-  const handleBuySprinkler = async () => {
-      if (!user || !gameData) return;
-
+  const handleBuySprinkler = () => handlePurchase(async () => {
+      if (!gameData) return;
       if (gameData.gold < SPRINKLER_COST_IN_GOLD) {
           toast({ variant: "destructive", title: "Not Enough Gold", description: `You need ${SPRINKLER_COST_IN_GOLD} gold.` });
           return;
       }
-
       try {
-          await purchaseSprinkler(user.uid, SPRINKLER_COST_IN_GOLD);
+          await purchaseSprinkler(user!.uid, SPRINKLER_COST_IN_GOLD);
           playSfx('reward');
           toast({ title: "Purchase Successful!", description: `You bought the Sprinkler! Find it in your room.` });
       } catch (e: any) {
           console.error("Failed to purchase sprinkler", e);
           toast({ variant: "destructive", title: "Error", description: e.message || "Could not complete the purchase." });
       }
-  };
+  });
   
-    const handleBuySheen = async () => {
-      if (!user || !gameData) return;
-
+    const handleBuySheen = () => handlePurchase(async () => {
+      if (!gameData) return;
       if (gameData.gold < SHEEN_COST_IN_GOLD) {
           toast({ variant: "destructive", title: "Not Enough Gold", description: `You need ${SHEEN_COST_IN_GOLD} gold.` });
           return;
       }
-
       try {
-          await purchaseCosmetic(user.uid, 'sheenCount', 1, SHEEN_COST_IN_GOLD);
+          await purchaseCosmetic(user!.uid, 'sheenCount', 1, SHEEN_COST_IN_GOLD);
           playSfx('reward');
           toast({ title: "Purchase Successful!", description: `You bought 1 Sheen Pack!` });
       } catch (e: any) {
           console.error("Failed to purchase sheen", e);
           toast({ variant: "destructive", title: "Error", description: "Could not complete the purchase." });
       }
-  };
+  });
 
-  const handleBuyRainbowGlitter = async () => {
-      if (!user || !gameData) return;
-
+  const handleBuyRainbowGlitter = () => handlePurchase(async () => {
+      if (!gameData) return;
       if (gameData.gold < RAINBOW_GLITTER_COST_IN_GOLD) {
           toast({ variant: "destructive", title: "Not Enough Gold", description: `You need ${RAINBOW_GLITTER_COST_IN_GOLD} gold.` });
           return;
       }
-
       try {
-          await purchaseCosmetic(user.uid, 'rainbowGlitterCount', 1, RAINBOW_GLITTER_COST_IN_GOLD);
+          await purchaseCosmetic(user!.uid, 'rainbowGlitterCount', 1, RAINBOW_GLITTER_COST_IN_GOLD);
           playSfx('reward');
           toast({ title: "Purchase Successful!", description: `You bought 1 Rainbow Glitter Pack!` });
       } catch (e: any) {
           console.error("Failed to purchase rainbow glitter", e);
           toast({ variant: "destructive", title: "Error", description: "Could not complete the purchase." });
       }
-  };
+  });
   
-    const handleBuyRedGlitter = async () => {
-      if (!user || !gameData) return;
-
+    const handleBuyRedGlitter = () => handlePurchase(async () => {
+      if (!gameData) return;
       if (gameData.gold < RED_GLITTER_COST_IN_GOLD) {
           toast({ variant: "destructive", title: "Not Enough Gold", description: `You need ${RED_GLITTER_COST_IN_GOLD} gold.` });
           return;
       }
-
       try {
-          await purchaseCosmetic(user.uid, 'redGlitterCount', 1, RED_GLITTER_COST_IN_GOLD);
+          await purchaseCosmetic(user!.uid, 'redGlitterCount', 1, RED_GLITTER_COST_IN_GOLD);
           playSfx('reward');
           toast({ title: "Purchase Successful!", description: `You bought 1 Red Glitter Pack!` });
       } catch (e: any) {
           console.error("Failed to purchase red glitter", e);
           toast({ variant: "destructive", title: "Error", description: "Could not complete the purchase." });
       }
-  };
+  });
 
 
-  const handleBuyDrawWithGold = async () => {
-    if (!user || !gameData) return;
-
+  const handleBuyDrawWithGold = () => handlePurchase(async () => {
+    if (!gameData) return;
     if (gameData.gold < DRAW_COST_IN_GOLD) {
         toast({ variant: "destructive", title: "Not Enough Gold", description: `You need ${DRAW_COST_IN_GOLD} gold to buy a draw.` });
         return;
@@ -258,9 +264,8 @@ export default function ShopPage() {
         toast({ variant: "destructive", title: "Max Draws Reached", description: "You cannot buy more draws." });
         return;
     }
-
     try {
-        const result = await claimFreeDraw(user.uid, { useGold: true, cost: DRAW_COST_IN_GOLD });
+        const result = await claimFreeDraw(user!.uid, { useGold: true, cost: DRAW_COST_IN_GOLD });
         if (result.success) {
             playSfx('reward');
             toast({ title: "Purchase Successful!", description: `You bought 1 draw for ${DRAW_COST_IN_GOLD} gold.` });
@@ -273,43 +278,39 @@ export default function ShopPage() {
         console.error("Failed to process gold transaction", e);
         toast({ variant: "destructive", title: "Error", description: "Could not complete the purchase." });
     }
-  };
+  });
 
-  const handleBuyBundle = async () => {
-    if (!user || !gameData) return;
-
+  const handleBuyBundle = () => handlePurchase(async () => {
+    if (!gameData) return;
     if (gameData.gold < BUNDLE_COST_IN_GOLD) {
         toast({ variant: "destructive", title: "Not Enough Gold", description: `You need ${BUNDLE_COST_IN_GOLD} gold.` });
         return;
     }
-
     try {
-        await purchaseBundle(user.uid, BUNDLE_COST_IN_GOLD);
+        await purchaseBundle(user!.uid, BUNDLE_COST_IN_GOLD);
         playSfx('reward');
         toast({ title: "Bundle Purchased!", description: "You received all items from the Sparkle Bundle." });
     } catch (e: any) {
         console.error("Failed to purchase bundle", e);
         toast({ variant: "destructive", title: "Error", description: e.message || "Could not complete the purchase." });
     }
-  };
+  });
 
-  const handleBuyPlantChat = async () => {
-    if (!user || !gameData) return;
-
+  const handleBuyPlantChat = () => handlePurchase(async () => {
+    if (!gameData) return;
     if (gameData.rubyCount < PLANT_CHAT_COST_IN_RUBIES) {
         toast({ variant: "destructive", title: "Not Enough Rubies", description: `You need ${PLANT_CHAT_COST_IN_RUBIES} rubies.` });
         return;
     }
-
     try {
-        await purchasePlantChat(user.uid, PLANT_CHAT_COST_IN_RUBIES);
+        await purchasePlantChat(user!.uid, PLANT_CHAT_COST_IN_RUBIES);
         playSfx('reward');
         toast({ title: "Purchase Successful!", description: "You bought a Plant Chat token. Use it on a max-level plant!" });
     } catch (e: any) {
         console.error("Failed to purchase plant chat", e);
         toast({ variant: "destructive", title: "Error", description: e.message || "Could not complete the purchase." });
     }
-  };
+  });
 
   const handlePurchaseSuccess = async (endpoint: string, successMessage: string, errorMessage: string) => {
     if (!user) return;
@@ -327,34 +328,11 @@ export default function ShopPage() {
       toast({ variant: 'destructive', title: 'Reward Error', description: `${errorMessage}: ${e.message}` });
     }
   };
-
-
   
-  if (loading) {
+  if (loading && !gameData) {
       return (
         <div className="flex h-screen w-full items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      );
-  }
-  
-  if (!user || !gameData) {
-      return (
-        <div className="p-4 pb-4">
-            <header className="flex flex-col items-center justify-center pb-4 text-center">
-                <h1 className="text-3xl text-primary">Shop</h1>
-            </header>
-             <Card className="text-center py-10">
-                <CardHeader>
-                    <CardTitle>Browse the Shop</CardTitle>
-                    <CardDescription>Log in to purchase items, cosmetics, and special bundles for your collection.</CardDescription>
-                </CardHeader>
-                 <CardContent>
-                    <Button asChild>
-                        <Link href="/login"><LogIn className="mr-2 h-4 w-4" />Log In</Link>
-                    </Button>
-                </CardContent>
-            </Card>
         </div>
       );
   }
@@ -392,8 +370,8 @@ export default function ShopPage() {
           </CardHeader>
           <CardContent className="flex flex-col items-start gap-4">
             <p className="text-2xl font-bold text-chart-3">FREE</p>
-            <Button onClick={handlePreClaimFreeDraw} className="w-full font-semibold" disabled={isAdLoading || drawCount >= MAX_DRAWS}>
-              {isAdLoading ? <Loader2 className="animate-spin" /> : drawCount >= MAX_DRAWS ? "Draws Full" : "Watch Ad"}
+            <Button onClick={handlePreClaimFreeDraw} className="w-full font-semibold" disabled={isAdLoading || (!!user && drawCount >= MAX_DRAWS)}>
+              {isAdLoading ? <Loader2 className="animate-spin" /> : (!!user && drawCount >= MAX_DRAWS) ? "Draws Full" : "Watch Ad"}
             </Button>
           </CardContent>
         </Card>
@@ -411,7 +389,7 @@ export default function ShopPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-             {payPalClientId ? (
+             {payPalClientId && user ? (
                 <div className="p-4 rounded-lg bg-muted/50 space-y-4">
                     <div className="flex items-center justify-between">
                         <div>
@@ -428,7 +406,16 @@ export default function ShopPage() {
                     />
                 </div>
              ) : (
-                <div className="text-center text-muted-foreground">Loading payment options...</div>
+                <div className="text-center text-muted-foreground p-4">
+                    { !user ? (
+                        <>
+                        <p>You must be logged in to purchase premium items.</p>
+                        <Button asChild className="mt-2"><Link href="/login">Log In</Link></Button>
+                        </>
+                    ) : (
+                        <p>Loading payment options...</p>
+                    )}
+                </div>
              )}
           </CardContent>
         </Card>
@@ -450,8 +437,8 @@ export default function ShopPage() {
                 <Gem className="h-6 w-6 text-red-500" />
                 <p className="text-2xl font-bold text-red-600">{PLANT_CHAT_COST_IN_RUBIES}</p>
             </div>
-            <Button onClick={handleBuyPlantChat} variant="destructive" className="w-full font-semibold bg-red-500 hover:bg-red-600" disabled={rubyCount < PLANT_CHAT_COST_IN_RUBIES}>
-                {rubyCount < PLANT_CHAT_COST_IN_RUBIES ? "Not Enough Rubies" : "Buy Chat Token"}
+            <Button onClick={handleBuyPlantChat} variant="destructive" className="w-full font-semibold bg-red-500 hover:bg-red-600" disabled={!user || rubyCount < PLANT_CHAT_COST_IN_RUBIES}>
+                {!user ? 'Login to Buy' : rubyCount < PLANT_CHAT_COST_IN_RUBIES ? "Not Enough Rubies" : "Buy Chat Token"}
             </Button>
             <p className="text-xs text-muted-foreground text-center w-full">
                 You have {gameData?.plantChatTokens || 0} token(s)
@@ -478,8 +465,8 @@ export default function ShopPage() {
                     <Coins className="h-6 w-6 text-yellow-500" />
                     <p className="text-2xl font-bold text-yellow-600">{BUNDLE_COST_IN_GOLD}</p>
                 </div>
-                <Button onClick={handleBuyBundle} className="w-full font-semibold" disabled={goldCount < BUNDLE_COST_IN_GOLD}>
-                    {goldCount < BUNDLE_COST_IN_GOLD ? "Not Enough Gold" : "Buy Bundle"}
+                <Button onClick={handleBuyBundle} className="w-full font-semibold" disabled={!user || goldCount < BUNDLE_COST_IN_GOLD}>
+                    {!user ? 'Login to Buy' : goldCount < BUNDLE_COST_IN_GOLD ? "Not Enough Gold" : "Buy Bundle"}
                 </Button>
               </CardContent>
             </Card>
@@ -498,8 +485,8 @@ export default function ShopPage() {
                     <Coins className="h-6 w-6 text-yellow-500" />
                     <p className="text-2xl font-bold text-yellow-600">{DRAW_COST_IN_GOLD}</p>
                 </div>
-                <Button onClick={handleBuyDrawWithGold} className="w-full font-semibold" disabled={goldCount < DRAW_COST_IN_GOLD || drawCount >= MAX_DRAWS}>
-                  {drawCount >= MAX_DRAWS ? "Draws Full" : goldCount < DRAW_COST_IN_GOLD ? "Not Enough Gold" : "Buy Draw"}
+                <Button onClick={handleBuyDrawWithGold} className="w-full font-semibold" disabled={!user || goldCount < DRAW_COST_IN_GOLD || drawCount >= MAX_DRAWS}>
+                  {!user ? 'Login to Buy' : drawCount >= MAX_DRAWS ? "Draws Full" : goldCount < DRAW_COST_IN_GOLD ? "Not Enough Gold" : "Buy Draw"}
                 </Button>
               </CardContent>
             </Card>
@@ -519,8 +506,8 @@ export default function ShopPage() {
                     <Coins className="h-6 w-6 text-yellow-500" />
                     <p className="text-2xl font-bold text-yellow-600">{SPRINKLER_COST_IN_GOLD}</p>
                 </div>
-                <Button onClick={handleBuySprinkler} className="w-full font-semibold" disabled={gameData?.sprinklerUnlocked || goldCount < SPRINKLER_COST_IN_GOLD}>
-                    {gameData?.sprinklerUnlocked ? "Owned" : goldCount < SPRINKLER_COST_IN_GOLD ? "Not Enough Gold" : "Buy"}
+                <Button onClick={handleBuySprinkler} className="w-full font-semibold" disabled={!user || gameData?.sprinklerUnlocked || goldCount < SPRINKLER_COST_IN_GOLD}>
+                    {!user ? 'Login to Buy' : gameData?.sprinklerUnlocked ? "Owned" : goldCount < SPRINKLER_COST_IN_GOLD ? "Not Enough Gold" : "Buy"}
                 </Button>
               </CardContent>
             </Card>
@@ -540,8 +527,8 @@ export default function ShopPage() {
                     <Coins className="h-6 w-6 text-yellow-500" />
                     <p className="text-2xl font-bold text-yellow-600">{WATER_REFILL_COST_IN_GOLD}</p>
                 </div>
-                <Button onClick={handleBuyWaterRefill} className="w-full font-semibold" disabled={goldCount < WATER_REFILL_COST_IN_GOLD}>
-                    {goldCount < WATER_REFILL_COST_IN_GOLD ? "Not Enough Gold" : "Buy (+1)"}
+                <Button onClick={handleBuyWaterRefill} className="w-full font-semibold" disabled={!user || goldCount < WATER_REFILL_COST_IN_GOLD}>
+                    {!user ? 'Login to Buy' : goldCount < WATER_REFILL_COST_IN_GOLD ? "Not Enough Gold" : "Buy (+1)"}
                 </Button>
                 <p className="text-xs text-muted-foreground text-center w-full">
                     You have {gameData?.waterRefillCount || 0} refill(s)
@@ -564,8 +551,8 @@ export default function ShopPage() {
                     <Coins className="h-6 w-6 text-yellow-500" />
                     <p className="text-2xl font-bold text-yellow-600">{GLITTER_COST_IN_GOLD}</p>
                 </div>
-                <Button onClick={handleBuyGlitter} className="w-full font-semibold" disabled={goldCount < GLITTER_COST_IN_GOLD}>
-                    {goldCount < GLITTER_COST_IN_GOLD ? "Not Enough Gold" : "Buy Glitter (+1)"}
+                <Button onClick={handleBuyGlitter} className="w-full font-semibold" disabled={!user || goldCount < GLITTER_COST_IN_GOLD}>
+                    {!user ? 'Login to Buy' : goldCount < GLITTER_COST_IN_GOLD ? "Not Enough Gold" : "Buy Glitter (+1)"}
                 </Button>
                  <p className="text-xs text-muted-foreground text-center w-full">
                     You have {gameData?.glitterCount || 0} pack(s)
@@ -588,8 +575,8 @@ export default function ShopPage() {
                     <Coins className="h-6 w-6 text-yellow-500" />
                     <p className="text-2xl font-bold text-yellow-600">{SHEEN_COST_IN_GOLD}</p>
                 </div>
-                <Button onClick={handleBuySheen} className="w-full font-semibold" disabled={goldCount < SHEEN_COST_IN_GOLD}>
-                    {goldCount < SHEEN_COST_IN_GOLD ? "Not Enough Gold" : "Buy Sheen (+1)"}
+                <Button onClick={handleBuySheen} className="w-full font-semibold" disabled={!user || goldCount < SHEEN_COST_IN_GOLD}>
+                    {!user ? 'Login to Buy' : goldCount < SHEEN_COST_IN_GOLD ? "Not Enough Gold" : "Buy Sheen (+1)"}
                 </Button>
                  <p className="text-xs text-muted-foreground text-center w-full">
                     You have {gameData?.sheenCount || 0} sheen pack(s)
@@ -612,8 +599,8 @@ export default function ShopPage() {
                     <Coins className="h-6 w-6 text-yellow-500" />
                     <p className="text-2xl font-bold text-yellow-600">{RAINBOW_GLITTER_COST_IN_GOLD}</p>
                 </div>
-                <Button onClick={handleBuyRainbowGlitter} className="w-full font-semibold" disabled={goldCount < RAINBOW_GLITTER_COST_IN_GOLD}>
-                    {goldCount < RAINBOW_GLITTER_COST_IN_GOLD ? "Not Enough Gold" : "Buy Glitter (+1)"}
+                <Button onClick={handleBuyRainbowGlitter} className="w-full font-semibold" disabled={!user || goldCount < RAINBOW_GLITTER_COST_IN_GOLD}>
+                    {!user ? 'Login to Buy' : goldCount < RAINBOW_GLITTER_COST_IN_GOLD ? "Not Enough Gold" : "Buy Glitter (+1)"}
                 </Button>
                  <p className="text-xs text-muted-foreground text-center w-full">
                     You have {gameData?.rainbowGlitterCount || 0} pack(s)
@@ -636,8 +623,8 @@ export default function ShopPage() {
                     <Coins className="h-6 w-6 text-yellow-500" />
                     <p className="text-2xl font-bold text-yellow-600">{RED_GLITTER_COST_IN_GOLD}</p>
                 </div>
-                <Button onClick={handleBuyRedGlitter} className="w-full font-semibold" disabled={goldCount < RED_GLITTER_COST_IN_GOLD}>
-                    {goldCount < RED_GLITTER_COST_IN_GOLD ? "Not Enough Gold" : "Buy Glitter (+1)"}
+                <Button onClick={handleBuyRedGlitter} className="w-full font-semibold" disabled={!user || goldCount < RED_GLITTER_COST_IN_GOLD}>
+                    {!user ? 'Login to Buy' : goldCount < RED_GLITTER_COST_IN_GOLD ? "Not Enough Gold" : "Buy Glitter (+1)"}
                 </Button>
                  <p className="text-xs text-muted-foreground text-center w-full">
                     You have {gameData?.redGlitterCount || 0} pack(s)

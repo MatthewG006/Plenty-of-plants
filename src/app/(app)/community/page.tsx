@@ -2,7 +2,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Users, Leaf, Sparkles, ShieldAlert, Heart, Star, Trees, Coins } from 'lucide-react';
+import { Loader2, Users, Leaf, Sparkles, ShieldAlert, Heart, Star, Trees, Coins, LogIn } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { getCommunityUsers, likeUser } from '@/lib/firestore';
@@ -203,7 +203,14 @@ export default function CommunityPage() {
   }, [toast]);
 
   const handleLike = async (likedUser: CommunityUser) => {
-    if (!user) return;
+    if (!user) {
+        toast({
+            title: 'Login Required',
+            description: 'You must be logged in to like a showcase.',
+            action: <Button asChild><Link href="/login">Login</Link></Button>
+        })
+        return;
+    };
     try {
       await likeUser(user.uid, likedUser.uid);
       await updateLikePlayerProgress(user.uid);
@@ -329,10 +336,10 @@ export default function CommunityPage() {
                         size="icon" 
                         variant="outline" 
                         onClick={() => handleLike(communityUser)}
-                        disabled={!canLikeAgain || isSelf}
+                        disabled={!!user && (!canLikeAgain || isSelf)}
                         className={cn(hasLiked && !canLikeAgain && "border-red-500 text-red-500")}
                         >
-                        <Heart className={cn("w-5 h-5", hasLiked && !canLikeAgain && "fill-current")} />
+                        <Heart className={cn("w-5 h-5", !!user && hasLiked && !canLikeAgain && "fill-current")} />
                     </Button>
                     </CardHeader>
                     <CardContent>
