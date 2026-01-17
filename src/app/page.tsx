@@ -12,6 +12,5 @@ export default function Page() {
     return <LoadingSpinner />;
   }
   
-  // The Splash component now handles the initial redirect.
   return <Splash />;
 }

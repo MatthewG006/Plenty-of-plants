@@ -5,7 +5,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Clock, Sprout, ChevronsRight, Leaf, Zap, Share2, LogIn } from 'lucide-react';
+import { Loader2, Clock, Sprout, ChevronsRight, Leaf, Zap, Share2 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAudio } from '@/context/AudioContext';
@@ -213,54 +213,11 @@ export default function SeedsPage() {
         }
     };
 
-    if (loading) {
+    if (loading || !user || !gameData) {
         return (
             <div className="flex h-screen w-full items-center justify-center bg-white">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-        );
-    }
-    
-    if (!user) {
-        return (
-             <div 
-                className="min-h-screen bg-contain bg-bottom bg-no-repeat flex flex-col"
-                style={{backgroundImage: "url('/garden-bg-sky.png')"}}
-            >
-                <header className="flex flex-col items-center gap-2 p-4 text-center bg-background/80 backdrop-blur-sm shrink-0">
-                    <h1 className="text-3xl text-primary font-bold">My Seed Bag</h1>
-                    <div className="flex gap-2 pt-2">
-                        <Button asChild>
-                            <Link href="/garden">
-                                <Leaf className="mr-1.5 h-4 w-4" />
-                                Plants
-                            </Link>
-                        </Button>
-                        <Button variant="secondary" asChild>
-                            <Link href="/garden/seeds">
-                                <Sprout className="mr-1.5 h-4 w-4" />
-                                Seeds
-                            </Link>
-                        </Button>
-                    </div>
-                </header>
-                <main className="flex-grow flex items-center justify-center p-4">
-                    <Card className="text-center py-10 w-full max-w-md">
-                        <CardHeader>
-                            <div className="mx-auto bg-primary/10 rounded-full w-fit p-3 mb-2">
-                                <Sprout className="h-10 w-10 text-primary" />
-                            </div>
-                            <CardTitle>Grow Plants from Seeds</CardTitle>
-                            <CardDescription>Earn seeds when your plants level up in the Garden. Place them here to germinate, and in 24 hours, you can grow them into a brand new plant!</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Button asChild>
-                                <Link href="/login"><LogIn className="mr-2 h-4 w-4" />Log In to Manage Seeds</Link>
-                            </Button>
-                        </CardContent>
-                    </Card>
-                </main>
-             </div>
         );
     }
 
