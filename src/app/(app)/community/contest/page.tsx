@@ -5,7 +5,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, ArrowLeft, Trophy, Users, ShieldAlert, PlusCircle, Clock } from 'lucide-react';
+import { Loader2, ArrowLeft, Trophy, Users, ShieldAlert, PlusCircle, Clock, LogIn } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import type { Plant, ContestSession } from '@/interfaces/plant';
@@ -121,16 +121,6 @@ export default function ContestLobbyPage() {
         let interval: NodeJS.Timeout;
 
         async function loadContests() {
-            // This now checks for a truthy user, not just defined
-            if (!user && !loading) {
-                console.log("No user, not loading contests.");
-                setIsLoading(false);
-                return;
-            }
-             if (loading) {
-                console.log("Waiting for auth to initialize...");
-                return;
-            }
             setIsLoading(true);
             setError(null);
             try {
@@ -156,10 +146,13 @@ export default function ContestLobbyPage() {
             }
         };
 
-    }, [user, loading, toast]);
+    }, [toast]);
 
     const handleStartNewContest = () => {
-        if (!user) return;
+        if (!user) {
+            router.push('/login');
+            return;
+        };
         playSfx('tap');
         setShowPlantSelection(true);
     };
@@ -206,13 +199,6 @@ export default function ContestLobbyPage() {
                 <div className="flex justify-center pt-10">
                   <Loader2 className="h-10 w-10 animate-spin text-primary" />
                 </div>
-            ) : !user ? (
-                <Card className="m-4 text-center py-10">
-                    <CardHeader>
-                        <CardTitle>Please Log In</CardTitle>
-                        <CardDescription>You must be logged in to view contests.</CardDescription>
-                    </CardHeader>
-                </Card>
             ) : error ? (
                 <Card className="m-4 text-center py-10 border-destructive">
                     <CardHeader>
@@ -229,11 +215,10 @@ export default function ContestLobbyPage() {
                 <>
                      <Button 
                         onClick={handleStartNewContest} 
-                        disabled={isCreating}
+                        disabled={isCreating && !!user}
                         className="w-full text-lg"
                     >
-                        {isCreating ? <Loader2 className="animate-spin" /> : <PlusCircle className="mr-2" />}
-                        Create New Contest
+                        {isCreating && !!user ? <Loader2 className="animate-spin" /> : !user ? <><LogIn className="mr-2"/>Log In to Create</> : <><PlusCircle className="mr-2" />Create New Contest</>}
                     </Button>
                     
                     <div className="space-y-4">
@@ -253,7 +238,7 @@ export default function ContestLobbyPage() {
                                             <Button asChild className="w-full">
                                                 <Link href={`/community/contest/${session.id}`}>
                                                     <Trophy className="mr-2" />
-                                                    Join Lobby
+                                                    {user ? 'Join Lobby' : 'View Lobby'}
                                                 </Link>
                                             </Button>
                                         </CardContent>
@@ -273,13 +258,14 @@ export default function ContestLobbyPage() {
                 </>
             )}
 
-
-            <ContestPlantSelectionDialog
-                open={showPlantSelection}
-                onOpenChange={setShowPlantSelection}
-                allPlants={Object.values(gameData?.plants || {})}
-                onSelectPlant={handleSelectPlant}
-            />
+            {user && (
+                <ContestPlantSelectionDialog
+                    open={showPlantSelection}
+                    onOpenChange={setShowPlantSelection}
+                    allPlants={Object.values(gameData?.plants || {})}
+                    onSelectPlant={handleSelectPlant}
+                />
+            )}
         </div>
     )
 }

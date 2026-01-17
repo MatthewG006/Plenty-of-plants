@@ -313,17 +313,20 @@ export default function GardenPage() {
   }
   
   const renderContent = () => {
-    if (!user || !gameData) {
+    if (!user) {
       return (
         <main className="flex-grow flex items-center justify-center p-4">
           <Card className="text-center py-10 w-full max-w-md">
             <CardHeader>
+              <div className="mx-auto bg-primary/10 rounded-full w-fit p-3 mb-2">
+                <Droplets className="h-10 w-10 text-primary" />
+              </div>
               <CardTitle>Welcome to the Garden</CardTitle>
-              <CardDescription>Log in to water your plants, help them grow, and watch them evolve.</CardDescription>
+              <CardDescription>This is your space to nurture your plants. Water them daily to help them gain XP, level up, and even evolve into new, magnificent forms!</CardDescription>
             </CardHeader>
             <CardContent>
               <Button asChild>
-                <Link href="/login"><LogIn className="mr-2 h-4 w-4" />Log In</Link>
+                <Link href="/login"><LogIn className="mr-2 h-4 w-4" />Log In to Grow</Link>
               </Button>
             </CardContent>
           </Card>

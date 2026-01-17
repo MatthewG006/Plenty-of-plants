@@ -5,7 +5,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Leaf, Loader2, Sparkles, Star, LogIn } from 'lucide-react';
+import { Leaf, Loader2, Sparkles, Star, LogIn, LayoutGrid } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -386,7 +386,7 @@ export default function RoomPage() {
     );
   }
 
-  if (!user || !gameData) {
+  if (!user) {
      return (
         <div className="p-4 space-y-4 bg-white min-h-screen">
             <header className="flex flex-col items-center gap-2 p-4 text-center">
@@ -394,12 +394,15 @@ export default function RoomPage() {
             </header>
             <Card className="text-center py-10">
                 <CardHeader>
+                    <div className="mx-auto bg-primary/10 rounded-full w-fit p-3 mb-2">
+                        <LayoutGrid className="h-10 w-10 text-primary" />
+                    </div>
                     <CardTitle>Arrange Your Plants</CardTitle>
-                    <CardDescription>Log in to arrange your plants on your desk and manage your collection.</CardDescription>
+                    <CardDescription>This is your personal space. Drag and drop plants from your collection to your desk, apply cosmetics, and curate your favorite view.</CardDescription>
                 </CardHeader>
                  <CardContent>
                     <Button asChild>
-                        <Link href="/login"><LogIn className="mr-2 h-4 w-4" />Log In</Link>
+                        <Link href="/login"><LogIn className="mr-2 h-4 w-4" />Log In to Your Room</Link>
                     </Button>
                 </CardContent>
             </Card>
