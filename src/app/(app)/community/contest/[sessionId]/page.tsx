@@ -5,7 +5,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, ArrowLeft, Trophy, Users, Star, Crown, Sparkles, ShieldAlert, RefreshCw, Play } from 'lucide-react';
+import { Loader2, ArrowLeft, Trophy, Users, Star, Crown, Sparkles, ShieldAlert, RefreshCw, Play, LogIn } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -254,15 +254,8 @@ export default function ContestPage() {
 
     // Realtime data subscriptions
     useEffect(() => {
-        if (authLoading) return;
-        if (!user) {
-            console.log("No user signed in yet — skipping Firestore listeners.");
-            setIsLoading(false);
-            return;
-        }
-
         if (!sessionId) return;
-        console.log("Auth ready:", user.uid);
+        
         setIsLoading(true);
 
         const unsubSession = onSnapshot(
@@ -317,7 +310,7 @@ export default function ContestPage() {
             unsubSession();
             unsubContestants();
         };
-    }, [user, authLoading, sessionId]);
+    }, [sessionId]);
 
     // This effect handles automatic navigation on error/timeout
     useEffect(() => {
@@ -369,7 +362,10 @@ export default function ContestPage() {
     };
     
     const handleVote = async (contestantId: string) => {
-        if (!user || !session || !sessionId) return;
+        if (!user || !session || !sessionId) {
+            router.push('/login');
+            return;
+        }
         try {
             playSfx('tap');
             await voteForContestantClient(sessionId, user.uid, contestantId);
@@ -389,6 +385,34 @@ export default function ContestPage() {
                 </p>
             </div>
         );
+    }
+
+    if (!user && !authLoading) {
+        return (
+            <div className="p-4 space-y-4">
+                 <header className="flex items-center justify-between pb-2">
+                    <Button asChild variant="ghost" size="icon">
+                        <Link href="/community/contest"><ArrowLeft /></Link>
+                    </Button>
+                    <h1 className="text-2xl text-primary font-bold text-center">Plant Beauty Contest</h1>
+                    <div className="w-10"></div>
+                </header>
+                <Card className="text-center py-10">
+                    <CardHeader>
+                        <div className="mx-auto bg-primary/10 rounded-full w-fit p-3 mb-2">
+                            <Trophy className="h-10 w-10 text-primary" />
+                        </div>
+                        <CardTitle>Join the Contest!</CardTitle>
+                        <CardDescription>Log in or sign up to enter your plant and vote for the winner in this real-time beauty contest.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button asChild>
+                            <Link href="/login"><LogIn className="mr-2 h-4 w-4" />Log In to Participate</Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        )
     }
     
     if (error || (!authLoading && !session && !isLoading)) {
