@@ -4,7 +4,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { User, LogOut, Coins, Loader2, Leaf, Sparkles, CheckCircle2, Trash2, Share2 } from 'lucide-react';
+import { User, LogOut, Coins, Loader2, Leaf, Sparkles, CheckCircle2, Trash2, Share2, LogIn } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import type { Plant } from '@/interfaces/plant';
@@ -207,7 +207,7 @@ export default function ProfilePage() {
                 </CardHeader>
                 <CardContent>
                     <Button asChild>
-                        <Link href="/login">Log In to View Profile</Link>
+                        <Link href="/login"><LogIn className="mr-2 h-4 w-4"/>Log In to View Profile</Link>
                     </Button>
                 </CardContent>
             </Card>

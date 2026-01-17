@@ -2,7 +2,7 @@
 'use client';
 
 import BottomNavBar from '@/components/bottom-nav-bar';
-import AuthGuard from '@/components/auth/AuthGuard';
+// import AuthGuard from '@/components/auth/AuthGuard';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
