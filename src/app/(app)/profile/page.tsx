@@ -5,7 +5,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { User, LogOut, Coins, Loader2, Leaf, Sparkles, CheckCircle2, Trash2, Share2, LogIn } from 'lucide-react';
+import { User, LogOut, Coins, Loader2, Leaf, Sparkles, CheckCircle2, Trash2, Share2 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import type { Plant } from '@/interfaces/plant';
@@ -28,7 +28,6 @@ import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { updateShowcasePlants } from '@/lib/firestore';
-import Link from 'next/link';
 
 const MAX_SHOWCASE_PLANTS = 5;
 
@@ -253,34 +252,10 @@ export default function ProfilePage() {
     }
   };
 
-  if (loading) {
+  if (loading || !user || !gameData) {
     return (
         <div className="flex h-screen w-full items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-    );
-  }
-
-  if (!user) {
-     return (
-        <div className="p-4 space-y-6 pb-24">
-            <header className="pb-4">
-                <h1 className="text-3xl text-primary text-center">My Profile</h1>
-            </header>
-            <Card className="text-center py-10">
-                <CardHeader>
-                    <div className="mx-auto bg-primary/10 rounded-full w-fit p-3 mb-2">
-                        <User className="h-10 w-10 text-primary" />
-                    </div>
-                    <CardTitle>View Your Profile</CardTitle>
-                    <CardDescription>Log in to view your game stats, manage your collection, and set up your public community showcase for other players to see.</CardDescription>
-                </CardHeader>
-                 <CardContent>
-                    <Button asChild>
-                        <Link href="/login"><LogIn className="mr-2 h-4 w-4" />Log In</Link>
-                    </Button>
-                </CardContent>
-            </Card>
         </div>
     );
   }
@@ -327,7 +302,7 @@ export default function ProfilePage() {
       <Card>
         <CardHeader>
           <CardTitle>Community Showcase</CardTitle>
-          <CardDescription>Select up to {MAX_SHOWCASE_PLANTS} plants to show off to the community. Changes are saved when you press the button below.</CardDescription>
+          <CardDescription>Select up to ${MAX_SHOWCASE_PLANTS} plants to show off to the community. Changes are saved when you press the button below.</CardDescription>
         </CardHeader>
         <CardContent>
            <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">

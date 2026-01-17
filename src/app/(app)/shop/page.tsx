@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { claimFreeDraw, MAX_DRAWS } from '@/lib/draw-manager';
-import { Gift, Coins, Leaf, Clock, Loader2, Droplets, Sparkles, Zap, Pipette, RefreshCw, Star, Package, Gem, MessageCircle, ShoppingCart, Video, LogIn } from 'lucide-react';
+import { Gift, Coins, Leaf, Clock, Loader2, Droplets, Sparkles, Zap, Pipette, RefreshCw, Star, Package, Gem, MessageCircle, ShoppingCart, Video } from 'lucide-react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAudio } from '@/context/AudioContext';
 import { Separator } from '@/components/ui/separator';
@@ -22,7 +22,6 @@ import {
 } from '@/components/ui/dialog';
 import { grantAdReward } from '@/app/actions/grant-ad-reward';
 import PayPalPurchase from '@/components/PayPalPurchase';
-import Link from 'next/link';
 
 const DRAW_COST_IN_GOLD = 50;
 const GLITTER_COST_IN_GOLD = 25;
@@ -124,14 +123,7 @@ export default function ShopPage() {
   }
 
   const handlePreClaimFreeDraw = () => {
-      if (!user) {
-        toast({
-            title: "Login Required",
-            description: "You need to be logged in to claim a free draw.",
-            action: <Button asChild><Link href="/login">Login</Link></Button>
-        });
-        return;
-      }
+      if (!user) return;
       // Check if the native Android interface exists
       if (window.AndroidAdInterface && typeof window.AndroidAdInterface.showDailyFreeDrawAd === 'function') {
         // If it exists, call the native function to show the real ad.
@@ -145,14 +137,7 @@ export default function ShopPage() {
   };
   
     const handlePurchase = async (purchaseFn: () => Promise<void>) => {
-        if (!user) {
-            toast({
-                title: 'Login Required',
-                description: 'You must be logged in to make a purchase.',
-                action: <Button asChild><Link href="/login">Login</Link></Button>
-            });
-            return;
-        }
+        if (!user) return;
         await purchaseFn();
     }
 
@@ -329,7 +314,7 @@ export default function ShopPage() {
     }
   };
   
-  if (loading && !gameData) {
+  if (loading || !user || !gameData) {
       return (
         <div className="flex h-screen w-full items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -370,8 +355,8 @@ export default function ShopPage() {
           </CardHeader>
           <CardContent className="flex flex-col items-start gap-4">
             <p className="text-2xl font-bold text-chart-3">FREE</p>
-            <Button onClick={handlePreClaimFreeDraw} className="w-full font-semibold" disabled={isAdLoading || (!!user && drawCount >= MAX_DRAWS)}>
-              {isAdLoading ? <Loader2 className="animate-spin" /> : (!!user && drawCount >= MAX_DRAWS) ? "Draws Full" : "Watch Ad"}
+            <Button onClick={handlePreClaimFreeDraw} className="w-full font-semibold" disabled={isAdLoading || drawCount >= MAX_DRAWS}>
+              {isAdLoading ? <Loader2 className="animate-spin" /> : drawCount >= MAX_DRAWS ? "Draws Full" : "Watch Ad"}
             </Button>
           </CardContent>
         </Card>
@@ -389,7 +374,7 @@ export default function ShopPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-             {payPalClientId && user ? (
+             {payPalClientId ? (
                 <div className="p-4 rounded-lg bg-muted/50 space-y-4">
                     <div className="flex items-center justify-between">
                         <div>
@@ -407,14 +392,7 @@ export default function ShopPage() {
                 </div>
              ) : (
                 <div className="text-center text-muted-foreground p-4">
-                    { !user ? (
-                        <>
-                        <p>You must be logged in to purchase premium items.</p>
-                        <Button asChild className="mt-2"><Link href="/login">Log In</Link></Button>
-                        </>
-                    ) : (
-                        <p>Loading payment options...</p>
-                    )}
+                    <p>Loading payment options...</p>
                 </div>
              )}
           </CardContent>
@@ -437,8 +415,8 @@ export default function ShopPage() {
                 <Gem className="h-6 w-6 text-red-500" />
                 <p className="text-2xl font-bold text-red-600">{PLANT_CHAT_COST_IN_RUBIES}</p>
             </div>
-            <Button onClick={handleBuyPlantChat} variant="destructive" className="w-full font-semibold bg-red-500 hover:bg-red-600" disabled={!user || rubyCount < PLANT_CHAT_COST_IN_RUBIES}>
-                {!user ? 'Login to Buy' : rubyCount < PLANT_CHAT_COST_IN_RUBIES ? "Not Enough Rubies" : "Buy Chat Token"}
+            <Button onClick={handleBuyPlantChat} variant="destructive" className="w-full font-semibold bg-red-500 hover:bg-red-600" disabled={rubyCount < PLANT_CHAT_COST_IN_RUBIES}>
+                {rubyCount < PLANT_CHAT_COST_IN_RUBIES ? "Not Enough Rubies" : "Buy Chat Token"}
             </Button>
             <p className="text-xs text-muted-foreground text-center w-full">
                 You have {gameData?.plantChatTokens || 0} token(s)
@@ -465,8 +443,8 @@ export default function ShopPage() {
                     <Coins className="h-6 w-6 text-yellow-500" />
                     <p className="text-2xl font-bold text-yellow-600">{BUNDLE_COST_IN_GOLD}</p>
                 </div>
-                <Button onClick={handleBuyBundle} className="w-full font-semibold" disabled={!user || goldCount < BUNDLE_COST_IN_GOLD}>
-                    {!user ? 'Login to Buy' : goldCount < BUNDLE_COST_IN_GOLD ? "Not Enough Gold" : "Buy Bundle"}
+                <Button onClick={handleBuyBundle} className="w-full font-semibold" disabled={goldCount < BUNDLE_COST_IN_GOLD}>
+                    {goldCount < BUNDLE_COST_IN_GOLD ? "Not Enough Gold" : "Buy Bundle"}
                 </Button>
               </CardContent>
             </Card>
@@ -485,8 +463,8 @@ export default function ShopPage() {
                     <Coins className="h-6 w-6 text-yellow-500" />
                     <p className="text-2xl font-bold text-yellow-600">{DRAW_COST_IN_GOLD}</p>
                 </div>
-                <Button onClick={handleBuyDrawWithGold} className="w-full font-semibold" disabled={!user || goldCount < DRAW_COST_IN_GOLD || drawCount >= MAX_DRAWS}>
-                  {!user ? 'Login to Buy' : drawCount >= MAX_DRAWS ? "Draws Full" : goldCount < DRAW_COST_IN_GOLD ? "Not Enough Gold" : "Buy Draw"}
+                <Button onClick={handleBuyDrawWithGold} className="w-full font-semibold" disabled={goldCount < DRAW_COST_IN_GOLD || drawCount >= MAX_DRAWS}>
+                  {drawCount >= MAX_DRAWS ? "Draws Full" : goldCount < DRAW_COST_IN_GOLD ? "Not Enough Gold" : "Buy Draw"}
                 </Button>
               </CardContent>
             </Card>
@@ -506,8 +484,8 @@ export default function ShopPage() {
                     <Coins className="h-6 w-6 text-yellow-500" />
                     <p className="text-2xl font-bold text-yellow-600">{SPRINKLER_COST_IN_GOLD}</p>
                 </div>
-                <Button onClick={handleBuySprinkler} className="w-full font-semibold" disabled={!user || gameData?.sprinklerUnlocked || goldCount < SPRINKLER_COST_IN_GOLD}>
-                    {!user ? 'Login to Buy' : gameData?.sprinklerUnlocked ? "Owned" : goldCount < SPRINKLER_COST_IN_GOLD ? "Not Enough Gold" : "Buy"}
+                <Button onClick={handleBuySprinkler} className="w-full font-semibold" disabled={gameData?.sprinklerUnlocked || goldCount < SPRINKLER_COST_IN_GOLD}>
+                    {gameData?.sprinklerUnlocked ? "Owned" : goldCount < SPRINKLER_COST_IN_GOLD ? "Not Enough Gold" : "Buy"}
                 </Button>
               </CardContent>
             </Card>
@@ -527,8 +505,8 @@ export default function ShopPage() {
                     <Coins className="h-6 w-6 text-yellow-500" />
                     <p className="text-2xl font-bold text-yellow-600">{WATER_REFILL_COST_IN_GOLD}</p>
                 </div>
-                <Button onClick={handleBuyWaterRefill} className="w-full font-semibold" disabled={!user || goldCount < WATER_REFILL_COST_IN_GOLD}>
-                    {!user ? 'Login to Buy' : goldCount < WATER_REFILL_COST_IN_GOLD ? "Not Enough Gold" : "Buy (+1)"}
+                <Button onClick={handleBuyWaterRefill} className="w-full font-semibold" disabled={goldCount < WATER_REFILL_COST_IN_GOLD}>
+                    {goldCount < WATER_REFILL_COST_IN_GOLD ? "Not Enough Gold" : "Buy (+1)"}
                 </Button>
                 <p className="text-xs text-muted-foreground text-center w-full">
                     You have {gameData?.waterRefillCount || 0} refill(s)
@@ -551,8 +529,8 @@ export default function ShopPage() {
                     <Coins className="h-6 w-6 text-yellow-500" />
                     <p className="text-2xl font-bold text-yellow-600">{GLITTER_COST_IN_GOLD}</p>
                 </div>
-                <Button onClick={handleBuyGlitter} className="w-full font-semibold" disabled={!user || goldCount < GLITTER_COST_IN_GOLD}>
-                    {!user ? 'Login to Buy' : goldCount < GLITTER_COST_IN_GOLD ? "Not Enough Gold" : "Buy Glitter (+1)"}
+                <Button onClick={handleBuyGlitter} className="w-full font-semibold" disabled={goldCount < GLITTER_COST_IN_GOLD}>
+                    {goldCount < GLITTER_COST_IN_GOLD ? "Not Enough Gold" : "Buy Glitter (+1)"}
                 </Button>
                  <p className="text-xs text-muted-foreground text-center w-full">
                     You have {gameData?.glitterCount || 0} pack(s)
@@ -575,8 +553,8 @@ export default function ShopPage() {
                     <Coins className="h-6 w-6 text-yellow-500" />
                     <p className="text-2xl font-bold text-yellow-600">{SHEEN_COST_IN_GOLD}</p>
                 </div>
-                <Button onClick={handleBuySheen} className="w-full font-semibold" disabled={!user || goldCount < SHEEN_COST_IN_GOLD}>
-                    {!user ? 'Login to Buy' : goldCount < SHEEN_COST_IN_GOLD ? "Not Enough Gold" : "Buy Sheen (+1)"}
+                <Button onClick={handleBuySheen} className="w-full font-semibold" disabled={goldCount < SHEEN_COST_IN_GOLD}>
+                    {goldCount < SHEEN_COST_IN_GOLD ? "Not Enough Gold" : "Buy Sheen (+1)"}
                 </Button>
                  <p className="text-xs text-muted-foreground text-center w-full">
                     You have {gameData?.sheenCount || 0} sheen pack(s)
@@ -599,8 +577,8 @@ export default function ShopPage() {
                     <Coins className="h-6 w-6 text-yellow-500" />
                     <p className="text-2xl font-bold text-yellow-600">{RAINBOW_GLITTER_COST_IN_GOLD}</p>
                 </div>
-                <Button onClick={handleBuyRainbowGlitter} className="w-full font-semibold" disabled={!user || goldCount < RAINBOW_GLITTER_COST_IN_GOLD}>
-                    {!user ? 'Login to Buy' : goldCount < RAINBOW_GLITTER_COST_IN_GOLD ? "Not Enough Gold" : "Buy Glitter (+1)"}
+                <Button onClick={handleBuyRainbowGlitter} className="w-full font-semibold" disabled={goldCount < RAINBOW_GLITTER_COST_IN_GOLD}>
+                    {goldCount < RAINBOW_GLITTER_COST_IN_GOLD ? "Not Enough Gold" : "Buy Glitter (+1)"}
                 </Button>
                  <p className="text-xs text-muted-foreground text-center w-full">
                     You have {gameData?.rainbowGlitterCount || 0} pack(s)
@@ -623,8 +601,8 @@ export default function ShopPage() {
                     <Coins className="h-6 w-6 text-yellow-500" />
                     <p className="text-2xl font-bold text-yellow-600">{RED_GLITTER_COST_IN_GOLD}</p>
                 </div>
-                <Button onClick={handleBuyRedGlitter} className="w-full font-semibold" disabled={!user || goldCount < RED_GLITTER_COST_IN_GOLD}>
-                    {!user ? 'Login to Buy' : goldCount < RED_GLITTER_COST_IN_GOLD ? "Not Enough Gold" : "Buy Glitter (+1)"}
+                <Button onClick={handleBuyRedGlitter} className="w-full font-semibold" disabled={goldCount < RED_GLITTER_COST_IN_GOLD}>
+                    {goldCount < RED_GLITTER_COST_IN_GOLD ? "Not Enough Gold" : "Buy Glitter (+1)"}
                 </Button>
                  <p className="text-xs text-muted-foreground text-center w-full">
                     You have {gameData?.redGlitterCount || 0} pack(s)

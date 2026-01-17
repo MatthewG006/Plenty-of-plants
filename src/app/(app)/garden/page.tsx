@@ -5,7 +5,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Leaf, Loader2, Plus, Droplets, Sprout, Sparkles, LogIn } from 'lucide-react';
+import { Leaf, Loader2, Plus, Droplets, Sprout, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -304,7 +304,7 @@ export default function GardenPage() {
     }
   };
 
-  if (loading) {
+  if (loading || !user || !gameData) {
     return (
         <div className="flex h-screen w-full items-center justify-center bg-white">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -312,63 +312,6 @@ export default function GardenPage() {
     );
   }
   
-  const renderContent = () => {
-    if (!user) {
-      return (
-        <main className="flex-grow flex items-center justify-center p-4">
-          <Card className="text-center py-10 w-full max-w-md">
-            <CardHeader>
-              <div className="mx-auto bg-primary/10 rounded-full w-fit p-3 mb-2">
-                <Droplets className="h-10 w-10 text-primary" />
-              </div>
-              <CardTitle>Welcome to the Garden</CardTitle>
-              <CardDescription>This is your space to nurture your plants. Water them daily to help them gain XP, level up, and even evolve into new, magnificent forms!</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button asChild>
-                <Link href="/login"><LogIn className="mr-2 h-4 w-4" />Log In to Grow</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </main>
-      );
-    }
-
-    return (
-      <main className="flex-grow flex flex-col justify-end p-2">
-        <div className="w-full max-w-4xl mx-auto relative">
-          <Image 
-            src="https://firebasestorage.googleapis.com/v0/b/plentyofplants-108e8.firebasestorage.app/o/garden-bg.png?alt=media&token=7e37009b-d6fd-474d-9e1d-d9d48675b919" 
-            alt="Garden plots" 
-            width={1024} 
-            height={512} 
-            className="w-full h-auto"
-            priority
-            unoptimized
-          />
-          <div className="absolute inset-0 top-[5%] left-[4%] right-[4%] bottom-[10%]">
-            <div className="grid grid-cols-3 grid-rows-4 h-full w-full gap-x-[8%] gap-y-[10%]">
-              {gardenPlants.map((plant, index) => {
-                const isInFirstTwoRows = index < 6;
-                return plant ? (
-                  <PlantCard 
-                    key={plant.id} 
-                    plant={plant} 
-                    onClick={() => handleSelectPlantForCare(allPlants[plant.id])}
-                    className={cn(isInFirstTwoRows && "mt-[-5px]")}
-                    processedImage={processedGardenImages[plant.id] || null}
-                  />
-                ) : (
-                  <EmptyPlotCard key={`empty-${index}`} onClick={() => handleOpenSwapDialog(null, index)} className={cn(isInFirstTwoRows && "mt-[-5px]")}/>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-      </main>
-    );
-  };
-
   return (
     <>
       <div 
@@ -400,7 +343,37 @@ export default function GardenPage() {
             </div>
         </header>
         
-        {renderContent()}
+        <main className="flex-grow flex flex-col justify-end p-2">
+          <div className="w-full max-w-4xl mx-auto relative">
+            <Image 
+              src="https://firebasestorage.googleapis.com/v0/b/plentyofplants-108e8.firebasestorage.app/o/garden-bg.png?alt=media&token=7e37009b-d6fd-474d-9e1d-d9d48675b919" 
+              alt="Garden plots" 
+              width={1024} 
+              height={512} 
+              className="w-full h-auto"
+              priority
+              unoptimized
+            />
+            <div className="absolute inset-0 top-[5%] left-[4%] right-[4%] bottom-[10%]">
+              <div className="grid grid-cols-3 grid-rows-4 h-full w-full gap-x-[8%] gap-y-[10%]">
+                {gardenPlants.map((plant, index) => {
+                  const isInFirstTwoRows = index < 6;
+                  return plant ? (
+                    <PlantCard 
+                      key={plant.id} 
+                      plant={plant} 
+                      onClick={() => handleSelectPlantForCare(allPlants[plant.id])}
+                      className={cn(isInFirstTwoRows && "mt-[-5px]")}
+                      processedImage={processedGardenImages[plant.id] || null}
+                    />
+                  ) : (
+                    <EmptyPlotCard key={`empty-${index}`} onClick={() => handleOpenSwapDialog(null, index)} className={cn(isInFirstTwoRows && "mt-[-5px]")}/>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        </main>
 
         {activeCarePlant && (
           <PlantCareDialog

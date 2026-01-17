@@ -2,7 +2,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Users, Leaf, Sparkles, ShieldAlert, Heart, Star, Trees, Coins, LogIn } from 'lucide-react';
+import { Loader2, Users, Leaf, Sparkles, ShieldAlert, Heart, Star, Trees, Coins } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { getCommunityUsers, likeUser } from '@/lib/firestore';
@@ -336,10 +336,10 @@ export default function CommunityPage() {
                         size="icon" 
                         variant="outline" 
                         onClick={() => handleLike(communityUser)}
-                        disabled={!!user && (!canLikeAgain || isSelf)}
+                        disabled={!canLikeAgain || isSelf}
                         className={cn(hasLiked && !canLikeAgain && "border-red-500 text-red-500")}
                         >
-                        <Heart className={cn("w-5 h-5", !!user && hasLiked && !canLikeAgain && "fill-current")} />
+                        <Heart className={cn("w-5 h-5", hasLiked && !canLikeAgain && "fill-current")} />
                     </Button>
                     </CardHeader>
                     <CardContent>
