@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -28,6 +27,7 @@ import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { updateShowcasePlants } from '@/lib/firestore';
+import Link from 'next/link';
 
 const MAX_SHOWCASE_PLANTS = 5;
 
@@ -183,6 +183,38 @@ export default function ProfilePage() {
     }
   }, [gameData]);
 
+  if (loading) {
+    return (
+        <div className="flex h-screen w-full items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    );
+  }
+
+  if (!user || !gameData) {
+     return (
+        <div className="p-4 space-y-6 pb-24">
+            <header className="pb-4">
+              <h1 className="text-3xl text-primary text-center">My Profile</h1>
+            </header>
+            <Card className="text-center py-10">
+                <CardHeader>
+                    <div className="mx-auto bg-primary/10 rounded-full w-fit p-3 mb-2">
+                        <User className="h-10 w-10 text-primary" />
+                    </div>
+                    <CardTitle>View Your Profile</CardTitle>
+                    <CardDescription>Log in to view your game stats, manage your collection, and set up your community showcase.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button asChild>
+                        <Link href="/login">Log In to View Profile</Link>
+                    </Button>
+                </CardContent>
+            </Card>
+        </div>
+    );
+  }
+
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -251,14 +283,6 @@ export default function ProfilePage() {
         toast({ title: 'Link Copied!', description: 'Your referral link has been copied to the clipboard.' });
     }
   };
-
-  if (loading || !user || !gameData) {
-    return (
-        <div className="flex h-screen w-full items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-    );
-  }
 
   const profileData: ProfileData = {
       username: user.displayName || 'PlantLover',

@@ -7,34 +7,69 @@ import LatestPlant from './LatestPlant';
 import GameTips from './GameTips';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { User, Settings } from 'lucide-react';
+import { User, Settings, LogIn, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 
 export default function HomeContent() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+        <div className="flex h-screen w-full items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    );
+  }
+
   return (
     <>
       <div className="p-4 space-y-6 bg-white pb-20">
         <header className="flex items-center justify-between">
            <div className="w-10">
-              <Button asChild variant="ghost" size="icon">
-                <Link href="/profile"><User /></Link>
-              </Button>
+              {user && (
+                <Button asChild variant="ghost" size="icon">
+                  <Link href="/profile"><User /></Link>
+                </Button>
+              )}
           </div>
           <h1 className="text-3xl text-primary font-bold text-center">
             Plenty Of Plants
           </h1>
-          <div className="w-10">
-             <Button asChild variant="ghost" size="icon">
-              <Link href="/settings"><Settings /></Link>
-            </Button>
+          <div className="flex w-20 justify-end">
+             {user ? (
+               <Button asChild variant="ghost" size="icon">
+                <Link href="/settings"><Settings /></Link>
+              </Button>
+             ) : (
+              <Button asChild>
+                <Link href="/login"><LogIn className="mr-2 h-4 w-4" />Login</Link>
+              </Button>
+             )}
           </div>
         </header>
 
         <main className="space-y-6">
-          <Draws />
-          <LatestPlant />
-          <Separator />
-          <ChallengeList />
+           {user ? (
+            <>
+              <Draws />
+              <LatestPlant />
+              <Separator />
+              <ChallengeList />
+            </>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-center">Welcome!</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-center text-muted-foreground">
+                  Collect, grow, and evolve a beautiful collection of AI-generated plants. Log in or create an account to start your journey!
+                </p>
+              </CardContent>
+            </Card>
+          )}
           <Separator />
           <GameTips />
         </main>

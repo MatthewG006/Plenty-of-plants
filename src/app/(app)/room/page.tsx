@@ -1,11 +1,10 @@
 
-
 'use client';
 
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Leaf, Loader2, Sparkles, Star } from 'lucide-react';
+import { Leaf, Loader2, Sparkles, Star, LayoutGrid, LogIn } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -29,6 +28,7 @@ import { PlantDetailDialog } from '@/components/plant-dialogs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { makeBackgroundTransparent } from '@/lib/image-compression';
 import { getImageDataUriAction } from '@/app/actions/image-actions';
+import Link from 'next/link';
 
 
 const NUM_POTS = 3;
@@ -377,10 +377,34 @@ export default function RoomPage() {
     setSelectedPlant(allPlants[plant.id]);
   };
 
-  if (loading || !user || !gameData) {
+  if (loading) {
     return (
         <div className="flex h-screen w-full items-center justify-center bg-white">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    );
+  }
+
+  if (!user || !gameData) {
+    return (
+        <div className="p-4 space-y-6 pb-24">
+            <header className="flex flex-col items-center gap-2 p-4 text-center">
+              <h1 className="text-3xl text-primary text-center">My Room</h1>
+            </header>
+            <Card className="text-center py-10">
+                <CardHeader>
+                    <div className="mx-auto bg-primary/10 rounded-full w-fit p-3 mb-2">
+                        <LayoutGrid className="h-10 w-10 text-primary" />
+                    </div>
+                    <CardTitle>Arrange Your Collection</CardTitle>
+                    <CardDescription>Log in to arrange your favorite plants on your desk and manage your full collection.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button asChild>
+                        <Link href="/login"><LogIn className="mr-2 h-4 w-4"/>Log In to View Room</Link>
+                    </Button>
+                </CardContent>
+            </Card>
         </div>
     );
   }

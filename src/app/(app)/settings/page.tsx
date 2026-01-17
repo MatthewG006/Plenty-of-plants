@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { Music, Zap, Trash2, Loader2, Bell } from 'lucide-react';
+import { Music, Zap, Trash2, Loader2, Bell, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -23,6 +23,7 @@ import { useRouter } from 'next/navigation';
 import { useAudio } from '@/context/AudioContext';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import Link from 'next/link';
 
 
 function SettingRow({ icon: Icon, label, children }: { icon: React.ElementType, label: string, children: React.ReactNode }) {
@@ -40,7 +41,7 @@ function SettingRow({ icon: Icon, label, children }: { icon: React.ElementType, 
 }
 
 export default function SettingsPage() {
-  const { user, gameData } = useAuth();
+  const { user, gameData, loading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const { sfxVolume, setSfxVolume, playSfx, musicVolume, setMusicVolume, isMusicPlaying, toggleMusic } = useAudio();
@@ -94,12 +95,33 @@ export default function SettingsPage() {
     }
   };
 
-  if (!isClient || !user || !gameData) {
+  if (!isClient || loading) {
     return (
         <div className="flex h-screen w-full items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
     );
+  }
+
+  if (!user) {
+    return (
+        <div className="p-4 flex flex-col min-h-[calc(100vh-4rem)]">
+          <header className="pb-4">
+            <h1 className="text-3xl text-primary text-center">Settings</h1>
+          </header>
+          <Card className="text-center py-10">
+            <CardHeader>
+                <CardTitle>Log In to Manage Settings</CardTitle>
+                <CardDescription>Log in to manage your audio settings and notification preferences.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Button asChild>
+                    <Link href="/login"><LogIn className="mr-2 h-4 w-4"/>Log In</Link>
+                </Button>
+            </CardContent>
+        </Card>
+        </div>
+    )
   }
 
   return (
