@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -52,7 +53,7 @@ export default function ParkPage() {
     <>
       <div
         className="min-h-screen bg-cover bg-center flex flex-col items-center justify-between text-white p-4 relative"
-        style={{ backgroundImage: "url('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/park.png')" }}
+        style={{ backgroundImage: "url('https://firebasestorage.googleapis.com/v0/b/plentyofplants-108e8.firebasestorage.app/o/park.png?alt=media&token=e8ab2d4a-d8a5-49a7-96a3-46cc4e4b6a6f')" }}
       >
         <div className="absolute top-4 left-4 z-10">
             <Button asChild variant="secondary">
