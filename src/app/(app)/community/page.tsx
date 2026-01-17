@@ -2,10 +2,10 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Users, Leaf, Sparkles, ShieldAlert, Heart, Star, Trees, Coins } from 'lucide-react';
+import { Loader2, Users, Leaf, Sparkles, ShieldAlert, Heart, Star, Trees, Coins, LogIn } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { getCommunityUsers, likeUser } from '@/lib/firestore';
+import { likeUser } from '@/lib/firestore';
 import type { CommunityUser } from '@/interfaces/plant';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 import { updateLikePlayerProgress } from '@/lib/challenge-manager';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import Link from 'next/link';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 function SheenAnimation() {
@@ -141,7 +141,7 @@ function ShowcasePlant({ plant, onSelectPlant }: { plant: Plant, onSelectPlant: 
 
 
 export default function CommunityPage() {
-  const { user, gameData } = useAuth();
+  const { user, gameData, loading } = useAuth();
   const { playSfx } = useAudio();
   const [users, setUsers] = useState<CommunityUser[]>([]);
   const [totalGold, setTotalGold] = useState(0);
@@ -154,7 +154,7 @@ export default function CommunityPage() {
     setIsLoading(true);
     setPermissionError(false);
 
-    const usersCollectionRef = collection(db, 'users');
+    const usersCollectionRef = query(collection(db, 'users'), orderBy('likes', 'desc'));
 
     const unsubscribe = onSnapshot(usersCollectionRef, (querySnapshot) => {
         const communityUsers: CommunityUser[] = [];
@@ -177,7 +177,6 @@ export default function CommunityPage() {
             });
         });
         
-        communityUsers.sort((a, b) => b.likes - a.likes);
         setUsers(communityUsers);
         
         const total = communityUsers.reduce((sum, u) => sum + (u.gold || 0), 0);
@@ -219,14 +218,6 @@ export default function CommunityPage() {
         title: "Liked!",
         description: `You gave ${likedUser.username} 5 gold!`,
       });
-      // The UI will update automatically via the onSnapshot listener,
-      // so optimistic updates are no longer strictly necessary but can make the UI feel faster.
-      setUsers(prevUsers => 
-        prevUsers.map(u => 
-          u.uid === likedUser.uid ? { ...u, likes: u.likes + 1, gold: (u.gold || 0) + 5 } : u
-        ).sort((a,b) => b.likes - a.likes)
-      );
-      setTotalGold(prev => prev + 5);
     } catch (e: any) {
         console.error("Failed to like user", e);
         if (e.message) {
@@ -248,6 +239,14 @@ export default function CommunityPage() {
     setSelectedPlant(null);
   };
 
+  if (loading || isLoading) {
+    return (
+      <div className="flex justify-center pt-10 h-screen">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 space-y-6">
       <header className="flex flex-col items-center gap-1 pb-4 text-center">
@@ -263,11 +262,7 @@ export default function CommunityPage() {
         </Button>
       </header>
 
-      {isLoading ? (
-        <div className="flex justify-center pt-10">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        </div>
-      ) : permissionError ? (
+      {permissionError ? (
         <Card className="text-center py-10 border-destructive">
             <CardHeader>
                 <div className="mx-auto bg-destructive/10 rounded-full w-fit p-3 mb-2">
@@ -306,9 +301,9 @@ export default function CommunityPage() {
             <div className="space-y-4">
             {users.length > 0 ? (
                 users.map((communityUser) => {
-                const likedTimestamp = gameData?.likedUsers?.[communityUser.uid];
-                const canLikeAgain = !likedTimestamp || (Date.now() - likedTimestamp > 24 * 60 * 60 * 1000);
-                const hasLiked = !!likedTimestamp;
+                const likedTimestamp = user && gameData ? gameData?.likedUsers?.[communityUser.uid] : undefined;
+                const canLikeAgain = !user || !likedTimestamp || (Date.now() - likedTimestamp > 24 * 60 * 60 * 1000);
+                const hasLiked = user && !!likedTimestamp;
                 const isSelf = user?.uid === communityUser.uid;
 
                 return (
@@ -332,15 +327,21 @@ export default function CommunityPage() {
                             </div>
                         </div>
                     </div>
-                    <Button 
-                        size="icon" 
-                        variant="outline" 
-                        onClick={() => handleLike(communityUser)}
-                        disabled={!canLikeAgain || isSelf}
-                        className={cn(hasLiked && !canLikeAgain && "border-red-500 text-red-500")}
-                        >
-                        <Heart className={cn("w-5 h-5", hasLiked && !canLikeAgain && "fill-current")} />
-                    </Button>
+                     {user ? (
+                        <Button 
+                            size="icon" 
+                            variant="outline" 
+                            onClick={() => handleLike(communityUser)}
+                            disabled={!canLikeAgain || isSelf}
+                            className={cn(hasLiked && !canLikeAgain && "border-red-500 text-red-500")}
+                            >
+                            <Heart className={cn("w-5 h-5", hasLiked && !canLikeAgain && "fill-current")} />
+                        </Button>
+                      ) : (
+                         <Button size="icon" variant="outline" asChild>
+                           <Link href="/login"><Heart className="w-5 h-5" /></Link>
+                         </Button>
+                      )}
                     </CardHeader>
                     <CardContent>
                     {communityUser.showcasePlants.length > 0 ? (

@@ -1,11 +1,10 @@
 
-
 'use client';
 
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Leaf, Loader2, Plus, Droplets, Sprout, Sparkles } from 'lucide-react';
+import { Leaf, Loader2, Plus, Droplets, Sprout, Sparkles, LogIn } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -304,7 +303,7 @@ export default function GardenPage() {
     }
   };
 
-  if (loading || !user || !gameData) {
+  if (loading) {
     return (
         <div className="flex h-screen w-full items-center justify-center bg-white">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -312,36 +311,69 @@ export default function GardenPage() {
     );
   }
   
+  const header = (
+    <header className="flex flex-col items-center gap-2 p-4 text-center bg-background/80 backdrop-blur-sm shrink-0">
+        <h1 className="text-3xl text-primary font-bold">My Garden</h1>
+        <p className="text-muted-foreground">
+            {user ? 'Water your plants to help them grow. They might even evolve!' : 'Log in to manage your garden and grow your plants.'}
+        </p>
+        <div className="flex gap-2 pt-2">
+            <Button asChild>
+                <Link href="/garden">
+                    <Leaf className="mr-1.5 h-4 w-4" />
+                    Plants
+                </Link>
+            </Button>
+            <Button variant="secondary" asChild>
+                <Link href="/garden/seeds">
+                    <Sprout className="mr-1.5 h-4 w-4" />
+                    Seeds
+                </Link>
+            </Button>
+            {user && gameData?.sprinklerUnlocked && (
+                <Button onClick={handleUseSprinkler} disabled={isUsingSprinkler} className="bg-blue-500 hover:bg-blue-600">
+                    {isUsingSprinkler ? <Loader2 className="animate-spin" /> : <Droplets className="mr-1.5 h-4 w-4" />}
+                    Sprinkler
+                </Button>
+            )}
+        </div>
+    </header>
+  );
+
+  if (!user || !gameData) {
+     return (
+        <div 
+            className="min-h-screen bg-contain bg-bottom bg-no-repeat flex flex-col"
+            style={{backgroundImage: "url('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/garden-bg-sky.png')"}}
+        >
+            {header}
+            <div className="flex-grow flex items-center justify-center p-4">
+                 <Card className="text-center py-10 max-w-md">
+                    <CardHeader>
+                        <div className="mx-auto bg-primary/10 rounded-full w-fit p-3 mb-2">
+                            <Leaf className="h-10 w-10 text-primary" />
+                        </div>
+                        <CardTitle>Welcome to the Garden</CardTitle>
+                        <CardDescription>This is where your plants live. Water them daily to help them level up, earn seeds, and eventually evolve into new forms!</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button asChild>
+                            <Link href="/login"><LogIn className="mr-2 h-4 w-4"/>Log In to Manage Garden</Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+  }
+
   return (
     <>
       <div 
         className="min-h-screen bg-contain bg-bottom bg-no-repeat flex flex-col"
         style={{backgroundImage: "url('https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/garden-bg-sky.png')"}}
       >
-        <header className="flex flex-col items-center gap-2 p-4 text-center bg-background/80 backdrop-blur-sm shrink-0">
-            <h1 className="text-3xl text-primary font-bold">My Garden</h1>
-            <p className="text-muted-foreground">Water your plants to help them grow. They might even evolve!</p>
-            <div className="flex gap-2 pt-2">
-                <Button asChild>
-                    <Link href="/garden">
-                        <Leaf className="mr-1.5 h-4 w-4" />
-                        Plants
-                    </Link>
-                </Button>
-                <Button variant="secondary" asChild>
-                    <Link href="/garden/seeds">
-                        <Sprout className="mr-1.5 h-4 w-4" />
-                        Seeds
-                    </Link>
-                </Button>
-                {gameData?.sprinklerUnlocked && (
-                    <Button onClick={handleUseSprinkler} disabled={isUsingSprinkler} className="bg-blue-500 hover:bg-blue-600">
-                        {isUsingSprinkler ? <Loader2 className="animate-spin" /> : <Droplets className="mr-1.5 h-4 w-4" />}
-                        Sprinkler
-                    </Button>
-                )}
-            </div>
-        </header>
+        {header}
         
         <main className="flex-grow flex flex-col justify-end p-2">
           <div className="w-full max-w-4xl mx-auto relative">
