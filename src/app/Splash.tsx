@@ -18,8 +18,10 @@ export default function Splash() {
   useEffect(() => {
     if (!loading) {
       if (sessionStorage.getItem('hasEntered')) {
-        router.replace(user ? '/home' : '/login');
+        // If they've entered before, send them directly to the main app content
+        router.replace('/home');
       } else {
+        // Otherwise, show the splash screen
         setShowSplash(true);
       }
     }
@@ -28,7 +30,8 @@ export default function Splash() {
   const handleEnter = () => {
     sessionStorage.setItem('hasEntered', 'true');
     startMusic();
-    router.push(user ? '/home' : '/login');
+    // Always go to home, which will show public or private view.
+    router.push('/home');
   };
 
   if (!showSplash) {
