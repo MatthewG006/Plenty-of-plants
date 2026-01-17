@@ -1,4 +1,3 @@
-
 'use client';
 
 import ChallengeList from './ChallengeList';
@@ -26,28 +25,33 @@ export default function HomeContent() {
   return (
     <>
       <div className="p-4 space-y-6 bg-white pb-20">
-        <header className="flex items-center justify-between">
-           <div className="w-10">
-              {user && (
+        <header>
+          {user ? (
+            <div className="flex items-center justify-between">
+              <div className="w-10">
                 <Button asChild variant="ghost" size="icon">
                   <Link href="/profile"><User /></Link>
                 </Button>
-              )}
-          </div>
-          <h1 className="text-3xl text-primary font-bold text-center">
-            Plenty Of Plants
-          </h1>
-          <div className="flex w-20 justify-end">
-             {user ? (
-               <Button asChild variant="ghost" size="icon">
-                <Link href="/settings"><Settings /></Link>
-              </Button>
-             ) : (
+              </div>
+              <h1 className="text-3xl text-primary font-bold text-center">
+                Plenty Of Plants
+              </h1>
+              <div className="flex w-20 justify-end">
+                <Button asChild variant="ghost" size="icon">
+                  <Link href="/settings"><Settings /></Link>
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-4 text-center">
+              <h1 className="text-3xl text-primary font-bold">
+                Plenty Of Plants
+              </h1>
               <Button asChild>
                 <Link href="/login"><LogIn className="mr-2 h-4 w-4" />Login</Link>
               </Button>
-             )}
-          </div>
+            </div>
+          )}
         </header>
 
         <main className="space-y-6">
