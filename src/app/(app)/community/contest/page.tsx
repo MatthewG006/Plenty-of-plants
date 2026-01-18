@@ -149,10 +149,6 @@ export default function ContestLobbyPage() {
     }, [toast]);
 
     const handleStartNewContest = () => {
-        if (!user) {
-            router.push('/login');
-            return;
-        };
         playSfx('tap');
         setShowPlantSelection(true);
     };
@@ -213,12 +209,28 @@ export default function ContestLobbyPage() {
                 </Card>
             ) : (
                 <>
-                     <Button 
-                        onClick={handleStartNewContest} 
-                        disabled={isCreating && !!user}
+                    <Button 
+                        onClick={() => {
+                            if (!user) {
+                                router.push('/login');
+                            } else if (!gameData?.plants || Object.keys(gameData.plants).length === 0) {
+                                router.push('/home');
+                            } else {
+                                handleStartNewContest();
+                            }
+                        }}
+                        disabled={isCreating}
                         className="w-full text-lg"
                     >
-                        {isCreating && !!user ? <Loader2 className="animate-spin" /> : !user ? <><LogIn className="mr-2"/>Log In to Create</> : <><PlusCircle className="mr-2" />Create New Contest</>}
+                        {isCreating ? (
+                            <Loader2 className="animate-spin" />
+                        ) : !user ? (
+                            <><LogIn className="mr-2"/>Log In to Compete</>
+                        ) : !gameData?.plants || Object.keys(gameData.plants).length === 0 ? (
+                            'Draw a Plant to Compete!'
+                        ) : (
+                            <><PlusCircle className="mr-2" />Create New Contest</>
+                        )}
                     </Button>
                     
                     <div className="space-y-4">
