@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -42,7 +43,7 @@ const CommunityParkPage = () => {
                 <div className="mx-auto bg-white/10 rounded-full w-fit p-4 mb-4">
                     <Trees className="h-12 w-12 text-white" />
                 </div>
-                <CardTitle className="text-4xl font-bold">The Park</CardTitle>
+                <CardTitle className="text-4xl font-bold text-white">The Park</CardTitle>
                 <CardDescription className="text-lg text-white/90 pt-2">
                     A tranquil place to relax and the gateway to the Plant Beauty Contest.
                 </CardDescription>
@@ -74,7 +75,7 @@ const CommunityParkPage = () => {
                 <Card className="bg-black/50 backdrop-blur-sm border-white/20 max-w-md w-full text-center">
                     <CardHeader>
                         <Leaf className="w-16 h-16 mx-auto text-white/80" />
-                        <CardTitle className="pt-4">Your Park Adventure Awaits</CardTitle>
+                        <CardTitle className="pt-4 text-white">Your Park Adventure Awaits</CardTitle>
                         <CardDescription className="text-white/90">
                             Draw your first plant on the Home screen to see it here in the park!
                         </CardDescription>
