@@ -3,7 +3,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Trees, Trophy, Loader2, Leaf } from 'lucide-react';
+import { ArrowLeft, Trees, Trophy, Loader2, Leaf, LogIn } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import type { Plant } from '@/interfaces/plant';
@@ -49,9 +49,9 @@ const CommunityParkPage = () => {
             </CardHeader>
             <CardContent>
                 <Button asChild size="lg" className="bg-white text-primary hover:bg-white/90">
-                    <Link href="/community/contest">
-                        <Trophy className="mr-2"/>
-                        Enter the Beauty Contest
+                    <Link href="/login">
+                        <LogIn className="mr-2 h-5 w-5"/>
+                        Log In to Enter Contest
                     </Link>
                 </Button>
             </CardContent>
