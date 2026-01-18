@@ -69,7 +69,7 @@ export default function HomeContent() {
               </CardHeader>
               <CardContent>
                 <p className="text-center text-muted-foreground">
-                  Collect, grow, and evolve a beautiful collection of AI-generated plants. Log in or create an account to start your journey!
+                  Collect and grow an adorable collection of plants, then use the power of ai to evolve them into a new elegant form. Log in or create an account to start your journey!
                 </p>
               </CardContent>
             </Card>
