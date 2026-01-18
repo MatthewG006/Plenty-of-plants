@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import * as React from 'react';
@@ -190,6 +188,21 @@ export default function ContestLobbyPage() {
                 <h1 className="text-2xl text-primary font-bold">Contest Lobbies</h1>
                 <div className="w-10"></div>
             </header>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>How to Play</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <ol className="list-decimal list-inside space-y-2">
+                        <li>Create a new contest or join an existing one.</li>
+                        <li>Once the lobby is full, the contest will begin.</li>
+                        <li>Vote for the plant you like the best in each round.</li>
+                        <li>The plant with the most votes wins!</li>
+                    </ol>
+                    <Button variant="link" className="p-0 h-auto mt-4">Learn More</Button>
+                </CardContent>
+            </Card>
 
             {isLoading ? (
                 <div className="flex justify-center pt-10">
