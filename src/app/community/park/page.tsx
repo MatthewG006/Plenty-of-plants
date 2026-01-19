@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -8,9 +7,12 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import type { Plant } from '@/interfaces/plant';
 import Image from 'next/image';
+import { makeBackgroundTransparent } from '@/lib/image-compression';
+import { getImageDataUriAction } from '@/app/actions/image-actions';
 
 const CommunityParkPage = () => {
     const { user, gameData, loading } = useAuth();
+    const [processedPlantImage, setProcessedPlantImage] = React.useState<string | null>(null);
 
     const plantToShow = React.useMemo(() => {
         if (!gameData || !gameData.plants) return null;
@@ -35,9 +37,32 @@ const CommunityParkPage = () => {
         return null;
     }, [gameData]);
 
+    React.useEffect(() => {
+        const processImage = async () => {
+            if (plantToShow && plantToShow.image) {
+                setProcessedPlantImage(null); // Reset on plant change
+                try {
+                    const dataUri = await getImageDataUriAction(plantToShow.image);
+                    const transparentImage = await makeBackgroundTransparent(dataUri);
+                    setProcessedPlantImage(transparentImage);
+                } catch (error) {
+                    console.error(`Failed to process image for park plant: ${plantToShow.id}`, error);
+                    setProcessedPlantImage(plantToShow.image); // Fallback to original
+                }
+            } else {
+                setProcessedPlantImage(null);
+            }
+        };
+
+        processImage();
+    }, [plantToShow]);
+
+
     if (loading) {
         return <div className="flex h-[calc(100vh-4rem)] w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
     }
+
+    const imageSrc = processedPlantImage || plantToShow?.image;
 
     return (
         <div className="relative h-[calc(100vh-4rem)] w-full overflow-hidden">
@@ -80,13 +105,20 @@ const CommunityParkPage = () => {
                                 <MessageSquare className="h-7 w-7 text-primary" />
                             </Button>
                             <div className="w-48 h-48 relative drop-shadow-2xl">
-                                <Image 
-                                    src={plantToShow.image} 
-                                    alt={plantToShow.name} 
-                                    fill 
-                                    className="object-contain" 
-                                    data-ai-hint={plantToShow.hint}
-                                />
+                                {imageSrc ? (
+                                    <Image 
+                                        src={imageSrc} 
+                                        alt={plantToShow.name} 
+                                        fill 
+                                        className="object-contain" 
+                                        data-ai-hint={plantToShow.hint}
+                                        unoptimized
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center">
+                                        <Loader2 className="w-8 h-8 animate-spin text-white"/>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
