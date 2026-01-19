@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -10,9 +11,22 @@ import Image from 'next/image';
 import { makeBackgroundTransparent } from '@/lib/image-compression';
 import { getImageDataUriAction } from '@/app/actions/image-actions';
 
+const plantThoughts = [
+    "What a lovely day in the park!",
+    "I'm feeling the sunshine on my leaves.",
+    "I hope I get watered soon.",
+    "Did you see that butterfly?",
+    "It's nice to be outside for a change.",
+    "What's for dinner?",
+    "I wonder if I'll evolve soon...",
+];
+
+
 const CommunityParkPage = () => {
     const { user, gameData, loading } = useAuth();
     const [processedPlantImage, setProcessedPlantImage] = React.useState<string | null>(null);
+    const [thought, setThought] = React.useState<string | null>(null);
+    const thoughtTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
     const plantToShow = React.useMemo(() => {
         if (!gameData || !gameData.plants) return null;
@@ -57,6 +71,25 @@ const CommunityParkPage = () => {
         processImage();
     }, [plantToShow]);
 
+    React.useEffect(() => {
+        return () => {
+            if (thoughtTimeoutRef.current) {
+                clearTimeout(thoughtTimeoutRef.current);
+            }
+        };
+    }, []);
+
+    const handleThoughtBubbleClick = () => {
+        if (thoughtTimeoutRef.current) {
+            clearTimeout(thoughtTimeoutRef.current);
+        }
+        const randomThought = plantThoughts[Math.floor(Math.random() * plantThoughts.length)];
+        setThought(randomThought);
+        thoughtTimeoutRef.current = setTimeout(() => {
+            setThought(null);
+        }, 4000);
+    };
+
 
     if (loading) {
         return <div className="flex h-[calc(100vh-4rem)] w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
@@ -100,8 +133,13 @@ const CommunityParkPage = () => {
                 {/* Bottom Plant Display */}
                 <div className="h-48 w-48 flex items-end justify-center">
                     {user && plantToShow && (
-                        <div className="flex flex-col items-center">
-                            <Button variant="secondary" size="lg" className="rounded-full h-14 w-20 mb-[-2rem] z-10 shadow-lg">
+                        <div className="relative flex flex-col items-center">
+                            {thought && (
+                                <div className="absolute bottom-full mb-14 bg-white text-primary p-3 rounded-xl shadow-lg animate-fade-in-up z-20 w-max max-w-[200px] text-center">
+                                    <p className="font-semibold">{thought}</p>
+                                </div>
+                            )}
+                            <Button variant="secondary" size="lg" className="rounded-full h-14 w-20 mb-[-2rem] z-10 shadow-lg" onClick={handleThoughtBubbleClick}>
                                 <MessageSquare className="h-7 w-7 text-primary" />
                             </Button>
                             <div className="w-48 h-48 relative drop-shadow-2xl">
