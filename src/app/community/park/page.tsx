@@ -116,7 +116,7 @@ const CommunityParkPage = () => {
                 </Button>
             </div>
 
-            <div className="relative h-full flex flex-col items-center justify-between p-4 pt-24 pb-16">
+            <div className="relative h-full flex flex-col items-center justify-between p-4 pt-24 pb-4">
                 
                 {/* Top Card */}
                 <div className="bg-slate-800/70 backdrop-blur-md rounded-xl p-6 text-white text-center w-full max-w-sm shadow-lg">
