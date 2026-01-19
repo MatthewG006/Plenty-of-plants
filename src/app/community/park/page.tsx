@@ -121,7 +121,7 @@ const CommunityParkPage = () => {
                 {/* Top Card */}
                 <div className="bg-slate-800/70 backdrop-blur-md rounded-xl p-6 text-white text-center w-full max-w-sm shadow-lg">
                     <h1 className="text-3xl md:text-4xl font-bold">Welcome to the Park</h1>
-                    <p className="mt-2 text-base md:text-lg text-white/90">A quiet place to relax... or compete!</p>
+                    <p className="mt-2 text-base md:text-lg text-white/90">A quiet place to relax with your favorite plant... or enter the Plant Beauty Contest to see how your collection stacks up against others!</p>
                     <Button asChild className="mt-4 w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold">
                         <Link href={user ? '/community/contest' : '/login'}>
                             <Trophy className="mr-2 h-4 w-4" />
