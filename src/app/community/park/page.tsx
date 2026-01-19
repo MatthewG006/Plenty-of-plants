@@ -66,7 +66,7 @@ const CommunityParkPage = () => {
                     <div className="relative w-64 h-64 drop-shadow-2xl">
                          <Image src={plant.image} alt={plant.name} fill className="object-contain" data-ai-hint={plant.hint} />
                     </div>
-                    <p className="text-2xl font-bold mt-2 bg-black/50 px-4 py-2 rounded-xl">
+                    <p className="text-2xl font-bold mt-2 bg-black/50 px-4 py-2 rounded-xl text-white">
                         {plant.name}
                     </p>
                      <p className="mt-2 text-white/90">...is enjoying a day at the park.</p>
