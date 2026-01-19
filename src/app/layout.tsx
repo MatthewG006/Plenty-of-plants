@@ -2,6 +2,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { Providers } from '@/components/providers';
 import type { Metadata } from 'next';
+import AppLayoutClient from '@/components/AppLayoutClient';
 
 export function generateMetadata(): Metadata {
   return {
@@ -27,7 +28,9 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <Providers>
-          {children}
+          <AppLayoutClient>
+            {children}
+          </AppLayoutClient>
           <Toaster />
         </Providers>
       </body>
