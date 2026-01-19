@@ -3,8 +3,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Trees, Trophy, Loader2, Leaf, LogIn } from 'lucide-react';
+import { ArrowLeft, Trophy, Loader2, Leaf, LogIn, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import type { Plant } from '@/interfaces/plant';
@@ -28,7 +27,6 @@ const CommunityParkPage = () => {
         const collectionId = gameData.collectionPlantIds?.[0];
         if (collectionId && gameData.plants[collectionId]) return gameData.plants[collectionId];
 
-        // Fallback to the very first plant a user collected
         const firstPlantKey = Object.keys(gameData.plants)[0];
         if (firstPlantKey) {
             return gameData.plants[parseInt(firstPlantKey, 10)];
@@ -37,78 +35,63 @@ const CommunityParkPage = () => {
         return null;
     }, [gameData]);
 
-    const LoggedOutView = () => (
-        <Card className="bg-black/50 backdrop-blur-sm border-white/20 max-w-md w-full text-center">
-            <CardHeader>
-                <div className="mx-auto bg-white/10 rounded-full w-fit p-4 mb-4">
-                    <Trees className="h-12 w-12 text-white" />
-                </div>
-                <CardTitle className="text-4xl font-bold text-white">The Park</CardTitle>
-                <CardDescription className="text-lg text-white/90 pt-2">
-                    A tranquil place to relax and the gateway to the Plant Beauty Contest.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Button asChild size="lg" className="bg-white text-primary hover:bg-white/90">
-                    <Link href="/login">
-                        <LogIn className="mr-2 h-5 w-5"/>
-                        Log In to Enter Contest
-                    </Link>
-                </Button>
-            </CardContent>
-        </Card>
-    );
-
-    const LoggedInView = ({ plant }: { plant: Plant | null }) => (
-        <div className="flex flex-col items-center gap-6">
-            {plant ? (
-                 <div className="flex flex-col items-center text-center">
-                    <div className="relative w-64 h-64 drop-shadow-2xl">
-                         <Image src={plant.image} alt={plant.name} fill className="object-contain" data-ai-hint={plant.hint} />
-                    </div>
-                    <p className="text-2xl font-bold mt-2 bg-black/50 px-4 py-2 rounded-xl text-white">
-                        {plant.name}
-                    </p>
-                     <p className="mt-2 text-white/90">...is enjoying a day at the park.</p>
-                </div>
-            ) : (
-                <Card className="bg-black/50 backdrop-blur-sm border-white/20 max-w-md w-full text-center">
-                    <CardHeader>
-                        <Leaf className="w-16 h-16 mx-auto text-white/80" />
-                        <CardTitle className="pt-4 text-white">Your Park Adventure Awaits</CardTitle>
-                        <CardDescription className="text-white/90">
-                            Draw your first plant on the Home screen to see it here in the park!
-                        </CardDescription>
-                    </CardHeader>
-                </Card>
-            )}
-            <Button asChild size="lg" className="bg-white text-primary hover:bg-white/90 mt-4">
-                <Link href="/community/contest">
-                    <Trophy className="mr-2"/>
-                    Visit the Beauty Contest
-                </Link>
-            </Button>
-        </div>
-    );
+    if (loading) {
+        return <div className="flex h-[calc(100vh-4rem)] w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+    }
 
     return (
-        <div
-            className="min-h-screen bg-cover bg-center flex flex-col items-center justify-center p-4 text-white"
-            style={{ backgroundImage: "url('https://firebasestorage.googleapis.com/v0/b/plentyofplants-108e8.firebasestorage.app/o/park.png?alt=media&token=e8ab2d4a-d8a5-49a7-96a3-46cc4e4b6a6f')" }}
-        >
-            <div className="absolute top-4 left-4">
-                <Button asChild variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white">
-                    <Link href="/community"><ArrowLeft /></Link>
+        <div className="relative h-[calc(100vh-4rem)] w-full overflow-hidden">
+            <Image 
+                src="https://firebasestorage.googleapis.com/v0/b/plentyofplants-108e8.firebasestorage.app/o/park.png?alt=media&token=e8ab2d4a-d8a5-49a7-96a3-46cc4e4b6a6f"
+                alt="A lush green park with a winding path and a bench."
+                fill
+                className="object-cover"
+                priority
+            />
+
+            <div className="absolute top-4 left-4 z-10">
+                <Button asChild variant="secondary" className="bg-white/90 hover:bg-white text-black/80 shadow-md">
+                    <Link href="/community">
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Back to Showcase
+                    </Link>
                 </Button>
             </div>
 
-            {loading ? (
-                <Loader2 className="w-10 h-10 animate-spin" />
-            ) : user ? (
-                <LoggedInView plant={plantToShow} />
-            ) : (
-                <LoggedOutView />
-            )}
+            <div className="relative h-full flex flex-col items-center justify-between p-4 pt-24 pb-16">
+                
+                {/* Top Card */}
+                <div className="bg-slate-800/70 backdrop-blur-md rounded-xl p-6 text-white text-center w-full max-w-sm shadow-lg">
+                    <h1 className="text-3xl md:text-4xl font-bold">Welcome to the Park</h1>
+                    <p className="mt-2 text-base md:text-lg text-white/90">A quiet place to relax... or compete!</p>
+                    <Button asChild className="mt-4 w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold">
+                        <Link href={user ? '/community/contest' : '/login'}>
+                            <Trophy className="mr-2 h-4 w-4" />
+                            Enter Plant Beauty Contest
+                        </Link>
+                    </Button>
+                </div>
+
+                {/* Bottom Plant Display */}
+                <div className="h-48 w-48 flex items-end justify-center">
+                    {user && plantToShow && (
+                        <div className="flex flex-col items-center">
+                            <Button variant="secondary" size="lg" className="rounded-full h-14 w-20 mb-[-2rem] z-10 shadow-lg">
+                                <MessageSquare className="h-7 w-7 text-primary" />
+                            </Button>
+                            <div className="w-48 h-48 relative drop-shadow-2xl">
+                                <Image 
+                                    src={plantToShow.image} 
+                                    alt={plantToShow.name} 
+                                    fill 
+                                    className="object-contain" 
+                                    data-ai-hint={plantToShow.hint}
+                                />
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
     );
 };
