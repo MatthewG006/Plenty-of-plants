@@ -27,24 +27,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      // If there's no user, we are definitively NOT loading.
       if (!currentUser) {
         setGameData(null);
         setLoading(false);
       }
+      // If there IS a user, the second useEffect will handle the loading state.
     });
 
     return () => unsubscribeAuth();
   }, []);
 
   useEffect(() => {
+    // This effect runs when the user state changes.
     if (user) {
+      // User is found, set loading to true while we fetch their game data.
+      setLoading(true);
       const userDocRef = doc(db, 'users', user.uid);
       const unsubscribeSnapshot = onSnapshot(userDocRef, (doc) => {
         if (doc.exists()) {
           setGameData(doc.data() as GameData);
         } else {
-          setGameData(null); // Or handle case where user doc doesn't exist yet
+          setGameData(null);
         }
+        // Data is fetched (or confirmed not to exist), so we are done loading.
         setLoading(false);
       }, (error) => {
         console.error("Error fetching game data:", error);
@@ -53,6 +59,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       return () => unsubscribeSnapshot();
+    } else {
+      // No user, clear data and set loading to false.
+      setGameData(null);
+      setLoading(false);
     }
   }, [user]);
 
