@@ -47,9 +47,6 @@ export default function HomeContent() {
               <h1 className="text-3xl text-primary font-bold">
                 Plenty Of Plants
               </h1>
-              <Button asChild>
-                <Link href="/login"><LogIn className="mr-2 h-4 w-4" />Login</Link>
-              </Button>
             </div>
           )}
         </header>
@@ -65,12 +62,12 @@ export default function HomeContent() {
           ) : (
             <Card>
               <CardHeader>
-                <CardTitle className="text-center">Welcome!</CardTitle>
+                <CardTitle className="text-center">Login to draw new plants</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-center text-muted-foreground">
-                  Collect and grow an adorable collection of plants, then use the power of ai to evolve them into new elegant forms. Log in or create an account to start your journey!
-                </p>
+              <CardContent className="text-center">
+                <Button asChild>
+                    <Link href="/login"><LogIn className="mr-2 h-4 w-4" />Login</Link>
+                </Button>
               </CardContent>
             </Card>
           )}

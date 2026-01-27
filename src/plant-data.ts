@@ -7,7 +7,7 @@ interface PlantData {
   chatCost: number;
 }
 
-export const प्लांट: Record<PlantId, PlantData> = {
+export const PLANT_DATA: Record<PlantId, PlantData> = {
   'plant-pothos': {
     name: 'Pothos',
     description: 'A hardy and popular houseplant with variegated leaves.',
