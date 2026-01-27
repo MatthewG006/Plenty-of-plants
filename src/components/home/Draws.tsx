@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Check, X, Loader2 } from 'lucide-react';
 import { useAudio } from '@/context/AudioContext';
 import type { DrawPlantOutput } from '@/interfaces/plant';
-import { savePlant, getUserGameData } from '@/lib/firestore';
+import { savePlant } from '@/lib/firestore';
 import { compressImage } from '@/lib/image-compression';
 import { NewPlantDialog } from '@/components/plant-dialogs';
 import { drawPlantAction } from '@/app/actions/draw-plant';
@@ -42,30 +42,45 @@ export default function Draws() {
     const draws = gameData?.draws ?? 0;
 
     useEffect(() => {
-      if (!user) return;
-    
-      const interval = setInterval(async () => {
-        // Refill draws if needed
-        await refillDraws(user.uid);
-    
-        // Recalculate time to next draw
-        const latestGameData = await getUserGameData(user.uid);
-        if (latestGameData) {
-          const now = Date.now();
-          const lastRefill = latestGameData.lastDrawRefill || now;
-          if (latestGameData.draws < MAX_DRAWS) {
-              const timePassed = now - lastRefill;
-              const nextRefillTime = REFILL_INTERVAL - (timePassed % REFILL_INTERVAL);
-              setTimeToNextDraw(nextRefillTime);
-          } else {
-              setTimeToNextDraw(0);
-          }
-        }
-      }, 1000);
-    
-      return () => clearInterval(interval);
-    }, [user, gameData]);
+        if (!user || !gameData) return;
 
+        if (draws >= MAX_DRAWS) {
+            setTimeToNextDraw(0);
+            return;
+        }
+
+        const intervalId = setInterval(() => {
+            const now = Date.now();
+            const lastRefill = gameData.lastDrawRefill || now;
+            const timePassed = now - lastRefill;
+            const remainingTime = REFILL_INTERVAL - timePassed;
+
+            if (remainingTime <= 0) {
+                // Time is up. Trigger a refill. 
+                // The AuthContext listener will update gameData, and this effect will re-run.
+                refillDraws(user.uid);
+                setTimeToNextDraw(0);
+                clearInterval(intervalId); // This timer has served its purpose.
+            } else {
+                setTimeToNextDraw(remainingTime);
+            }
+        }, 1000);
+
+        // Run once immediately on load
+        const now = Date.now();
+        const lastRefill = gameData.lastDrawRefill || now;
+        const timePassed = now - lastRefill;
+        const remainingTime = REFILL_INTERVAL - timePassed;
+        
+        if(remainingTime <= 0) {
+            refillDraws(user.uid);
+        } else {
+            setTimeToNextDraw(remainingTime);
+        }
+
+        return () => clearInterval(intervalId);
+    }, [user, gameData, draws]);
+    
     const handleDraw = async () => {
         if (!user || draws <= 0) return;
         

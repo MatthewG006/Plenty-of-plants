@@ -10,42 +10,47 @@ export const MAX_DRAWS = 2;
 const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
 
 export async function refillDraws(userId: string): Promise<number> {
-  const gameData = await getUserGameData(userId);
-  if (!gameData) return 0;
-  
-  const now = Date.now();
-  const lastRefill = gameData.lastDrawRefill || now;
-  const timeSinceRefill = now - lastRefill;
+    const userRef = doc(db, 'users', userId);
 
-  if (timeSinceRefill < REFILL_INTERVAL) {
-      return 0; // Not enough time has passed for even one refill.
-  }
+    try {
+      return await runTransaction(db, async (transaction) => {
+        const userDoc = await transaction.get(userRef);
+        if (!userDoc.exists()) {
+          throw new Error("User document does not exist for refill.");
+        }
+        
+        const gameData = userDoc.data() as GameData;
+        const now = Date.now();
+        const lastRefill = gameData.lastDrawRefill || now;
+        const timeSinceRefill = now - lastRefill;
+  
+        if (timeSinceRefill < REFILL_INTERVAL) {
+          return 0;
+        }
+  
+        const drawsToAdd = Math.floor(timeSinceRefill / REFILL_INTERVAL);
+        const newLastRefill = lastRefill + (drawsToAdd * REFILL_INTERVAL);
+        const currentDraws = gameData.draws;
+        
+        const newDrawsTotal = Math.min(currentDraws + drawsToAdd, MAX_DRAWS);
+        const drawsActuallyAdded = newDrawsTotal - currentDraws;
+  
+        const updateData: { draws?: number, lastDrawRefill: number } = {
+            lastDrawRefill: newLastRefill
+        };
 
-  const drawsToAdd = Math.floor(timeSinceRefill / REFILL_INTERVAL);
-  const newLastRefill = lastRefill + (drawsToAdd * REFILL_INTERVAL);
+        if (drawsActuallyAdded > 0) {
+            updateData.draws = newDrawsTotal;
+        }
   
-  const currentDraws = gameData.draws;
-  
-  if (currentDraws >= MAX_DRAWS) {
-    // If draws are already full, we don't add any, but we MUST update the timestamp
-    // to prevent getting stuck.
-    const userDocRef = doc(db, 'users', userId);
-    await updateDoc(userDocRef, { lastDrawRefill: newLastRefill });
-    return 0;
-  }
-  
-  const newDrawsTotal = Math.min(currentDraws + drawsToAdd, MAX_DRAWS);
-  const drawsActuallyAdded = newDrawsTotal - currentDraws;
-
-  if (drawsActuallyAdded > 0) {
-    const userDocRef = doc(db, 'users', userId);
-    await updateDoc(userDocRef, {
-      draws: newDrawsTotal,
-      lastDrawRefill: newLastRefill,
-    });
-  }
-  
-  return drawsActuallyAdded;
+        transaction.update(userRef, updateData);
+        
+        return drawsActuallyAdded;
+      });
+    } catch (error) {
+        console.error("Refill draws transaction failed: ", error);
+        return 0; // Don't crash the app if refill fails
+    }
 }
 
 export async function useDraw(userId: string) {
