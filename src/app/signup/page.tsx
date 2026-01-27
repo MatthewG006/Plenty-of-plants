@@ -14,6 +14,7 @@ import { auth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { createUserDocument } from '@/lib/firestore';
+import PublicRoute from '@/components/auth/PublicRoute';
 
 function SignupForm() {
   const router = useRouter();
@@ -67,41 +68,39 @@ function SignupForm() {
   };
 
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-splash-gradient p-4">
-      <Card className="w-full max-w-sm shadow-xl">
-        <CardHeader className="text-center">
-          <CardTitle className="text-3xl">Join the Fun!</CardTitle>
-          <CardDescription>Create an account to start your collection.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form className="space-y-4" onSubmit={handleSignup}>
-            <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
-              <Input id="username" type="text" placeholder="plantlover" required value={username} onChange={(e) => setUsername(e.target.value)} disabled={isLoading} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="you@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" placeholder="••••••••" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading}/>
-            </div>
-            <Button type="submit" className="w-full text-lg" disabled={isLoading}>
-                {isLoading ? <Loader2 className="animate-spin" /> : 'Create Account'}
-            </Button>
-          </form>
-        </CardContent>
-        <CardFooter className="flex-col gap-2 pt-4">
-          <p className="text-xs text-muted-foreground">
-            Already have an account?
-          </p>
-          <Button variant="link" asChild>
-            <Link href="/login">Log in</Link>
+    <Card className="w-full max-w-sm shadow-xl bg-background/80 backdrop-blur-sm">
+      <CardHeader className="text-center">
+        <CardTitle className="text-3xl">Join the Fun!</CardTitle>
+        <CardDescription>Create an account to start your collection.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form className="space-y-4" onSubmit={handleSignup}>
+          <div className="space-y-2">
+            <Label htmlFor="username">Username</Label>
+            <Input id="username" type="text" placeholder="plantlover" required value={username} onChange={(e) => setUsername(e.target.value)} disabled={isLoading} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" type="email" placeholder="you@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input id="password" type="password" placeholder="••••••••" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading}/>
+          </div>
+          <Button type="submit" className="w-full text-lg" disabled={isLoading}>
+              {isLoading ? <Loader2 className="animate-spin" /> : 'Create Account'}
           </Button>
-        </CardFooter>
-      </Card>
-    </div>
+        </form>
+      </CardContent>
+      <CardFooter className="flex-col gap-2 pt-4">
+        <p className="text-xs text-muted-foreground">
+          Already have an account?
+        </p>
+        <Button variant="link" asChild>
+          <Link href="/login">Log in</Link>
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }
 
@@ -109,9 +108,14 @@ function SignupForm() {
 export default function SignupPage() {
     return (
         <Suspense fallback={<div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
-            <SignupForm />
+            <PublicRoute>
+                <main 
+                    className="flex min-h-screen items-center justify-center bg-cover bg-center p-4"
+                    style={{ backgroundImage: "url('https://firebasestorage.googleapis.com/v0/b/plentyofplants-108e8.firebasestorage.app/o/splash-bg.png?alt=media&token=ba86f593-e391-48c8-99cc-babbfb594b1b')" }}
+                >
+                    <SignupForm />
+                </main>
+            </PublicRoute>
         </Suspense>
     )
 }
-
-
