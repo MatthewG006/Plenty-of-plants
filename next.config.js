@@ -10,6 +10,14 @@ const nextConfig = {
       },
     ],
   },
+  webpack: (config, { webpack }) => {
+    config.plugins.push(
+      new webpack.IgnorePlugin({
+        resourceRegExp: /^require-in-the-middle$/,
+      })
+    );
+    return config;
+  },
 };
 
 module.exports = nextConfig;
