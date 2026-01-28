@@ -1,6 +1,6 @@
 'use server';
 // src/genkit.ts
-import { genkit } from "genkit";
+import { genkit } from "@genkit-ai/core";
 import { googleAI } from "@genkit-ai/google-genai";
 
 // Initialize a single AI client with the Google AI plugin
