@@ -59,16 +59,17 @@ export async function sendHeartbeat(sessionId: string, userId: string): Promise<
 
 export async function processContestState(sessionId: string): Promise<void> {
   const sessionRef = doc(db, `contestSessions/${sessionId}`);
+  const contestantsRef = collection(sessionRef, "contestants");
 
   try {
+    const contestantsSnapshot = await getDocs(query(contestantsRef));
+    let contestants = contestantsSnapshot.docs.map(d => ({ ...d.data(), id: d.id } as Contestant));
+
     await runTransaction(db, async (transaction) => {
       const sessionDoc = await transaction.get(sessionRef);
       if (!sessionDoc.exists() || sessionDoc.data()!.status === 'finished') return;
 
       const session = sessionDoc.data()!;
-      const contestantsRef = collection(sessionRef, "contestants");
-      const contestantsSnapshot = await transaction.get(query(contestantsRef));
-      let contestants = contestantsSnapshot.docs.map(d => ({ ...d.data(), id: d.id } as Contestant));
 
       if (session.status === 'waiting') {
         const now = Timestamp.now().seconds;
@@ -142,8 +143,11 @@ export async function processContestState(sessionId: string): Promise<void> {
 
 export async function startContestManually(sessionId: string, userId: string): Promise<{ success: boolean; error?: string }> {
     const sessionRef = doc(db, `contestSessions/${sessionId}`);
+    const contestantsRef = collection(sessionRef, "contestants");
 
     try {
+        const contestantsSnapshot = await getDocs(query(contestantsRef));
+
         await runTransaction(db, async (transaction) => {
             const sessionDoc = await transaction.get(sessionRef);
             if (!sessionDoc.exists()) throw new Error("Session not found.");
@@ -151,9 +155,6 @@ export async function startContestManually(sessionId: string, userId: string): P
             const session = sessionDoc.data()!;
             if (session.status !== 'waiting') throw new Error("The contest has already started.");
             if (session.hostId !== userId) throw new Error("Only the host can start the contest.");
-
-            const contestantsRef = collection(sessionRef, "contestants");
-            const contestantsSnapshot = await transaction.get(query(contestantsRef));
 
             if (contestantsSnapshot.docs.length < 2) {
                 throw new Error("You need at least 2 players to start the contest.");

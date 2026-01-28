@@ -278,64 +278,63 @@ export async function updateGardenArrangement(uid: string, collectionPlantIds: (
 }
 
 
-export async function waterPlant(uid: string, plantId: number): Promise < {
-  leveledUp: boolean, newLevel ? : number, xpGained: number, seedCollected: boolean
-} > {
-  const userRef = doc(db, 'users', uid);
-  let leveledUp = false;
-  let newLevel: number | undefined = undefined;
-  let xpGained = 0;
-  let seedCollected = false;
+export async function waterPlant(uid: string, plantId: number): Promise<{
+    leveledUp: boolean,
+    newLevel?: number,
+    xpGained: number,
+    seedCollected: boolean
+}> {
+    const userRef = doc(db, 'users', uid);
+    let leveledUp = false;
+    let newLevel: number | undefined = undefined;
+    let xpGained = 0;
+    let seedCollected = false;
 
-  await runTransaction(db, async (transaction) => {
-    const userDoc = await transaction.get(userRef);
-    if (!userDoc.exists()) throw new Error("User document does not exist.");
+    await runTransaction(db, async (transaction) => {
+        const userDoc = await transaction.get(userRef);
+        if (!userDoc.exists()) throw new Error("User document does not exist.");
 
-    const gameData = userDoc.data() as GameData;
-    const plant = gameData.plants[plantId];
+        const gameData = userDoc.data() as GameData;
+        const plant = gameData.plants[plantId];
 
-    if (!plant) throw new Error("Plant not found.");
-    if (plant.level >= 50) throw new Error("This plant is at the max level.");
+        if (!plant) throw new Error("Plant not found.");
+        if (plant.level >= 50) throw new Error("This plant is at the max level.");
 
-    const timesWateredToday = plant.lastWatered.filter(ts => isToday(ts as any)).length;
-    if (timesWateredToday >= 4) {
-      throw new Error("This plant has been watered enough for today.");
-    }
+        const timesWateredToday = plant.lastWatered.filter(ts => isToday(ts as any)).length;
+        if (timesWateredToday >= 4) {
+            throw new Error("This plant has been watered enough for today.");
+        }
 
-    xpGained = 100 + Math.floor(plant.level * 1.5);
-    const newXp = plant.xp + xpGained;
-    const newLevelValue = Math.floor(newXp / 1000) + 1;
+        xpGained = 100 + Math.floor(plant.level * 1.5);
+        const combinedXp = plant.xp + xpGained;
+        const updates: any = {};
 
-    const updates: any = {};
+        if (combinedXp >= 1000) {
+            const levelsGained = Math.floor(combinedXp / 1000);
+            newLevel = plant.level + levelsGained;
+            const remainingXp = combinedXp % 1000;
 
-    if (newLevelValue > plant.level) {
-      leveledUp = true;
-      newLevel = newLevelValue;
-      seedCollected = true;
-      updates[`plants.${plantId}.level`] = newLevelValue;
-      updates[`plants.${plantId}.xp`] = newXp % 1000;
+            leveledUp = true;
+            seedCollected = true;
+            updates[`plants.${plantId}.level`] = newLevel;
+            updates[`plants.${plantId}.xp`] = remainingXp;
 
-      const newSeedId = `seed_${Date.now()}`;
-      updates.seeds = arrayUnion({
-        id: newSeedId,
-        startTime: Date.now(),
-      });
-    } else {
-      updates[`plants.${plantId}.xp`] = newXp;
-    }
+            const newSeedId = `seed_${Date.now()}`;
+            updates.seeds = arrayUnion({
+                id: newSeedId,
+                startTime: Date.now(),
+            });
+        } else {
+            updates[`plants.${plantId}.xp`] = combinedXp;
+        }
 
-    updates[`plants.${plantId}.lastWatered`] = arrayUnion(Timestamp.fromMillis(Date.now()));
-    updates.gold = increment(5);
+        updates[`plants.${plantId}.lastWatered`] = arrayUnion(Timestamp.fromMillis(Date.now()));
+        updates.gold = increment(5);
 
-    transaction.update(userRef, updates);
-  });
+        transaction.update(userRef, updates);
+    });
 
-  return {
-    leveledUp,
-    newLevel,
-    xpGained,
-    seedCollected
-  };
+    return { leveledUp, newLevel, xpGained, seedCollected };
 }
 
 
@@ -365,77 +364,73 @@ export async function useWaterRefill(uid: string, plantId: number): Promise < vo
   });
 }
 
-export async function useSprinkler(uid: string): Promise < {
-  plantsWatered: number, seedsCollected: number, newlyEvolvablePlants: {
-    id: number, name: string
-  }[]
-} > {
-  const userRef = doc(db, 'users', uid);
-  let plantsWatered = 0;
-  let seedsCollected = 0;
-  let newlyEvolvablePlants: {
-    id: number, name: string
-  }[] = [];
+export async function useSprinkler(uid: string): Promise<{
+    plantsWatered: number,
+    seedsCollected: number,
+    newlyEvolvablePlants: { id: number, name: string }[]
+}> {
+    const userRef = doc(db, 'users', uid);
+    let plantsWatered = 0;
+    let seedsCollected = 0;
+    let newlyEvolvablePlants: { id: number, name: string }[] = [];
 
-  await runTransaction(db, async (transaction) => {
-    const userDoc = await transaction.get(userRef);
-    if (!userDoc.exists()) throw new Error("User not found.");
+    await runTransaction(db, async (transaction) => {
+        const userDoc = await transaction.get(userRef);
+        if (!userDoc.exists()) throw new Error("User not found.");
 
-    const gameData = userDoc.data() as GameData;
-    const allPlants = gameData.plants;
-    const updates: any = {};
-    const seedsToAdd: any[] = [];
+        const gameData = userDoc.data() as GameData;
+        const allPlants = gameData.plants;
+        const updates: any = {};
+        const seedsToAdd: any[] = [];
 
-    Object.values(allPlants).forEach(plant => {
-      const timesWateredToday = plant.lastWatered.filter(ts => isToday(ts as any)).length;
-      if (plant.level < 50 && timesWateredToday < 4) {
-        plantsWatered++;
-        const xpGained = 100 + Math.floor(plant.level * 1.5);
-        const newXp = plant.xp + xpGained;
-        const oldLevel = plant.level;
-        const newLevel = Math.floor(newXp / 1000) + 1;
+        Object.values(allPlants).forEach(plant => {
+            const timesWateredToday = plant.lastWatered.filter(ts => isToday(ts as any)).length;
+            if (plant.level < 50 && timesWateredToday < 4) {
+                plantsWatered++;
+                const xpGained = 100 + Math.floor(plant.level * 1.5);
+                const combinedXp = plant.xp + xpGained;
+                const oldLevel = plant.level;
 
-        updates[`plants.${plant.id}.lastWatered`] = arrayUnion(Timestamp.fromMillis(Date.now()));
+                updates[`plants.${plant.id}.lastWatered`] = arrayUnion(Timestamp.fromMillis(Date.now()));
 
-        if (newLevel > oldLevel) {
-          updates[`plants.${plant.id}.level`] = newLevel;
-          updates[`plants.${plant.id}.xp`] = newXp % 1000;
-          seedsCollected++;
-          seedsToAdd.push({
-            id: `seed_${Date.now()}_${plant.id}`,
-            startTime: Date.now()
-          });
+                if (combinedXp >= 1000) {
+                    const levelsGained = Math.floor(combinedXp / 1000);
+                    const newLevel = plant.level + levelsGained;
+                    const remainingXp = combinedXp % 1000;
 
-          const justReachedEvo1 = oldLevel < 10 && newLevel >= 10 && plant.form === 'Base';
-          const justReachedEvo2 = oldLevel < 25 && newLevel >= 25 && plant.form === 'Evolved';
+                    updates[`plants.${plant.id}.level`] = newLevel;
+                    updates[`plants.${plant.id}.xp`] = remainingXp;
+                    seedsCollected++;
+                    seedsToAdd.push({
+                        id: `seed_${Date.now()}_${plant.id}`,
+                        startTime: Date.now()
+                    });
 
-          if (justReachedEvo1 || justReachedEvo2) {
-            newlyEvolvablePlants.push({
-              id: plant.id,
-              name: plant.name
-            });
-          }
+                    const justReachedEvo1 = oldLevel < 10 && newLevel >= 10 && plant.form === 'Base';
+                    const justReachedEvo2 = oldLevel < 25 && newLevel >= 25 && plant.form === 'Evolved';
 
-        } else {
-          updates[`plants.${plant.id}.xp`] = newXp;
+                    if (justReachedEvo1 || justReachedEvo2) {
+                        newlyEvolvablePlants.push({
+                            id: plant.id,
+                            name: plant.name
+                        });
+                    }
+                } else {
+                    updates[`plants.${plant.id}.xp`] = combinedXp;
+                }
+            }
+        });
+
+        if (plantsWatered > 0) {
+            updates.gold = increment(plantsWatered * 5);
+            if (seedsToAdd.length > 0) {
+                updates.seeds = arrayUnion(...seedsToAdd);
+            }
+            transaction.update(userRef, updates);
         }
-      }
     });
 
-    if (plantsWatered > 0) {
-      updates.gold = increment(plantsWatered * 5);
-      if (seedsToAdd.length > 0) {
-        updates.seeds = arrayUnion(...seedsToAdd);
-      }
-      transaction.update(userRef, updates);
-    }
-  });
-
-  return {
-    plantsWatered,
-    seedsCollected,
-    newlyEvolvablePlants
-  };
+    return { plantsWatered, seedsCollected, newlyEvolvablePlants };
 }
 
 export async function deletePlant(uid: string, plantId: number): Promise < void > {

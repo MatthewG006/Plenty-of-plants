@@ -19,7 +19,7 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
     
     // Check if the current path starts with any of the app routes.
     // This handles nested routes like /community/park as well.
-    const isAppPage = APP_ROUTES.some(route => pathname.startsWith(route));
+    const isAppPage = pathname && APP_ROUTES.some(route => pathname.startsWith(route));
 
     if (isAppPage) {
         return (
