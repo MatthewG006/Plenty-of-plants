@@ -259,9 +259,15 @@ export function PlantCareDialog({ plant, open, onOpenChange, onStartEvolution, o
         try {
             const result = await waterPlant(user.uid, plant.id);
             if (result.leveledUp) {
+                let description = `${plant.name} is now level ${result.newLevel}!`;
+                if (result.seedCollected) {
+                    description += " You found a seed!";
+                } else {
+                    description += " Your seed bag is full.";
+                }
                 toast({
                     title: 'Leveled Up!',
-                    description: `${plant.name} is now level ${result.newLevel}! You found a seed!`,
+                    description: description,
                 });
                 playSfx('reward');
             } else {

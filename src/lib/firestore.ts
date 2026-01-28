@@ -1,4 +1,5 @@
 
+
 import {
   db,
 } from '@/lib/firebase';
@@ -315,15 +316,19 @@ export async function waterPlant(uid: string, plantId: number): Promise<{
             const remainingXp = combinedXp % 1000;
 
             leveledUp = true;
-            seedCollected = true;
             updates[`plants.${plantId}.level`] = newLevel;
             updates[`plants.${plantId}.xp`] = remainingXp;
-
-            const newSeedId = `seed_${Date.now()}`;
-            updates.seeds = arrayUnion({
-                id: newSeedId,
-                startTime: Date.now(),
-            });
+            
+            const currentSeeds = gameData.seeds || [];
+            const seedBagSize = gameData.seedBagSize || 3;
+            if (currentSeeds.length < seedBagSize) {
+                seedCollected = true;
+                const newSeedId = `seed_${Date.now()}`;
+                updates.seeds = arrayUnion({
+                    id: newSeedId,
+                    startTime: Date.now(),
+                });
+            }
         } else {
             updates[`plants.${plantId}.xp`] = combinedXp;
         }
@@ -381,7 +386,10 @@ export async function useSprinkler(uid: string): Promise<{
         const gameData = userDoc.data() as GameData;
         const allPlants = gameData.plants;
         const updates: any = {};
+        
         const seedsToAdd: any[] = [];
+        let currentSeedCount = (gameData.seeds || []).length;
+        const seedBagSize = gameData.seedBagSize || 3;
 
         Object.values(allPlants).forEach(plant => {
             const timesWateredToday = plant.lastWatered.filter(ts => isToday(ts as any)).length;
@@ -400,11 +408,15 @@ export async function useSprinkler(uid: string): Promise<{
 
                     updates[`plants.${plant.id}.level`] = newLevel;
                     updates[`plants.${plant.id}.xp`] = remainingXp;
-                    seedsCollected++;
-                    seedsToAdd.push({
-                        id: `seed_${Date.now()}_${plant.id}`,
-                        startTime: Date.now()
-                    });
+                    
+                    if (currentSeedCount < seedBagSize) {
+                        seedsCollected++;
+                        currentSeedCount++;
+                        seedsToAdd.push({
+                            id: `seed_${Date.now()}_${plant.id}`,
+                            startTime: Date.now()
+                        });
+                    }
 
                     const justReachedEvo1 = oldLevel < 10 && newLevel >= 10 && plant.form === 'Base';
                     const justReachedEvo2 = oldLevel < 25 && newLevel >= 25 && plant.form === 'Evolved';
@@ -678,7 +690,7 @@ export async function purchaseTimeReducer(userId: string) {
 }
 
 export async function purchaseSeasonalPlantPack(userId: string) {
-  const userRef = doc(db, 'users', userId);
+  const userRef = doc(db, 'users', uid);
 
   let newPlant: Plant | null = null;
 
