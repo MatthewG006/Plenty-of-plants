@@ -267,7 +267,7 @@ export default function GardenPage() {
   };
   
   const handleConfirmEvolution = async () => {
-    if (!user || !evolvedPreviewData || !gameData) return;
+    if (!user || !evolvedPreviewData || !gameData || isEvolving) return;
     
     setIsEvolving(true);
     try {
@@ -440,6 +440,7 @@ export default function GardenPage() {
             newImageUri={evolvedPreviewData?.newImageUri || ''}
             open={!!evolvedPreviewData}
             onConfirm={handleConfirmEvolution}
+            isEvolving={isEvolving}
         />
       </div>
       </>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -401,9 +402,9 @@ export function EvolveConfirmationDialog({ plant, open, onConfirm, onCancel, isE
     );
 }
 
-export function EvolvePreviewDialog({ plantName, newForm, newImageUri, open, onConfirm }: { plantName: string, newForm: string, newImageUri: string, open: boolean, onConfirm: () => void }) {
+export function EvolvePreviewDialog({ plantName, newForm, newImageUri, open, onConfirm, isEvolving }: { plantName: string, newForm: string, newImageUri: string, open: boolean, onConfirm: () => void, isEvolving: boolean }) {
     return (
-        <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onConfirm()}>
+        <Dialog open={open}>
             <DialogContent className="max-w-sm">
                  <DialogHeader>
                     <DialogTitle className="text-3xl text-center">Evolution Complete!</DialogTitle>
@@ -415,7 +416,9 @@ export function EvolvePreviewDialog({ plantName, newForm, newImageUri, open, onC
                     <h3 className="text-2xl font-semibold text-primary">{plantName} has evolved into its {newForm} form!</h3>
                 </div>
                 <DialogFooter>
-                    <Button onClick={onConfirm} className="w-full text-lg">Continue</Button>
+                    <Button onClick={onConfirm} className="w-full text-lg" disabled={isEvolving}>
+                        {isEvolving ? <Loader2 className="animate-spin" /> : 'Continue'}
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
