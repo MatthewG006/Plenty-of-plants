@@ -18,7 +18,7 @@ import Link from 'next/link';
 import { getImageDataUriAction } from '@/app/actions/image-actions';
 import { makeBackgroundTransparent, isImageBlack, compressImage } from '@/lib/image-compression';
 import { updateChallengeProgress, updateEvolutionProgress } from '@/lib/challenge-manager';
-//import { evolvePlantAction } from '@/app/actions/evolve-plant';
+import { evolvePlantAction } from '@/app/actions/evolve-plant';
 
 const NUM_GARDEN_PLOTS = 12;
 
@@ -225,33 +225,32 @@ export default function GardenPage() {
     setIsEvolving(true);
 
     try {
-        // const imageToUse = evolvingPlant.form === 'Evolved' ? (evolvingPlant.baseImage || evolvingPlant.image) : evolvingPlant.image;
-        // const dataUri = await getImageDataUriAction(imageToUse);
+        const imageToUse = evolvingPlant.form === 'Evolved' ? (evolvingPlant.baseImage || evolvingPlant.image) : evolvingPlant.image;
+        const dataUri = await getImageDataUriAction(imageToUse);
         
-        // const result = await evolvePlantAction({
-        //     name: evolvingPlant.name,
-        //     baseImageDataUri: dataUri,
-        //     form: evolvingPlant.form,
-        // });
+        const result = await evolvePlantAction({
+            name: evolvingPlant.name,
+            baseImageDataUri: dataUri,
+            form: evolvingPlant.form,
+        });
 
-        // if (await isImageBlack(result.newImageDataUri)) {
-        //     throw new Error("AI generated a black image, please try again.");
-        // }
+        if (await isImageBlack(result.newImageDataUri)) {
+            throw new Error("AI generated a black image, please try again.");
+        }
         
-        // const compressedImage = await compressImage(result.newImageDataUri);
+        const compressedImage = await compressImage(result.newImageDataUri);
 
-        // const newForm = evolvingPlant.form === 'Base' ? 'Evolved' : 'Final';
+        const newForm = evolvingPlant.form === 'Base' ? 'Evolved' : 'Final';
         
-        // setEvolvedPreviewData({
-        //     plantId: evolvingPlant.id,
-        //     plantName: evolvingPlant.name,
-        //     newForm: newForm,
-        //     newImageUri: compressedImage,
-        //     personality: result.personality,
-        // });
+        setEvolvedPreviewData({
+            plantId: evolvingPlant.id,
+            plantName: evolvingPlant.name,
+            newForm: newForm,
+            newImageUri: compressedImage,
+            personality: result.personality,
+        });
         
-        // await updateEvolutionProgress(user.uid);
-        throw new Error("Evolution is temporarily disabled.");
+        await updateEvolutionProgress(user.uid);
 
     } catch (e: any) {
         console.error("Evolution failed:", e);
