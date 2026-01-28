@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { deletePlant, unlockPlantChat, addConversationHistory, updatePlant, updateUserRubies, useWaterRefill, addSeed, useGlitter, useSheen, useRainbowGlitter, useRedGlitter, waterPlant } from '@/lib/firestore';
+import { deletePlant, unlockPlantChat, addConversationHistory, updateUserRubies, useWaterRefill, addSeed, useGlitter, useSheen, useRainbowGlitter, useRedGlitter, waterPlant, uploadImageAndGetURL, saveEvolutionAndUpdateChallenge } from '@/lib/firestore';
 import { AlertDialog, AlertDialogTrigger, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription as AlertDialogDescriptionComponent } from '@/components/ui/alert-dialog';
 import { plantChatAction } from '@/app/actions/plant-chat';
 import { Textarea } from '@/components/ui/textarea';
@@ -405,7 +405,7 @@ export function EvolveConfirmationDialog({ plant, open, onConfirm, onCancel, isE
 
 export function EvolvePreviewDialog({ plantName, newForm, newImageUri, open, onConfirm, onCancel, isEvolving }: { plantName: string, newForm: string, newImageUri: string, open: boolean, onConfirm: () => void, onCancel: () => void, isEvolving: boolean }) {
     return (
-        <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onCancel() }}>
+        <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen && !isEvolving) onCancel() }}>
             <DialogContent className="max-w-sm">
                  <DialogHeader>
                     <DialogTitle className="text-3xl text-center">Evolution Complete!</DialogTitle>

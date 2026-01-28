@@ -478,6 +478,40 @@ export async function updatePlant(uid: string, plantId: number, data: Partial < 
   await updateDoc(userRef, updates);
 }
 
+export async function saveEvolutionAndUpdateChallenge(
+    uid: string, 
+    plantId: number, 
+    updateData: Partial<Plant>
+): Promise<void> {
+    const userRef = doc(db, 'users', uid);
+
+    await runTransaction(db, async (transaction) => {
+        const userDoc = await transaction.get(userRef);
+        if (!userDoc.exists()) {
+            throw new Error("User document not found.");
+        }
+        const gameData = userDoc.data() as GameData;
+
+        const updates: { [key: string]: any } = {};
+        
+        // 1. Plant update
+        for (const key in updateData) {
+            updates[`plants.${plantId}.${key}`] = (updateData as any)[key];
+        }
+
+        // 2. Challenge update for 'evolvePlant'
+        const challengeId = 'evolvePlant';
+        const challengeDef = { target: 1 }; // Target is 1
+        const challengeState = gameData.challenges?.[challengeId];
+
+        if (!challengeState || (!challengeState.claimed && challengeState.progress < challengeDef.target)) {
+            updates[`challenges.${challengeId}.progress`] = increment(1);
+        }
+
+        transaction.update(userRef, updates);
+    });
+}
+
 export async function uploadImageAndGetURL(uid: string, plantId: number, dataUri: string): Promise < string > {
   const storage = getStorage();
   const storageRef = ref(storage, `users/${uid}/plants/${plantId}/${Date.now()}.jpg`);
