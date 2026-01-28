@@ -1,4 +1,3 @@
-
 import { Timestamp } from 'firebase/firestore';
 import { z } from 'zod';
 
@@ -143,3 +142,17 @@ export const EvolvePlantOutputSchema = z.object({
   personality: z.string().optional().describe("A one-word personality trait for the plant (e.g., 'cheerful', 'grumpy'). This is only generated for the final form."),
 });
 export type EvolvePlantOutput = z.infer<typeof EvolvePlantOutputSchema>;
+
+export const PlantChatInputSchema = z.object({
+  plantName: z.string(),
+  plantPersonality: z.string(),
+  userMessage: z.string(),
+  history: z.array(z.object({ role: z.enum(['model', 'user']), content: z.string() })).optional(),
+  form: z.string(),
+});
+export type PlantChatInput = z.infer<typeof PlantChatInputSchema>;
+
+export const PlantChatOutputSchema = z.object({
+    response: z.string(),
+});
+export type PlantChatOutput = z.infer<typeof PlantChatOutputSchema>;

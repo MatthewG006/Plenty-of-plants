@@ -6,7 +6,7 @@
  */
 import { ai } from '@/genkit';
 import { z } from 'zod';
-import { PlantChatInputSchema, PlantChatOutputSchema, type PlantChatInput, type PlantChatOutput } from '@/interfaces/chat';
+import { PlantChatInputSchema, PlantChatOutputSchema, type PlantChatInput, type PlantChatOutput } from '@/interfaces/plant';
 
 const chatPrompt = ai.definePrompt({
     name: 'plantChatPrompt',

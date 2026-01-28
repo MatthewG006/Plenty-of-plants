@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import * as React from 'react';
@@ -265,24 +263,27 @@ export default function GardenPage() {
   };
   
   const handleConfirmEvolution = async () => {
-    if (!user || !evolvedPreviewData || isEvolving) return;
+    if (!user || !evolvedPreviewData) return;
 
     setIsEvolving(true);
     try {
         const { plantId, newImageUri, newForm, personality } = evolvedPreviewData;
-
         const currentPlant = allPlants[plantId];
+        if (!currentPlant) throw new Error("Plant not found");
 
-        const finalImageUrl = await uploadImageAndGetURL(user.uid, plantId, newImageUri);
+        const finalImageUrl = await uploadImageAndGetURL(user.uid, plantId, newImageUri, newForm.toLowerCase());
 
         const updateData: Partial<Plant> = {
             image: finalImageUrl,
-            form: newForm,
-            personality: personality || '',
+            form: newForm as 'Evolved' | 'Final',
         };
 
-        if (newForm === 'Evolved' && currentPlant && !currentPlant.baseImage) {
+        if (newForm === 'Evolved' && !currentPlant.baseImage) {
             updateData.baseImage = currentPlant.image;
+        }
+        
+        if (newForm === 'Final' && personality) {
+            updateData.personality = personality;
         }
 
         await saveEvolutionAndUpdateChallenge(user.uid, plantId, updateData);
