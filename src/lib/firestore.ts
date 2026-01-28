@@ -306,7 +306,7 @@ export async function waterPlant(uid: string, plantId: number): Promise<{
             throw new Error("This plant has been watered enough for today.");
         }
 
-        xpGained = 100 + Math.floor(plant.level * 1.5);
+        xpGained = 250;
         const combinedXp = plant.xp + xpGained;
         const updates: any = {};
 
@@ -395,7 +395,7 @@ export async function useSprinkler(uid: string): Promise<{
             const timesWateredToday = plant.lastWatered.filter(ts => isToday(ts as any)).length;
             if (plant.level < 50 && timesWateredToday < 4) {
                 plantsWatered++;
-                const xpGained = 100 + Math.floor(plant.level * 1.5);
+                const xpGained = 250;
                 const combinedXp = plant.xp + xpGained;
                 const oldLevel = plant.level;
 
