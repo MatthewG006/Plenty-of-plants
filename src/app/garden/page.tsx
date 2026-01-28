@@ -13,12 +13,12 @@ import type { Plant } from '@/interfaces/plant';
 import { cn } from '@/lib/utils';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { updateGardenArrangement, useSprinkler, updatePlant, uploadImageAndGetURL } from '@/lib/firestore';
+import { updateGardenArrangement, useSprinkler, uploadImageAndGetURL, saveEvolutionAndUpdateChallenge } from '@/lib/firestore';
 import { PlantCareDialog, PlantSwapDialog, EvolveConfirmationDialog, EvolvePreviewDialog } from '@/components/plant-dialogs';
 import Link from 'next/link';
 import { getImageDataUriAction } from '@/app/actions/image-actions';
 import { makeBackgroundTransparent, isImageBlack, compressImage } from '@/lib/image-compression';
-import { updateChallengeProgress, updateEvolutionProgress } from '@/lib/challenge-manager';
+import { updateChallengeProgress } from '@/lib/challenge-manager';
 import { evolvePlantAction } from '@/app/actions/evolve-plant';
 
 const NUM_GARDEN_PLOTS = 12;
@@ -268,10 +268,6 @@ export default function GardenPage() {
     if (!user || !evolvedPreviewData || isEvolving) return;
 
     setIsEvolving(true);
-    const savingToast = toast({
-        title: "Saving Evolution...",
-        description: "Please wait while we save your new plant.",
-    });
     try {
         const { plantId, newImageUri, newForm, personality } = evolvedPreviewData;
 
@@ -289,19 +285,16 @@ export default function GardenPage() {
             updateData.baseImage = currentPlant.image;
         }
 
-        await updatePlant(user.uid, plantId, updateData);
-        await updateEvolutionProgress(user.uid);
+        await saveEvolutionAndUpdateChallenge(user.uid, plantId, updateData);
 
-        savingToast.update({
-            id: savingToast.id,
+        toast({
             title: "Evolution Complete!",
             description: `${evolvedPreviewData.plantName} has evolved!`,
         });
 
     } catch (e: any) {
         console.error("Failed to save evolution", e);
-        savingToast.update({
-            id: savingToast.id,
+        toast({
             variant: 'destructive', 
             title: "Save Failed", 
             description: "Could not save your evolved plant." 
