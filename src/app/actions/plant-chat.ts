@@ -1,44 +1,18 @@
 'use server';
-/**
- * @fileOverview A plant chat AI agent.
- *
- * - plantChatAction - A function that handles the plant chat process.
- */
-import { ai } from '@/genkit';
-import { z } from 'zod';
-import { PlantChatInputSchema, PlantChatOutputSchema, type PlantChatInput, type PlantChatOutput } from '@/interfaces/plant';
 
-const chatPrompt = ai.definePrompt({
-    name: 'plantChatPrompt',
-    input: { schema: PlantChatInputSchema },
-    output: { schema: PlantChatOutputSchema },
-    prompt: `You are a plant in a game. Your name is "{{plantName}}". Your personality is described as "{{plantPersonality}}". Your current form is "{{form}}".
+// This is a dummy implementation to avoid the build error caused by genkit.
+// We can restore this later.
 
-You are talking to the user. Keep your responses short, in character, and appropriate for a friendly game.
-
-Here is the conversation history so far:
-{{#if history}}
-{{#each history}}
-{{this.role}}: {{this.content}}
-{{/each}}
-{{/if}}
-
-user: {{userMessage}}
-model:`,
-});
-
-const plantChatFlow = ai.defineFlow(
-    {
-        name: 'plantChatFlow',
-        inputSchema: PlantChatInputSchema,
-        outputSchema: PlantChatOutputSchema,
-    },
-    async (input) => {
-        const { output } = await chatPrompt(input);
-        return output!;
-    }
-);
+import type { PlantChatInput, PlantChatOutput } from '@/interfaces/plant';
 
 export async function plantChatAction(input: PlantChatInput): Promise<PlantChatOutput> {
-    return plantChatFlow(input);
+  console.log('Dummy plantChatAction called with:', input);
+  // Just return a canned response.
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        response: "I'm just a little sprout right now, I can't talk yet!",
+      });
+    }, 500);
+  });
 }
