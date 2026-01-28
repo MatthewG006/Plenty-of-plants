@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -24,7 +23,7 @@ import {
 } from '@dnd-kit/core';
 import { useAuth } from '@/context/AuthContext';
 import { updatePlantArrangement, updatePlant } from '@/lib/firestore';
-import { PlantDetailDialog } from '@/components/plant-dialogs';
+import { PlantDetailDialog, PlantChatDialog } from '@/components/plant-dialogs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { makeBackgroundTransparent } from '@/lib/image-compression';
 import { getImageDataUriAction } from '@/app/actions/image-actions';
@@ -508,14 +507,14 @@ export default function RoomPage() {
           userId={user.uid}
         />
         
-        {/*
+        
         <PlantChatDialog
             plant={chattingPlant}
             open={!!chattingPlant}
             onOpenChange={(isOpen) => !isOpen && setChattingPlant(null)}
             userId={user.uid}
         />
-        */}
+        
         
         <DragOverlay>
           {activeDragPlant ? (

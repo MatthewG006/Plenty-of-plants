@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import * as React from 'react';
@@ -16,7 +14,7 @@ import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { deletePlant, unlockPlantChat, addConversationHistory, updatePlant, updateUserRubies, useWaterRefill, addSeed, useGlitter, useSheen, useRainbowGlitter, useRedGlitter, waterPlant } from '@/lib/firestore';
 import { AlertDialog, AlertDialogTrigger, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription as AlertDialogDescriptionComponent } from '@/components/ui/alert-dialog';
-// import { plantChatAction } from '@/app/actions/plant-chat';
+import { plantChatAction } from '@/app/actions/plant-chat';
 import { Textarea } from '@/components/ui/textarea';
 import { updateWaterEvolvedProgress, updateWateringProgress, updateApplySheenProgress, updateApplyGlitterProgress } from '@/lib/challenge-manager';
 import { ScrollArea } from './ui/scroll-area';
@@ -121,7 +119,7 @@ export function NewPlantDialog({ plant, open, onOpenChange }: { plant: DrawPlant
     );
 }
 
-/*
+
 export function PlantChatDialog({ plant, open, onOpenChange, userId }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, userId: string }) {
     const [history, setHistory] = useState<{ role: 'user' | 'model'; content: string }[]>([]);
     const [message, setMessage] = useState('');
@@ -234,7 +232,7 @@ export function PlantChatDialog({ plant, open, onOpenChange, userId }: { plant: 
         </Dialog>
     );
 }
-*/
+
 
 export function PlantCareDialog({ plant, open, onOpenChange, onStartEvolution, onSwapRequest }: { plant: Plant | null, open: boolean, onOpenChange: (open: boolean) => void, onStartEvolution: (plant: Plant) => void, onSwapRequest: (plantId: number, gardenPlotIndex: number) => void }) {
     const { user, gameData } = useAuth();
@@ -663,7 +661,7 @@ export function PlantDetailDialog({ plant, open, onOpenChange, onStartEvolution,
                             Evolve Plant
                         </Button>
                     )}
-                    {/*
+                    
                     {isMaxLevel && plant.personality && (
                         plant.chatEnabled ? (
                              <Button onClick={() => onOpenChat(plant)} className="w-full">
@@ -677,7 +675,7 @@ export function PlantDetailDialog({ plant, open, onOpenChange, onStartEvolution,
                             </Button>
                         )
                     )}
-                    */}
+                    
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
                             <Button variant="destructive" className="w-full">
