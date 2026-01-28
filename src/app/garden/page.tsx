@@ -267,14 +267,14 @@ export default function GardenPage() {
   };
   
   const handleConfirmEvolution = async () => {
-    if (!user || !evolvedPreviewData || !gameData || isEvolving) return;
-    
+    if (!user || !evolvedPreviewData || isEvolving) return;
+
     setIsEvolving(true);
     try {
         const { plantId, newImageUri, newForm, personality } = evolvedPreviewData;
-        
+
         const currentPlant = allPlants[plantId];
-        
+
         const finalImageUrl = await uploadImageAndGetURL(user.uid, plantId, newImageUri);
 
         const updateData: Partial<Plant> = {
@@ -282,13 +282,13 @@ export default function GardenPage() {
             form: newForm,
             personality: personality || '',
         };
-        
+
         if (newForm === 'Evolved' && currentPlant && !currentPlant.baseImage) {
             updateData.baseImage = currentPlant.image;
         }
 
         await updatePlant(user.uid, plantId, updateData);
-        
+
         toast({
             title: "Evolution Complete!",
             description: `${evolvedPreviewData.plantName} has evolved!`,
@@ -302,6 +302,7 @@ export default function GardenPage() {
         setEvolvedPreviewData(null);
     }
   };
+
 
   if (loading) {
     return (
@@ -440,6 +441,11 @@ export default function GardenPage() {
             newImageUri={evolvedPreviewData?.newImageUri || ''}
             open={!!evolvedPreviewData}
             onConfirm={handleConfirmEvolution}
+            onCancel={() => {
+              if (!isEvolving) {
+                setEvolvedPreviewData(null)
+              }
+            }}
             isEvolving={isEvolving}
         />
       </div>

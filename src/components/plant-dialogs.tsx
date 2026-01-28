@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -402,9 +403,9 @@ export function EvolveConfirmationDialog({ plant, open, onConfirm, onCancel, isE
     );
 }
 
-export function EvolvePreviewDialog({ plantName, newForm, newImageUri, open, onConfirm, isEvolving }: { plantName: string, newForm: string, newImageUri: string, open: boolean, onConfirm: () => void, isEvolving: boolean }) {
+export function EvolvePreviewDialog({ plantName, newForm, newImageUri, open, onConfirm, onCancel, isEvolving }: { plantName: string, newForm: string, newImageUri: string, open: boolean, onConfirm: () => void, onCancel: () => void, isEvolving: boolean }) {
     return (
-        <Dialog open={open}>
+        <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onCancel() }}>
             <DialogContent className="max-w-sm">
                  <DialogHeader>
                     <DialogTitle className="text-3xl text-center">Evolution Complete!</DialogTitle>
