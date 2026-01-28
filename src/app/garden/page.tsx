@@ -250,8 +250,6 @@ export default function GardenPage() {
             newImageUri: compressedImage,
             personality: result.personality,
         });
-        
-        await updateEvolutionProgress(user.uid);
 
     } catch (e: any) {
         console.error("Evolution failed:", e);
@@ -270,6 +268,10 @@ export default function GardenPage() {
     if (!user || !evolvedPreviewData || isEvolving) return;
 
     setIsEvolving(true);
+    const savingToast = toast({
+        title: "Saving Evolution...",
+        description: "Please wait while we save your new plant.",
+    });
     try {
         const { plantId, newImageUri, newForm, personality } = evolvedPreviewData;
 
@@ -288,15 +290,22 @@ export default function GardenPage() {
         }
 
         await updatePlant(user.uid, plantId, updateData);
+        await updateEvolutionProgress(user.uid);
 
-        toast({
+        savingToast.update({
+            id: savingToast.id,
             title: "Evolution Complete!",
             description: `${evolvedPreviewData.plantName} has evolved!`,
         });
 
     } catch (e: any) {
         console.error("Failed to save evolution", e);
-        toast({ variant: 'destructive', title: "Save Failed", description: "Could not save your evolved plant." });
+        savingToast.update({
+            id: savingToast.id,
+            variant: 'destructive', 
+            title: "Save Failed", 
+            description: "Could not save your evolved plant." 
+        });
     } finally {
         setIsEvolving(false);
         setEvolvedPreviewData(null);
