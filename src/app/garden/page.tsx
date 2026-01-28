@@ -271,7 +271,7 @@ export default function GardenPage() {
         const currentPlant = allPlants[plantId];
         if (!currentPlant) throw new Error("Plant not found");
 
-        const finalImageUrl = await uploadImageAndGetURL(user.uid, plantId, newImageUri, newForm.toLowerCase());
+        const finalImageUrl = await uploadImageAndGetURL(user.uid, plantId, newImageUri);
 
         const updateData: Partial<Plant> = {
             image: finalImageUrl,
