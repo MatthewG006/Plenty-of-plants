@@ -16,8 +16,8 @@ The game's art style is cute, beautiful, and slightly stylized, not hyperrealist
 
 Using the provided image as a base, create the evolved version.
 
-- If the next form is 'Evolved': The plant should look more mature and detailed. Introduce a new, subtle magical element, like a soft glow, unusually colored leaves, or tiny sparkling particles. It's a clear progression, but save the most dramatic changes for the final form.
-- If the next form is 'Final': This is the plant's legendary, ultimate form. Make it look truly magnificent and fantastical. It should radiate power and beauty, perhaps with glowing patterns, floating elements, or a mystical aura.
+- If the next form is 'Evolved': The plant should look more mature with more growth. Introduce a new, subtle plant element, keeping the face and plant pot the same. It's a clear progression, but save the most dramatic changes for the final form.
+- If the next form is 'Final': The plant has finished growing, make it look truly magnificent with new growth and plant elements without altering the face or plant pot.
 
 Important: Do not include any text, letters, or numbers in the generated image. The background should be transparent or easily removable (plain white).`;
 
