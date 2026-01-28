@@ -16,9 +16,6 @@ export async function evolvePlantAction(
       { media: { url: input.baseImageDataUri } },
       { text: evolutionPrompt },
     ],
-    config: {
-      responseModalities: ['TEXT', 'IMAGE'],
-    },
   });
 
   if (!media?.url) {

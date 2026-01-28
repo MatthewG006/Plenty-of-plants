@@ -5,7 +5,7 @@ import { googleAI } from "@genkit-ai/google-genai";
 // Initialize a single AI client with the Google AI plugin
 export const ai = genkit({
   plugins: [googleAI()],
-  model: "gemini-1.5-flash", // choose the model you want
+  model: "googleai/gemini-1.5-flash", // choose the model you want
 });
 
 // ------------------------
