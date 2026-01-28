@@ -12,7 +12,6 @@ export async function evolvePlantAction(
   const evolutionPrompt = `This is an image of a plant named "${input.name}". It is evolving from its "${input.form}" form to its "${nextForm}" form. Make it look more detailed, mature, and fantastical. ${isFinalForm ? 'It should look like a legendary, ultimate version of the plant.' : 'It should be a clear progression, but not the final form yet.'} Do not include any text in the generated image.`;
 
   const { media } = await ai.generate({
-    model: 'googleai/gemini-1.5-flash-latest',
     prompt: [
       { media: { url: input.baseImageDataUri } },
       { text: evolutionPrompt },
