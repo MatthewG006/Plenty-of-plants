@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import * as React from 'react';
@@ -23,6 +21,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
 const GERMINATION_TIME_MS = 24 * 60 * 60 * 1000; // 24 hours
+const SEED_IMAGE_URL = "https://firebasestorage.googleapis.com/v0/b/plentyofplants-108e8.firebasestorage.app/o/seed.png?alt=media&token=27814388-6270-4088-bb8d-870e1770528a";
 
 function getTimeRemaining(endTime: number) {
     const total = endTime - Date.now();
@@ -60,7 +59,7 @@ function SeedCard({ seed, processedImage, onUseFertilizer, canUseFertilizer }: {
                         {processedImage ? (
                             <Image src={processedImage} alt="Ready Seed" fill sizes="112px" className="object-contain animate-glow brightness-125 saturate-150" data-ai-hint="seed icon" unoptimized />
                         ) : (
-                             <Image src="/seed.png" alt="Ready Seed" fill sizes="112px" className="object-contain animate-glow brightness-125 saturate-150" data-ai-hint="seed icon" unoptimized />
+                             <Image src={SEED_IMAGE_URL} alt="Ready Seed" fill sizes="112px" className="object-contain animate-glow brightness-125 saturate-150" data-ai-hint="seed icon" unoptimized />
                         )}
                     </div>
                     <p className="font-bold text-primary mt-2">Ready to Grow!</p>
@@ -76,7 +75,7 @@ function SeedCard({ seed, processedImage, onUseFertilizer, canUseFertilizer }: {
                     {processedImage ? (
                         <Image src={processedImage} alt="Germinating Seed" fill sizes="96px" className="object-contain opacity-70" data-ai-hint="seed icon" unoptimized />
                     ) : (
-                        <Image src="/seed.png" alt="Germinating Seed" fill sizes="96px" className="object-contain opacity-70" data-ai-hint="seed icon" unoptimized />
+                        <Image src={SEED_IMAGE_URL} alt="Germinating Seed" fill sizes="96px" className="object-contain opacity-70" data-ai-hint="seed icon" unoptimized />
                     )}
                 </div>
                 <p className="text-xl font-bold text-primary tabular-nums">{`${String(time.hours).padStart(2, '0')}:${String(time.minutes).padStart(2, '0')}:${String(time.seconds).padStart(2, '0')}`}</p>
@@ -134,12 +133,12 @@ export default function SeedsPage() {
 
         const processImage = async () => {
             try {
-                const dataUri = await imageToDataUri('/seed.png');
+                const dataUri = await imageToDataUri(SEED_IMAGE_URL);
                 const transparentImage = await makeBackgroundTransparent(dataUri);
                 setProcessedSeedImage(transparentImage);
             } catch (error) {
                 console.error("Failed to process seed image:", error);
-                setProcessedSeedImage('/seed.png'); // Fallback to original image
+                setProcessedSeedImage(SEED_IMAGE_URL); // Fallback to original image
             }
         };
 
