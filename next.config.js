@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    serverComponentsExternalPackages: ['require-in-the-middle'],
+  },
   images: {
     remotePatterns: [
       {
@@ -9,14 +12,6 @@ const nextConfig = {
         pathname: '/**',
       },
     ],
-  },
-  webpack: (config, { webpack }) => {
-    config.plugins.push(
-      new webpack.IgnorePlugin({
-        resourceRegExp: /^require-in-the-middle$/,
-      })
-    );
-    return config;
   },
 };
 
