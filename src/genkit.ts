@@ -6,8 +6,6 @@ import { googleAI } from "@genkit-ai/google-genai";
 // Initialize a single AI client with the Google AI plugin
 export const ai = genkit({
   plugins: [googleAI()],
-  traceStore: 'noop',
-  flowStateStore: 'noop'
 });
 
 // ------------------------
