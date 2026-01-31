@@ -1,11 +1,17 @@
-'use server';
 // src/genkit.ts
-import { genkit } from "genkit";
+import { genkit } from "@genkit-ai/core";
 import { googleAI } from "@genkit-ai/google-genai";
+import { HttpsProxyAgent } from 'https-proxy-agent';
 
 // Initialize a single AI client with the Google AI plugin
 export const ai = genkit({
-  plugins: [googleAI()],
+  plugins: [googleAI({
+    requestOptions: {
+      agent: new HttpsProxyAgent('http://localhost:8080'),
+    },
+  })],
+  traceStore: 'noop',
+  flowStateStore: 'noop'
 });
 
 // ------------------------

@@ -11,7 +11,7 @@ const tips = [
     {
         icon: Leaf,
         title: "Draw New Plants",
-        text: "Use your daily draws from the Home screen or Shop to discover new, unique AI-generated plants.",
+        text: "Use your daily draws from the Home screen or Shop to discover new, randomly drawn plants.",
     },
     {
         icon: Droplet,
