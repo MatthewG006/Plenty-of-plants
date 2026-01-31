@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    serverComponentsExternalPackages: ['require-in-the-middle'],
+    serverComponentsExternalPackages: ['require-in-the-middle', '@opentelemetry/instrumentation'],
   },
   images: {
     remotePatterns: [
