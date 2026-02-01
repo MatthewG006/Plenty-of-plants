@@ -24,7 +24,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
        <head>
-        <link rel="manifest" href="/manifest.webmanifest" />
+        <link rel="manifest" href="https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/manifest.webmanifest" crossOrigin="use-credentials" />
       </head>
       <body className="font-body antialiased">
         <Providers>

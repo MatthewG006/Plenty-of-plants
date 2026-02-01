@@ -44,7 +44,7 @@ export default function LatestPlant() {
         </CardHeader>
         <CardContent className="flex flex-col items-center space-y-4">
           <div className="w-48 h-48 rounded-lg overflow-hidden border-2 border-primary/20 p-2 bg-white">
-            <Image src={latestPlant.image} alt={latestPlant.name} width={200} height={200} className="object-cover w-full h-full" data-ai-hint={latestPlant.hint} />
+            {latestPlant.image && <Image src={latestPlant.image} alt={latestPlant.name} width={200} height={200} className="object-cover w-full h-full" data-ai-hint={latestPlant.hint} />}
           </div>
           <h3 className="text-xl font-semibold text-primary">{latestPlant.name}</h3>
           <Button variant="outline" onClick={handleViewDetails}>View Details</Button>
