@@ -18,12 +18,6 @@ import {
   increment,
   arrayUnion,
 } from 'firebase/firestore';
-import {
-  getStorage,
-  ref,
-  uploadBytes,
-  getDownloadURL
-} from 'firebase/storage';
 import type {
   Plant,
   GameData
@@ -114,7 +108,7 @@ export async function getUserGameData(uid: string): Promise < GameData | null > 
   return userSnap.exists() ? (userSnap.data() as GameData) : null;
 }
 
-export async function savePlant(uid: string, plantData: DrawPlantOutput): Promise < Plant > {
+export async function savePlant(uid: string, plantData: DrawPlantOutput, imageUrl: string): Promise < Plant > {
   const userRef = doc(db, 'users', uid);
 
   let newPlant: Plant | null = null;
@@ -128,8 +122,6 @@ export async function savePlant(uid: string, plantData: DrawPlantOutput): Promis
     const allPlants = userData.plants || {};
 
     const nextId = (Object.keys(allPlants).reduce((maxId, id) => Math.max(parseInt(id, 10), maxId), 0) + 1);
-
-    const imageUrl = await uploadImageAndGetURL(uid, nextId, plantData.imageDataUri);
 
     newPlant = {
       id: nextId,
@@ -510,25 +502,6 @@ export async function saveEvolutionAndUpdateChallenge(
 
         transaction.update(userRef, updates);
     });
-}
-
-export async function uploadImageAndGetURL(uid: string, plantId: number, dataUri: string): Promise < string > {
-  const storage = getStorage();
-  const storageRef = ref(storage, `users/${uid}/plants/${plantId}/${Date.now()}.jpg`);
-
-  const response = await fetch(dataUri);
-  const blob = await response.blob();
-
-  // Race the upload against a 15-second timeout.
-  await Promise.race([
-    uploadBytes(storageRef, blob, {
-      contentType: 'image/jpeg'
-    }),
-    new Promise((_, reject) => setTimeout(() => reject(new Error('Image upload timed out.')), 15000))
-  ]);
-
-  const downloadURL = await getDownloadURL(storageRef);
-  return downloadURL;
 }
 
 export async function useGlitter(uid: string): Promise < void > {

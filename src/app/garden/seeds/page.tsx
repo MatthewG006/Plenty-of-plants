@@ -18,6 +18,7 @@ import { makeBackgroundTransparent, compressImage } from '@/lib/image-compressio
 import { NewPlantDialog } from '@/components/plant-dialogs';
 import { updateCollectionProgress } from '@/lib/challenge-manager';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { uploadImageAction } from '@/app/actions/image-actions';
 
 
 const GERMINATION_TIME_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -175,7 +176,8 @@ export default function SeedsPage() {
 
         try {
             const compressedImageDataUri = await compressImage(grownPlant.imageDataUri);
-            const newPlant = await savePlant(user.uid, { ...grownPlant, imageDataUri: compressedImageDataUri });
+            const imageUrl = await uploadImageAction(user.uid, Date.now(), compressedImageDataUri);
+            const newPlant = await savePlant(user.uid, grownPlant, imageUrl);
             await growSeed(user.uid, grownPlantSeedId);
             await updateCollectionProgress(user.uid);
             

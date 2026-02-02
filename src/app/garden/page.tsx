@@ -11,12 +11,13 @@ import type { Plant } from '@/interfaces/plant';
 import { cn } from '@/lib/utils';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { updateGardenArrangement, useSprinkler, uploadImageAndGetURL, saveEvolutionAndUpdateChallenge } from '@/lib/firestore';
+import { updateGardenArrangement, useSprinkler, saveEvolutionAndUpdateChallenge } from '@/lib/firestore';
 import { PlantCareDialog, PlantSwapDialog, EvolveConfirmationDialog, EvolvePreviewDialog } from '@/components/plant-dialogs';
 import Link from 'next/link';
 import { makeBackgroundTransparent, isImageBlack, compressImage } from '@/lib/image-compression';
 import { updateChallengeProgress } from '@/lib/challenge-manager';
 import { evolvePlantAction, getImageDataUriAction } from '@/app/actions/garden-actions';
+import { uploadImageAction } from '@/app/actions/image-actions';
 
 const NUM_GARDEN_PLOTS = 12;
 
@@ -270,7 +271,7 @@ export default function GardenPage() {
         const currentPlant = allPlants[plantId];
         if (!currentPlant) throw new Error("Plant not found");
 
-        const finalImageUrl = await uploadImageAndGetURL(user.uid, plantId, newImageUri);
+        const finalImageUrl = await uploadImageAction(user.uid, plantId, newImageUri);
 
         const updateData: Partial<Plant> = {
             image: finalImageUrl,
