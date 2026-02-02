@@ -22,7 +22,7 @@ Using the provided image as a base, create the evolved version.
 Important: Do not include any text, letters, or numbers in the generated image. The background should be transparent or easily removable (plain white).`;
 
   const { media } = await ai.generate({
-    model: 'googleai/gemini-2.5-flash-image',
+    model: 'googleai/gemini-2.5-flash-image-preview',
     prompt: [
       { media: { url: input.baseImageDataUri } },
       { text: evolutionPrompt },
