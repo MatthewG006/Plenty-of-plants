@@ -1,4 +1,3 @@
-
 'use server';
 
 import { ai } from '@/genkit';
@@ -17,12 +16,12 @@ The game's art style is cute, beautiful, and slightly stylized, not hyperrealist
 Using the provided image as a base, create the evolved version.
 
 - If the next form is 'Evolved': The plant should look more mature with more growth. Introduce a new, subtle plant element, keeping the face and plant pot the same. It's a clear progression, but save the most dramatic changes for the final form.
-- If the next form is 'Final': The plant has finished growing, make it look truly magnificent with new growth and plant elements without altering the face or plant pot.
+- If the next form is 'Final': The plant has finished growing, make it look truly magnificent with new growth and plant elements withoutaltering the face or plant pot.
 
 Important: Do not include any text, letters, or numbers in the generated image. The background should be transparent or easily removable (plain white).`;
 
   const { media } = await ai.generate({
-    model: 'googleai/gemini-2.5-flash-image-preview',
+    model: 'googleai/gemini-2.5-flash-image',
     prompt: [
       { media: { url: input.baseImageDataUri } },
       { text: evolutionPrompt },
@@ -46,6 +45,7 @@ Examples: "Ancient", "Serene", "Playful", "Regal", "Mischievous", "Radiant", "St
 
 The output should be just the single word.`;
     const personalityResponse = await ai.generate({
+      model: 'googleai/gemini-2.5-flash',
       prompt: personalityPrompt,
     });
     personality = personalityResponse.text.replace(/["'.]/g, '').trim();

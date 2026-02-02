@@ -15,7 +15,7 @@ export async function generateText(prompt: string): Promise<string> {
   if (!prompt) throw new Error("Prompt is required");
 
   const response = await ai.generate({
-    model: "googleai/gemini-1.5-flash-latest",
+    model: "googleai/gemini-2.5-flash",
     prompt
   });
   return response.text;
@@ -27,7 +27,7 @@ export async function generateText(prompt: string): Promise<string> {
 export async function plantADay(): Promise<string> {
   const prompt = "Give me a random plant name and a short description.";
   const response = await ai.generate({
-    model: "googleai/gemini-1.5-flash-latest",
+    model: "googleai/gemini-2.5-flash",
     prompt
   });
   return response.text;
