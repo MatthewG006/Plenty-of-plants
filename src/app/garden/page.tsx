@@ -11,11 +11,11 @@ import type { Plant } from '@/interfaces/plant';
 import { cn } from '@/lib/utils';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { updateGardenArrangement, useSprinkler, saveEvolutionAndUpdateChallenge } from '@/lib/firestore';
+import { updateGardenArrangement, useSprinkler, saveEvolution } from '@/lib/firestore';
 import { PlantCareDialog, PlantSwapDialog, EvolveConfirmationDialog, EvolvePreviewDialog } from '@/components/plant-dialogs';
 import Link from 'next/link';
 import { makeBackgroundTransparent, isImageBlack, compressImage } from '@/lib/image-compression';
-import { updateChallengeProgress } from '@/lib/challenge-manager';
+import { updateChallengeProgress, updateEvolutionProgress } from '@/lib/challenge-manager';
 import { evolvePlantAction, getImageDataUriAction } from '@/app/actions/garden-actions';
 import { uploadImageAction } from '@/app/actions/image-actions';
 
@@ -286,7 +286,8 @@ export default function GardenPage() {
             updateData.personality = personality;
         }
 
-        await saveEvolutionAndUpdateChallenge(user.uid, plantId, updateData);
+        await saveEvolution(user.uid, plantId, updateData);
+        await updateEvolutionProgress(user.uid);
 
         toast({
             title: "Evolution Complete!",
