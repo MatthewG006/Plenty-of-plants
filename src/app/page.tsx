@@ -1,6 +1,6 @@
 
-import { redirect } from 'next/navigation';
+import HomeContent from '@/components/home/HomeContent';
 
-export default function RootPage() {
-  redirect('/home');
+export default function HomePage() {
+  return <HomeContent />;
 }
