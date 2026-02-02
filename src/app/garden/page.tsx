@@ -14,10 +14,9 @@ import { useAuth } from '@/context/AuthContext';
 import { updateGardenArrangement, useSprinkler, uploadImageAndGetURL, saveEvolutionAndUpdateChallenge } from '@/lib/firestore';
 import { PlantCareDialog, PlantSwapDialog, EvolveConfirmationDialog, EvolvePreviewDialog } from '@/components/plant-dialogs';
 import Link from 'next/link';
-import { getImageDataUriAction } from '@/app/actions/image-actions';
 import { makeBackgroundTransparent, isImageBlack, compressImage } from '@/lib/image-compression';
 import { updateChallengeProgress } from '@/lib/challenge-manager';
-import { evolvePlantAction } from '@/app/actions/evolve-plant';
+import { evolvePlantAction, getImageDataUriAction } from '@/app/actions/garden-actions';
 
 const NUM_GARDEN_PLOTS = 12;
 

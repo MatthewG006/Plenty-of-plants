@@ -17,9 +17,8 @@ const APP_ROUTES = [
 export default function AppLayoutClient({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     
-    // Check if the current path starts with any of the app routes.
-    // This handles nested routes like /community/park as well.
-    const isAppPage = pathname && APP_ROUTES.some(route => pathname.startsWith(route));
+    // Check if the current path starts with any of the app routes, or if it is the root path.
+    const isAppPage = pathname === '/' || (pathname && APP_ROUTES.some(route => pathname.startsWith(route)));
 
     if (isAppPage) {
         return (
