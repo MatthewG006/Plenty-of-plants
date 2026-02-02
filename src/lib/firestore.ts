@@ -519,9 +519,14 @@ export async function uploadImageAndGetURL(uid: string, plantId: number, dataUri
   const response = await fetch(dataUri);
   const blob = await response.blob();
 
-  await uploadBytes(storageRef, blob, {
-    contentType: 'image/jpeg'
-  });
+  // Race the upload against a 15-second timeout.
+  await Promise.race([
+    uploadBytes(storageRef, blob, {
+      contentType: 'image/jpeg'
+    }),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Image upload timed out.')), 15000))
+  ]);
+
   const downloadURL = await getDownloadURL(storageRef);
   return downloadURL;
 }
