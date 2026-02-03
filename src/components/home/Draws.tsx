@@ -10,12 +10,13 @@ import { useToast } from '@/hooks/use-toast';
 import { Check, X, Loader2 } from 'lucide-react';
 import { useAudio } from '@/context/AudioContext';
 import type { DrawPlantOutput } from '@/interfaces/plant';
-import { savePlant } from '@/lib/firestore';
+import { savePlant, updatePlant } from '@/lib/firestore';
 import { compressImage } from '@/lib/image-compression';
 import { NewPlantDialog } from '@/components/plant-dialogs';
 import { drawPlantAction } from '@/app/actions/draw-plant';
 import { refundDraw } from '@/lib/draw-manager';
 import { updateCollectionProgress } from '@/lib/challenge-manager';
+import { uploadImageAction } from '@/app/actions/image-actions';
 
 
 // Helper to format time from milliseconds
@@ -114,11 +115,20 @@ export default function Draws() {
     
     const handleCollectPlant = async () => {
         if (!user || !drawnPlant) return;
-        
+
         try {
+            // First, save the plant with a placeholder image
+            const newPlant = await savePlant(user.uid, drawnPlant, 'placeholder');
+
+            // Then, compress and upload the actual image
             const compressedImageDataUri = await compressImage(drawnPlant.imageDataUri);
-            const newPlant = await savePlant(user.uid, { ...drawnPlant, imageDataUri: compressedImageDataUri });
+            const imageUrl = await uploadImageAction(user.uid, newPlant.id, compressedImageDataUri);
+
+            // Finally, update the plant with the real image URL
+            await updatePlant(user.uid, newPlant.id, { image: imageUrl });
+
             await updateCollectionProgress(user.uid);
+            
             toast({
                 title: 'New Plant Collected!',
                 description: `You got a ${newPlant.name}! Find it in your Room.`,

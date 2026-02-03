@@ -3,18 +3,16 @@
 import { headers } from 'next/headers';
 import fs from 'fs/promises';
 import path from 'path';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { getApps, initializeApp, getApp } from 'firebase/app';
+import * as admin from 'firebase-admin';
 
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-};
-
+// Initialize Firebase Admin SDK
+if (!admin.apps.length) {
+  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY as string);
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+  });
+}
 
 export async function getImageDataUriAction(imageUrl: string): Promise<string> {
   try {
@@ -66,9 +64,9 @@ export async function getImageDataUriAction(imageUrl: string): Promise<string> {
 
 export async function uploadImageAction(uid: string, plantId: number, dataUri: string): Promise<string> {
     try {
-        const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-        const storage = getStorage(app);
-        const storageRef = ref(storage, `users/${uid}/plants/${plantId}/${Date.now()}.jpg`);
+        const bucket = admin.storage().bucket();
+        const filePath = `users/${uid}/plants/${plantId}/${Date.now()}.jpg`;
+        const file = bucket.file(filePath);
 
         const base64 = dataUri.split(',')[1];
         if (!base64) {
@@ -76,11 +74,17 @@ export async function uploadImageAction(uid: string, plantId: number, dataUri: s
         }
         const buffer = Buffer.from(base64, 'base64');
 
-        const snapshot = await uploadBytes(storageRef, buffer, {
-            contentType: 'image/jpeg'
+        await file.save(buffer, {
+            metadata: {
+                contentType: 'image/jpeg'
+            }
         });
 
-        const downloadURL = await getDownloadURL(snapshot.ref);
+        const [downloadURL] = await file.getSignedUrl({
+            action: 'read',
+            expires: '03-09-2491' // A long time in the future
+        });
+
         return downloadURL;
 
     } catch (error: any) {

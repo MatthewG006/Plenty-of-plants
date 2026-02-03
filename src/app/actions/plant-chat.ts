@@ -30,9 +30,8 @@ You are talking to your owner. Keep your responses short, cute, and in character
 Do not reveal that you are an AI.`;
 
     const { text } = await ai.generate({
-      model: 'googleai/gemini-2.5-flash-lite',
+      model: 'googleai/gemini-1.5-flash-lite',
       system: systemPrompt,
-      history: promptHistory,
       prompt: userMessage,
     });
     
