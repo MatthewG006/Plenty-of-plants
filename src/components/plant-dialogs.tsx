@@ -14,13 +14,14 @@ import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { deletePlant, unlockPlantChat, addConversationHistory, useWaterRefill, useGlitter, useSheen, useRainbowGlitter, useRedGlitter, waterPlant, updatePlant } from '@/lib/firestore';
+import { deletePlant, unlockPlantChat, addConversationHistory, useWaterRefill, useGlitter, useSheen, useRainbowGlitter, useRedGlitter, waterPlant, updatePlant, saveEvolution } from '@/lib/firestore';
 import { AlertDialog, AlertDialogTrigger, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription as AlertDialogDescriptionComponent } from '@/components/ui/alert-dialog';
 import { plantChatAction } from '@/app/actions/plant-chat';
 import { Textarea } from '@/components/ui/textarea';
-import { updateWaterEvolvedProgress, updateWateringProgress, updateApplySheenProgress, updateApplyGlitterProgress } from '@/lib/challenge-manager';
+import { updateWaterEvolvedProgress, updateWateringProgress, updateApplySheenProgress, updateApplyGlitterProgress, updateEvolutionProgress } from '@/lib/challenge-manager';
 import { ScrollArea } from './ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
+import { uploadImageAction } from '@/app/actions/image-actions';
 
 
 const XP_PER_LEVEL = 1000;
