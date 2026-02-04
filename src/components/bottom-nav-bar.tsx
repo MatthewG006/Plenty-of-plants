@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { useAudio } from '@/context/AudioContext';
 
 const navItems = [
-  { href: '/home', label: 'Home', icon: Home },
+  { href: '/', label: 'Home', icon: Home },
   { href: '/room', label: 'Room', icon: LayoutGrid },
   { href: '/garden', label: 'Garden', icon: Sprout },
   { href: '/community', label: 'Community', icon: Users },
