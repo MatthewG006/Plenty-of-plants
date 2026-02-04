@@ -5,7 +5,7 @@ import React from 'react';
 
 // These are the routes that should have the main app layout with the bottom nav bar.
 const APP_ROUTES = [
-    '/home',
+    '/',
     '/room',
     '/garden',
     '/community',
