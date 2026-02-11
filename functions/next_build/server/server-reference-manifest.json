@@ -1,0 +1,234 @@
+{
+  "node": {
+    "406e9802c87df94aca372082e7c10427ba1de8e55d": {
+      "workers": {
+        "app/community/contest/[sessionId]/page": {
+          "moduleId": 95799,
+          "async": false,
+          "exportedName": "plantChatAction",
+          "filename": "src/app/actions/plant-chat.ts"
+        },
+        "app/community/contest/page": {
+          "moduleId": 54336,
+          "async": false,
+          "exportedName": "plantChatAction",
+          "filename": "src/app/actions/plant-chat.ts"
+        },
+        "app/garden/page": {
+          "moduleId": 17405,
+          "async": false,
+          "exportedName": "plantChatAction",
+          "filename": "src/app/actions/plant-chat.ts"
+        },
+        "app/garden/seeds/page": {
+          "moduleId": 99910,
+          "async": false,
+          "exportedName": "plantChatAction",
+          "filename": "src/app/actions/plant-chat.ts"
+        },
+        "app/page": {
+          "moduleId": 17315,
+          "async": false,
+          "exportedName": "plantChatAction",
+          "filename": "src/app/actions/plant-chat.ts"
+        },
+        "app/room/page": {
+          "moduleId": 67054,
+          "async": false,
+          "exportedName": "plantChatAction",
+          "filename": "src/app/actions/plant-chat.ts"
+        }
+      },
+      "layer": {
+        "app/community/contest/[sessionId]/page": "action-browser",
+        "app/community/contest/page": "action-browser",
+        "app/garden/page": "action-browser",
+        "app/garden/seeds/page": "action-browser",
+        "app/page": "action-browser",
+        "app/room/page": "action-browser"
+      },
+      "filename": "src/app/actions/plant-chat.ts",
+      "exportedName": "plantChatAction"
+    },
+    "40766e88691ee87ca64ea160bcc65dbb9a44a1959e": {
+      "workers": {
+        "app/garden/seeds/page": {
+          "moduleId": 99910,
+          "async": false,
+          "exportedName": "drawPlantAction",
+          "filename": "src/app/actions/draw-plant.ts"
+        },
+        "app/page": {
+          "moduleId": 17315,
+          "async": false,
+          "exportedName": "drawPlantAction",
+          "filename": "src/app/actions/draw-plant.ts"
+        }
+      },
+      "layer": {
+        "app/garden/seeds/page": "action-browser",
+        "app/page": "action-browser"
+      },
+      "filename": "src/app/actions/draw-plant.ts",
+      "exportedName": "drawPlantAction"
+    },
+    "7081bf7e47bfdf9e11103c2faaba728882163ff5fe": {
+      "workers": {
+        "app/garden/page": {
+          "moduleId": 17405,
+          "async": false,
+          "exportedName": "uploadImageAction",
+          "filename": "src/app/actions/image-actions.ts"
+        },
+        "app/garden/seeds/page": {
+          "moduleId": 99910,
+          "async": false,
+          "exportedName": "uploadImageAction",
+          "filename": "src/app/actions/image-actions.ts"
+        },
+        "app/page": {
+          "moduleId": 17315,
+          "async": false,
+          "exportedName": "uploadImageAction",
+          "filename": "src/app/actions/image-actions.ts"
+        }
+      },
+      "layer": {
+        "app/garden/page": "action-browser",
+        "app/garden/seeds/page": "action-browser",
+        "app/page": "action-browser"
+      },
+      "filename": "src/app/actions/image-actions.ts",
+      "exportedName": "uploadImageAction"
+    },
+    "006dd48f547ec096064ec3964b87a3f22e3f95a465": {
+      "workers": {
+        "app/community/contest/page": {
+          "moduleId": 54336,
+          "async": false,
+          "exportedName": "cleanupExpiredContests",
+          "filename": "src/app/actions/contest-actions.ts"
+        }
+      },
+      "layer": {
+        "app/community/contest/page": "action-browser"
+      },
+      "filename": "src/app/actions/contest-actions.ts",
+      "exportedName": "cleanupExpiredContests"
+    },
+    "406f48c0a6c524b045cd960bba93e59ce4a8f54073": {
+      "workers": {
+        "app/community/contest/[sessionId]/page": {
+          "moduleId": 95799,
+          "async": false,
+          "exportedName": "processContestState",
+          "filename": "src/app/actions/contest-actions.ts"
+        }
+      },
+      "layer": {
+        "app/community/contest/[sessionId]/page": "action-browser"
+      },
+      "filename": "src/app/actions/contest-actions.ts",
+      "exportedName": "processContestState"
+    },
+    "60e0201fffbd5445b1db9b2ef409b0ed3b8dc37a39": {
+      "workers": {
+        "app/community/contest/[sessionId]/page": {
+          "moduleId": 95799,
+          "async": false,
+          "exportedName": "startContestManually",
+          "filename": "src/app/actions/contest-actions.ts"
+        }
+      },
+      "layer": {
+        "app/community/contest/[sessionId]/page": "action-browser"
+      },
+      "filename": "src/app/actions/contest-actions.ts",
+      "exportedName": "startContestManually"
+    },
+    "601afbf92b28b3fdceb177755bdd23d973e7e7481e": {
+      "workers": {
+        "app/community/contest/[sessionId]/page": {
+          "moduleId": 95799,
+          "async": false,
+          "exportedName": "sendHeartbeat",
+          "filename": "src/app/actions/contest-actions.ts"
+        }
+      },
+      "layer": {
+        "app/community/contest/[sessionId]/page": "action-browser"
+      },
+      "filename": "src/app/actions/contest-actions.ts",
+      "exportedName": "sendHeartbeat"
+    },
+    "4043b88e0753832bbbba4866d1834e295cd31720eb": {
+      "workers": {
+        "app/community/park/page": {
+          "moduleId": 6984,
+          "async": false,
+          "exportedName": "getImageDataUriAction",
+          "filename": "src/app/actions/image-actions.ts"
+        },
+        "app/room/page": {
+          "moduleId": 67054,
+          "async": false,
+          "exportedName": "getImageDataUriAction",
+          "filename": "src/app/actions/image-actions.ts"
+        }
+      },
+      "layer": {
+        "app/community/park/page": "action-browser",
+        "app/room/page": "action-browser"
+      },
+      "filename": "src/app/actions/image-actions.ts",
+      "exportedName": "getImageDataUriAction"
+    },
+    "7f5f5f34e1f70daf9a870e21cd43e9f4d797585223": {
+      "workers": {
+        "app/garden/page": {
+          "moduleId": 17405,
+          "async": false,
+          "exportedName": "evolvePlantAction",
+          "filename": "src/app/actions/garden-actions.ts"
+        }
+      },
+      "layer": {
+        "app/garden/page": "action-browser"
+      },
+      "filename": "src/app/actions/garden-actions.ts",
+      "exportedName": "evolvePlantAction"
+    },
+    "7f6e23db0b52e7a3fb35e55698159a2a71c1b4d92f": {
+      "workers": {
+        "app/garden/page": {
+          "moduleId": 17405,
+          "async": false,
+          "exportedName": "getImageDataUriAction",
+          "filename": "src/app/actions/garden-actions.ts"
+        }
+      },
+      "layer": {
+        "app/garden/page": "action-browser"
+      },
+      "filename": "src/app/actions/garden-actions.ts",
+      "exportedName": "getImageDataUriAction"
+    },
+    "407ea24b083ab1ff18f022508a8cda11502f028ada": {
+      "workers": {
+        "app/shop/page": {
+          "moduleId": 94024,
+          "async": false,
+          "exportedName": "grantAdReward",
+          "filename": "src/app/actions/grant-ad-reward.ts"
+        }
+      },
+      "layer": {
+        "app/shop/page": "action-browser"
+      },
+      "filename": "src/app/actions/grant-ad-reward.ts",
+      "exportedName": "grantAdReward"
+    }
+  },
+  "edge": {},
+  "encryptionKey": "ec7s0ntZuTE3/E0eeLeK07ItvqNJknuLPArNqlG01gI="
+}

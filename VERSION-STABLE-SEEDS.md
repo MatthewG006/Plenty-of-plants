@@ -1,0 +1,1 @@
+This file marks a stable version of the application. The seeds feature has been implemented, including the new seeds page, earning seeds from leveling up plants, and growing them.

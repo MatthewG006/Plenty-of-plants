@@ -1,0 +1,8 @@
+{
+  "/api/paypal-client-id/route": "app/api/paypal-client-id/route.js",
+  "/garden/page": "app/garden/page.js",
+  "/login/page": "app/login/page.js",
+  "/page": "app/page.js",
+  "/profile/page": "app/profile/page.js",
+  "/shop/page": "app/shop/page.js"
+}

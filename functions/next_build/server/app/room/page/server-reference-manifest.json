@@ -1,0 +1,35 @@
+{
+  "node": {
+    "406e9802c87df94aca372082e7c10427ba1de8e55d": {
+      "workers": {
+        "app/room/page": {
+          "moduleId": 67054,
+          "async": false,
+          "exportedName": "plantChatAction",
+          "filename": "src/app/actions/plant-chat.ts"
+        }
+      },
+      "layer": {
+        "app/room/page": "action-browser"
+      },
+      "exportedName": "plantChatAction",
+      "filename": "src/app/actions/plant-chat.ts"
+    },
+    "4043b88e0753832bbbba4866d1834e295cd31720eb": {
+      "workers": {
+        "app/room/page": {
+          "moduleId": 67054,
+          "async": false,
+          "exportedName": "getImageDataUriAction",
+          "filename": "src/app/actions/image-actions.ts"
+        }
+      },
+      "layer": {
+        "app/room/page": "action-browser"
+      },
+      "exportedName": "getImageDataUriAction",
+      "filename": "src/app/actions/image-actions.ts"
+    }
+  },
+  "edge": {}
+}

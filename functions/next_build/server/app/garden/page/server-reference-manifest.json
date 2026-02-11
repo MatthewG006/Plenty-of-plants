@@ -1,0 +1,65 @@
+{
+  "node": {
+    "406e9802c87df94aca372082e7c10427ba1de8e55d": {
+      "workers": {
+        "app/garden/page": {
+          "moduleId": 17405,
+          "async": false,
+          "exportedName": "plantChatAction",
+          "filename": "src/app/actions/plant-chat.ts"
+        }
+      },
+      "layer": {
+        "app/garden/page": "action-browser"
+      },
+      "exportedName": "plantChatAction",
+      "filename": "src/app/actions/plant-chat.ts"
+    },
+    "7f5f5f34e1f70daf9a870e21cd43e9f4d797585223": {
+      "workers": {
+        "app/garden/page": {
+          "moduleId": 17405,
+          "async": false,
+          "exportedName": "evolvePlantAction",
+          "filename": "src/app/actions/garden-actions.ts"
+        }
+      },
+      "layer": {
+        "app/garden/page": "action-browser"
+      },
+      "exportedName": "evolvePlantAction",
+      "filename": "src/app/actions/garden-actions.ts"
+    },
+    "7f6e23db0b52e7a3fb35e55698159a2a71c1b4d92f": {
+      "workers": {
+        "app/garden/page": {
+          "moduleId": 17405,
+          "async": false,
+          "exportedName": "getImageDataUriAction",
+          "filename": "src/app/actions/garden-actions.ts"
+        }
+      },
+      "layer": {
+        "app/garden/page": "action-browser"
+      },
+      "exportedName": "getImageDataUriAction",
+      "filename": "src/app/actions/garden-actions.ts"
+    },
+    "7081bf7e47bfdf9e11103c2faaba728882163ff5fe": {
+      "workers": {
+        "app/garden/page": {
+          "moduleId": 17405,
+          "async": false,
+          "exportedName": "uploadImageAction",
+          "filename": "src/app/actions/image-actions.ts"
+        }
+      },
+      "layer": {
+        "app/garden/page": "action-browser"
+      },
+      "exportedName": "uploadImageAction",
+      "filename": "src/app/actions/image-actions.ts"
+    }
+  },
+  "edge": {}
+}
