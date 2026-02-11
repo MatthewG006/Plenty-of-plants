@@ -1,6 +1,0 @@
-1:"$Sreact.fragment"
-2:I[97367,["/_next/static/chunks/ff1a16fafef87110.js","/_next/static/chunks/3677defb19fe9037.js"],"ViewportBoundary"]
-3:I[97367,["/_next/static/chunks/ff1a16fafef87110.js","/_next/static/chunks/3677defb19fe9037.js"],"MetadataBoundary"]
-4:"$Sreact.suspense"
-5:I[27201,["/_next/static/chunks/ff1a16fafef87110.js","/_next/static/chunks/3677defb19fe9037.js"],"IconMark"]
-0:{"buildId":"w9RyzAA2ZXavy9lZGR07j","rsc":["$","$1","h",{"children":[null,["$","$L2",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","div",null,{"hidden":true,"children":["$","$L3",null,{"children":["$","$4",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"Plenty of Plants"}],["$","meta","1",{"name":"description","content":"Collect and grow your own digital plant collection!"}],["$","link","2",{"rel":"icon","href":"/favicon.ico?favicon.9288f78f.ico","sizes":"32x32","type":"image/x-icon"}],["$","link","3",{"rel":"icon","href":"https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/favicon.ico"}],["$","link","4",{"rel":"apple-touch-icon","href":"https://storage.googleapis.com/plentyofplants-108e8.firebasestorage.app/icon-512.png"}],["$","$L5","5",{}]]}]}]}],null]}],"loading":null,"isPartial":false}
