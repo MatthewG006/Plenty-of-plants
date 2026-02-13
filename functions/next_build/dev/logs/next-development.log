@@ -1,0 +1,48 @@
+[00:00:13.080] Server  LOG     ✓ Ready in 7.9s
+[00:00:16.123] Server  LOG     ○ Compiling / ...
+[00:00:52.220] Server  WARN    ⚠ Cross origin request detected from 9000-firebase-studio-1751997679759.cluster-ux5mmlia3zhhask7riihruxydo.cloudworkstations.dev to /_next/* resource. In a future major version of Next.js, you will need to explicitly configure "allowedDevOrigins" in next.config to allow this.
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+[00:01:01.213] Server  LOG     ✓ Finished writing to filesystem cache in 10.6s
+[00:01:23.688] Server  LOG     ○ Compiling /login ...
+[00:01:53.158] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:01:56.992] Browser WARN    Image with src "https://firebasestorage.googleapis.com/v0/b/plentyofplants-108e8.firebasestorage.app/o/users%2FbN5Pn6XwNgbZWG1ZqLLtFNnx8jF2%2Fplants%2F2-1765767652057.jpg?alt=media&token=bd2a5be6-5c53-40c7-adfb-f87376c2913b" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[00:02:01.423] Server  ERROR   Firebase Admin SDK failed to download users/bN5Pn6XwNgbZWG1ZqLLtFNnx8jF2/plants/14.jpg. Falling back to fetch. Error: The specified bucket does not exist.
+[00:02:01.917] Server  ERROR   Firebase Admin SDK failed to download users/bN5Pn6XwNgbZWG1ZqLLtFNnx8jF2/plants/19-1766881264218.jpg. Falling back to fetch. Error: The specified bucket does not exist.
+[00:02:02.275] Server  ERROR   Firebase Admin SDK failed to download users/bN5Pn6XwNgbZWG1ZqLLtFNnx8jF2/plants/17-1766890318472.jpg. Falling back to fetch. Error: The specified bucket does not exist.
+[00:02:03.058] Server  ERROR   Firebase Admin SDK failed to download users/bN5Pn6XwNgbZWG1ZqLLtFNnx8jF2/plants/12.jpg. Falling back to fetch. Error: The specified bucket does not exist.
+[00:02:06.640] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[00:02:06.640] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[00:02:10.710] Server  ERROR   Firebase Admin SDK failed to download users/bN5Pn6XwNgbZWG1ZqLLtFNnx8jF2/plants/14.jpg. Falling back to fetch. Error: The specified bucket does not exist.
+[00:02:19.484] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[00:02:19.484] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[00:02:22.046] Server  ERROR   Error in uploadImageAction: Error: {
+  "error": {
+    "code": 404,
+    "message": "The specified bucket does not exist.",
+    "errors": [
+      {
+        "message": "The specified bucket does not exist.",
+        "domain": "global",
+        "reason": "notFound"
+      }
+    ]
+  }
+}
+
+[00:02:22.557] Server  ERROR   ⨯ Error: Failed to upload image: {
+  "error": {
+    "code": 404,
+    "message": "The specified bucket does not exist.",
+    "errors": [
+      {
+        "message": "The specified bucket does not exist.",
+        "domain": "global",
+        "reason": "notFound"
+      }
+    ]
+  }
+}
+
+[00:02:22.759] Browser ERROR   Failed to save evolution {"digest":"3919004872","environmentName":"Server","name":"Error"}
+[00:08:47.207] Server  LOG     ✓ Compiled in 1079ms

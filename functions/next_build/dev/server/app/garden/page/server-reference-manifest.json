@@ -1,0 +1,65 @@
+{
+  "node": {
+    "7f7afb596b03c7f9ee7a63c8e5e22fc36318dbcfa5": {
+      "workers": {
+        "app/garden/page": {
+          "moduleId": "[project]/.next-internal/server/app/garden/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/app/actions/garden-actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/app/actions/image-actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/src/app/actions/plant-chat.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "evolvePlantAction",
+          "filename": "src/app/actions/garden-actions.ts"
+        }
+      },
+      "layer": {
+        "app/garden/page": "action-browser"
+      },
+      "exportedName": "evolvePlantAction",
+      "filename": "src/app/actions/garden-actions.ts"
+    },
+    "7f5f2236f26521d294be28b1fa2ae81b281451cdf7": {
+      "workers": {
+        "app/garden/page": {
+          "moduleId": "[project]/.next-internal/server/app/garden/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/app/actions/garden-actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/app/actions/image-actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/src/app/actions/plant-chat.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "getImageDataUriAction",
+          "filename": "src/app/actions/garden-actions.ts"
+        }
+      },
+      "layer": {
+        "app/garden/page": "action-browser"
+      },
+      "exportedName": "getImageDataUriAction",
+      "filename": "src/app/actions/garden-actions.ts"
+    },
+    "70ce5453e93e6b05354fe63628fa510771d6483205": {
+      "workers": {
+        "app/garden/page": {
+          "moduleId": "[project]/.next-internal/server/app/garden/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/app/actions/garden-actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/app/actions/image-actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/src/app/actions/plant-chat.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "uploadImageAction",
+          "filename": "src/app/actions/image-actions.ts"
+        }
+      },
+      "layer": {
+        "app/garden/page": "action-browser"
+      },
+      "exportedName": "uploadImageAction",
+      "filename": "src/app/actions/image-actions.ts"
+    },
+    "40f98cca8ddfce0acb59341aba1302e3e5ff82941e": {
+      "workers": {
+        "app/garden/page": {
+          "moduleId": "[project]/.next-internal/server/app/garden/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/app/actions/garden-actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/app/actions/image-actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/src/app/actions/plant-chat.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "plantChatAction",
+          "filename": "src/app/actions/plant-chat.ts"
+        }
+      },
+      "layer": {
+        "app/garden/page": "action-browser"
+      },
+      "exportedName": "plantChatAction",
+      "filename": "src/app/actions/plant-chat.ts"
+    }
+  },
+  "edge": {}
+}

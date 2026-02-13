@@ -1,0 +1,65 @@
+{
+  "node": {
+    "406f48c0a6c524b045cd960bba93e59ce4a8f54073": {
+      "workers": {
+        "app/community/contest/[sessionId]/page": {
+          "moduleId": 95799,
+          "async": false,
+          "exportedName": "processContestState",
+          "filename": "src/app/actions/contest-actions.ts"
+        }
+      },
+      "layer": {
+        "app/community/contest/[sessionId]/page": "action-browser"
+      },
+      "exportedName": "processContestState",
+      "filename": "src/app/actions/contest-actions.ts"
+    },
+    "60e0201fffbd5445b1db9b2ef409b0ed3b8dc37a39": {
+      "workers": {
+        "app/community/contest/[sessionId]/page": {
+          "moduleId": 95799,
+          "async": false,
+          "exportedName": "startContestManually",
+          "filename": "src/app/actions/contest-actions.ts"
+        }
+      },
+      "layer": {
+        "app/community/contest/[sessionId]/page": "action-browser"
+      },
+      "exportedName": "startContestManually",
+      "filename": "src/app/actions/contest-actions.ts"
+    },
+    "601afbf92b28b3fdceb177755bdd23d973e7e7481e": {
+      "workers": {
+        "app/community/contest/[sessionId]/page": {
+          "moduleId": 95799,
+          "async": false,
+          "exportedName": "sendHeartbeat",
+          "filename": "src/app/actions/contest-actions.ts"
+        }
+      },
+      "layer": {
+        "app/community/contest/[sessionId]/page": "action-browser"
+      },
+      "exportedName": "sendHeartbeat",
+      "filename": "src/app/actions/contest-actions.ts"
+    },
+    "406e9802c87df94aca372082e7c10427ba1de8e55d": {
+      "workers": {
+        "app/community/contest/[sessionId]/page": {
+          "moduleId": 95799,
+          "async": false,
+          "exportedName": "plantChatAction",
+          "filename": "src/app/actions/plant-chat.ts"
+        }
+      },
+      "layer": {
+        "app/community/contest/[sessionId]/page": "action-browser"
+      },
+      "exportedName": "plantChatAction",
+      "filename": "src/app/actions/plant-chat.ts"
+    }
+  },
+  "edge": {}
+}

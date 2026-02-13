@@ -1,0 +1,20 @@
+{
+  "node": {
+    "407ea24b083ab1ff18f022508a8cda11502f028ada": {
+      "workers": {
+        "app/shop/page": {
+          "moduleId": 94024,
+          "async": false,
+          "exportedName": "grantAdReward",
+          "filename": "src/app/actions/grant-ad-reward.ts"
+        }
+      },
+      "layer": {
+        "app/shop/page": "action-browser"
+      },
+      "exportedName": "grantAdReward",
+      "filename": "src/app/actions/grant-ad-reward.ts"
+    }
+  },
+  "edge": {}
+}
