@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 40, "column": 0}, "map": {"version":3,"sources":["file:///home/user/studio/src/app/api/paypal-client-id/route.ts"],"sourcesContent":["\nimport { NextResponse } from 'next/server';\n\nexport async function GET() {\n  try {\n    const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;\n\n    if (!clientId) {\n      throw new Error('PayPal client ID is not configured in environment variables.');\n    }\n\n    return NextResponse.json({ clientId });\n  } catch (error) {\n    console.error('PayPal Client ID API Error:', error);\n    return new NextResponse(\n      'Could not fetch PayPal client ID. Please check server configuration.',\n      { status: 500 }\n    );\n  }\n}\n"],"names":[],"mappings":";;;;AACA;;AAEO,eAAe;IACpB,IAAI;QACF,MAAM;QAEN;;QAIA,OAAO,gJAAY,CAAC,IAAI,CAAC;YAAE;QAAS;IACtC,EAAE,OAAO,OAAO;QACd,QAAQ,KAAK,CAAC,+BAA+B;QAC7C,OAAO,IAAI,gJAAY,CACrB,wEACA;YAAE,QAAQ;QAAI;IAElB;AACF"}}]
-}
