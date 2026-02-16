@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -8,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { useAudio } from '@/context/AudioContext';
 
 const navItems = [
-  { href: '/home', label: 'Home', icon: Home },
+  { href: '/', label: 'Home', icon: Home },
   { href: '/room', label: 'Room', icon: LayoutGrid },
   { href: '/garden', label: 'Garden', icon: Sprout },
   { href: '/community', label: 'Community', icon: Users },
@@ -33,7 +32,9 @@ export default function BottomNavBar() {
     <nav className="fixed bottom-0 left-0 right-0 h-16 border-t bg-card/95 backdrop-blur-sm z-50 flex justify-center">
       <div className="grid h-full w-full max-w-md grid-cols-5 items-center">
         {navItems.map((item) => {
-          const isActive = adjustedPathname.startsWith(item.href);
+          const isActive = item.href === '/'
+            ? (adjustedPathname === '/' || adjustedPathname === '/home')
+            : adjustedPathname.startsWith(item.href);
 
           return (
             <Link 
