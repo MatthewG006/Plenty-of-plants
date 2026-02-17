@@ -1,6 +1,6 @@
 env:
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
-    value: "AIzaSyCG-5aJ3pB-mN8qZ_s7wV4tY2uL1oX_E0"
+    value: "AIzaSyB-L4k2d_p8nQ7zR_s6wV5tY3uL1oX_E1"
   - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
     value: "plentyofplants-108e8.firebaseapp.com"
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
