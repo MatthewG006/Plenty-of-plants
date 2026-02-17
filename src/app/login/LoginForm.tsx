@@ -35,7 +35,7 @@ export default function LoginForm() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       startMusic();
-      router.push("/home");
+      router.push("/");
     } catch (error: any) {
       toast({
         title: "Login Failed",
