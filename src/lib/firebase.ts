@@ -4,12 +4,12 @@ import { getAuth, Auth } from "firebase/auth";
 import { getFirestore, Firestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: "AIzaSyB-L4k2d_p8nQ7zR_s6wV5tY3uL1oX_E1",
+  authDomain: "plentyofplants-108e8.firebaseapp.com",
+  projectId: "plentyofplants-108e8",
+  storageBucket: "plentyofplants-108e8.appspot.com",
+  messagingSenderId: "317861154450",
+  appId: "1:317861154450:web:3a586f3cc5b1c42e64e04b",
 };
 
 // Initialize Firebase
