@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { useAuth as useFirebaseAuth } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { createUserDocument } from '@/lib/firestore';
@@ -26,6 +26,7 @@ function SignupForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const auth = useFirebaseAuth();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();

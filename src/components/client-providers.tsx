@@ -2,6 +2,7 @@
 import { AuthProvider } from '@/context/AuthContext';
 import { AudioProvider } from '@/context/AudioContext';
 import { ToastProvider } from '@/context/ToastContext';
+import { FirebaseProvider } from '@/firebase/provider';
 import { type ReactNode, useEffect } from 'react';
 
 export function ClientSideProviders({ children }: { children: ReactNode }) {
@@ -18,12 +19,14 @@ export function ClientSideProviders({ children }: { children: ReactNode }) {
     }, []);
 
     return (
-        <ToastProvider>
-            <AudioProvider>
-                <AuthProvider>
-                    {children}
-                </AuthProvider>
-            </AudioProvider>
-        </ToastProvider>
+        <FirebaseProvider>
+            <ToastProvider>
+                <AudioProvider>
+                    <AuthProvider>
+                        {children}
+                    </AuthProvider>
+                </AudioProvider>
+            </ToastProvider>
+        </FirebaseProvider>
     );
 }
