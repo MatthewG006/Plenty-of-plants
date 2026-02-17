@@ -3,7 +3,7 @@ import { getAuth, Auth } from "firebase/auth";
 import { getFirestore, Firestore } from "firebase/firestore";
 
 export const firebaseConfig = {
-  apiKey: "AIzaSyC1f7_1tL5qP7mN4sK9jH8gF6dE2cZ_xY",
+  apiKey: "AIzaSyA_2V1c7f5f6g7h8i9j0k1l2m3n4o5p6q",
   authDomain: "plentyofplants-108e8.firebaseapp.com",
   projectId: "plentyofplants-108e8",
   storageBucket: "plentyofplants-108e8.appspot.com",
