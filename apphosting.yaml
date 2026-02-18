@@ -20,4 +20,4 @@ run:
     - variable: PAYPAL_APP_SECRET
       value: ""
     - variable: GEMINI_API_KEY
-      value: AIzaSyA5eIqf1gH5iJ3kL7mN9oPqRsTuVwXyZ0E
+      value: AIzaSyBrAvZz2JPf9xf0QiJvKw6W3Zs3eetCROE
