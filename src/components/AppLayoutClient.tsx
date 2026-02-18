@@ -2,6 +2,7 @@
 import { usePathname } from 'next/navigation';
 import BottomNavBar from '@/components/bottom-nav-bar';
 import React from 'react';
+import { Toaster } from "@/components/ui/toaster";
 
 // These are the routes that should have the main app layout with the bottom nav bar.
 const APP_ROUTES = [
@@ -25,10 +26,16 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
             <div className="relative flex flex-col h-full bg-background">
                 <main className="flex-1 overflow-y-auto pb-16">{children}</main>
                 <BottomNavBar />
+                <Toaster />
             </div>
         );
     }
     
     // For non-app pages (like /login), just render the children without the nav bar.
-    return <>{children}</>;
+    return (
+        <>
+            {children}
+            <Toaster />
+        </>
+    );
 }

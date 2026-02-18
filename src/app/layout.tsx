@@ -1,5 +1,4 @@
 import './globals.css';
-import { Toaster } from "@/components/ui/toaster";
 import { Providers } from '@/components/providers';
 import type { Metadata } from 'next';
 import AppLayoutClient from '@/components/AppLayoutClient';
@@ -31,7 +30,6 @@ export default function RootLayout({
           <AppLayoutClient>
             {children}
           </AppLayoutClient>
-          <Toaster />
         </Providers>
       </body>
     </html>
