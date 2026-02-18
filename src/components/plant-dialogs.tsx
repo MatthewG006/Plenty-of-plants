@@ -21,7 +21,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { updateWaterEvolvedProgress, updateWateringProgress, updateApplySheenProgress, updateApplyGlitterProgress, updateEvolutionProgress } from '@/lib/challenge-manager';
 import { ScrollArea } from './ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
-import { uploadImageAction } from '@/app/actions/image-actions';
+import { uploadImageAction } from '@/lib/actions/image-actions';
 
 
 const XP_PER_LEVEL = 1000;
