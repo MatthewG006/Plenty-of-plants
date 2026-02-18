@@ -12,7 +12,7 @@ export default function PublicRoute({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     if (!loading && user) {
-      router.push("/home");
+      router.push("/");
     }
   }, [user, loading, router]);
 

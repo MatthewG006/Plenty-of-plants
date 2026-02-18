@@ -52,7 +52,7 @@ function SignupForm() {
       await createUserDocument(user, referrerId);
 
       // On successful signup, route to the home page.
-      router.push('/home'); 
+      router.push('/'); 
 
     } catch (error: any) {
       console.error("Firebase Signup Error:", error);
