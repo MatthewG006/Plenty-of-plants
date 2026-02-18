@@ -9,7 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 import type { Plant } from '@/interfaces/plant';
 import Image from 'next/image';
 import { makeBackgroundTransparent } from '@/lib/image-compression';
-import { getImageDataUriAction } from '@/app/actions/image-actions';
+import { getImageDataUriAction } from '@/lib/actions/image-actions';
 
 const plantThoughts = [
     "What a lovely day in the park!",

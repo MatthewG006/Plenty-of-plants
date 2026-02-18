@@ -13,7 +13,7 @@ import type { Plant, ContestSession, Contestant } from '@/interfaces/plant';
 import { cn } from '@/lib/utils';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
-import { processContestState, startContestManually, sendHeartbeat } from '@/app/actions/contest-actions';
+import { processContestState, startContestManually, sendHeartbeat } from '@/lib/actions/contest-actions';
 import Link from 'next/link';
 import {
   doc,
