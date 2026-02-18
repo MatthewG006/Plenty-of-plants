@@ -7,7 +7,7 @@ import { Leaf, Loader2, Plus, Droplets, Sprout, Sparkles, LogIn } from 'lucide-r
 import Image from 'next/image';
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import type { Plant } from '@/interfaces/plant';
+import type { Plant, EvolvePlantOutput } from '@/interfaces/plant';
 import { cn } from '@/lib/utils';
 import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
@@ -16,7 +16,7 @@ import { PlantCareDialog, PlantSwapDialog, EvolveConfirmationDialog, EvolvePrevi
 import Link from 'next/link';
 import { makeBackgroundTransparent, isImageBlack, compressImage } from '@/lib/image-compression';
 import { updateChallengeProgress, updateEvolutionProgress } from '@/lib/challenge-manager';
-import { evolvePlantAction, getImageDataUriAction } from '@/app/actions/garden-actions';
+import { getImageDataUriAction } from '@/app/actions/garden-actions';
 import { uploadImageAction } from '@/app/actions/image-actions';
 
 const NUM_GARDEN_PLOTS = 12;
@@ -227,11 +227,22 @@ export default function GardenPage() {
         const imageToUse = evolvingPlant.form === 'Evolved' ? (evolvingPlant.baseImage || evolvingPlant.image) : evolvingPlant.image;
         const dataUri = await getImageDataUriAction(imageToUse);
         
-        const result = await evolvePlantAction({
-            name: evolvingPlant.name,
-            baseImageDataUri: dataUri,
-            form: evolvingPlant.form,
+        const response = await fetch('/api/evolve', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: evolvingPlant.name,
+                baseImageDataUri: dataUri,
+                form: evolvingPlant.form,
+            }),
         });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Evolution API request failed');
+        }
+
+        const result: EvolvePlantOutput = await response.json();
 
         if (await isImageBlack(result.newImageDataUri)) {
             throw new Error("AI generated a black image, please try again.");
