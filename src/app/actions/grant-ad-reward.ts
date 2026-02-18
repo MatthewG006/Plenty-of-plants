@@ -1,7 +1,6 @@
 
 'use server';
 
-import { auth, db } from "@/lib/firebase";
 import { claimFreeDraw, MAX_DRAWS } from "@/lib/draw-manager";
 
 /**

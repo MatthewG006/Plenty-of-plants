@@ -28,7 +28,7 @@ import {
   where,
   getDocs,
 } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db } from '@/firebase';
 import confetti from 'canvas-confetti';
 import { ContestPlantSelectionDialog } from '@/components/plant-dialogs';
 import { useParams, useRouter } from 'next/navigation';

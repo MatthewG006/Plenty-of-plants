@@ -2,7 +2,7 @@
 
 import {
   db,
-} from '@/lib/firebase';
+} from '@/firebase';
 import {
   doc,
   getDoc,

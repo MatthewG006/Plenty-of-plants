@@ -2,15 +2,13 @@
 'use server';
 
 import { getStorage, ref, listAll, getDownloadURL } from 'firebase/storage';
-import { getApps, initializeApp, getApp } from 'firebase/app';
+import { app } from '@/firebase';
 import { DrawPlantOutput } from '@/interfaces/plant';
-import { firebaseConfig } from '@/lib/firebase';
 
 // This function now fetches the image, converts it to a base64 data URI on the server,
 // and returns that to the client. This bypasses any client-side CORS issues.
 export async function drawPlantAction(existingImageFilenames: string[]): Promise<DrawPlantOutput> {
   try {
-    const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
     const storage = getStorage(app);
     const fallbackPlantsRef = ref(storage, 'fallback-plants');
 

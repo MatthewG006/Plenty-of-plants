@@ -2,7 +2,7 @@
 'use client';
 
 import { doc, getDoc, updateDoc, increment, runTransaction } from 'firebase/firestore';
-import { db } from './firebase';
+import { db } from '@/firebase';
 import type { GameData } from '@/interfaces/plant';
 import { getUserGameData } from './firestore';
 

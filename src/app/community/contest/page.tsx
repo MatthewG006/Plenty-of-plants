@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -13,7 +14,7 @@ import Link from 'next/link';
 import { ContestPlantSelectionDialog } from '@/components/plant-dialogs';
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
-import { db } from '@/lib/firebase';
+import { db } from '@/firebase';
 import {
   collection,
   query,

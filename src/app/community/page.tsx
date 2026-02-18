@@ -18,7 +18,7 @@ import { updateLikePlayerProgress } from '@/lib/challenge-manager';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import Link from 'next/link';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db } from '@/firebase';
 
 function SheenAnimation() {
     return (
