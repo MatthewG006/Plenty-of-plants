@@ -1,7 +1,17 @@
 
 import { NextResponse } from 'next/server';
-import { doc, updateDoc, increment } from 'firebase/firestore';
-import { db } from '@/firebase';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+
+// Correctly initialize the Admin SDK
+const apps = getApps();
+if (!apps.length) {
+  // In a deployed Firebase environment, GOOGLE_APPLICATION_CREDENTIALS is automatically set.
+  // For local development, you would use a service account key.
+  initializeApp();
+}
+
+const adminDb = getFirestore();
 
 export async function POST(req: Request) {
   try {
@@ -11,9 +21,9 @@ export async function POST(req: Request) {
       return new NextResponse('User ID is required.', { status: 400 });
     }
 
-    const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, {
-      fertilizerCount: increment(1)
+    const userRef = adminDb.collection('users').doc(userId);
+    await userRef.update({
+      fertilizerCount: FieldValue.increment(1)
     });
 
     return NextResponse.json({ success: true, message: 'Fertilizer awarded successfully.' });
