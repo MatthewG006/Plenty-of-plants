@@ -1,17 +1,29 @@
 
 import { NextResponse } from 'next/server';
-import { updateUserRubies } from '@/lib/firestore';
+import { initializeApp, getApps } from 'firebase-admin/app';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+
+// Initialize the Admin SDK
+if (!getApps().length) {
+  initializeApp();
+}
+
+const adminDb = getFirestore();
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const userId = body?.userId;
+    const { userId } = await req.json();
 
     if (!userId) {
       return new NextResponse('User ID is required.', { status: 400 });
     }
 
-    await updateUserRubies(userId, 5); // Award 5 rubies
+    const userRef = adminDb.collection('users').doc(userId);
+
+    // Atomically increment the user's ruby count by 5
+    await userRef.update({
+      rubyCount: FieldValue.increment(5)
+    });
 
     return NextResponse.json({ success: true, message: 'Rubies awarded successfully.' });
   } catch (error) {
