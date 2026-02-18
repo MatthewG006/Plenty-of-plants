@@ -13,10 +13,10 @@ import type { DrawPlantOutput } from '@/interfaces/plant';
 import { savePlant, updatePlant } from '@/lib/firestore';
 import { compressImage } from '@/lib/image-compression';
 import { NewPlantDialog } from '@/components/plant-dialogs';
-import { drawPlantAction } from '@/app/actions/draw-plant';
+import { drawPlantAction } from '@/lib/actions/draw-plant';
 import { refundDraw } from '@/lib/draw-manager';
 import { updateCollectionProgress } from '@/lib/challenge-manager';
-import { uploadImageAction } from '@/app/actions/image-actions';
+import { uploadImageAction } from '@/lib/actions/image-actions';
 
 
 // Helper to format time from milliseconds

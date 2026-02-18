@@ -16,8 +16,8 @@ import { PlantCareDialog, PlantSwapDialog, EvolveConfirmationDialog, EvolvePrevi
 import Link from 'next/link';
 import { makeBackgroundTransparent, isImageBlack, compressImage } from '@/lib/image-compression';
 import { updateChallengeProgress, updateEvolutionProgress } from '@/lib/challenge-manager';
-import { getImageDataUriAction } from '@/app/actions/garden-actions';
-import { uploadImageAction } from '@/app/actions/image-actions';
+import { getImageDataUriAction } from '@/lib/actions/garden-actions';
+import { uploadImageAction } from '@/lib/actions/image-actions';
 
 const NUM_GARDEN_PLOTS = 12;
 

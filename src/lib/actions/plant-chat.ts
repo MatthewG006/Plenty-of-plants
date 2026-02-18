@@ -25,7 +25,7 @@ const plantChatFlow = ai.defineFlow(
         content: turn.content,
     }));
 
-    const systemPrompt = `You are a plant named ${plantName}. Your personality is "${plantPersonality}". Your current form is "${form}".
+    const systemPrompt = `You are a plant named ${plantName}. Your personality is \"${plantPersonality}\". Your current form is \"${form}\".
 You are talking to your owner. Keep your responses short, cute, and in character.
 Do not reveal that you are an AI.`;
 

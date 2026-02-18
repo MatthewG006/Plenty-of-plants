@@ -16,7 +16,7 @@ import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { deletePlant, unlockPlantChat, addConversationHistory, useWaterRefill, useGlitter, useSheen, useRainbowGlitter, useRedGlitter, waterPlant, updatePlant, saveEvolution } from '@/lib/firestore';
 import { AlertDialog, AlertDialogTrigger, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription as AlertDialogDescriptionComponent } from '@/components/ui/alert-dialog';
-import { plantChatAction } from '@/app/actions/plant-chat';
+import { plantChatAction } from '@/lib/actions/plant-chat';
 import { Textarea } from '@/components/ui/textarea';
 import { updateWaterEvolvedProgress, updateWateringProgress, updateApplySheenProgress, updateApplyGlitterProgress, updateEvolutionProgress } from '@/lib/challenge-manager';
 import { ScrollArea } from './ui/scroll-area';

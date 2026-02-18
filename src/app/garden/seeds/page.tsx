@@ -10,7 +10,7 @@ import { useAudio } from '@/context/AudioContext';
 import { useAuth } from '@/context/AuthContext';
 import { growSeed, savePlant, useFertilizer } from '@/lib/firestore';
 import type { Seed, DrawPlantOutput, Plant } from '@/interfaces/plant';
-import { drawPlantAction } from '@/app/actions/draw-plant';
+import { drawPlantAction } from '@/lib/actions/draw-plant';
 import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -18,7 +18,7 @@ import { makeBackgroundTransparent, compressImage } from '@/lib/image-compressio
 import { NewPlantDialog } from '@/components/plant-dialogs';
 import { updateCollectionProgress } from '@/lib/challenge-manager';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { uploadImageAction } from '@/app/actions/image-actions';
+import { uploadImageAction } from '@/lib/actions/image-actions';
 
 
 const GERMINATION_TIME_MS = 24 * 60 * 60 * 1000; // 24 hours

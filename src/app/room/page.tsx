@@ -26,7 +26,7 @@ import { updatePlantArrangement, updatePlant } from '@/lib/firestore';
 import { PlantDetailDialog, PlantChatDialog } from '@/components/plant-dialogs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { makeBackgroundTransparent } from '@/lib/image-compression';
-import { getImageDataUriAction } from '@/app/actions/image-actions';
+import { getImageDataUriAction } from '@/lib/actions/image-actions';
 import Link from 'next/link';
 
 

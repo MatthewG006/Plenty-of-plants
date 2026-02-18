@@ -26,7 +26,7 @@ import {
   Timestamp,
   runTransaction,
 } from "firebase/firestore";
-import { cleanupExpiredContests } from '@/app/actions/contest-actions';
+import { cleanupExpiredContests } from '@/lib/actions/contest-actions';
 
 // Helper to safely convert Firestore Timestamps to ISO strings
 const safeTimestampToISO = (ts: any): string => {

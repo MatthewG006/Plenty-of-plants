@@ -19,7 +19,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { grantAdReward } from '@/app/actions/grant-ad-reward';
+import { grantAdReward } from '@/lib/actions/grant-ad-reward';
 import PayPalPurchase from '@/components/PayPalPurchase';
 import Link from 'next/link';
 

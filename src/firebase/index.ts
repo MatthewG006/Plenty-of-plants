@@ -1,39 +1,27 @@
-'use client';
-import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
-import { getAuth, type Auth } from 'firebase/auth';
-import { getFirestore, type Firestore } from 'firebase/firestore';
-import { firebaseConfig } from './config';
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getAnalytics, isSupported } from "firebase/analytics";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
-type FirebaseInstances = {
-    app: FirebaseApp;
-    auth: Auth;
-    db: Firestore;
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-let firebaseInstances: FirebaseInstances | null = null;
+// Initialize Firebase (Prevents re-initialization during Next.js hot reloads)
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-export const initializeFirebase = (): FirebaseInstances => {
-    if (firebaseInstances) {
-        return firebaseInstances;
-    }
+// Initialize services
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-    if (!firebaseConfig.apiKey) {
-        throw new Error("Missing Firebase API Key. Please make sure NEXT_PUBLIC_FIREBASE_API_KEY is set in your .env.local file.");
-    }
+// Analytics only runs in the browser
+const analytics = typeof window !== 'undefined' ? 
+  isSupported().then(yes => yes ? getAnalytics(app) : null) : null;
 
-    const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    firebaseInstances = { app, auth, db };
-    return firebaseInstances;
-};
-
-// Export instances for use where hooks can't be used.
-const { app, auth, db } = initializeFirebase();
 export { app, auth, db };
-
-
-// Export hooks and providers for component use.
-export { FirebaseProvider, useFirebase, useFirebaseApp, useAuth, useFirestore } from './provider';
-export { useUser } from './auth/use-user';
