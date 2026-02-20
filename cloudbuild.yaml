@@ -4,6 +4,21 @@ steps:
   - name: 'gcr.io/cloud-builders/npm'
     args: ['install']
 
+  # Debugging Step: Print specific environment variables to verify secrets
+  - name: 'gcr.io/cloud-builders/bash'
+    args:
+      - '-c'
+      - |
+        echo "--- VERIFYING SECRET ENVIRONMENT VARIABLES ---"
+        echo "GEMINI_API_KEY is present: $GEMINI_API_KEY"
+        echo "NEXT_PUBLIC_PAYPAL_CLIENT_ID is present: $NEXT_PUBLIC_PAYPAL_CLIENT_ID"
+        echo "NEXT_PUBLIC_FIREBASE_API_KEY is present: $NEXT_PUBLIC_FIREBASE_API_KEY"
+        echo "--- FINISHED VERIFICATION ---"
+    secretEnv:
+      - GEMINI_API_KEY
+      - NEXT_PUBLIC_PAYPAL_CLIENT_ID
+      - NEXT_PUBLIC_FIREBASE_API_KEY
+
   # Build the Next.js application
   # The secretEnv makes the secrets available as environment variables to this step
   - name: 'gcr.io/cloud-builders/npm'
@@ -13,7 +28,6 @@ steps:
       - NEXT_PUBLIC_PAYPAL_CLIENT_ID
       - NEXT_PUBLIC_FIREBASE_API_KEY
 
-# Configuration to make secrets from Secret Manager available to the build steps
 availableSecrets:
   secretManager:
     # Gemini API Key for server-side Genkit
@@ -27,10 +41,3 @@ availableSecrets:
     # Firebase API Key, prefixed for client-side access in Next.js
     - versionName: projects/plentyofplants-108e8/secrets/FIREBASE_API_KEY/versions/latest
       env: 'NEXT_PUBLIC_FIREBASE_API_KEY'
-
-# Note: You can add deployment steps here, for example, deploying to Firebase App Hosting.
-# For example:
-#
-# - name: 'gcr.io/google.com/firebase'
-#   args: ['apphosting:backends:deploy', 'your-backend-id', '--region=us-central1']
-
