@@ -1,25 +1,19 @@
 
-build:
-  run: npm run build
-
-run:
-  run: npm run start
-  env:
-    - variable: NEXT_PUBLIC_FIREBASE_API_KEY
-      value: AIzaSyDIDcRfl_Rw9YVeiIk3wphaA_y-rbEVjvY
-    - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-      value: plentyofplants-108e8.firebaseapp.com
-    - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
-      value: plentyofplants-108e8
-    - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-      value: plentyofplants-108e8.firebasestorage.app
-    - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-      value: "317861154450"
-    - variable: NEXT_PUBLIC_FIREBASE_APP_ID
-      value: 1:317861154450:web:80d6fa02d91721ad64e04b
-    - variable: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
-      value: G-LH1TQP8ERQ
-    - variable: PAYPAL_APP_SECRET
-      value: ""
+# Specifies the version of the App Hosting configuration
+runConfig:
+  # Defines the environment variables that will be available to your application
+  environment:
+    # This variable will hold the Gemini API key for server-side use
     - variable: GEMINI_API_KEY
-      value: AIzaSyBrAvZz2JPf9xf0QiJvKw6W3Zs3eetCROE
+      # References the secret stored in Google Cloud Secret Manager
+      secret: GEMINI_API_KEY
+
+    # This variable will hold the PayPal Client ID for client-side use
+    - variable: NEXT_PUBLIC_PAYPAL_CLIENT_ID
+      # References the secret stored in Google Cloud Secret Manager
+      secret: PAYPAL_CLIENT_ID
+
+    # This variable will hold the Firebase API Key for client-side use
+    - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+      # References the secret stored in Google Cloud Secret Manager
+      secret: FIREBASE_API_KEY
