@@ -415,6 +415,43 @@ export default function ShopPage() {
         </Card>
 
         <Separator />
+
+         <Card className="shadow-sm border-purple-500/50">
+          <CardHeader>
+            <div className="flex items-center gap-4">
+              <ShoppingCart className="h-8 w-8 text-purple-500" />
+              <div>
+                <CardTitle className="text-xl text-purple-600">Premium Shop</CardTitle>
+                <CardDescription>Purchase special items with real money.</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+             {payPalClientId && user ? (
+                <div className="p-4 rounded-lg bg-muted/50 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="font-bold text-primary">Fertilizer</p>
+                            <p className="text-sm text-muted-foreground">Reduces seed time by 8 hours.</p>
+                        </div>
+                        <p className="font-bold text-lg text-primary">$0.50</p>
+                    </div>
+                    <PayPalPurchase
+                        clientId={payPalClientId} 
+                        amount="0.50"
+                        description="Fertilizer"
+                        onSuccess={() => handlePurchaseSuccess('/api/on-fertilizer-purchase', 'You received a Fertilizer.', 'Failed to grant fertilizer.')}
+                    />
+                </div>
+             ) : (
+                <div className="text-center text-muted-foreground p-4">
+                    {user ? <p>Loading payment options...</p> : <Button onClick={() => router.push('/login')}><LogIn className="mr-2 h-4 w-4"/>Log In to Buy Items</Button>}
+                </div>
+             )}
+          </CardContent>
+        </Card>
+
+        <Separator />
         
         <Card className="shadow-sm border-red-500/50">
           <CardHeader>

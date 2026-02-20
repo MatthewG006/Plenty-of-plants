@@ -552,6 +552,13 @@ export async function purchasePlantChat(uid: string, cost: number): Promise < vo
   });
 }
 
+export async function purchaseFertilizer(uid: string): Promise<void> {
+  const userRef = doc(db, 'users', uid);
+  await updateDoc(userRef, {
+    fertilizerCount: increment(1),
+  });
+}
+
 export async function updateUserRubies(uid: string, amount: number): Promise < void > {
   const userRef = doc(db, 'users', uid);
   await updateDoc(userRef, {
