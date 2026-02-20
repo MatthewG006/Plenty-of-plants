@@ -1,6 +1,6 @@
-export const dynamic = 'force-dynamic';
-
 'use client';
+
+export const dynamic = 'force-dynamic';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2, Users, Leaf, Sparkles, ShieldAlert, Heart, Star, Trees, Coins, LogIn } from 'lucide-react';
