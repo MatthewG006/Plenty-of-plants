@@ -1,0 +1,36 @@
+
+steps:
+  # Install dependencies
+  - name: 'gcr.io/cloud-builders/npm'
+    args: ['install']
+
+  # Build the Next.js application
+  # The secretEnv makes the secrets available as environment variables to this step
+  - name: 'gcr.io/cloud-builders/npm'
+    args: ['run', 'build']
+    secretEnv:
+      - GEMINI_API_KEY
+      - NEXT_PUBLIC_PAYPAL_CLIENT_ID
+      - NEXT_PUBLIC_FIREBASE_API_KEY
+
+# Configuration to make secrets from Secret Manager available to the build steps
+availableSecrets:
+  secretManager:
+    # Gemini API Key for server-side Genkit
+    - versionName: projects/plentyofplants-108e8/secrets/GEMINI_API_KEY/versions/latest
+      env: 'GEMINI_API_KEY'
+
+    # PayPal Client ID, prefixed for client-side access in Next.js
+    - versionName: projects/plentyofplants-108e8/secrets/PAYPAL_CLIENT_ID/versions/latest
+      env: 'NEXT_PUBLIC_PAYPAL_CLIENT_ID'
+
+    # Firebase API Key, prefixed for client-side access in Next.js
+    - versionName: projects/plentyofplants-108e8/secrets/FIREBASE_API_KEY/versions/latest
+      env: 'NEXT_PUBLIC_FIREBASE_API_KEY'
+
+# Note: You can add deployment steps here, for example, deploying to Firebase App Hosting.
+# For example:
+#
+# - name: 'gcr.io/google.com/firebase'
+#   args: ['apphosting:backends:deploy', 'your-backend-id', '--region=us-central1']
+
