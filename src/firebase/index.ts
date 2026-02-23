@@ -1,6 +1,6 @@
 
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
-import { getAuth, Auth } from "firebase/auth";
+import { getAuth as firebaseGetAuth, Auth } from "firebase/auth";
 import { getFirestore, Firestore } from "firebase/firestore";
 import { getAnalytics, isSupported, Analytics } from "firebase/analytics";
 
@@ -29,7 +29,7 @@ const getClientApp = (): FirebaseApp => {
 // Export functions that will be used to get the Firebase services.
 // This ensures that getClientApp() is only called when a service is needed.
 export const getDb = (): Firestore => getFirestore(getClientApp());
-export const getAuth = (): Auth => getAuth(getClientApp());
+export const getAuth = (): Auth => firebaseGetAuth(getClientApp());
 export const getAnalyticsInstance = (): Promise<Analytics | null> => {
     if (typeof window !== 'undefined') {
         return isSupported().then(yes => yes ? getAnalytics(getClientApp()) : null);
