@@ -2,7 +2,7 @@
 'use client';
 
 import { doc, updateDoc, increment, setDoc } from 'firebase/firestore';
-import { db } from '@/firebase';
+import { getDb } from '@/firebase';
 import { getUserGameData } from './firestore';
 import type { GameData } from '@/interfaces/plant';
 
@@ -67,7 +67,7 @@ export const secondaryChallenges: Record<string, Omit<Challenge, 'progress' | 'c
     likePlayer: {
         id: 'likePlayer',
         title: 'Community Spirit',
-        description: 'Like another player\'s collection.',
+        description: "Like another player's collection.",
         target: 1,
         reward: 20,
     },
@@ -83,6 +83,7 @@ export const secondaryChallenges: Record<string, Omit<Challenge, 'progress' | 'c
 
 // Check if challenges need to be reset
 export async function checkAndResetChallenges(userId: string) {
+    const db = getDb();
     const gameData = await getUserGameData(userId);
     if (!gameData) return;
 
@@ -100,6 +101,7 @@ export async function checkAndResetChallenges(userId: string) {
 
 // Update challenge progress
 export async function updateChallengeProgress(userId: string, challengeId: string, value: number = 1) {
+    const db = getDb();
     const userDocRef = doc(db, 'users', userId);
     const gameData = await getUserGameData(userId);
     if (!gameData) return;
@@ -141,6 +143,7 @@ export const updateLoginProgress = async (userId: string) => {
 
 // Claim reward
 export async function claimChallengeReward(userId: string, challengeId: string) {
+    const db = getDb();
     const userDocRef = doc(db, 'users', userId);
     const gameData = await getUserGameData(userId);
     if (!gameData) throw new Error("User data not found.");

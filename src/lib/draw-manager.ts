@@ -2,7 +2,7 @@
 'use client';
 
 import { doc, getDoc, updateDoc, increment, runTransaction } from 'firebase/firestore';
-import { db } from '@/firebase';
+import { getDb } from '@/firebase';
 import type { GameData } from '@/interfaces/plant';
 import { getUserGameData } from './firestore';
 
@@ -10,6 +10,7 @@ export const MAX_DRAWS = 2;
 const REFILL_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
 
 export async function refillDraws(userId: string): Promise<number> {
+    const db = getDb();
     const userRef = doc(db, 'users', userId);
 
     try {
@@ -54,6 +55,7 @@ export async function refillDraws(userId: string): Promise<number> {
 }
 
 export async function useDraw(userId: string) {
+    const db = getDb();
     const gameData = await getUserGameData(userId);
     if (!gameData) return;
 
@@ -72,6 +74,7 @@ export async function useDraw(userId: string) {
 }
 
 export async function refundDraw(userId: string) {
+    const db = getDb();
     const userDocRef = doc(db, 'users', userId);
     await updateDoc(userDocRef, {
         draws: increment(1)
@@ -79,6 +82,7 @@ export async function refundDraw(userId: string) {
 }
 
 export async function claimFreeDraw(userId: string, options?: { useGold?: boolean, cost?: number }): Promise<{ success: boolean; newCount: number; reason?: string }> {
+  const db = getDb();
   const userDocRef = doc(db, 'users', userId);
 
   try {
