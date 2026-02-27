@@ -1,5 +1,5 @@
 
-import { getDb } from '@/firebase';
+import { db } from '@/firebase';
 import {
   doc,
   getDoc,
@@ -37,7 +37,6 @@ function isToday(timestamp: number): boolean {
 export async function createUserDocument(user: {
   uid: string;email: string | null, displayName ? : string | null
 }, referrerId ? : string): Promise < GameData > {
-  const db = getDb();
   const userRef = doc(db, 'users', user.uid);
   const userSnap = await getDoc(userRef);
 
@@ -101,14 +100,12 @@ export async function createUserDocument(user: {
 }
 
 export async function getUserGameData(uid: string): Promise < GameData | null > {
-  const db = getDb();
   const userRef = doc(db, 'users', uid);
   const userSnap = await getDoc(userRef);
   return userSnap.exists() ? (userSnap.data() as GameData) : null;
 }
 
 export async function savePlant(uid: string, plantData: DrawPlantOutput, imageUrl: string): Promise < Plant > {
-  const db = getDb();
   const userRef = doc(db, 'users', uid);
 
   let newPlant: Plant | null = null;
@@ -160,7 +157,6 @@ export async function savePlant(uid: string, plantData: DrawPlantOutput, imageUr
 export async function claimLoginReward(uid: string, newStreak: number, reward: {
   type: string, amount: number
 }): Promise < void > {
-  const db = getDb();
   const userRef = doc(db, 'users', uid);
 
   await runTransaction(db, async (transaction) => {
@@ -195,7 +191,6 @@ export async function claimLoginReward(uid: string, newStreak: number, reward: {
 
 
 export async function getCommunityUsers(): Promise < any[] > {
-  const db = getDb();
   const usersRef = collection(db, 'users');
   const q = query(usersRef, orderBy('likes', 'desc'), limit(20));
   const snapshot = await getDocs(q);
@@ -223,7 +218,6 @@ export async function getCommunityUsers(): Promise < any[] > {
 }
 
 export async function likeUser(likerId: string, likedUserId: string): Promise < void > {
-  const db = getDb();
   const likedUserRef = doc(db, 'users', likedUserId);
   const likerRef = doc(db, 'users', likerId);
 
@@ -251,7 +245,6 @@ export async function likeUser(likerId: string, likedUserId: string): Promise < 
 
 
 export async function updateShowcasePlants(uid: string, plantIds: number[]): Promise < void > {
-  const db = getDb();
   const userRef = doc(db, 'users', uid);
   await updateDoc(userRef, {
     showcasePlantIds: plantIds
@@ -259,7 +252,6 @@ export async function updateShowcasePlants(uid: string, plantIds: number[]): Pro
 }
 
 export async function updatePlantArrangement(uid: string, collectionPlantIds: (number | null)[], deskPlantIds: (number | null)[]): Promise < void > {
-  const db = getDb();
   const userRef = doc(db, 'users', uid);
   await updateDoc(userRef, {
     collectionPlantIds: collectionPlantIds.filter(id => id !== null),
@@ -268,7 +260,6 @@ export async function updatePlantArrangement(uid: string, collectionPlantIds: (n
 }
 
 export async function updateGardenArrangement(uid: string, collectionPlantIds: (number | null)[], gardenPlantIds: (number | null)[]): Promise < void > {
-  const db = getDb();
   const userRef = doc(db, 'users', uid);
   await updateDoc(userRef, {
     collectionPlantIds: collectionPlantIds.filter(id => id !== null),
@@ -283,7 +274,6 @@ export async function waterPlant(uid: string, plantId: number): Promise<{
     xpGained: number,
     seedCollected: boolean
 }> {
-    const db = getDb();
     const userRef = doc(db, 'users', uid);
     let leveledUp = false;
     let newLevel: number | undefined = undefined;
@@ -343,7 +333,6 @@ export async function waterPlant(uid: string, plantId: number): Promise<{
 
 
 export async function useWaterRefill(uid: string, plantId: number): Promise < void > {
-  const db = getDb();
   const userRef = doc(db, 'users', uid);
   await runTransaction(db, async (transaction) => {
     const userDoc = await transaction.get(userRef);
@@ -374,7 +363,6 @@ export async function useSprinkler(uid: string): Promise<{
     seedsCollected: number,
     newlyEvolvablePlants: { id: number, name: string }[]
 }> {
-    const db = getDb();
     const userRef = doc(db, 'users', uid);
     let plantsWatered = 0;
     let seedsCollected = 0;
@@ -447,7 +435,6 @@ export async function useSprinkler(uid: string): Promise<{
 }
 
 export async function deletePlant(uid: string, plantId: number): Promise < void > {
-  const db = getDb();
   const userRef = doc(db, 'users', uid);
   await runTransaction(db, async (transaction) => {
     const userDoc = await transaction.get(userRef);
@@ -470,7 +457,6 @@ export async function deletePlant(uid: string, plantId: number): Promise < void 
 }
 
 export async function updatePlant(uid: string, plantId: number, data: Partial < Plant > ): Promise < void > {
-  const db = getDb();
   const userRef = doc(db, 'users', uid);
   const updates: {
     [key: string]: any
@@ -482,7 +468,6 @@ export async function updatePlant(uid: string, plantId: number, data: Partial < 
 }
 
 export async function saveEvolution(uid: string, plantId: number, updateData: Partial<Plant>): Promise<void> {
-    const db = getDb();
     const userRef = doc(db, 'users', uid);
     const updates: { [key: string]: any } = {};
     for (const key in updateData) {
@@ -492,7 +477,6 @@ export async function saveEvolution(uid: string, plantId: number, updateData: Pa
 }
 
 export async function useGlitter(uid: string): Promise < void > {
-  const db = getDb();
   const userRef = doc(db, 'users', uid);
   await updateDoc(userRef, {
     glitterCount: increment(-1)
@@ -500,7 +484,6 @@ export async function useGlitter(uid: string): Promise < void > {
 }
 
 export async function useSheen(uid: string): Promise < void > {
-  const db = getDb();
   const userRef = doc(db, 'users', uid);
   await updateDoc(userRef, {
     sheenCount: increment(-1)
@@ -508,7 +491,6 @@ export async function useSheen(uid: string): Promise < void > {
 }
 
 export async function useRainbowGlitter(uid: string): Promise < void > {
-  const db = getDb();
   const userRef = doc(db, 'users', uid);
   await updateDoc(userRef, {
     rainbowGlitterCount: increment(-1)
@@ -516,7 +498,6 @@ export async function useRainbowGlitter(uid: string): Promise < void > {
 }
 
 export async function useRedGlitter(uid: string): Promise < void > {
-  const db = getDb();
   const userRef = doc(db, 'users', uid);
   await updateDoc(userRef, {
     redGlitterCount: increment(-1)
@@ -525,7 +506,6 @@ export async function useRedGlitter(uid: string): Promise < void > {
 
 
 export async function purchaseCosmetic(uid: string, cosmeticType: 'glitterCount' | 'sheenCount' | 'rainbowGlitterCount' | 'redGlitterCount', amount: number, cost: number): Promise < void > {
-  const db = getDb();
   const userRef = doc(db, 'users', uid);
   await updateDoc(userRef, {
     [cosmeticType]: increment(amount),
@@ -534,7 +514,6 @@ export async function purchaseCosmetic(uid: string, cosmeticType: 'glitterCount'
 }
 
 export async function purchaseSprinkler(uid: string, cost: number): Promise < void > {
-  const db = getDb();
   const userRef = doc(db, 'users', uid);
   await updateDoc(userRef, {
     sprinklerUnlocked: true,
@@ -543,7 +522,6 @@ export async function purchaseSprinkler(uid: string, cost: number): Promise < vo
 }
 
 export async function purchaseWaterRefill(uid: string, cost: number): Promise < void > {
-  const db = getDb();
   const userRef = doc(db, 'users', uid);
   await updateDoc(userRef, {
     waterRefillCount: increment(1),
@@ -552,7 +530,6 @@ export async function purchaseWaterRefill(uid: string, cost: number): Promise < 
 }
 
 export async function purchaseBundle(uid: string, cost: number): Promise < void > {
-  const db = getDb();
   const userRef = doc(db, 'users', uid);
   await updateDoc(userRef, {
     glitterCount: increment(1),
@@ -565,7 +542,6 @@ export async function purchaseBundle(uid: string, cost: number): Promise < void 
 }
 
 export async function purchasePlantChat(uid: string, cost: number): Promise < void > {
-  const db = getDb();
   const userRef = doc(db, 'users', uid);
   await updateDoc(userRef, {
     plantChatTokens: increment(1),
@@ -574,7 +550,6 @@ export async function purchasePlantChat(uid: string, cost: number): Promise < vo
 }
 
 export async function purchaseFertilizer(uid: string): Promise<void> {
-  const db = getDb();
   const userRef = doc(db, 'users', uid);
   await updateDoc(userRef, {
     fertilizerCount: increment(1),
@@ -582,7 +557,6 @@ export async function purchaseFertilizer(uid: string): Promise<void> {
 }
 
 export async function updateUserRubies(uid: string, amount: number): Promise < void > {
-  const db = getDb();
   const userRef = doc(db, 'users', uid);
   await updateDoc(userRef, {
     rubyCount: increment(amount)
@@ -591,7 +565,6 @@ export async function updateUserRubies(uid: string, amount: number): Promise < v
 
 
 export async function unlockPlantChat(uid: string, plantId: number): Promise < void > {
-  const db = getDb();
   const userRef = doc(db, 'users', uid);
   await runTransaction(db, async (transaction) => {
     const userDoc = await transaction.get(userRef);
@@ -610,7 +583,6 @@ export async function unlockPlantChat(uid: string, plantId: number): Promise < v
 }
 
 export async function addConversationHistory(uid: string, plantId: number, userMessage: string, modelResponse: string): Promise < void > {
-  const db = getDb();
   const userRef = doc(db, 'users', uid);
 
   const userTurn = {
@@ -629,7 +601,6 @@ export async function addConversationHistory(uid: string, plantId: number, userM
 
 
 export async function addSeed(uid: string): Promise < void > {
-  const db = getDb();
   const userRef = doc(db, 'users', uid);
   await runTransaction(db, async (transaction) => {
     const userDoc = await transaction.get(userRef);
@@ -652,7 +623,6 @@ export async function addSeed(uid: string): Promise < void > {
 }
 
 export async function growSeed(uid: string, seedId: string): Promise < void > {
-  const db = getDb();
   const userRef = doc(db, 'users', uid);
   await runTransaction(db, async (transaction) => {
     const userDoc = await transaction.get(userRef);
@@ -668,7 +638,6 @@ export async function growSeed(uid: string, seedId: string): Promise < void > {
 }
 
 export async function useFertilizer(uid: string, seedId: string): Promise < void > {
-  const db = getDb();
   const userRef = doc(db, 'users', uid);
   await runTransaction(db, async (transaction) => {
     const userDoc = await transaction.get(userRef);
@@ -696,7 +665,6 @@ export async function useFertilizer(uid: string, seedId: string): Promise < void
 }
 
 export async function awardContestPrize(userId: string) {
-  const db = getDb();
   const userRef = doc(db, 'users', userId);
   await updateDoc(userRef, {
     gold: increment(50),
@@ -706,7 +674,6 @@ export async function awardContestPrize(userId: string) {
 
 
 export async function purchaseTimeReducer(userId: string) {
-  const db = getDb();
   const userRef = doc(db, 'users', userId);
   await updateDoc(userRef, {
     fertilizerCount: increment(1)
@@ -714,8 +681,7 @@ export async function purchaseTimeReducer(userId: string) {
 }
 
 export async function purchaseSeasonalPlantPack(userId: string) {
-  const db = getDb();
-  const userRef = doc(db, 'users', userId);
+  const userRef = doc(db, 'users', uid);
 
   let newPlant: Plant | null = null;
 
@@ -758,7 +724,6 @@ export async function purchaseSeasonalPlantPack(userId: string) {
 }
 
 export async function markPopupAsSeen(uid: string, popupId: string): Promise < void > {
-  const db = getDb();
   const userRef = doc(db, 'users', uid);
   await updateDoc(userRef, {
     seenPopups: arrayUnion(popupId)

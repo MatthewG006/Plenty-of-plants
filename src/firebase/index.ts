@@ -1,8 +1,8 @@
 
-import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
-import { getAuth as firebaseGetAuth, Auth } from "firebase/auth";
-import { getFirestore, Firestore } from "firebase/firestore";
-import { getAnalytics, isSupported, Analytics } from "firebase/analytics";
+import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
+import { getAuth, type Auth } from "firebase/auth";
+import { getFirestore, type Firestore } from "firebase/firestore";
+import { getAnalytics, isSupported, type Analytics } from "firebase/analytics";
 
 const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -14,25 +14,15 @@ const firebaseConfig = {
     measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-const getClientApp = (): FirebaseApp => {
-    if (getApps().length) {
-        return getApp();
-    }
-    
-    if (!firebaseConfig.apiKey) {
-        throw new Error('Firebase API key is not available. Check your environment variables.');
-    }
+// Initialize Firebase
+export const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
+export const db: Firestore = getFirestore(app);
+export const auth: Auth = getAuth(app);
 
-    return initializeApp(firebaseConfig);
-};
-
-// Export functions that will be used to get the Firebase services.
-// This ensures that getClientApp() is only called when a service is needed.
-export const getDb = (): Firestore => getFirestore(getClientApp());
-export const getAuth = (): Auth => firebaseGetAuth(getClientApp());
+// Analytics (optional, only in browser)
 export const getAnalyticsInstance = (): Promise<Analytics | null> => {
     if (typeof window !== 'undefined') {
-        return isSupported().then(yes => yes ? getAnalytics(getClientApp()) : null);
+        return isSupported().then(yes => yes ? getAnalytics(app) : null);
     }
     return Promise.resolve(null);
 };

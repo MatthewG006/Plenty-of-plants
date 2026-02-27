@@ -1,7 +1,8 @@
+
 'use client';
 
 import { createContext, useContext, type ReactNode } from 'react';
-import { getAuth, getDb } from './index';
+import { auth, db } from './index';
 import type { Auth } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
 
@@ -13,7 +14,7 @@ type FirebaseContextType = {
 const FirebaseContext = createContext<FirebaseContextType | undefined>(undefined);
 
 export const FirebaseProvider = ({ children }: { children: ReactNode }) => {
-    const instances = { auth: getAuth(), db: getDb() };
+    const instances = { auth, db };
 
     return (
         <FirebaseContext.Provider value={instances}>
