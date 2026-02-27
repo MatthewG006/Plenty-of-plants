@@ -15,6 +15,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: 'Fertilizer purchased successfully' });
   } catch (error) {
     console.error('Error purchasing fertilizer:', error);
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Internal Server Error';
+    return NextResponse.json({ message: errorMessage }, { status: 500 });
   }
 }
