@@ -1,6 +1,6 @@
 
 import { NextResponse } from 'next/server';
-import { purchaseFertilizer } from '@/lib/firestore';
+import { purchaseFertilizer } from '@/lib/firestore-admin';
 
 export async function POST(req: Request) {
   try {
