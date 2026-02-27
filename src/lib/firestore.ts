@@ -681,7 +681,7 @@ export async function purchaseTimeReducer(userId: string) {
 }
 
 export async function purchaseSeasonalPlantPack(userId: string) {
-  const userRef = doc(db, 'users', uid);
+  const userRef = doc(db, 'users', userId);
 
   let newPlant: Plant | null = null;
 
